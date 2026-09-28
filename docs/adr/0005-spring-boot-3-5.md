@@ -1,6 +1,6 @@
 # 0005. Spring Boot 3.5 en lugar de 4.x
 
-- **Estado:** Aceptado
+- **Estado:** Reemplazado por [0011](0011-spring-boot-4-y-java-25.md)
 - **Fecha:** 2026-09-28
 
 ## Contexto

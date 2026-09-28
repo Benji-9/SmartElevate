@@ -1,6 +1,6 @@
 ---
 name: backend-dev
-description: Implementa features del backend de SmartElevate (Spring Boot 3.5 / Java 17) - endpoints, services, entidades JPA, DTOs y sus tests - respetando la estructura por feature del repo. Usar cuando la tarea toca backend/.
+description: Implementa features del backend de SmartElevate (Spring Boot 4.1 / Java 25) - endpoints, services, entidades JPA, DTOs y sus tests - respetando la estructura por feature del repo. Usar cuando la tarea toca backend/.
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
