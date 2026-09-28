@@ -16,7 +16,6 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 | B-14 | [#25](https://github.com/Benji-9/SmartElevate/issues/25) | 🟡 | **Proveedor de email** | Necesario para verificar cuentas @uade.edu.ar. |
 | B-15 | [#26](https://github.com/Benji-9/SmartElevate/issues/26) | 🟡 | **Storage privado para certificados** | Depende de B-01. |
 | B-07 | [#1](https://github.com/Benji-9/SmartElevate/issues/1) | 🟡 | **Deployment Protection en previews de Vercel** | Si sigue activa, quien no es miembro del equipo de Vercel no puede abrir las previews. Confirmar si se desactivó. |
-| B-08 | [#10](https://github.com/Benji-9/SmartElevate/issues/10) | 🟡 | **Imagen Docker del backend no verificada** | El `Dockerfile` no se pudo buildear al armar el esqueleto. Probablemente lo necesite el hosting. |
 
 ## Cómo agregar un bloqueante
 
@@ -31,3 +30,4 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 | B-03 | [#4](https://github.com/Benji-9/SmartElevate/issues/4) | El deploy solo corre desde `main` | Primer release (#12). Producción en https://smart-elevate.vercel.app. |
 | B-04 | [#8](https://github.com/Benji-9/SmartElevate/issues/8) | API contract fuera del repo | Contrato OpenAPI generado desde el código y versionado en `docs/openapi.json`, con tipos TS generados para el front ([ADR 0006](adr/0006-contrato-api-openapi-code-first.md)). |
 | B-09 | [#3](https://github.com/Benji-9/SmartElevate/issues/3) | Protección de ramas | `main` y `develop` protegidas: PR obligatorio con checks `backend-verify`, `frontend-verify` y `branch-name`; reviews por CODEOWNERS. |
+| B-08 | [#10](https://github.com/Benji-9/SmartElevate/issues/10) | Imagen Docker del backend | Verificada: buildea, corre como usuario `spring` (no root), respeta `PORT` y responden `/api/ping` y `/actuator/health` contra Postgres. El CI del backend buildea la imagen en cada PR.
