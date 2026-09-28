@@ -1,4 +1,4 @@
-import type { PingResponse } from '../types/api';
+import type { ApiErrorBody, PingResponse } from '../types/api';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
@@ -25,7 +25,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     let message = response.statusText;
     try {
-      const body = (await response.json()) as { message?: string };
+      const body = (await response.json()) as Partial<ApiErrorBody>;
       message = body.message ?? message;
     } catch {
       // El cuerpo no es JSON: nos quedamos con statusText.
