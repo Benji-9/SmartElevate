@@ -47,3 +47,16 @@ jobs:
           path: backend/target/surefire-reports/
           if-no-files-found: warn
           retention-days: 14
+
+  docker:
+    name: backend-docker-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        run: docker build -t smartelevate-api backend/
