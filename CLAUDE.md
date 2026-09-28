@@ -52,7 +52,7 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 
 ## Convenciones de trabajo
 
-- Ramas: `main` ← `develop` ← `feature/*`. Nunca commitear en `main`/`develop` directamente.
+- Ramas: desde `develop` salen `feature/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/` y `ci/`; `hotfix/` sale de `main`. Nombre: `<prefijo>/<issue>-<kebab-case>` (p. ej. `feature/12-reservar-turno`). Lo valida `branch-policy.yml`. Nunca commitear en `main`/`develop` directamente.
 - Conventional Commits, chicos y atómicos: `feat(turn): ...`, `fix(frontend): ...`, `ci: ...`, `docs(adr): ...`.
 - **No hacer push** ni abrir PRs sin que lo pida quien está trabajando.
 - El trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver README). Los PRs referencian su issue (`Closes #N`).

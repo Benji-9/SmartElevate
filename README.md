@@ -126,16 +126,43 @@ Lo mismo que corre el CI del frontend: `npm ci && npm run lint && npm test -- --
 ## Estrategia de ramas
 
 ```
-main       ← producción (deploy automático a Vercel prod)
-  ↑ PR
-develop    ← integración (deploy a Vercel preview)
-  ↑ PR
-feature/*  ← una rama por tarea (también fix/*, chore/*, docs/*)
+main        ← producción (deploy automático a Vercel prod)
+  ↑ PR (merge commit)        ↑ PR
+develop     ← integración    hotfix/*  ← urgencias en producción (sale de main)
+  ↑ PR (squash)
+feature/* · fix/* · chore/* · docs/* · refactor/* · test/* · ci/*   (salen de develop)
 ```
 
-- Nadie pushea directo a `main` ni a `develop`: todo entra por PR con CI en verde y al menos 1 review.
-- Las ramas `feature/*` salen de `develop` y vuelven a `develop`.
-- Para liberar, se abre un PR `develop → main`.
+| Prefijo | Para qué | Sale de → vuelve a | Label automático |
+| --- | --- | --- | --- |
+| `feature/` | Funcionalidad nueva | `develop` → `develop` | `type: feature` |
+| `fix/` | Bug encontrado en `develop` | `develop` → `develop` | `type: bug` |
+| `chore/` | Dependencias, config, tooling | `develop` → `develop` | `type: chore` |
+| `docs/` | Solo documentación | `develop` → `develop` | `type: docs` |
+| `refactor/` | Cambio interno sin impacto funcional | `develop` → `develop` | `type: refactor` |
+| `test/` | Tests nuevos o ajustados | `develop` → `develop` | `type: test` |
+| `ci/` | Workflows, deploy | `develop` → `develop` | `type: ci-cd` |
+| `hotfix/` | Bug urgente en producción | `main` → `main` y después `develop` | `type: bug`, `priority: high` |
+
+**Nombre:** `<prefijo>/<numero-de-issue>-<descripcion-en-kebab-case>`, en minúsculas. Ej.: `feature/12-reservar-turno`, `fix/27-cupo-negativo`.
+
+```bash
+git switch develop && git pull
+git switch -c feature/12-reservar-turno
+# ... commits ...
+git push -u origin feature/12-reservar-turno   # y abrir PR contra develop
+```
+
+**Flujos:**
+
+- **Trabajo diario:** rama desde `develop` → PR a `develop` → merge con **squash** (un commit por PR, con el título del PR).
+- **Release:** PR `develop → main` → merge con **merge commit** (no squash, para que ambas ramas compartan historia). Dispara el deploy de producción.
+- **Hotfix:** rama `hotfix/*` desde `main` → PR a `main` → después, PR `main → develop` para no perder el arreglo.
+
+**Reglas (automáticas):**
+
+- `main` y `develop` están protegidas: nadie pushea directo, todo entra por PR con 1 aprobación, CI en verde (`backend-verify`, `frontend-verify`), rama al día y conversaciones resueltas.
+- El workflow [`branch-policy.yml`](.github/workflows/branch-policy.yml) falla el PR si la rama no respeta la convención o si a `main` llega algo que no sea `develop` o `hotfix/*`, y etiqueta el PR según el prefijo.
 
 ## Convención de commits
 
@@ -164,6 +191,7 @@ Commits chicos y atómicos. El título del PR también sigue la convención.
 | --- | --- | --- |
 | [`ci-backend.yml`](.github/workflows/ci-backend.yml) | PR y push a `main`/`develop` | Temurin 17 + cache Maven, `./mvnw -B verify`, sube los reportes de tests como artifact |
 | [`ci-frontend.yml`](.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, lint, tests, build |
+| [`branch-policy.yml`](.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
 
 Detalles:
