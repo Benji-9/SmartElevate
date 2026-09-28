@@ -1,0 +1,7 @@
+# Code owners de SmartElevate.
+# GitHub les pide review automáticamente en cada PR que toque estos archivos.
+# La aprobación NO es obligatoria (la protección de ramas no exige reviews de code owners).
+# La última regla que matchea gana: para sumar dueños por área, agregar reglas más específicas abajo.
+# Ej.: /backend/  @Benji-9 @otro-usuario
+
+*       @Benji-9 @LucasVazquez19
