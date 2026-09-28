@@ -1,0 +1,96 @@
+:root {
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-text: #1b1f24;
+  --color-muted: #5b6470;
+  --color-primary: #1d4ed8;
+  --color-ok: #15803d;
+  --color-error: #b91c1c;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #111418;
+    --color-surface: #1a1e24;
+    --color-text: #e6e8eb;
+    --color-muted: #9aa3ad;
+    --color-primary: #7aa2ff;
+    --color-ok: #4ade80;
+    --color-error: #f87171;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 30%, transparent);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.app-header ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-header a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.app-header a.active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.app-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.api-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  border: 1px solid currentColor;
+}
+
+.api-status--online {
+  color: var(--color-ok);
+}
+
+.api-status--offline {
+  color: var(--color-error);
+}
