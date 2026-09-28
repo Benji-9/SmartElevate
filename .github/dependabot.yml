@@ -16,12 +16,6 @@ updates:
     groups:
       maven-minor-patch:
         update-types: [minor, patch]
-    ignore:
-      # Nos quedamos en Spring Boot 3.x (ADR 0005); springdoc 3.x requiere Boot 4.
-      - dependency-name: 'org.springframework.boot:*'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'org.springdoc:*'
-        update-types: ['version-update:semver-major']
 
   - package-ecosystem: npm
     directory: /frontend

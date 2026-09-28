@@ -9,7 +9,7 @@ SmartElevate: MVP de 6 estudiantes de UADE para reducir la congestión de ascens
 ## Comandos
 
 ```bash
-# Backend (desde backend/) — Java 17, Spring Boot 3.5
+# Backend (desde backend/) — Java 25, Spring Boot 4.1
 ./mvnw verify                 # build + tests (lo que corre el CI)
 ./mvnw spring-boot:run        # perfil dev (H2), http://localhost:8080
 ./mvnw test -Dtest=PingControllerTest   # un test puntual
@@ -72,7 +72,7 @@ Si una regla es ambigua o contradictoria (hay 2 conocidas en `docs/reglas/turnos
 - El trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver README). Los PRs referencian su issue (`Closes #N`).
 - Decisiones de arquitectura → nuevo ADR en `docs/adr/` (usar `template.md`). Algo que bloquea → `docs/bloqueantes.md`.
 - Al fijar versiones de dependencias o actions, verificá la última versión real (Maven Central, npm, GitHub releases); no uses versiones de memoria.
-- Spring Boot se queda en 3.x (ver ADR 0005): no aceptar upgrades a 4.x.
+- Spring Boot 4.1 + Java 25 (ver ADR 0011). Boot 4 usa Jackson 3 (`tools.jackson`) y starters modulares: para testear una tecnología sumá su starter `*-test` (p. ej. `spring-boot-starter-data-jpa-test`).
 
 ## Agentes disponibles (`.claude/agents/`)
 

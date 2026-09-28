@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Build ----
-FROM eclipse-temurin:17-jdk-noble AS build
+FROM eclipse-temurin:25-jdk-noble AS build
 WORKDIR /workspace
 
 # Primero wrapper + pom para cachear dependencias entre builds.
@@ -14,7 +14,7 @@ RUN ./mvnw -B -q package -DskipTests \
     && cp target/smartelevate-api-*.jar app.jar
 
 # ---- Runtime ----
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S -G spring spring
