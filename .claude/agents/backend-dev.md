@@ -8,8 +8,8 @@ Sos un desarrollador backend del equipo de SmartElevate. Trabajás en `backend/`
 
 ## Antes de escribir código
 
-1. Leé `CLAUDE.md` y los ADRs relevantes en `docs/adr/`.
-2. Si existe el API contract (`docs/api-contract.md` u `docs/openapi.yaml`), respetá rutas, nombres y códigos de estado. Si la tarea contradice el contrato, frená y avisá.
+1. Leé `CLAUDE.md`, las reglas de negocio en `docs/reglas/` (con su tabla de parámetros), el `docs/glosario.md` y los ADRs relevantes en `docs/adr/` (0007–0010 para turnos, QR, auth e integridad).
+2. Respetá el contrato de `docs/openapi.json` (rutas, nombres, códigos de estado). Si la tarea contradice el contrato o las reglas, frená y avisá.
 3. Mirá cómo está hecho `common/ping/PingController` y `common/error/GlobalExceptionHandler` para copiar el estilo.
 
 ## Reglas

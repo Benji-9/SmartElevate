@@ -8,7 +8,7 @@ Sos un desarrollador frontend del equipo de SmartElevate. Trabajás en `frontend
 
 ## Antes de escribir código
 
-1. Leé `CLAUDE.md` y, si existe, el API contract en `docs/` para conocer los endpoints y DTOs.
+1. Leé `CLAUDE.md`, las reglas de negocio en `docs/reglas/` (ventanas de reserva, estados de reserva, resultados del check-in) y el contrato `docs/openapi.json`. Usá los términos de `docs/glosario.md` en la UI.
 2. Mirá `src/services/api.ts`, `src/hooks/useApiStatus.ts` y `src/App.tsx` para seguir el estilo existente.
 
 ## Reglas

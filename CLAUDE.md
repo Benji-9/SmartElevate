@@ -24,6 +24,18 @@ npm run format                # prettier --write
 
 Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y confirmá que pasan.
 
+## Reglas de negocio
+
+Antes de implementar algo de `turn`, `elevator`, `user` o `priority`, leé [`docs/reglas/`](docs/reglas/README.md) (y el [glosario](docs/glosario.md)). Puntos que no se negocian en el código:
+
+- La franja es una **salida de ascensor (~2 min)**, no un bloque de 15 min (ADR 0007).
+- **Parámetros en la tabla de configuración**, nunca hardcodeados (tiempos, ventanas, cupo, conexiones).
+- **Cupo atómico** (lock pesimista o constraint único), instantes en **UTC**, franjas en **America/Argentina/Buenos_Aires**, y un **`Clock` inyectable**: nada de `Instant.now()` directo en services (ADR 0010).
+- La prioridad se evalúa **en el servidor al reservar**, nunca desde un claim del JWT. El rol y la prioridad no vienen del registro (ADR 0009).
+- Los certificados son **datos de salud**: bucket privado, URLs firmadas cortas, borrado al resolver.
+
+Si una regla es ambigua o contradictoria (hay 2 conocidas en `docs/reglas/turnos.md#preguntas-abiertas`), frená y preguntá antes de elegir.
+
 ## Arquitectura
 
 ### Backend (`backend/src/main/java/com/smartelevate/`)
