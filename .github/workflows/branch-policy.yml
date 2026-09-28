@@ -1,0 +1,93 @@
+name: Branch Policy
+
+# Valida el flujo de ramas (ver README → "Estrategia de ramas"):
+#   develop ← feature/* | fix/* | chore/* | docs/* | refactor/* | test/* | ci/* | hotfix/* | main | dependabot/*
+#   main    ← develop | hotfix/*
+# y etiqueta el PR con el `type:` que corresponde al prefijo de la rama.
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  branch-name:
+    name: branch-name
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate source and target branches
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          prefixes='feature|fix|chore|docs|refactor|test|ci|hotfix'
+          slug='[a-z0-9][a-z0-9._-]*'
+
+          fail() {
+            echo "::error title=Rama inválida::$1"
+            echo "### ❌ Rama inválida" >> "$GITHUB_STEP_SUMMARY"
+            echo "$1" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          case "$BASE_REF" in
+            main)
+              if [ "$HEAD_REF" != "develop" ] && ! [[ "$HEAD_REF" =~ ^hotfix/${slug}$ ]]; then
+                fail "A \`main\` solo se llega desde \`develop\` (release) o \`hotfix/*\`. Esta rama es \`$HEAD_REF\`: abrí el PR contra \`develop\`."
+              fi
+              ;;
+            develop)
+              if [ "$HEAD_REF" = "main" ] || [[ "$HEAD_REF" =~ ^dependabot/ ]]; then
+                exit 0
+              fi
+              if ! [[ "$HEAD_REF" =~ ^(${prefixes})/${slug}$ ]]; then
+                fail "\`$HEAD_REF\` no sigue la convención \`<tipo>/<descripcion-en-kebab-case>\` con tipo en: ${prefixes//|/, }. Ej.: \`feature/12-reservar-turno\`. Renombrá la rama (\`git branch -m\`), pusheala y reabrí el PR."
+              fi
+              ;;
+          esac
+          echo "✅ \`$HEAD_REF\` → \`$BASE_REF\` respeta la estrategia de ramas." >> "$GITHUB_STEP_SUMMARY"
+
+  label:
+    name: label-by-branch
+    needs: branch-name
+    # PRs de forks tienen token de solo lectura: no se pueden etiquetar desde acá.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Add type label from branch prefix
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const labelsByPrefix = {
+              feature: ['type: feature'],
+              fix: ['type: bug'],
+              hotfix: ['type: bug', 'priority: high'],
+              chore: ['type: chore'],
+              docs: ['type: docs'],
+              refactor: ['type: refactor'],
+              test: ['type: test'],
+              ci: ['type: ci-cd'],
+            };
+            const head = context.payload.pull_request.head.ref;
+            const prefix = head.split('/')[0];
+            const labels = labelsByPrefix[prefix];
+            if (!labels) {
+              core.info(`Sin labels para la rama ${head}.`);
+              return;
+            }
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              labels,
+            });
+            core.info(`Labels agregados: ${labels.join(', ')}`);
