@@ -9,6 +9,7 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    labels: ['type: chore', 'area: backend']
     commit-message:
       prefix: build(backend)
     groups:
@@ -22,6 +23,7 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    labels: ['type: chore', 'area: frontend']
     commit-message:
       prefix: build(frontend)
     groups:
@@ -34,6 +36,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    labels: ['type: ci-cd', 'area: infra']
     commit-message:
       prefix: ci
     groups:
