@@ -307,6 +307,8 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 
 ## Documentación
 
+- [docs/reglas/](docs/reglas/) — **reglas de negocio**: turnos, asignación, check-in QR, usuarios y prioridad, KPIs y parámetros configurables
+- [docs/glosario.md](docs/glosario.md) — términos del dominio
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records
 - [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)

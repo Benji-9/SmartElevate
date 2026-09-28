@@ -8,6 +8,8 @@ Tu trabajo es agregar tests, no cambiar código de producción. Si un test revel
 
 ## Qué priorizar
 
+Las reglas y sus valores están en `docs/reglas/` (tabla de parámetros en `docs/reglas/README.md`). Fijá la hora con `Clock.fixed(...)` para probar ventanas (−30 min, −2 min, −1 min, +60 s, +2 min).
+
 1. Reglas de negocio: cupo de 10 por turno (9, 10, 11 reservas; reservas concurrentes), prioridades (movilidad reducida, docentes), cancelaciones, franjas pasadas.
 2. Contratos HTTP: status codes, forma del JSON, validaciones y formato de `ApiError`.
 3. UI: flujos principales (solicitar turno, ver mis turnos) incluyendo estados de carga, error y vacío.
