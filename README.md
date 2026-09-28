@@ -161,7 +161,7 @@ git push -u origin feature/12-reservar-turno   # y abrir PR contra develop
 
 **Reglas (automáticas):**
 
-- `main` y `develop` están protegidas: nadie pushea directo, todo entra por PR con 1 aprobación, CI en verde (`backend-verify`, `frontend-verify`), rama al día y conversaciones resueltas.
+- `main` y `develop` están protegidas: nadie pushea directo, todo entra por PR con los checks en verde (`backend-verify`, `frontend-verify`, `branch-name`), rama al día y conversaciones resueltas. La review **no es obligatoria**: GitHub se la pide automáticamente a los code owners ([`.github/CODEOWNERS`](.github/CODEOWNERS)).
 - El workflow [`branch-policy.yml`](.github/workflows/branch-policy.yml) falla el PR si la rama no respeta la convención o si a `main` llega algo que no sea `develop` o `hotfix/*`, y etiqueta el PR según el prefijo.
 
 ## Convención de commits
@@ -258,8 +258,8 @@ En el proyecto → **Settings → Environment Variables** (para *Production* y *
 
 **Settings → Branches → Add rule** (o *Rulesets*) para `main` y `develop`:
 
-- Require a pull request before merging (1 aprobación)
-- Require status checks to pass: `backend-verify` y `frontend-verify`
+- Require a pull request before merging (sin aprobaciones obligatorias; las reviews se piden por CODEOWNERS)
+- Require status checks to pass: `backend-verify`, `frontend-verify` y `branch-name`
 - Require branches to be up to date before merging
 - Block force pushes
 
