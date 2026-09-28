@@ -110,6 +110,27 @@ npm run dev                   # http://localhost:5173
 
 En dev, Vite hace proxy de `/api` a `http://localhost:8080`, así que con el backend levantado la home muestra **"API conectada"**.
 
+## Contrato de la API (OpenAPI / Swagger)
+
+La documentación de los endpoints se genera sola desde el código (springdoc) y queda versionada en [`docs/openapi.json`](docs/openapi.json). Detalle en el [ADR 0006](docs/adr/0006-contrato-api-openapi-code-first.md).
+
+- **Swagger UI:** http://localhost:8080/swagger-ui.html — ver y probar cada endpoint ("Try it out").
+- **Spec OpenAPI (JSON):** http://localhost:8080/v3/api-docs
+- **Tipos TypeScript:** `frontend/src/types/openapi.ts`, generados desde la spec. Se usan vía alias en `src/types/api.ts`.
+
+Cuando agregás o cambiás un endpoint o un DTO:
+
+```bash
+cd backend
+./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true   # regenera docs/openapi.json
+cd ../frontend
+npm run gen:api                                            # regenera src/types/openapi.ts
+```
+
+Commiteá los dos archivos en el mismo PR. Si te olvidás, falla el CI (`backend-verify` o `frontend-verify`) con el comando a correr.
+
+Documentá con anotaciones: `@Tag` y `@Operation` en el controller, `@Schema` en los DTOs (`requiredMode = REQUIRED` para campos obligatorios) y Bean Validation (`@NotNull`, `@Size`), que también aparece en la spec.
+
 ## Tests, lint y formato
 
 | | Comando |
@@ -120,6 +141,8 @@ En dev, Vite hace proxy de `/api` a `http://localhost:8080`, así que con el bac
 | Frontend: lint | `npm run lint` |
 | Frontend: formatear | `npm run format` (chequear sin escribir: `npm run format:check`) |
 | Frontend: build | `npm run build` |
+| Frontend: regenerar tipos de la API | `npm run gen:api` |
+| Backend: regenerar `docs/openapi.json` | `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` |
 
 Lo mismo que corre el CI del frontend: `npm ci && npm run lint && npm test -- --run && npm run build`.
 
@@ -286,6 +309,7 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records
+- [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)
 - Swagger UI del backend: `/swagger-ui.html`
 
 ## Equipo
