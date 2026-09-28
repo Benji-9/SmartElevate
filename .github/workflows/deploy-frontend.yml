@@ -26,9 +26,11 @@ jobs:
     name: vercel-deploy
     # - CI en verde
     # - Nunca PRs de forks: workflow_run corre con secrets y no queremos ejecutar código ajeno con ellos.
+    # - Nunca PRs de Dependabot: una preview de un bump de dependencias no aporta.
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
