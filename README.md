@@ -180,6 +180,8 @@ Detalles:
 
 ## Setup manual pendiente (una sola vez)
 
+Cada bloque tiene su issue con checklist: Vercel [#1](https://github.com/Benji-9/SmartElevate/issues/1) · secrets [#2](https://github.com/Benji-9/SmartElevate/issues/2) · protección de ramas [#3](https://github.com/Benji-9/SmartElevate/issues/3) · primer release [#4](https://github.com/Benji-9/SmartElevate/issues/4).
+
 ### 1. Vercel: crear el proyecto y linkearlo
 
 1. Crear una cuenta/equipo en [vercel.com](https://vercel.com) (el plan Hobby alcanza para el MVP).
@@ -236,6 +238,21 @@ En el proyecto → **Settings → Environment Variables** (para *Production* y *
 ### 6. Primer merge a `main`
 
 GitHub solo dispara `workflow_run` con la versión del workflow que está en la rama por defecto. **El deploy empieza a funcionar recién cuando `deploy-frontend.yml` llega a `main`.**
+
+## Issues y labels
+
+Todo el trabajo se trackea en [Issues](https://github.com/Benji-9/SmartElevate/issues). Cada PR referencia su issue (`Closes #N`) para que se cierre solo al mergear.
+
+Templates: **Feature / tarea**, **Bug** y **Bloqueante / decisión**. Labels:
+
+| Grupo | Labels |
+| --- | --- |
+| Tipo | `type: feature`, `type: bug`, `type: chore`, `type: docs`, `type: ci-cd`, `type: decision` |
+| Área | `area: backend`, `area: frontend`, `area: infra`, `area: docs` |
+| Prioridad | `priority: high`, `priority: medium`, `priority: low` |
+| Estado | `status: blocked`, `setup: manual` (paso fuera del código, en GitHub/Vercel) |
+
+Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran además en [docs/bloqueantes.md](docs/bloqueantes.md).
 
 ## Documentación
 

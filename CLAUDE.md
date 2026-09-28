@@ -55,6 +55,7 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 - Ramas: `main` ← `develop` ← `feature/*`. Nunca commitear en `main`/`develop` directamente.
 - Conventional Commits, chicos y atómicos: `feat(turn): ...`, `fix(frontend): ...`, `ci: ...`, `docs(adr): ...`.
 - **No hacer push** ni abrir PRs sin que lo pida quien está trabajando.
+- El trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver README). Los PRs referencian su issue (`Closes #N`).
 - Decisiones de arquitectura → nuevo ADR en `docs/adr/` (usar `template.md`). Algo que bloquea → `docs/bloqueantes.md`.
 - Al fijar versiones de dependencias o actions, verificá la última versión real (Maven Central, npm, GitHub releases); no uses versiones de memoria.
 - Spring Boot se queda en 3.x (ver ADR 0005): no aceptar upgrades a 4.x.
