@@ -1,0 +1,118 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Reserva de turnos de ascensores para reducir la congestión en el campus",
+    "title" : "SmartElevate API",
+    "version" : "v0"
+  },
+  "servers" : [ {
+    "url" : "/",
+    "description" : "Mismo origen"
+  } ],
+  "tags" : [ {
+    "description" : "Verificación de conectividad",
+    "name" : "ping"
+  } ],
+  "paths" : {
+    "/api/ping" : {
+      "get" : {
+        "operationId" : "ping",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Verifica que la API responde",
+        "tags" : [ "ping" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ApiError" : {
+        "type" : "object",
+        "description" : "Error estándar de la API",
+        "properties" : {
+          "error" : {
+            "type" : "string",
+            "example" : "Not Found"
+          },
+          "message" : {
+            "type" : "string",
+            "example" : "Recurso no encontrado"
+          },
+          "path" : {
+            "type" : "string",
+            "example" : "/api/turns/42"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 404
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "violations" : {
+            "type" : "array",
+            "description" : "Solo en errores de validación",
+            "items" : {
+              "$ref" : "#/components/schemas/FieldViolation"
+            }
+          }
+        },
+        "required" : [ "error", "message", "path", "status", "timestamp" ]
+      },
+      "FieldViolation" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "field", "message" ]
+      },
+      "PingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "example" : "ok"
+          }
+        },
+        "required" : [ "status" ]
+      }
+    }
+  }
+}

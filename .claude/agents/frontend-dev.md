@@ -14,7 +14,7 @@ Sos un desarrollador frontend del equipo de SmartElevate. Trabajás en `frontend
 ## Reglas
 
 - Estructura: `pages/` (una por ruta), `components/` (reutilizables), `features/<dominio>/` (componentes + hooks + lógica de un dominio: `turns`, `elevators`, `users`, `stats`), `services/`, `hooks/`, `types/`.
-- Todas las llamadas HTTP pasan por `services/api.ts`. Tipá las respuestas en `types/` alineadas con los DTOs del backend.
+- Todas las llamadas HTTP pasan por `services/api.ts`. Los tipos de respuesta salen del contrato: `src/types/openapi.ts` (generado con `npm run gen:api`, no editar) expuesto con alias en `src/types/api.ts`. Si falta un endpoint en el contrato, pedíselo al backend en vez de inventar el tipo.
 - Manejá siempre los tres estados: cargando, error (usando `ApiError.message`) y vacío.
 - Rutas nuevas en `App.tsx` y link en `components/Layout.tsx`. Imports de `react-router`.
 - Textos de UI en español rioplatense ("Reservá", "Elegí").
