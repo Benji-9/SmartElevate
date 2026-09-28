@@ -8,7 +8,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Java 17, Spring Boot 3.5, Maven (wrapper), Spring Data JPA, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
+| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
 | Frontend | React 19, Vite 8, TypeScript, React Router, Vitest + React Testing Library, ESLint + Prettier |
 | CI/CD | GitHub Actions |
 | Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI). Backend: hosting a definir ([bloqueante B-01](docs/bloqueantes.md)) |
@@ -44,7 +44,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 
 ## Requisitos
 
-- **JDK 17+** (el proyecto compila con `--release 17`; con JDK 21 también funciona)
+- **JDK 25** (Temurin recomendado; el proyecto compila con `--release 25`)
 - **Node.js 24 LTS** (ver `frontend/.nvmrc`; con nvm: `nvm use`)
 - **Docker** (opcional, solo para Postgres local o para buildear la imagen del backend)
 
@@ -307,6 +307,8 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 
 ## Documentación
 
+- [docs/reglas/](docs/reglas/) — **reglas de negocio**: turnos, asignación, check-in QR, usuarios y prioridad, KPIs y parámetros configurables
+- [docs/glosario.md](docs/glosario.md) — términos del dominio
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records
 - [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)
