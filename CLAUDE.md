@@ -35,10 +35,12 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 - Configuración por variables de entorno (ver tabla en README). **Nunca hardcodear secretos** ni URLs de producción.
 - Perfiles: `dev` (H2, default) y `prod` (Postgres). Los tests usan `dev`.
 - Lombok está disponible; preferir `record` para DTOs y `@RequiredArgsConstructor` para inyección.
+- **Contrato OpenAPI** (ADR 0006): `docs/openapi.json` se genera desde el código y `OpenApiSpecTest` falla si está desactualizado. Si cambiás endpoints/DTOs: `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` y después `npm run gen:api` en frontend/. Commiteá ambos archivos. Anotá DTOs con `@Schema(requiredMode = REQUIRED)` en campos obligatorios.
 
 ### Frontend (`frontend/src/`)
 
 - `pages/` una pantalla por ruta · `components/` UI reutilizable · `features/<dominio>/` lógica y componentes de un dominio · `services/api.ts` único cliente HTTP · `hooks/` · `types/`.
+- Los tipos de la API salen de `src/types/openapi.ts` (generado, no editar) y se exponen con alias en `src/types/api.ts`. No definir DTOs a mano.
 - Toda llamada al backend pasa por `services/api.ts` (usa `VITE_API_URL`, default `/api`). No usar `fetch` directo en componentes.
 - Rutas en `App.tsx` (React Router, importar de `react-router`). `App` no incluye el router: `main.tsx` usa `BrowserRouter`, los tests `MemoryRouter`.
 - Tests con Vitest + Testing Library; mockear `fetch` con `vi.stubGlobal`. Buscar por rol/texto accesible, no por clases.
@@ -52,7 +54,7 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 
 ## Convenciones de trabajo
 
-- Ramas: `main` ← `develop` ← `feature/*`. Nunca commitear en `main`/`develop` directamente.
+- Ramas: desde `develop` salen `feature/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/` y `ci/`; `hotfix/` sale de `main`. Nombre: `<prefijo>/<issue>-<kebab-case>` (p. ej. `feature/12-reservar-turno`). Lo valida `branch-policy.yml`. Nunca commitear en `main`/`develop` directamente.
 - Conventional Commits, chicos y atómicos: `feat(turn): ...`, `fix(frontend): ...`, `ci: ...`, `docs(adr): ...`.
 - **No hacer push** ni abrir PRs sin que lo pida quien está trabajando.
 - El trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver README). Los PRs referencian su issue (`Closes #N`).

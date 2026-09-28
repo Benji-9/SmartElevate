@@ -110,6 +110,27 @@ npm run dev                   # http://localhost:5173
 
 En dev, Vite hace proxy de `/api` a `http://localhost:8080`, así que con el backend levantado la home muestra **"API conectada"**.
 
+## Contrato de la API (OpenAPI / Swagger)
+
+La documentación de los endpoints se genera sola desde el código (springdoc) y queda versionada en [`docs/openapi.json`](docs/openapi.json). Detalle en el [ADR 0006](docs/adr/0006-contrato-api-openapi-code-first.md).
+
+- **Swagger UI:** http://localhost:8080/swagger-ui.html — ver y probar cada endpoint ("Try it out").
+- **Spec OpenAPI (JSON):** http://localhost:8080/v3/api-docs
+- **Tipos TypeScript:** `frontend/src/types/openapi.ts`, generados desde la spec. Se usan vía alias en `src/types/api.ts`.
+
+Cuando agregás o cambiás un endpoint o un DTO:
+
+```bash
+cd backend
+./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true   # regenera docs/openapi.json
+cd ../frontend
+npm run gen:api                                            # regenera src/types/openapi.ts
+```
+
+Commiteá los dos archivos en el mismo PR. Si te olvidás, falla el CI (`backend-verify` o `frontend-verify`) con el comando a correr.
+
+Documentá con anotaciones: `@Tag` y `@Operation` en el controller, `@Schema` en los DTOs (`requiredMode = REQUIRED` para campos obligatorios) y Bean Validation (`@NotNull`, `@Size`), que también aparece en la spec.
+
 ## Tests, lint y formato
 
 | | Comando |
@@ -120,22 +141,51 @@ En dev, Vite hace proxy de `/api` a `http://localhost:8080`, así que con el bac
 | Frontend: lint | `npm run lint` |
 | Frontend: formatear | `npm run format` (chequear sin escribir: `npm run format:check`) |
 | Frontend: build | `npm run build` |
+| Frontend: regenerar tipos de la API | `npm run gen:api` |
+| Backend: regenerar `docs/openapi.json` | `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` |
 
 Lo mismo que corre el CI del frontend: `npm ci && npm run lint && npm test -- --run && npm run build`.
 
 ## Estrategia de ramas
 
 ```
-main       ← producción (deploy automático a Vercel prod)
-  ↑ PR
-develop    ← integración (deploy a Vercel preview)
-  ↑ PR
-feature/*  ← una rama por tarea (también fix/*, chore/*, docs/*)
+main        ← producción (deploy automático a Vercel prod)
+  ↑ PR (merge commit)        ↑ PR
+develop     ← integración    hotfix/*  ← urgencias en producción (sale de main)
+  ↑ PR (squash)
+feature/* · fix/* · chore/* · docs/* · refactor/* · test/* · ci/*   (salen de develop)
 ```
 
-- Nadie pushea directo a `main` ni a `develop`: todo entra por PR con CI en verde y al menos 1 review.
-- Las ramas `feature/*` salen de `develop` y vuelven a `develop`.
-- Para liberar, se abre un PR `develop → main`.
+| Prefijo | Para qué | Sale de → vuelve a | Label automático |
+| --- | --- | --- | --- |
+| `feature/` | Funcionalidad nueva | `develop` → `develop` | `type: feature` |
+| `fix/` | Bug encontrado en `develop` | `develop` → `develop` | `type: bug` |
+| `chore/` | Dependencias, config, tooling | `develop` → `develop` | `type: chore` |
+| `docs/` | Solo documentación | `develop` → `develop` | `type: docs` |
+| `refactor/` | Cambio interno sin impacto funcional | `develop` → `develop` | `type: refactor` |
+| `test/` | Tests nuevos o ajustados | `develop` → `develop` | `type: test` |
+| `ci/` | Workflows, deploy | `develop` → `develop` | `type: ci-cd` |
+| `hotfix/` | Bug urgente en producción | `main` → `main` y después `develop` | `type: bug`, `priority: high` |
+
+**Nombre:** `<prefijo>/<numero-de-issue>-<descripcion-en-kebab-case>`, en minúsculas. Ej.: `feature/12-reservar-turno`, `fix/27-cupo-negativo`.
+
+```bash
+git switch develop && git pull
+git switch -c feature/12-reservar-turno
+# ... commits ...
+git push -u origin feature/12-reservar-turno   # y abrir PR contra develop
+```
+
+**Flujos:**
+
+- **Trabajo diario:** rama desde `develop` → PR a `develop` → merge con **squash** (un commit por PR, con el título del PR).
+- **Release:** PR `develop → main` → merge con **merge commit** (no squash, para que ambas ramas compartan historia). Dispara el deploy de producción.
+- **Hotfix:** rama `hotfix/*` desde `main` → PR a `main` → después, PR `main → develop` para no perder el arreglo.
+
+**Reglas (automáticas):**
+
+- `main` y `develop` están protegidas: nadie pushea directo, todo entra por PR con los checks en verde (`backend-verify`, `frontend-verify`, `branch-name`), rama al día y conversaciones resueltas. La review **no es obligatoria**: GitHub se la pide automáticamente a los code owners ([`.github/CODEOWNERS`](.github/CODEOWNERS)).
+- El workflow [`branch-policy.yml`](.github/workflows/branch-policy.yml) falla el PR si la rama no respeta la convención o si a `main` llega algo que no sea `develop` o `hotfix/*`, y etiqueta el PR según el prefijo.
 
 ## Convención de commits
 
@@ -164,6 +214,7 @@ Commits chicos y atómicos. El título del PR también sigue la convención.
 | --- | --- | --- |
 | [`ci-backend.yml`](.github/workflows/ci-backend.yml) | PR y push a `main`/`develop` | Temurin 17 + cache Maven, `./mvnw -B verify`, sube los reportes de tests como artifact |
 | [`ci-frontend.yml`](.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, lint, tests, build |
+| [`branch-policy.yml`](.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
 
 Detalles:
@@ -230,8 +281,8 @@ En el proyecto → **Settings → Environment Variables** (para *Production* y *
 
 **Settings → Branches → Add rule** (o *Rulesets*) para `main` y `develop`:
 
-- Require a pull request before merging (1 aprobación)
-- Require status checks to pass: `backend-verify` y `frontend-verify`
+- Require a pull request before merging (sin aprobaciones obligatorias; las reviews se piden por CODEOWNERS)
+- Require status checks to pass: `backend-verify`, `frontend-verify` y `branch-name`
 - Require branches to be up to date before merging
 - Block force pushes
 
@@ -258,6 +309,7 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records
+- [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)
 - Swagger UI del backend: `/swagger-ui.html`
 
 ## Equipo

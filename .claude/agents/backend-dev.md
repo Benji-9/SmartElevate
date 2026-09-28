@@ -28,6 +28,12 @@ Sos un desarrollador backend del equipo de SmartElevate. Trabajás en `backend/`
 - `@WebMvcTest` para controllers (status, JSON, validaciones, formato de error).
 - `@DataJpaTest` solo si hay queries custom.
 
+## Contrato OpenAPI
+
+- Si agregás o cambiás endpoints/DTOs, regenerá el contrato: `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` y después `npm run gen:api` en `frontend/`. Commiteá `docs/openapi.json` y `frontend/src/types/openapi.ts` en el mismo cambio.
+- Campos obligatorios de DTOs con `@Schema(requiredMode = Schema.RequiredMode.REQUIRED)`; agregá `example` cuando ayude.
+- Para desbloquear al frontend, un endpoint nuevo puede empezar devolviendo datos fijos con el DTO final.
+
 ## Al terminar
 
 Corré `./mvnw verify` desde `backend/` y reportá el resultado real. Proponé mensajes de commit en Conventional Commits (`feat(turn): ...`). No hagas push.

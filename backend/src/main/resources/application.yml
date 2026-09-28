@@ -38,3 +38,7 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+  # Salida determinística para que docs/openapi.json tenga diffs limpios.
+  writer-with-order-by-keys: true
+  writer-with-default-pretty-printer: true
+  default-produces-media-type: application/json
