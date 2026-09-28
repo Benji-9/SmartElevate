@@ -1,6 +1,7 @@
 version: 2
 
 # Los PRs de Dependabot van a develop (rama de integración), no a main.
+# Ojo: Dependabot lee este archivo desde la rama por defecto (main); los cambios aplican tras un release.
 updates:
   - package-ecosystem: maven
     directory: /backend
@@ -15,6 +16,12 @@ updates:
     groups:
       maven-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # Nos quedamos en Spring Boot 3.x (ADR 0005); springdoc 3.x requiere Boot 4.
+      - dependency-name: 'org.springframework.boot:*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'org.springdoc:*'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: npm
     directory: /frontend
@@ -29,6 +36,13 @@ updates:
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # typescript-eslint soporta TypeScript < 6.1: subir de major cuando lo soporte.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # Los tipos de Node siguen la versión de runtime (Node 24, ver frontend/.nvmrc).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
