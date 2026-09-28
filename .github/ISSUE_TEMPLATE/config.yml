@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Bloqueantes y decisiones abiertas
+    url: https://github.com/Benji-9/SmartElevate/blob/develop/docs/bloqueantes.md
+    about: Revisá si ya está registrado antes de abrir uno nuevo.

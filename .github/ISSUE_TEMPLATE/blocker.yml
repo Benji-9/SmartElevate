@@ -1,0 +1,30 @@
+name: Bloqueante / decisión
+description: Algo que impide avanzar o requiere una decisión del equipo (se registra en docs/bloqueantes.md)
+title: '[Decisión] '
+labels: ['type: decision']
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Qué está bloqueado y por qué.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto
+      description: Qué tareas o issues quedan frenados (#N).
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Opciones / próximos pasos
+  - type: checkboxes
+    id: followup
+    attributes:
+      label: Seguimiento
+      options:
+        - label: Agregado a docs/bloqueantes.md
+        - label: Requiere ADR

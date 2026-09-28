@@ -1,0 +1,37 @@
+name: Feature / tarea
+description: Funcionalidad nueva o tarea de desarrollo
+title: '[Feature] '
+labels: ['type: feature']
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Backend
+        - Frontend
+        - Backend + Frontend
+        - Infra / CI-CD
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción
+      description: Qué hay que hacer y por qué. Si es una historia de usuario, "Como <rol> quiero <acción> para <beneficio>".
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      placeholder: |
+        - [ ] Un alumno puede reservar un turno con cupo disponible
+        - [ ] Si el turno tiene 10 personas, la API responde 409
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notas técnicas
+      description: Endpoints del API contract involucrados, pantallas, dependencias con otros issues (#N).
