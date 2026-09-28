@@ -1,6 +1,7 @@
 package com.smartelevate.common.ping;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ public class PingController {
         return new PingResponse("ok");
     }
 
-    public record PingResponse(String status) {
+    public record PingResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "ok") String status) {
     }
 }
