@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import type { CongestionSnapshot, Departure, FloorOption, Reservation } from '../types/pending';
+import type {
+  CheckInResult,
+  CongestionSnapshot,
+  Departure,
+  FloorOption,
+  NoShowStatus,
+  NotificationPreferences,
+  PriorityUploadRules,
+  Reservation,
+  TripPage,
+} from '../types/pending';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 
@@ -133,5 +143,87 @@ describe('mocks', () => {
     await expect(
       call('POST', '/auth/login', { email: 'nueva@uade.edu.ar', password: 'x' }),
     ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('check-in: código vencido da 400, después cumplido, ya escaneado y encuesta única', async () => {
+    const active = await call<Reservation>('GET', '/reservations/active');
+    if (active) await call('DELETE', `/reservations/${active.id}`);
+    const [departure] = await call<Departure[]>('GET', '/cores/IND2/departures');
+    const turn = await call<Reservation>('POST', '/reservations', {
+      departureId: departure.id,
+      originFloor: 0,
+      destinationFloor: 8,
+    });
+
+    await expect(call('POST', '/check-ins', { code: 'VENCIDO-1' })).rejects.toMatchObject({
+      status: 400,
+    });
+    const result = await call<CheckInResult>('POST', '/check-ins', { code: 'OTRO-42' });
+    expect(result).toMatchObject({
+      reservationId: turn.id,
+      outcome: 'OTHER_ELEVATOR',
+      coreName: 'Independencia 2',
+      departsAt: departure.departsAt,
+    });
+    await expect(call('POST', '/check-ins', { code: 'X' })).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining('Ya registraste'),
+    });
+
+    const feedback = `/check-ins/${turn.id}/wait-feedback`;
+    await call('POST', feedback, { range: 'FROM_5_TO_10' });
+    await expect(call('POST', feedback, { range: 'UNDER_2' })).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it('certificado: pide consentimiento, valida tipo y tamaño y queda pendiente', async () => {
+    const rules = await call<PriorityUploadRules>('GET', '/priority-requests/upload-rules');
+    expect(rules.acceptedTypes).toContain('application/pdf');
+    expect(await call('GET', '/priority-requests/me')).toBeNull();
+
+    const submit = (file: File, consent = 'true') => {
+      const form = new FormData();
+      form.append('consentAccepted', consent);
+      form.append('certificate', file);
+      return mockRequest('POST', '/priority-requests', form, 0);
+    };
+    const pdf = new File(['%PDF'], 'c.pdf', { type: 'application/pdf' });
+
+    await expect(submit(pdf, 'false')).rejects.toMatchObject({ status: 400 });
+    await expect(submit(new File(['x'], 'c.txt', { type: 'text/plain' }))).rejects.toMatchObject({
+      status: 415,
+    });
+    const big = new File([new Uint8Array(rules.maxSizeBytes + 1)], 'c.png', {
+      type: 'image/png',
+    });
+    await expect(submit(big)).rejects.toMatchObject({ status: 413 });
+
+    await submit(pdf);
+    expect(await call('GET', '/priority-requests/me')).toMatchObject({ status: 'PENDING' });
+  });
+
+  it('historial paginado y faltas recientes con los parámetros de la regla', async () => {
+    await call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
+
+    const first = await call<TripPage>('GET', '/reservations/history');
+    const second = await call<TripPage>('GET', `/reservations/history?cursor=${first.nextCursor}`);
+    expect(first.items).toHaveLength(10);
+    expect(second.items[0].id).not.toBe(first.items[0].id);
+    expect(new Set(first.items.map((t) => t.result)).size).toBe(5);
+
+    const noShows = await call<NoShowStatus>('GET', '/me/no-shows');
+    expect(noShows).toMatchObject({ threshold: 3, windowDays: 7, exempt: false });
+    expect(noShows.recentNoShows).toBeGreaterThan(0);
+    await call('POST', '/auth/logout');
+  });
+
+  it('las preferencias de notificaciones se guardan', async () => {
+    const prefs = await call<NotificationPreferences>('GET', '/me/notification-preferences');
+    await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: true });
+
+    expect(await call('GET', '/me/notification-preferences')).toMatchObject({
+      departureReminder: true,
+    });
   });
 });
