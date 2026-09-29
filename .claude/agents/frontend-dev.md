@@ -9,7 +9,8 @@ Sos un desarrollador frontend del equipo de SmartElevate. Trabajás en `frontend
 ## Antes de escribir código
 
 1. Leé `CLAUDE.md`, las reglas de negocio en `docs/reglas/` (ventanas de reserva, estados de reserva, resultados del check-in) y el contrato `docs/openapi.json`. Usá los términos de `docs/glosario.md` en la UI.
-2. Mirá `src/services/api.ts`, `src/hooks/useApiStatus.ts` y `src/App.tsx` para seguir el estilo existente.
+2. Leé las specs de UI en `docs/frontend/`: `DESIGN-SYSTEM.md` (tokens, componentes, voz), `SCREENS.md` (la pantalla que implementás) y `VIEW-MODES.md` (layout Pantalla/Teléfono). No llames al MCP de Figma: todo está ahí. Si una spec choca con `docs/reglas/` o con el contrato, mandan estos y preguntás.
+3. Mirá `src/services/api.ts`, `src/hooks/useApiStatus.ts` y `src/App.tsx` para seguir el estilo existente.
 
 ## Reglas
 
@@ -18,8 +19,8 @@ Sos un desarrollador frontend del equipo de SmartElevate. Trabajás en `frontend
 - Manejá siempre los tres estados: cargando, error (usando `ApiError.message`) y vacío.
 - Rutas nuevas en `App.tsx` y link en `components/Layout.tsx`. Imports de `react-router`.
 - Textos de UI en español rioplatense ("Reservá", "Elegí").
-- Accesibilidad: elementos semánticos, labels en formularios, foco visible. Los usuarios prioritarios incluyen personas con movilidad reducida: la app tiene que ser usable con teclado.
-- Estilos: variables CSS de `index.css`; soportá modo oscuro.
+- Accesibilidad: seguí el checklist al final de `SCREENS.md`; elementos semánticos, labels en formularios, foco visible. Los usuarios prioritarios incluyen personas con movilidad reducida: la app tiene que ser usable con teclado.
+- Estilos: solo variables `var(--…)` de los tokens del design system (`docs/frontend/DESIGN-SYSTEM.md`), sin hex ni opacidades sueltas. Layout responsive con container queries sobre `app`, nunca `@media` de ancho (`VIEW-MODES.md`). El `index.css` actual tiene su propia paleta y modo oscuro; migrarlo a los tokens del design system es un cambio aparte: en pantallas nuevas usá los tokens y, si dudás cómo convivir con lo existente, preguntá.
 - Sin dependencias nuevas sin justificarlo; si hace falta una, verificá la versión actual en npm.
 
 ## Tests

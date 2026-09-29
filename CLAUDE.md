@@ -26,7 +26,7 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 
 ## Reglas de negocio
 
-Antes de implementar algo de `turn`, `elevator`, `user` o `priority`, leé [`docs/reglas/`](docs/reglas/README.md) (y el [glosario](docs/glosario.md)). Puntos que no se negocian en el código:
+Antes de implementar algo de `turn`, `elevator`, `user` o `priority` (backend o UI), leé [`docs/reglas/`](docs/reglas/README.md) (y el [glosario](docs/glosario.md)). Puntos que no se negocian en el código:
 
 - La franja es una **salida de ascensor (~2 min)**, no un bloque de 15 min (ADR 0007).
 - **Parámetros en la tabla de configuración**, nunca hardcodeados (tiempos, ventanas, cupo, conexiones).
@@ -56,6 +56,8 @@ Si una regla es ambigua o contradictoria (hay 2 conocidas en `docs/reglas/turnos
 - Toda llamada al backend pasa por `services/api.ts` (usa `VITE_API_URL`, default `/api`). No usar `fetch` directo en componentes.
 - Rutas en `App.tsx` (React Router, importar de `react-router`). `App` no incluye el router: `main.tsx` usa `BrowserRouter`, los tests `MemoryRouter`.
 - Tests con Vitest + Testing Library; mockear `fetch` con `vi.stubGlobal`. Buscar por rol/texto accesible, no por clases.
+
+- **Specs de UI** en [`docs/frontend/`](docs/frontend/README.md): antes de tocar una pantalla o un componente leé `DESIGN-SYSTEM.md` (tokens, componentes, voz), `SCREENS.md` (medidas, textos, estados) y `VIEW-MODES.md` (modo Pantalla/Teléfono, container queries). **No llamar al MCP de Figma** (tiene límite de uso); si hace falta, un solo frame por ID (ver `DESIGN-SYSTEM.md` §10). Estilos solo con `var(--…)`, nunca hex sueltos; layout con `@container`, nunca `@media` de ancho. Si una spec contradice a `docs/reglas/` o al contrato OpenAPI, mandan estos últimos (p. ej. las franjas de 5 min del wireframe): frená y preguntá.
 
 ### CI/CD
 
