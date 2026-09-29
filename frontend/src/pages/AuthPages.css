@@ -53,6 +53,22 @@
   font-weight: var(--font-medium);
 }
 
+.auth__info {
+  display: grid;
+  gap: 4px;
+}
+
+.auth__info-title {
+  font-size: var(--text-14);
+}
+
+.user-type-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
 .auth__footer {
   text-align: center;
   font-size: var(--text-14);

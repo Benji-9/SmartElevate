@@ -22,6 +22,20 @@ export type User = {
 };
 
 export type LoginRequest = { email: string; password: string };
+
+/**
+ * Tipo de usuario que la persona declara al registrarse (#32). Es informativo: no otorga
+ * rol ni prioridad; un ADMIN valida a los docentes.
+ */
+export type DeclaredUserType = 'STUDENT' | 'TEACHER' | 'STAFF';
+
+export type RegisterRequest = {
+  fullName: string;
+  email: string;
+  legajo: string;
+  password: string;
+  declaredUserType: DeclaredUserType;
+};
 /** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
 export type Session = { accessToken: string };
 

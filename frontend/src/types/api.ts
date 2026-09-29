@@ -8,3 +8,6 @@ export type PingResponse = Schemas['PingResponse'];
 
 /** Formato de error que devuelve el backend (GlobalExceptionHandler). */
 export type ApiErrorBody = Schemas['ApiError'];
+
+/** Error de un campo puntual (validación o dato duplicado). */
+export type FieldViolation = Schemas['FieldViolation'];

@@ -13,6 +13,7 @@ import type {
   Departure,
   LoginRequest,
   PriorityRequest,
+  RegisterRequest,
   Reservation,
   ReserveRequest,
   Session,
@@ -182,6 +183,35 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/auth\/logout$/,
     () => {
       sessionStorage.removeItem(SESSION_KEY);
+    },
+  ],
+  [
+    'POST',
+    /^\/auth\/register$/,
+    (body) => {
+      const { fullName, email, legajo } = body as RegisterRequest;
+      const normalized = email.trim().toLowerCase();
+      const violations = [
+        users.some((u) => u.email === normalized) && {
+          field: 'email',
+          message: 'Ya hay una cuenta con ese email.',
+        },
+        users.some((u) => u.legajo === legajo) && {
+          field: 'legajo',
+          message: 'Ya hay una cuenta con ese legajo.',
+        },
+      ].filter((v) => v !== false);
+      if (violations.length) throw new ApiError(409, 'La cuenta ya existe', violations);
+      // Nace como usuario común y sin verificar: el tipo declarado no da rol ni prioridad.
+      users.push({
+        id: `u-${Date.now()}`,
+        email: normalized,
+        fullName,
+        legajo,
+        role: 'USER',
+        priority: 'NONE',
+      });
+      unverified.add(normalized);
     },
   ],
   ['GET', /^\/me$/, () => currentUser()],

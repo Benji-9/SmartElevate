@@ -65,4 +65,25 @@ describe('mocks', () => {
       status: 401,
     });
   });
+
+  it('registro: duplicados dan 409 por campo y la cuenta nueva queda sin verificar', async () => {
+    const register = (email: string, legajo: string) =>
+      call('POST', '/auth/register', {
+        fullName: 'Nueva Persona',
+        email,
+        legajo,
+        password: 'x',
+        declaredUserType: 'TEACHER',
+      });
+
+    await expect(register('ana.perez@uade.edu.ar', '1099999')).rejects.toMatchObject({
+      status: 409,
+      violations: [{ field: 'email' }, { field: 'legajo' }],
+    });
+
+    await register('nueva@uade.edu.ar', '1234567');
+    await expect(
+      call('POST', '/auth/login', { email: 'nueva@uade.edu.ar', password: 'x' }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
 });
