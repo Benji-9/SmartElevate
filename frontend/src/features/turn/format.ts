@@ -1,5 +1,5 @@
 // Las franjas se muestran siempre en hora de Buenos Aires, aunque el dispositivo esté en otra zona.
-const TIME_ZONE = 'America/Argentina/Buenos_Aires';
+export const TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 const timeFormat = new Intl.DateTimeFormat('es-AR', {
   timeZone: TIME_ZONE,

@@ -1,17 +1,10 @@
 import { useLocation } from 'react-router';
+import { Avatar } from '../components/Avatar';
 import { CongestionNow } from '../features/congestion/CongestionNow';
 import { ActiveTurnCard } from '../features/turn/ActiveTurnCard';
 import { formatDate } from '../features/turn/format';
 import { useSession } from '../hooks/useSession';
 import './HomePage.css';
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0].toUpperCase())
-    .join('');
 
 export function HomePage() {
   const { user } = useSession();
@@ -31,9 +24,7 @@ export function HomePage() {
           <h1>Hola, {fullName.split(/\s+/)[0]}</h1>
           <p className="home__date">{formatDate(new Date())}</p>
         </div>
-        <span className="home__avatar" aria-hidden="true">
-          {initials(fullName)}
-        </span>
+        <Avatar name={fullName} />
       </header>
       <ActiveTurnCard />
       <CongestionNow />
