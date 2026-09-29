@@ -1,0 +1,26 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-11);
+  font-weight: var(--font-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chip--primary {
+  background: var(--color-primary-tint-strong);
+  color: var(--color-primary);
+}
+
+.chip--neutral {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-muted);
+}
+
+.chip--danger {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+}
