@@ -9,8 +9,10 @@ import type {
   Building,
   CheckInRequest,
   CheckInResult,
+  CongestionSnapshot,
   Core,
   Departure,
+  FloorOption,
   LoginRequest,
   PriorityRequest,
   RegisterRequest,
@@ -24,6 +26,11 @@ import type {
 const DEPARTURE_MINUTES = 2;
 const CAPACITY = 10;
 const WINDOW_MINUTES = 30;
+const CONGESTION_REFRESH_SECONDS = 60;
+/** Regla de pisos bajos (ficticia): trayectos de hasta N pisos van por escalera. */
+const LOW_FLOOR_MAX_DISTANCE = 1;
+/** Se puede cancelar sin falta hasta este tiempo antes de la salida. */
+const CANCEL_DEADLINE_MS = 60_000;
 
 // Usuarios de ejemplo: cualquier contraseña sirve, salvo "incorrecta".
 const users: User[] = [
@@ -82,6 +89,7 @@ const cores: Core[] = [
     floors: range(-2, 10),
     congestion: 'HIGH',
     estimatedWaitMinutes: 9,
+    hall: 'Hall Lima, planta baja',
   },
   {
     id: 'L2',
@@ -90,6 +98,7 @@ const cores: Core[] = [
     floors: range(0, 10),
     congestion: 'MEDIUM',
     estimatedWaitMinutes: 5,
+    hall: 'Hall Lima, planta baja',
   },
   {
     id: 'L3',
@@ -98,6 +107,7 @@ const cores: Core[] = [
     floors: range(0, 6),
     congestion: 'LOW',
     estimatedWaitMinutes: 2,
+    hall: 'Hall Lima, entrepiso',
   },
   {
     id: 'IND1',
@@ -106,6 +116,7 @@ const cores: Core[] = [
     floors: range(-3, 10),
     congestion: 'MEDIUM',
     estimatedWaitMinutes: 6,
+    hall: 'Hall Independencia, planta baja',
   },
   {
     id: 'IND2',
@@ -114,6 +125,7 @@ const cores: Core[] = [
     floors: range(0, 10),
     congestion: 'LOW',
     estimatedWaitMinutes: 3,
+    hall: 'Hall Independencia, planta baja',
   },
 ];
 
@@ -142,16 +154,40 @@ function findDeparture(id: string): Departure {
   return departure;
 }
 
-// Estado en memoria: se reinicia al recargar la página.
-let activeReservation: Reservation | null = {
-  id: 'r-1',
-  status: 'ACTIVE',
-  departure: departuresFor('L2')[3],
-  originFloor: 0,
-  destinationFloor: 7,
-};
+function newReservation(
+  id: string,
+  departure: Departure,
+  originFloor: number,
+  destinationFloor: number,
+): Reservation {
+  const core = cores.find((c) => c.id === departure.coreId)!;
+  return {
+    id,
+    status: 'ACTIVE',
+    departure,
+    core: {
+      id: core.id,
+      name: core.name,
+      buildingName: buildings.find((b) => b.id === core.buildingId)!.name,
+      floors: core.floors,
+      hall: core.hall,
+    },
+    originFloor,
+    destinationFloor,
+    cancelCountsAsNoShow: false,
+  };
+}
 
-type Handler = (body: unknown, params: string[]) => unknown;
+/** El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura. */
+const withCancelRule = (r: Reservation): Reservation => ({
+  ...r,
+  cancelCountsAsNoShow: Date.parse(r.departure.departsAt) - Date.now() < CANCEL_DEADLINE_MS,
+});
+
+// Estado en memoria: se reinicia al recargar la página.
+let activeReservation: Reservation | null = newReservation('r-1', departuresFor('L2')[3], 0, 7);
+
+type Handler = (body: unknown, params: string[], query: URLSearchParams) => unknown;
 
 const routes: [method: string, path: RegExp, handler: Handler][] = [
   [
@@ -218,24 +254,70 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/buildings$/, () => buildings],
   ['GET', /^\/cores$/, () => cores],
   ['GET', /^\/cores\/([^/]+)\/departures$/, (_, [coreId]) => departuresFor(coreId)],
-  ['GET', /^\/reservations\/active$/, () => activeReservation],
+  [
+    'GET',
+    /^\/congestion$/,
+    () =>
+      ({
+        updatedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+        refreshAfterSeconds: CONGESTION_REFRESH_SECONDS,
+        cores: cores.map((c) => ({
+          coreId: c.id,
+          name: c.name,
+          level: c.congestion,
+          estimatedWaitMinutes: c.estimatedWaitMinutes,
+        })),
+      }) satisfies CongestionSnapshot,
+  ],
+  [
+    'GET',
+    /^\/cores\/([^/]+)\/floors$/,
+    (_, [coreId], query) => {
+      const core = cores.find((c) => c.id === coreId);
+      if (!core) throw new ApiError(404, 'El núcleo no existe');
+      const origin = Number(query.get('origin'));
+      const exempt = currentUser().priority === 'REDUCED_MOBILITY';
+      return core.floors.map((floor): FloorOption => {
+        if (floor === origin) return { floor, eligible: false, reason: 'Es tu piso de origen.' };
+        if (!exempt && Math.abs(floor - origin) <= LOW_FLOOR_MAX_DISTANCE) {
+          return {
+            floor,
+            eligible: false,
+            reason: `Para ${LOW_FLOOR_MAX_DISTANCE} piso usá la escalera.`,
+          };
+        }
+        return { floor, eligible: true, reason: null };
+      });
+    },
+  ],
+  ['GET', /^\/reservations\/active$/, () => activeReservation && withCancelRule(activeReservation)],
+  [
+    'GET',
+    /^\/reservations\/([^/]+)$/,
+    (_, [id]) => {
+      if (activeReservation?.id !== id) throw new ApiError(404, 'No encontramos ese turno');
+      return withCancelRule(activeReservation);
+    },
+  ],
   [
     'POST',
     /^\/reservations$/,
     (body) => {
       const { departureId, originFloor, destinationFloor } = body as ReserveRequest;
+      if (activeReservation) {
+        throw new ApiError(409, 'Ya tenés un turno activo. Cancelalo para reservar otro.');
+      }
       const departure = findDeparture(departureId);
       if (departure.occupied >= departure.capacity) {
         throw new ApiError(409, 'La salida está llena. Elegí otra.');
       }
-      activeReservation = {
-        id: `r-${Date.now()}`,
-        status: 'ACTIVE',
-        departure: { ...departure, occupied: departure.occupied + 1 },
+      activeReservation = newReservation(
+        `r-${Date.now()}`,
+        { ...departure, occupied: departure.occupied + 1 },
         originFloor,
         destinationFloor,
-      };
-      return activeReservation;
+      );
+      return withCancelRule(activeReservation);
     },
   ],
   [
@@ -307,13 +389,14 @@ export async function mockRequest(
   body?: BodyInit | null,
   latencyMs = 300 + Math.random() * 500,
 ): Promise<{ data: unknown } | undefined> {
-  const pathname = path.split('?')[0];
+  const [pathname, search] = path.split('?');
   for (const [routeMethod, pattern, handler] of routes) {
     const match = routeMethod === method ? pattern.exec(pathname) : null;
     if (!match) continue;
     await delay(latencyMs);
     const parsed: unknown = typeof body === 'string' ? JSON.parse(body) : undefined;
-    return { data: handler(parsed, match.slice(1).map(decodeURIComponent)) };
+    const params = match.slice(1).map(decodeURIComponent);
+    return { data: handler(parsed, params, new URLSearchParams(search)) };
   }
   return undefined;
 }

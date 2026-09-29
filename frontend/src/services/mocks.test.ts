@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Departure, Reservation } from '../types/pending';
+import type { CongestionSnapshot, Departure, FloorOption, Reservation } from '../types/pending';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 
@@ -19,7 +19,33 @@ describe('mocks', () => {
     expect(departures[0]).toMatchObject({ coreId: 'L1', capacity: 10, durationMinutes: 2 });
   });
 
+  it('arranca con un turno activo con su núcleo y la regla de cancelación', async () => {
+    const active = await call<Reservation>('GET', '/reservations/active');
+
+    expect(active).toMatchObject({
+      status: 'ACTIVE',
+      core: { id: 'L2', buildingName: 'Lima', hall: expect.any(String) },
+      cancelCountsAsNoShow: false,
+    });
+    expect(await call('GET', `/reservations/${active.id}`)).toEqual(active);
+    await expect(call('GET', '/reservations/no-existe')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('con un turno activo no se puede reservar otro', async () => {
+    const [departure] = await call<Departure[]>('GET', '/cores/IND2/departures');
+
+    await expect(
+      call('POST', '/reservations', {
+        departureId: departure.id,
+        originFloor: 0,
+        destinationFloor: 8,
+      }),
+    ).rejects.toMatchObject({ status: 409, message: expect.stringContaining('turno activo') });
+  });
+
   it('reservar una salida llena da 409', async () => {
+    const active = await call<Reservation>('GET', '/reservations/active');
+    if (active) await call('DELETE', `/reservations/${active.id}`);
     const departures = await call<Departure[]>('GET', '/cores/L1/departures');
     const full = departures.find((d) => d.occupied >= d.capacity)!;
 
@@ -31,9 +57,12 @@ describe('mocks', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(409);
+    expect((error as ApiError).message).toContain('llena');
   });
 
   it('reservar, consultar y cancelar el turno activo', async () => {
+    const active = await call<Reservation>('GET', '/reservations/active');
+    if (active) await call('DELETE', `/reservations/${active.id}`);
     const departures = await call<Departure[]>('GET', '/cores/IND2/departures');
     const free = departures.find((d) => d.occupied < d.capacity)!;
 
@@ -46,6 +75,25 @@ describe('mocks', () => {
 
     await call('DELETE', `/reservations/${created.id}`);
     expect(await call('GET', '/reservations/active')).toBeNull();
+  });
+
+  it('la congestión trae cada cuánto refrescar', async () => {
+    const snapshot = await call<CongestionSnapshot>('GET', '/congestion');
+
+    expect(snapshot.refreshAfterSeconds).toBeGreaterThan(0);
+    expect(snapshot.cores.map((c) => c.name)).toContain('Independencia 2');
+  });
+
+  it('los pisos de destino marcan el origen y los trayectos cortos como no elegibles', async () => {
+    await call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
+
+    const floors = await call<FloorOption[]>('GET', '/cores/L1/floors?origin=3');
+    const byFloor = (n: number) => floors.find((f) => f.floor === n);
+
+    expect(byFloor(3)).toMatchObject({ eligible: false });
+    expect(byFloor(4)).toMatchObject({ eligible: false, reason: expect.any(String) });
+    expect(byFloor(8)).toEqual({ floor: 8, eligible: true, reason: null });
+    await call('POST', '/auth/logout');
   });
 
   it('login, /me y logout simulan la sesión con cookie', async () => {

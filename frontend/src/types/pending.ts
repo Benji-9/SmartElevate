@@ -49,7 +49,29 @@ export type Core = {
   floors: number[];
   congestion: CongestionLevel;
   estimatedWaitMinutes: number;
+  /** Dónde esperar el ascensor (p. ej. "Hall Lima, planta baja"). */
+  hall: string;
 };
+
+export type CoreCongestion = {
+  coreId: string;
+  name: string;
+  level: CongestionLevel;
+  estimatedWaitMinutes: number;
+};
+
+/** Congestión actual por núcleo. El servidor dice cada cuánto volver a consultarla. */
+export type CongestionSnapshot = {
+  updatedAt: string;
+  refreshAfterSeconds: number;
+  cores: CoreCongestion[];
+};
+
+/**
+ * Piso de destino posible para un origen dado. La elegibilidad (regla de pisos bajos,
+ * exención por movilidad reducida) la decide el servidor; `reason` explica por qué no.
+ */
+export type FloorOption = { floor: number; eligible: boolean; reason: string | null };
 
 /** Salida de ascensor (la franja que se reserva). `departsAt` en UTC (ISO 8601). */
 export type Departure = {
@@ -69,8 +91,11 @@ export type Reservation = {
   id: string;
   status: ReservationStatus;
   departure: Departure;
+  core: { id: string; name: string; buildingName: string; floors: number[]; hall: string };
   originFloor: number;
   destinationFloor: number;
+  /** `true` si cancelar ahora cuenta como falta (pasado el límite). Lo calcula el servidor. */
+  cancelCountsAsNoShow: boolean;
 };
 
 /** Código del QR escaneado o ingresado a mano. */
