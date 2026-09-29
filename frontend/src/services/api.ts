@@ -4,8 +4,10 @@ import type {
   Building,
   CheckInRequest,
   CheckInResult,
+  CongestionSnapshot,
   Core,
   Departure,
+  FloorOption,
   LoginRequest,
   PriorityRequest,
   RegisterRequest,
@@ -165,7 +167,13 @@ export const getBuildings = () => api.get<Building[]>('/buildings');
 export const getCores = () => api.get<Core[]>('/cores');
 export const getDepartures = (coreId: string) =>
   api.get<Departure[]>(`/cores/${encodeURIComponent(coreId)}/departures`);
+export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
+/** Pisos de destino desde `origin`, con su elegibilidad para el usuario actual. */
+export const getDestinationFloors = (coreId: string, origin: number) =>
+  api.get<FloorOption[]>(`/cores/${encodeURIComponent(coreId)}/floors?origin=${origin}`);
 export const getActiveReservation = () => api.get<Reservation | null>('/reservations/active');
+export const getReservation = (id: string) =>
+  api.get<Reservation>(`/reservations/${encodeURIComponent(id)}`);
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
 export const cancelReservation = (id: string) =>
   api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
