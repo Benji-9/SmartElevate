@@ -6,6 +6,7 @@
 import { ApiError } from './api';
 import type {
   AdminKpis,
+  AdminPeriod,
   Building,
   CheckInRequest,
   CheckInResult,
@@ -44,6 +45,21 @@ const UPLOAD_RULES: PriorityUploadRules = {
 };
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
+const DAY_MS = 86_400_000;
+const BA_OFFSET_MS = 3 * 3_600_000;
+const PERIOD_DAYS: Record<AdminPeriod, number> = { TODAY: 1, WEEK: 7, MONTH: 30 };
+// Reservas de un día típico por hora (8 a 22 h), con picos en los cambios de clase.
+const FIRST_HOUR = 8;
+const HOURLY_RESERVATIONS = [18, 42, 25, 12, 30, 22, 15, 20, 38, 16, 10, 34, 26, 12, 6];
+// Parte de las reservas, ocupación y espera promedio de cada núcleo (panel admin).
+const CORE_STATS: Record<string, { share: number; occupancyPercent: number; waitSeconds: number }> =
+  {
+    L1: { share: 0.3, occupancyPercent: 92, waitSeconds: 420 },
+    L2: { share: 0.22, occupancyPercent: 70, waitSeconds: 260 },
+    L3: { share: 0.1, occupancyPercent: 41, waitSeconds: 90 },
+    IND1: { share: 0.24, occupancyPercent: 75, waitSeconds: 300 },
+    IND2: { share: 0.14, occupancyPercent: 38, waitSeconds: 120 },
+  };
 
 // Usuarios de ejemplo: cualquier contraseña sirve, salvo "incorrecta".
 const users: User[] = [
@@ -503,21 +519,46 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   [
     'GET',
     /^\/admin\/kpis$/,
-    () =>
-      ({
+    (_, __, query) => {
+      const days = PERIOD_DAYS[query.get('period') as AdminPeriod];
+      if (!days) throw new ApiError(400, 'Período inválido');
+      const buildingId = query.get('buildingId');
+      const selected = cores.filter((c) => !buildingId || c.buildingId === buildingId);
+      if (!selected.length) throw new ApiError(404, 'La sede no existe');
+
+      const share = selected.reduce((sum, c) => sum + CORE_STATS[c.id].share, 0);
+      const reservationsByHour = HOURLY_RESERVATIONS.map((n, i) => ({
+        hour: FIRST_HOUR + i,
+        reservations: Math.round(n * days * share),
+      }));
+      const reservations = reservationsByHour.reduce((sum, h) => sum + h.reservations, 0);
+      const checkIns = Math.round(reservations * 0.81);
+      // ponytail: Buenos Aires fijo en UTC-3 (hoy no tiene horario de verano).
+      const to = Math.floor((Date.now() - BA_OFFSET_MS) / DAY_MS + 1) * DAY_MS + BA_OFFSET_MS;
+      return {
+        from: new Date(to - days * DAY_MS).toISOString(),
+        to: new Date(to).toISOString(),
+        avgWaitSeconds: Math.round(
+          selected.reduce((sum, c) => sum + CORE_STATS[c.id].waitSeconds, 0) / selected.length,
+        ),
+        wait5To10Percent: 18,
         baselinePercent: 43.5,
-        avgWaitDeltaSeconds: 72,
-        occupancyPercent: 68,
-        qrCompliancePercent: 81,
-        noShowsToday: 12,
-        priorityAvgWaitSeconds: 95,
-        cores: cores.map((c, i) => ({
+        reservations,
+        checkIns,
+        checkInPercent: reservations ? Math.round((checkIns / reservations) * 100) : 0,
+        avgOccupancy: 6.8,
+        capacity: CAPACITY,
+        reservationsByHour,
+        cores: selected.map((c) => ({
           coreId: c.id,
           name: c.name,
+          reservations: Math.round((reservations * CORE_STATS[c.id].share) / share),
+          occupancyPercent: CORE_STATS[c.id].occupancyPercent,
+          avgWaitSeconds: CORE_STATS[c.id].waitSeconds,
           congestion: c.congestion,
-          occupancyPercent: [92, 70, 41, 75, 38][i],
         })),
-      }) satisfies AdminKpis,
+      } satisfies AdminKpis;
+    },
   ],
 ];
 
