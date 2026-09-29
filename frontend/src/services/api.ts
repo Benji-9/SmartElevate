@@ -1,4 +1,4 @@
-import type { ApiErrorBody, PingResponse } from '../types/api';
+import type { ApiErrorBody, FieldViolation, PingResponse } from '../types/api';
 import type {
   AdminKpis,
   Building,
@@ -8,6 +8,7 @@ import type {
   Departure,
   LoginRequest,
   PriorityRequest,
+  RegisterRequest,
   Reservation,
   ReserveRequest,
   Session,
@@ -18,11 +19,14 @@ const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
 export class ApiError extends Error {
   readonly status: number;
+  /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */
+  readonly violations: FieldViolation[];
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, violations: FieldViolation[] = []) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.violations = violations;
   }
 }
 
@@ -65,13 +69,15 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     let message = response.statusText;
+    let violations: FieldViolation[] = [];
     try {
       const body = (await response.json()) as Partial<ApiErrorBody>;
       message = body.message ?? message;
+      violations = body.violations ?? [];
     } catch {
       // El cuerpo no es JSON: nos quedamos con statusText.
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(response.status, message, violations);
   }
 
   if (response.status === 204) {
@@ -129,6 +135,9 @@ export const ping = (signal?: AbortSignal) => api.get<PingResponse>('/ping', { s
 
 // Endpoints todavía sin backend: por ahora los responde services/mocks.ts.
 export const getMe = () => api.get<User>('/me');
+
+/** Crea la cuenta; queda pendiente de verificar por email. */
+export const register = (body: RegisterRequest) => api.post<void>('/auth/register', body);
 
 /** Inicia sesión y devuelve el usuario según `/me` (rol y prioridad los decide el servidor). */
 export async function login(body: LoginRequest): Promise<User> {
