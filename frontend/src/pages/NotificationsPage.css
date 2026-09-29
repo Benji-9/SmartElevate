@@ -1,0 +1,19 @@
+.notifications__intro {
+  margin: 0 0 8px;
+  color: var(--color-text-muted);
+  font-size: var(--text-14);
+}
+
+.notifications__alert {
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+}
+
+.notifications__error {
+  display: grid;
+  gap: 12px;
+}
