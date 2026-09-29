@@ -182,13 +182,45 @@ export type NotificationPreferences = {
   priorityAccess: boolean;
 };
 
-export type AdminKpis = {
-  /** Punto de partida de la encuesta: % que espera 5–10 min. */
-  baselinePercent: number;
-  avgWaitDeltaSeconds: number;
+/** Período del panel admin; el servidor lo resuelve en hora de Buenos Aires. */
+export type AdminPeriod = 'TODAY' | 'WEEK' | 'MONTH';
+/** `buildingId` ausente = todas las sedes. */
+export type AdminKpisQuery = { period: AdminPeriod; buildingId?: string };
+
+/** Estado de un núcleo en el período (tabla "Estado por núcleo"). */
+export type CoreKpis = {
+  coreId: string;
+  name: string;
+  reservations: number;
+  /** Personas por salida / capacidad, en %. */
   occupancyPercent: number;
-  qrCompliancePercent: number;
-  noShowsToday: number;
-  priorityAvgWaitSeconds: number;
-  cores: { coreId: string; name: string; congestion: CongestionLevel; occupancyPercent: number }[];
+  avgWaitSeconds: number;
+  congestion: CongestionLevel;
+};
+
+/**
+ * KPIs de congestión (docs/reglas/kpis.md) para el período y la sede pedidos. Todo lo
+ * calcula el servidor; el frontend solo formatea.
+ */
+export type AdminKpis = {
+  /** Rango del período, instantes UTC (`to` exclusivo). */
+  from: string;
+  to: string;
+  /** Espera real promedio (check-in − salida estimada). */
+  avgWaitSeconds: number;
+  /** % de respuestas de la encuesta de espera en 5–10 min, comparable con la línea base. */
+  wait5To10Percent: number;
+  /** Línea base de la encuesta inicial: % que esperaba 5–10 min (43,5). */
+  baselinePercent: number;
+  /** Reservas no canceladas. */
+  reservations: number;
+  /** Check-ins cumplidos y % sobre las reservas no canceladas. */
+  checkIns: number;
+  checkInPercent: number;
+  /** Personas promedio por salida sobre `capacity`. */
+  avgOccupancy: number;
+  capacity: number;
+  /** Reservas por hora del día (0–23, Buenos Aires) sumadas en el período, en orden. */
+  reservationsByHour: { hour: number; reservations: number }[];
+  cores: CoreKpis[];
 };

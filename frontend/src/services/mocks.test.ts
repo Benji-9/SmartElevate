@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type {
+  AdminKpis,
   CheckInResult,
   CongestionSnapshot,
   Departure,
@@ -225,5 +226,20 @@ describe('mocks', () => {
     expect(await call('GET', '/me/notification-preferences')).toMatchObject({
       departureReminder: true,
     });
+  });
+
+  it('KPIs del panel admin: filtran por sede y escalan con el período', async () => {
+    const today = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY');
+    const week = await call<AdminKpis>('GET', '/admin/kpis?period=WEEK');
+    const lima = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY&buildingId=LIMA');
+
+    expect(today).toMatchObject({ baselinePercent: 43.5, capacity: 10 });
+    expect(Date.parse(today.to) - Date.parse(today.from)).toBe(86_400_000);
+    expect(today.reservations).toBe(
+      today.reservationsByHour.reduce((sum, h) => sum + h.reservations, 0),
+    );
+    expect(week.reservations).toBeGreaterThan(today.reservations);
+    expect(lima.cores.map((c) => c.coreId)).toEqual(['L1', 'L2', 'L3']);
+    await expect(call('GET', '/admin/kpis?period=YEAR')).rejects.toMatchObject({ status: 400 });
   });
 });

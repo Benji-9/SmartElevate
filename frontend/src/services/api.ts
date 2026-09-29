@@ -1,6 +1,7 @@
 import type { ApiErrorBody, FieldViolation, PingResponse } from '../types/api';
 import type {
   AdminKpis,
+  AdminKpisQuery,
   Building,
   CheckInRequest,
   CheckInResult,
@@ -213,4 +214,8 @@ export const getNotificationPreferences = () =>
   api.get<NotificationPreferences>('/me/notification-preferences');
 export const saveNotificationPreferences = (body: NotificationPreferences) =>
   api.put<NotificationPreferences>('/me/notification-preferences', body);
-export const getAdminKpis = () => api.get<AdminKpis>('/admin/kpis');
+/** KPIs del panel admin. Solo rol ADMIN (lo valida el backend). */
+export function getAdminKpis({ period, buildingId }: AdminKpisQuery) {
+  const query = new URLSearchParams({ period, ...(buildingId ? { buildingId } : {}) });
+  return api.get<AdminKpis>(`/admin/kpis?${query}`);
+}
