@@ -155,51 +155,10 @@ a {
   border: 0;
 }
 
-/* Layout provisorio: se reemplaza por el mobile-first con BottomNav (#41). */
-.app {
-  max-width: var(--screen-max-width);
-  margin: 0 auto;
-}
-
-.app-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem 2rem;
-  padding: 1rem var(--space-screen);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.brand {
-  font-weight: var(--font-bold);
-  font-size: var(--text-18);
-  color: var(--color-primary);
-}
-
-.app-header ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.app-header a {
-  color: var(--color-text-muted);
+/* Texto de las pantallas que todavía no tienen contenido. */
+.page-placeholder {
   font-size: var(--text-14);
-  text-decoration: none;
-}
-
-.app-header a.active {
-  color: var(--color-primary);
-  font-weight: var(--font-semibold);
-}
-
-.app-main {
-  display: grid;
-  gap: 1rem;
-  padding: 1.5rem var(--space-screen);
+  color: var(--color-text-muted);
 }
 
 .api-status {

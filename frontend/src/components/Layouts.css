@@ -1,0 +1,19 @@
+/* Contenedor móvil (Figma: frames de 390×844). En pantallas anchas queda centrado. */
+.screen {
+  max-width: var(--screen-max-width);
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--color-bg);
+}
+
+.screen__main {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 12px var(--space-screen) 24px;
+}
+
+.screen--with-nav .screen__main {
+  /* Deja lugar para la BottomNav fija. */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
