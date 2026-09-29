@@ -4,7 +4,6 @@ import { ScreenLayout, TabLayout } from './components/Layouts';
 import { RequireSession } from './features/auth/RequireSession';
 import { SessionProvider } from './features/auth/SessionProvider';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { CheckInCodePage } from './pages/CheckInCodePage';
 import { CheckInPage } from './pages/CheckInPage';
 import { CheckInSuccessPage } from './pages/CheckInSuccessPage';
 import { HomePage } from './pages/HomePage';
@@ -34,7 +33,7 @@ export function App() {
             <Route path="reservar" element={<ReserveTurnPage />} />
             <Route path="turno/:id" element={<TurnPage />} />
             <Route path="check-in" element={<CheckInPage />} />
-            <Route path="check-in/codigo" element={<CheckInCodePage />} />
+            <Route path="check-in/codigo" element={<CheckInPage manual />} />
             <Route path="check-in/ok" element={<CheckInSuccessPage />} />
             <Route path="perfil/viajes" element={<MyTripsPage />} />
             <Route path="perfil/notificaciones" element={<NotificationsPage />} />

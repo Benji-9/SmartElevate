@@ -48,7 +48,7 @@ describe('App', () => {
     ['/reservar', 'Reservar turno'],
     ['/turno/42', 'Tu turno'],
     ['/check-in', 'Check-in'],
-    ['/check-in/codigo', 'Ingresar código'],
+    ['/check-in/codigo', 'Check-in'],
     ['/check-in/ok', 'Viaje registrado'],
     ['/perfil/viajes', 'Mis viajes'],
     ['/perfil/notificaciones', 'Notificaciones'],
