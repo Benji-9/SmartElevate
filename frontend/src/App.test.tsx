@@ -14,12 +14,12 @@ function renderAt(...entries: string[]) {
 }
 
 describe('App', () => {
-  it('renderiza el inicio con la navegación inferior y el estado de la API', async () => {
-    const fetchMock = stubApi(signedIn());
+  it('renderiza el inicio con la navegación inferior', async () => {
+    stubApi(signedIn());
 
     renderAt('/');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Inicio' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
     const nav = screen.getByRole('navigation', { name: 'Principal' });
     const links = within(nav).getAllByRole('link');
     expect(links.map((link) => link.textContent)).toEqual([
@@ -32,16 +32,6 @@ describe('App', () => {
       'aria-current',
       'page',
     );
-    expect(await screen.findByText('API conectada')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/ping', expect.anything());
-  });
-
-  it('muestra la API como no disponible si el ping falla', async () => {
-    stubApi({ ...signedIn(), 'GET /ping': { status: 503 } });
-
-    renderAt('/');
-
-    expect(await screen.findByText('API no disponible')).toBeInTheDocument();
   });
 
   it('navega con la barra inferior', async () => {
@@ -108,7 +98,7 @@ describe('App', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Volver' }));
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
   });
 
   it('el panel admin tiene su propio menú con el Dashboard activo', async () => {
@@ -127,7 +117,7 @@ describe('App', () => {
     stubApi(signedIn());
     renderAt('/admin');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Inicio' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Administración' })).not.toBeInTheDocument();
   });
 

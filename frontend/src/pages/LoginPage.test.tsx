@@ -58,7 +58,7 @@ describe('LoginPage', () => {
 
     await submit('ana.perez@uade.edu.ar', 'secreta');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Inicio' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
     const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/login')!;
     expect(JSON.parse(init!.body as string)).toEqual({
       email: 'ana.perez@uade.edu.ar',

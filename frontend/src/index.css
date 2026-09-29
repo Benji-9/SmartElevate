@@ -160,21 +160,3 @@ a {
   font-size: var(--text-14);
   color: var(--color-text-muted);
 }
-
-.api-status {
-  display: inline-block;
-  justify-self: start;
-  padding: 0.25rem 0.75rem;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-13);
-  color: var(--color-text-muted);
-  border: 1px solid currentColor;
-}
-
-.api-status--online {
-  color: var(--Status-Baja);
-}
-
-.api-status--offline {
-  color: var(--color-danger);
-}

@@ -1,0 +1,36 @@
+.home__notice {
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  background: var(--color-primary-tint-strong);
+  font-size: var(--text-14);
+  font-weight: var(--font-medium);
+}
+
+.home__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home__date {
+  font-size: var(--text-14);
+  color: var(--color-text-muted);
+}
+
+.home__date::first-letter {
+  text-transform: uppercase;
+}
+
+.home__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--text-15);
+  font-weight: var(--font-semibold);
+}
