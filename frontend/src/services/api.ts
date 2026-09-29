@@ -9,12 +9,17 @@ import type {
   Departure,
   FloorOption,
   LoginRequest,
+  NoShowStatus,
+  NotificationPreferences,
   PriorityRequest,
+  PriorityUploadRules,
   RegisterRequest,
   Reservation,
   ReserveRequest,
   Session,
+  TripPage,
   User,
+  WaitFeedbackRequest,
 } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -63,7 +68,10 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      // Con FormData el navegador pone el Content-Type (multipart con su boundary).
+      ...(init?.body && !(init.body instanceof FormData)
+        ? { 'Content-Type': 'application/json' }
+        : {}),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...init?.headers,
     },
@@ -178,5 +186,31 @@ export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reserva
 export const cancelReservation = (id: string) =>
   api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
 export const checkIn = (body: CheckInRequest) => api.post<CheckInResult>('/check-ins', body);
+/** Encuesta de espera, opcional y una sola vez por check-in. */
+export const sendWaitFeedback = (reservationId: string, body: WaitFeedbackRequest) =>
+  api.post<void>(`/check-ins/${encodeURIComponent(reservationId)}/wait-feedback`, body);
 export const getMyPriorityRequest = () => api.get<PriorityRequest | null>('/priority-requests/me');
+export const getPriorityUploadRules = () =>
+  api.get<PriorityUploadRules>('/priority-requests/upload-rules');
+/**
+ * Pide acceso prioritario por movilidad reducida. El certificado es un dato de salud
+ * (Ley 25.326): va solo en esta llamada y nunca se vuelve a pedir ni mostrar.
+ */
+export function submitPriorityRequest(certificate: File, consentAccepted: true) {
+  const form = new FormData();
+  form.append('category', 'REDUCED_MOBILITY');
+  form.append('consentAccepted', String(consentAccepted));
+  form.append('certificate', certificate);
+  return request<PriorityRequest>('/priority-requests', { method: 'POST', body: form });
+}
+/** Historial de viajes paginado; sin `cursor` trae la primera página. */
+export const getTrips = (cursor?: string | null) =>
+  api.get<TripPage>(
+    `/reservations/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+  );
+export const getNoShowStatus = () => api.get<NoShowStatus>('/me/no-shows');
+export const getNotificationPreferences = () =>
+  api.get<NotificationPreferences>('/me/notification-preferences');
+export const saveNotificationPreferences = (body: NotificationPreferences) =>
+  api.put<NotificationPreferences>('/me/notification-preferences', body);
 export const getAdminKpis = () => api.get<AdminKpis>('/admin/kpis');

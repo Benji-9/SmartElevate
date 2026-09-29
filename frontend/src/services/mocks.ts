@@ -14,12 +14,19 @@ import type {
   Departure,
   FloorOption,
   LoginRequest,
+  NoShowStatus,
+  NotificationPreferences,
   PriorityRequest,
+  PriorityUploadRules,
   RegisterRequest,
   Reservation,
   ReserveRequest,
   Session,
+  Trip,
+  TripPage,
+  TripResult,
   User,
+  WaitFeedbackRequest,
 } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
@@ -31,6 +38,12 @@ const CONGESTION_REFRESH_SECONDS = 60;
 const LOW_FLOOR_MAX_DISTANCE = 1;
 /** Se puede cancelar sin falta hasta este tiempo antes de la salida. */
 const CANCEL_DEADLINE_MS = 60_000;
+const UPLOAD_RULES: PriorityUploadRules = {
+  maxSizeBytes: 5 * 1024 * 1024,
+  acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
+};
+const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
+const TRIPS_PAGE_SIZE = 10;
 
 // Usuarios de ejemplo: cualquier contraseña sirve, salvo "incorrecta".
 const users: User[] = [
@@ -41,6 +54,7 @@ const users: User[] = [
     legajo: '1099999',
     role: 'USER',
     priority: 'NONE',
+    declaredUserType: 'STUDENT',
   },
   {
     id: 'u-2',
@@ -49,6 +63,7 @@ const users: User[] = [
     legajo: '1000001',
     role: 'ADMIN',
     priority: 'NONE',
+    declaredUserType: 'STAFF',
   },
   {
     id: 'u-3',
@@ -57,6 +72,7 @@ const users: User[] = [
     legajo: '1000002',
     role: 'USER',
     priority: 'NONE',
+    declaredUserType: 'STUDENT',
   },
 ];
 
@@ -186,6 +202,55 @@ const withCancelRule = (r: Reservation): Reservation => ({
 
 // Estado en memoria: se reinicia al recargar la página.
 let activeReservation: Reservation | null = newReservation('r-1', departuresFor('L2')[3], 0, 7);
+/** Turno del último check-in, para "ya escaneado" y la encuesta de espera. */
+let lastCheckedIn: string | null = null;
+const answeredFeedback = new Set<string>();
+let priorityRequest: PriorityRequest | null = null;
+let notificationPreferences: NotificationPreferences = {
+  departureReminder: false,
+  spotReleased: false,
+  delayCancellation: false,
+  priorityAccess: false,
+};
+
+// Historial de ejemplo: dos viajes por día hacia atrás, con todos los resultados posibles.
+const TRIP_RESULTS: TripResult[] = [
+  'COMPLETED',
+  'COMPLETED',
+  'OTHER_ELEVATOR',
+  'LATE',
+  'CANCELLED',
+  'NO_SHOW',
+];
+const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
+  const day = Math.floor(i / 2) + 1;
+  const departsAt = new Date(Date.now() - day * 86_400_000 - (i % 2) * 3 * 3_600_000);
+  departsAt.setUTCSeconds(0, 0);
+  const core = cores[i % cores.length];
+  return {
+    id: `t-${i + 1}`,
+    departsAt: departsAt.toISOString(),
+    durationMinutes: DEPARTURE_MINUTES,
+    coreName: core.name,
+    originFloor: 0,
+    destinationFloor: (i % 6) + 3,
+    result: TRIP_RESULTS[i % TRIP_RESULTS.length],
+  };
+});
+
+/**
+ * Códigos de prueba del check-in: "VENCIDO" es inválido, "OTRO" da otro ascensor y
+ * "TARDE" fuera de hora; cualquier otro código no vacío sale cumplido.
+ */
+function checkInOutcome(code: string): CheckInResult['outcome'] {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized || normalized.includes('VENCIDO')) {
+    throw new ApiError(400, 'El código es inválido o ya venció. Escaneá el QR de nuevo.');
+  }
+  if (normalized.includes('OTRO')) return 'OTHER_ELEVATOR';
+  if (normalized.includes('TARDE')) return 'LATE';
+  return 'ON_TIME';
+}
 
 type Handler = (body: unknown, params: string[], query: URLSearchParams) => unknown;
 
@@ -225,7 +290,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'POST',
     /^\/auth\/register$/,
     (body) => {
-      const { fullName, email, legajo } = body as RegisterRequest;
+      const { fullName, email, legajo, declaredUserType } = body as RegisterRequest;
       const normalized = email.trim().toLowerCase();
       const violations = [
         users.some((u) => u.email === normalized) && {
@@ -246,6 +311,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         legajo,
         role: 'USER',
         priority: 'NONE',
+        declaredUserType,
       });
       unverified.add(normalized);
     },
@@ -288,6 +354,18 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         }
         return { floor, eligible: true, reason: null };
       });
+    },
+  ],
+  [
+    'GET',
+    /^\/reservations\/history$/,
+    (_, __, query) => {
+      const start = Number(query.get('cursor') ?? 0);
+      const end = start + TRIPS_PAGE_SIZE;
+      return {
+        items: trips.slice(start, end),
+        nextCursor: end < trips.length ? String(end) : null,
+      } satisfies TripPage;
     },
   ],
   ['GET', /^\/reservations\/active$/, () => activeReservation && withCancelRule(activeReservation)],
@@ -333,28 +411,94 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/check-ins$/,
     (body) => {
       const { code } = body as CheckInRequest;
-      if (!activeReservation) throw new ApiError(409, 'No tenés un turno activo');
-      if (!code.trim()) throw new ApiError(400, 'Código inválido o vencido');
+      if (!activeReservation) {
+        throw new ApiError(
+          409,
+          lastCheckedIn
+            ? 'Ya registraste el check-in de este turno.'
+            : 'No tenés un turno activo para hacer check-in.',
+        );
+      }
+      const outcome = checkInOutcome(code);
+      const { id, core, departure } = activeReservation;
       const result: CheckInResult = {
-        reservationId: activeReservation.id,
-        outcome: 'ON_TIME',
+        reservationId: id,
+        outcome,
         checkedInAt: new Date().toISOString(),
-        waitDeltaSeconds: 45,
+        waitDeltaSeconds: outcome === 'LATE' ? 95 : 45,
+        elevatorName: outcome === 'OTHER_ELEVATOR' ? 'Ascensor 3' : 'Ascensor 1',
+        coreName: core.name,
+        departsAt: departure.departsAt,
+        durationMinutes: departure.durationMinutes,
       };
       activeReservation = null;
+      lastCheckedIn = id;
       return result;
     },
   ],
   [
-    'GET',
-    /^\/priority-requests\/me$/,
-    () =>
-      ({
-        category: 'TEACHER',
+    'POST',
+    /^\/check-ins\/([^/]+)\/wait-feedback$/,
+    (body, [reservationId]) => {
+      if (reservationId !== lastCheckedIn) throw new ApiError(404, 'No encontramos ese check-in');
+      if (answeredFeedback.has(reservationId)) {
+        throw new ApiError(409, 'Ya respondiste la encuesta de este viaje.');
+      }
+      if (!(body as WaitFeedbackRequest).range) throw new ApiError(400, 'Elegí un rango');
+      answeredFeedback.add(reservationId);
+    },
+  ],
+  ['GET', /^\/priority-requests\/me$/, () => priorityRequest],
+  ['GET', /^\/priority-requests\/upload-rules$/, () => UPLOAD_RULES],
+  [
+    'POST',
+    /^\/priority-requests$/,
+    (body) => {
+      const form = body as FormData;
+      const file = form.get('certificate');
+      if (form.get('consentAccepted') !== 'true') {
+        throw new ApiError(400, 'Tenés que aceptar el tratamiento del certificado.');
+      }
+      if (!(file instanceof File)) throw new ApiError(400, 'Adjuntá el certificado.');
+      // El backend real valida por contenido (magic bytes); el mock, por el tipo declarado.
+      if (!UPLOAD_RULES.acceptedTypes.includes(file.type)) {
+        throw new ApiError(415, 'El archivo tiene que ser PDF, JPG o PNG.');
+      }
+      if (file.size > UPLOAD_RULES.maxSizeBytes) {
+        throw new ApiError(413, 'El archivo supera el tamaño máximo.');
+      }
+      if (priorityRequest?.status === 'PENDING') {
+        throw new ApiError(409, 'Ya tenés una solicitud pendiente.');
+      }
+      priorityRequest = {
+        category: 'REDUCED_MOBILITY',
         status: 'PENDING',
-        submittedAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+        submittedAt: new Date().toISOString(),
         expiresAt: null,
-      }) satisfies PriorityRequest,
+      };
+      return priorityRequest;
+    },
+  ],
+  [
+    'GET',
+    /^\/me\/no-shows$/,
+    () => {
+      const since = Date.now() - NO_SHOW_RULE.windowDays * 86_400_000;
+      return {
+        ...NO_SHOW_RULE,
+        recentNoShows: trips.filter(
+          (t) => t.result === 'NO_SHOW' && Date.parse(t.departsAt) >= since,
+        ).length,
+        suspendedUntil: null,
+        exempt: currentUser().priority !== 'NONE',
+      } satisfies NoShowStatus;
+    },
+  ],
+  ['GET', /^\/me\/notification-preferences$/, () => notificationPreferences],
+  [
+    'PUT',
+    /^\/me\/notification-preferences$/,
+    (body) => (notificationPreferences = body as NotificationPreferences),
   ],
   [
     'GET',
@@ -394,7 +538,8 @@ export async function mockRequest(
     const match = routeMethod === method ? pattern.exec(pathname) : null;
     if (!match) continue;
     await delay(latencyMs);
-    const parsed: unknown = typeof body === 'string' ? JSON.parse(body) : undefined;
+    // JSON como string; FormData (subida de archivos) pasa tal cual.
+    const parsed: unknown = typeof body === 'string' ? JSON.parse(body) : (body ?? undefined);
     const params = match.slice(1).map(decodeURIComponent);
     return { data: handler(parsed, params, new URLSearchParams(search)) };
   }

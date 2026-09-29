@@ -3,7 +3,7 @@
 // Cuando el endpoint real esté, regenerar con `npm run gen:api`, exponer el tipo en
 // types/api.ts y borrarlo de acá.
 // Backend pendiente: auth y usuarios #6, turnos #7, ascensores y edificios #22,
-// tipo de usuario declarativo #32.
+// tipo de usuario declarativo #32, check-in #23, certificados #24 y #26.
 
 /** Nivel de congestión de un núcleo. */
 export type CongestionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -19,6 +19,8 @@ export type User = {
   role: Role;
   /** Prioridad vigente, solo para mostrar. El servidor la evalúa al reservar. */
   priority: PriorityCategory;
+  /** Lo que declaró al registrarse (informativo, no da rol ni prioridad). */
+  declaredUserType: DeclaredUserType;
 };
 
 export type LoginRequest = { email: string; password: string };
@@ -98,8 +100,13 @@ export type Reservation = {
   cancelCountsAsNoShow: boolean;
 };
 
-/** Código del QR escaneado o ingresado a mano. */
+/**
+ * Token del QR escaneado o código corto tipeado a mano (rota igual que el QR y está atado
+ * al ascensor; a confirmar con backend, #23). El JWT de la sesión identifica al usuario.
+ * Errores: 400 código inválido o vencido, 409 sin turno activo o check-in ya registrado.
+ */
 export type CheckInRequest = { code: string };
+/** Cumplida / otro ascensor / fuera de hora (docs/reglas/check-in-qr.md#resultados). */
 export type CheckInOutcome = 'ON_TIME' | 'OTHER_ELEVATOR' | 'LATE';
 export type CheckInResult = {
   reservationId: string;
@@ -107,7 +114,18 @@ export type CheckInResult = {
   checkedInAt: string;
   /** Espera real − estimada, en segundos (negativo si fue antes). */
   waitDeltaSeconds: number;
+  /** Ascensor donde se escaneó (puede no ser el del turno) y su núcleo. */
+  elevatorName: string;
+  coreName: string;
+  /** Salida reservada (UTC), para mostrar la franja. */
+  departsAt: string;
+  durationMinutes: number;
 };
+
+/** Rangos de la encuesta "¿Cuánto esperaste?" (mismos que el baseline, kpis.md). */
+export type WaitRange = 'UNDER_2' | 'FROM_2_TO_5' | 'FROM_5_TO_10' | 'OVER_10';
+/** Una sola vez por check-in: la segunda da 409. */
+export type WaitFeedbackRequest = { range: WaitRange };
 
 export type PriorityRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type PriorityRequest = {
@@ -116,6 +134,52 @@ export type PriorityRequest = {
   submittedAt: string;
   /** Solo si está aprobada. */
   expiresAt: string | null;
+};
+
+/**
+ * Límites del certificado que informa el servidor. Es solo para validar antes de subir:
+ * la validación real (magic bytes) la hace el backend.
+ */
+export type PriorityUploadRules = {
+  maxSizeBytes: number;
+  /** MIME aceptados, p. ej. `application/pdf`. */
+  acceptedTypes: string[];
+};
+
+/**
+ * Viaje del historial. `result` combina el estado de la reserva con el resultado del
+ * check-in: COMPLETED = cumplido a tiempo.
+ */
+export type TripResult = 'COMPLETED' | 'OTHER_ELEVATOR' | 'LATE' | 'CANCELLED' | 'NO_SHOW';
+export type Trip = {
+  id: string;
+  departsAt: string;
+  durationMinutes: number;
+  coreName: string;
+  originFloor: number;
+  destinationFloor: number;
+  result: TripResult;
+};
+/** Página del historial, del más reciente al más viejo. `nextCursor` null = no hay más. */
+export type TripPage = { items: Trip[]; nextCursor: string | null };
+
+/** Faltas recientes (turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
+export type NoShowStatus = {
+  recentNoShows: number;
+  /** Parámetros de la regla: N faltas en `windowDays` días suspenden. */
+  threshold: number;
+  windowDays: number;
+  suspensionHours: number;
+  suspendedUntil: string | null;
+  exempt: boolean;
+};
+
+/** Qué avisos quiere recibir el usuario. */
+export type NotificationPreferences = {
+  departureReminder: boolean;
+  spotReleased: boolean;
+  delayCancellation: boolean;
+  priorityAccess: boolean;
 };
 
 export type AdminKpis = {

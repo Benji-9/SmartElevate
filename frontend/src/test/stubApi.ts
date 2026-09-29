@@ -31,6 +31,7 @@ export const testUser: User = {
   legajo: '1099999',
   role: 'USER',
   priority: 'NONE',
+  declaredUserType: 'STUDENT',
 };
 
 /** Rutas para arrancar con sesión (cookie de refresh válida). */
