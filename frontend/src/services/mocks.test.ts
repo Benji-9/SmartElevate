@@ -47,4 +47,22 @@ describe('mocks', () => {
     await call('DELETE', `/reservations/${created.id}`);
     expect(await call('GET', '/reservations/active')).toBeNull();
   });
+
+  it('login, /me y logout simulan la sesión con cookie', async () => {
+    await call('POST', '/auth/login', { email: 'admin@uade.edu.ar', password: 'x' });
+    expect(await call('GET', '/me')).toMatchObject({ role: 'ADMIN' });
+
+    await call('POST', '/auth/logout');
+    await expect(call('GET', '/me')).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('login con cuenta sin verificar da 403 y con contraseña incorrecta 401', async () => {
+    const login = (email: string, password: string) =>
+      call('POST', '/auth/login', { email, password });
+
+    await expect(login('sin.verificar@uade.edu.ar', 'x')).rejects.toMatchObject({ status: 403 });
+    await expect(login('ana.perez@uade.edu.ar', 'incorrecta')).rejects.toMatchObject({
+      status: 401,
+    });
+  });
 });

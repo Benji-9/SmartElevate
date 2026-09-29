@@ -22,7 +22,8 @@ export type User = {
 };
 
 export type LoginRequest = { email: string; password: string };
-export type Session = { accessToken: string; user: User };
+/** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
+export type Session = { accessToken: string };
 
 export type Building = { id: string; name: string; minFloor: number; maxFloor: number };
 
