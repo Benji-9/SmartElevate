@@ -1,6 +1,8 @@
 import './StatusPill.css';
 
-export type CongestionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+import type { CongestionLevel } from '../types/pending';
+
+export type { CongestionLevel };
 
 const labels: Record<CongestionLevel, string> = {
   LOW: 'Baja',
