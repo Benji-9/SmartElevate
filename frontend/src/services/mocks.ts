@@ -24,14 +24,46 @@ const DEPARTURE_MINUTES = 2;
 const CAPACITY = 10;
 const WINDOW_MINUTES = 30;
 
-const user: User = {
-  id: 'u-1',
-  email: 'ana.perez@uade.edu.ar',
-  fullName: 'Ana Pérez',
-  legajo: '1099999',
-  role: 'USER',
-  priority: 'NONE',
-};
+// Usuarios de ejemplo: cualquier contraseña sirve, salvo "incorrecta".
+const users: User[] = [
+  {
+    id: 'u-1',
+    email: 'ana.perez@uade.edu.ar',
+    fullName: 'Ana Pérez',
+    legajo: '1099999',
+    role: 'USER',
+    priority: 'NONE',
+  },
+  {
+    id: 'u-2',
+    email: 'admin@uade.edu.ar',
+    fullName: 'Admin UADE',
+    legajo: '1000001',
+    role: 'ADMIN',
+    priority: 'NONE',
+  },
+  {
+    id: 'u-3',
+    email: 'sin.verificar@uade.edu.ar',
+    fullName: 'Sin Verificar',
+    legajo: '1000002',
+    role: 'USER',
+    priority: 'NONE',
+  },
+];
+
+// Cuentas que todavía no hicieron click en el link de verificación.
+const unverified = new Set(['sin.verificar@uade.edu.ar']);
+
+// Simula la cookie httpOnly de refresh: sobrevive a recargar la página, como la real.
+const SESSION_KEY = 'smartelevate-mock-session';
+
+function currentUser(): User {
+  const email = sessionStorage.getItem(SESSION_KEY);
+  const found = users.find((u) => u.email === email);
+  if (!found) throw new ApiError(401, 'Sesión vencida');
+  return found;
+}
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -125,12 +157,34 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'POST',
     /^\/auth\/login$/,
     (body) => {
-      const { password } = body as LoginRequest;
-      if (password === 'incorrecta') throw new ApiError(401, 'Email o contraseña incorrectos');
-      return { accessToken: 'mock-token', user } satisfies Session;
+      const { email, password } = body as LoginRequest;
+      const found = users.find((u) => u.email === email.trim().toLowerCase());
+      if (!found || password === 'incorrecta') {
+        throw new ApiError(401, 'Email o contraseña incorrectos');
+      }
+      if (unverified.has(found.email)) {
+        throw new ApiError(403, 'Tu cuenta todavía no está verificada. Revisá tu email.');
+      }
+      sessionStorage.setItem(SESSION_KEY, found.email);
+      return { accessToken: `mock-${Date.now()}` } satisfies Session;
     },
   ],
-  ['GET', /^\/me$/, () => user],
+  [
+    'POST',
+    /^\/auth\/refresh$/,
+    () => {
+      currentUser();
+      return { accessToken: `mock-${Date.now()}` } satisfies Session;
+    },
+  ],
+  [
+    'POST',
+    /^\/auth\/logout$/,
+    () => {
+      sessionStorage.removeItem(SESSION_KEY);
+    },
+  ],
+  ['GET', /^\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
   ['GET', /^\/cores$/, () => cores],
   ['GET', /^\/cores\/([^/]+)\/departures$/, (_, [coreId]) => departuresFor(coreId)],

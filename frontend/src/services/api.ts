@@ -32,7 +32,21 @@ const USE_MOCKS =
   import.meta.env.DEV &&
   (import.meta.env.VITE_USE_MOCKS ?? String(import.meta.env.MODE === 'development')) === 'true';
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+// Sesión (#45): el access token vive solo en memoria. El refresh token lo maneja el backend
+// en una cookie httpOnly (propuesta, a confirmar en #6): el frontend nunca lo lee.
+let accessToken: string | null = null;
+let refreshing: Promise<boolean> | null = null;
+const expiredListeners = new Set<() => void>();
+
+/** Avisa cuando la sesión venció y no se pudo renovar. Devuelve la función para desuscribirse. */
+export function onSessionExpired(listener: () => void) {
+  expiredListeners.add(listener);
+  return () => {
+    expiredListeners.delete(listener);
+  };
+}
+
+async function send<T>(path: string, init?: RequestInit): Promise<T> {
   if (USE_MOCKS) {
     const { mockRequest } = await import('./mocks');
     const mocked = await mockRequest(init?.method ?? 'GET', path, init?.body);
@@ -44,6 +58,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       Accept: 'application/json',
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...init?.headers,
     },
   });
@@ -65,6 +80,42 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/** Pide un access token nuevo con la cookie de refresh. Las llamadas simultáneas comparten el intento. */
+function refreshAccessToken(): Promise<boolean> {
+  refreshing ??= send<Session>('/auth/refresh', { method: 'POST', credentials: 'include' })
+    .then(
+      (session) => {
+        accessToken = session.accessToken;
+        return true;
+      },
+      () => {
+        accessToken = null;
+        return false;
+      },
+    )
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  try {
+    return await send<T>(path, init);
+  } catch (error) {
+    const expired =
+      error instanceof ApiError &&
+      error.status === 401 &&
+      accessToken !== null &&
+      !path.startsWith('/auth/');
+    if (!expired) throw error;
+    // Un solo intento de renovación; si falla, la sesión terminó.
+    if (await refreshAccessToken()) return send<T>(path, init);
+    expiredListeners.forEach((listener) => listener());
+    throw error;
+  }
+}
+
 export const api = {
   get: <T>(path: string, init?: RequestInit) => request<T>(path, { ...init, method: 'GET' }),
   post: <T>(path: string, body: unknown, init?: RequestInit) =>
@@ -77,8 +128,30 @@ export const api = {
 export const ping = (signal?: AbortSignal) => api.get<PingResponse>('/ping', { signal });
 
 // Endpoints todavía sin backend: por ahora los responde services/mocks.ts.
-export const login = (body: LoginRequest) => api.post<Session>('/auth/login', body);
 export const getMe = () => api.get<User>('/me');
+
+/** Inicia sesión y devuelve el usuario según `/me` (rol y prioridad los decide el servidor). */
+export async function login(body: LoginRequest): Promise<User> {
+  const session = await api.post<Session>('/auth/login', body, { credentials: 'include' });
+  accessToken = session.accessToken;
+  return getMe();
+}
+
+/** Recupera la sesión al abrir la app (cookie de refresh). `null` si no hay sesión. */
+export async function restoreSession(): Promise<User | null> {
+  if (!(await refreshAccessToken())) return null;
+  return getMe().catch(() => null);
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await api.post<void>('/auth/logout', undefined, { credentials: 'include' });
+  } catch {
+    // Aunque el backend no responda, la sesión local se cierra igual.
+  } finally {
+    accessToken = null;
+  }
+}
 export const getBuildings = () => api.get<Building[]>('/buildings');
 export const getCores = () => api.get<Core[]>('/cores');
 export const getDepartures = (coreId: string) =>
