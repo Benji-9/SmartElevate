@@ -1,0 +1,27 @@
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  margin: 0 calc(var(--space-screen) * -1);
+  padding: 8px var(--space-screen);
+}
+
+.screen-header__back {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-primary-tint-strong);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.screen-header__title {
+  font-size: var(--text-20);
+  font-weight: var(--font-semibold);
+}
