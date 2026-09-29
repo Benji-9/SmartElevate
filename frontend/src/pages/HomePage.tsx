@@ -1,11 +1,33 @@
-import { ApiStatusBadge } from '../components/ApiStatusBadge';
+import { useLocation } from 'react-router';
+import { Avatar } from '../components/Avatar';
+import { CongestionNow } from '../features/congestion/CongestionNow';
+import { ActiveTurnCard } from '../features/turn/ActiveTurnCard';
+import { formatDate } from '../features/turn/format';
+import { useSession } from '../hooks/useSession';
+import './HomePage.css';
 
 export function HomePage() {
+  const { user } = useSession();
+  const location = useLocation();
+  const notice = (location.state as { notice?: string } | null)?.notice;
+  const fullName = user?.fullName ?? '';
+
   return (
-    <section>
-      <h1>SmartElevate</h1>
-      <p>Reservá tu turno de ascensor y evitá las filas en el campus.</p>
-      <ApiStatusBadge />
-    </section>
+    <>
+      {notice && (
+        <p role="status" className="home__notice">
+          {notice}
+        </p>
+      )}
+      <header className="home__header">
+        <div>
+          <h1>Hola, {fullName.split(/\s+/)[0]}</h1>
+          <p className="home__date">{formatDate(new Date())}</p>
+        </div>
+        <Avatar name={fullName} />
+      </header>
+      <ActiveTurnCard />
+      <CongestionNow />
+    </>
   );
 }

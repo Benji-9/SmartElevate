@@ -1,0 +1,122 @@
+/* Check-in (Figma 06 y 06b): cámara a pantalla completa con los bottom sheets encima. */
+.check-in {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: var(--screen-max-width);
+  margin: 0 auto;
+  background: var(--BlackPearl);
+  overflow-y: auto;
+}
+
+/* La vista de cámara siempre es oscura, también en modo claro. */
+.check-in__view {
+  --color-text: var(--White);
+  --color-text-muted: color-mix(in srgb, var(--White) 75%, transparent);
+  --color-primary-tint-strong: color-mix(in srgb, var(--White) 14%, transparent);
+  --color-focus: var(--White);
+
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  padding: 12px var(--space-screen) 24px;
+  color: var(--color-text);
+  isolation: isolate;
+}
+
+.check-in__video {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.check-in__body {
+  flex: 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.check-in__finder {
+  width: min(64vw, 240px);
+  aspect-ratio: 1;
+  border: 3px solid var(--White);
+  border-radius: var(--radius-card-lg);
+  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--BlackPearl) 45%, transparent);
+}
+
+.check-in__instructions {
+  font-size: var(--text-16);
+  font-weight: var(--font-semibold);
+}
+
+.check-in__note,
+.check-in__message p {
+  font-size: var(--text-14);
+  color: var(--color-text-muted);
+}
+
+.check-in__message {
+  display: grid;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.check-in__message h2 {
+  font-size: var(--text-18);
+}
+
+.check-in__alert {
+  background: var(--White);
+}
+
+.check-in__sheet {
+  display: grid;
+  gap: 12px;
+  padding: 20px var(--space-screen) calc(20px + env(safe-area-inset-bottom));
+  border-radius: var(--radius-card-lg) var(--radius-card-lg) 0 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.check-in__sheet h2 {
+  font-size: var(--text-18);
+}
+
+.check-in__sheet .chip {
+  justify-self: start;
+}
+
+.check-in__sheet a.button {
+  text-decoration: none;
+}
+
+.check-in__code {
+  width: 100%;
+  max-width: var(--screen-max-width);
+  margin: auto auto 0;
+  border: 0;
+}
+
+/* `display: grid` pisa el `display: none` nativo del diálogo cerrado. */
+.check-in__code:not([open]) {
+  display: none;
+}
+
+.check-in__code::backdrop {
+  background: color-mix(in srgb, var(--BlackPearl) 60%, transparent);
+}
+
+.check-in__code form {
+  display: grid;
+  gap: 12px;
+}

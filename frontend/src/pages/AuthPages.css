@@ -1,0 +1,75 @@
+/* Login y registro. */
+.auth {
+  display: grid;
+  gap: 24px;
+}
+
+.auth__intro {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding-top: 32px;
+  text-align: center;
+}
+
+.auth__subtitle,
+.auth__lead {
+  font-size: var(--text-14);
+  color: var(--color-text-muted);
+}
+
+.auth__form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth__text-button {
+  justify-self: end;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.auth__notice,
+.auth__alert,
+.auth__info {
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  font-size: var(--text-13);
+}
+
+.auth__notice,
+.auth__info {
+  background: var(--color-primary-tint);
+}
+
+.auth__alert {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-medium);
+}
+
+.auth__info {
+  display: grid;
+  gap: 4px;
+}
+
+.auth__info-title {
+  font-size: var(--text-14);
+}
+
+.user-type-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.auth__footer {
+  text-align: center;
+  font-size: var(--text-14);
+}

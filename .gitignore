@@ -35,3 +35,21 @@ Thumbs.db
 
 # --- Claude Code (config local personal) ---
 .claude/settings.local.json
+.claude/worktrees/
+
+# --- Archivos pesados o de trabajo (van a Drive, no al repo) ---
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+*.zip
+*.rar
+*.7z
+*.mp4
+*.mov
+*.psd
+*.fig
+~$*
