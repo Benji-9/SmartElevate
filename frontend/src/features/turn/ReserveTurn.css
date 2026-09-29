@@ -1,0 +1,112 @@
+/* Pantalla Reservar turno. */
+.reserve {
+  display: grid;
+  gap: 24px;
+}
+
+.reserve__fieldset {
+  display: grid;
+  gap: 16px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.reserve__legend {
+  margin-bottom: 12px;
+  padding: 0;
+  font-size: var(--text-16);
+  font-weight: var(--font-semibold);
+}
+
+.reserve__notice,
+.reserve__alert {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  font-size: var(--text-13);
+}
+
+.reserve__notice {
+  background: var(--color-primary-tint);
+}
+
+.reserve__notice ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.reserve__notice-title {
+  font-weight: var(--font-semibold);
+}
+
+.reserve__alert {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-medium);
+}
+
+.slot-list {
+  display: grid;
+  gap: 8px;
+}
+
+.slot {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  font-size: var(--text-14);
+  cursor: pointer;
+}
+
+.slot:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint-strong);
+}
+
+.slot:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.slot--full {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-subtle);
+  cursor: not-allowed;
+}
+
+.slot__time {
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.slot__bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-disabled-bg);
+}
+
+.slot__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.slot--full .slot__bar > span {
+  background: var(--color-danger);
+}
+
+.slot__count {
+  font-size: var(--text-13);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
