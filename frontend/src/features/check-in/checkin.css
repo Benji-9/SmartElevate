@@ -1,0 +1,29 @@
+/* Pantalla de viaje registrado (CheckInSuccessPage). Hero, alertas y acciones vienen de turn.css. */
+.checkin-card,
+.checkin-feedback {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.checkin-card {
+  justify-items: start;
+  font-size: var(--text-14);
+}
+
+.checkin-card__title {
+  margin: 0;
+  font-size: inherit;
+}
+
+.checkin-card__slot,
+.checkin-feedback__hint {
+  color: var(--color-text-muted);
+}
+
+.checkin-feedback__hint {
+  font-size: var(--text-13);
+}

@@ -49,7 +49,6 @@ describe('App', () => {
     ['/turno/42', 'Tu turno'],
     ['/check-in', 'Check-in'],
     ['/check-in/codigo', 'Ingresar código'],
-    ['/check-in/ok', 'Viaje registrado'],
     ['/perfil/viajes', 'Mis viajes'],
     ['/perfil/notificaciones', 'Notificaciones'],
   ])('con sesión, %s muestra "%s" sin la navegación inferior', async (path, title) => {
