@@ -1,4 +1,18 @@
 import type { ApiErrorBody, PingResponse } from '../types/api';
+import type {
+  AdminKpis,
+  Building,
+  CheckInRequest,
+  CheckInResult,
+  Core,
+  Departure,
+  LoginRequest,
+  PriorityRequest,
+  Reservation,
+  ReserveRequest,
+  Session,
+  User,
+} from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
@@ -12,7 +26,19 @@ export class ApiError extends Error {
   }
 }
 
+// Datos simulados (#42): prendidos por defecto en `vite dev`, apagados en tests y siempre
+// fuera del build de producción (DEV es false ahí y Vite descarta el import).
+const USE_MOCKS =
+  import.meta.env.DEV &&
+  (import.meta.env.VITE_USE_MOCKS ?? String(import.meta.env.MODE === 'development')) === 'true';
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (USE_MOCKS) {
+    const { mockRequest } = await import('./mocks');
+    const mocked = await mockRequest(init?.method ?? 'GET', path, init?.body);
+    if (mocked) return mocked.data as T;
+  }
+
   const response = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -49,3 +75,18 @@ export const api = {
 };
 
 export const ping = (signal?: AbortSignal) => api.get<PingResponse>('/ping', { signal });
+
+// Endpoints todavía sin backend: por ahora los responde services/mocks.ts.
+export const login = (body: LoginRequest) => api.post<Session>('/auth/login', body);
+export const getMe = () => api.get<User>('/me');
+export const getBuildings = () => api.get<Building[]>('/buildings');
+export const getCores = () => api.get<Core[]>('/cores');
+export const getDepartures = (coreId: string) =>
+  api.get<Departure[]>(`/cores/${encodeURIComponent(coreId)}/departures`);
+export const getActiveReservation = () => api.get<Reservation | null>('/reservations/active');
+export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
+export const cancelReservation = (id: string) =>
+  api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
+export const checkIn = (body: CheckInRequest) => api.post<CheckInResult>('/check-ins', body);
+export const getMyPriorityRequest = () => api.get<PriorityRequest | null>('/priority-requests/me');
+export const getAdminKpis = () => api.get<AdminKpis>('/admin/kpis');
