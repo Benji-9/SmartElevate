@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -94,12 +94,62 @@ describe('ReserveTurnPage', () => {
     stubApi(routes);
     await renderReserve();
 
-    const full = await screen.findByRole('radio', { name: /^14:34/ });
+    const slots = await screen.findByRole('radiogroup', { name: 'Franja horaria' });
+    const full = within(slots).getByRole('radio', { name: /^14:34/ });
     expect(full).toBeDisabled();
-    expect(full).toHaveAccessibleName(expect.stringContaining('Completo'));
-    expect(screen.getByRole('radio', { name: /^14:32/ })).toHaveAccessibleName(
+    expect(full).toHaveAccessibleName('14:34 – 14:36 Completo');
+    expect(within(slots).queryByText('10/10')).not.toBeInTheDocument();
+    expect(within(slots).getByRole('radio', { name: /^14:32/ })).toHaveAccessibleName(
       expect.stringContaining('4 de 10 lugares ocupados'),
     );
+  });
+
+  it('se elige la franja con el teclado', async () => {
+    stubApi(routes);
+    await renderReserve();
+
+    const slots = await screen.findByRole('radiogroup', { name: 'Franja horaria' });
+    within(slots)
+      .getByRole('radio', { name: /^14:32/ })
+      .focus();
+    await userEvent.keyboard(' ');
+
+    expect(within(slots).getByRole('radio', { name: /^14:32/ })).toBeChecked();
+  });
+
+  it('muestra los núcleos con nombre corto, en el orden de los edificios', async () => {
+    stubApi({
+      ...routes,
+      'GET /buildings': {
+        body: [
+          { id: 'LIMA', name: 'Lima', minFloor: -1, maxFloor: 5 },
+          { id: 'IND', name: 'Independencia', minFloor: -3, maxFloor: 10 },
+        ],
+      },
+      'GET /cores': {
+        body: [
+          {
+            ...routes['GET /cores'].body[0],
+            id: 'IND1',
+            buildingId: 'IND',
+            name: 'Independencia 1',
+          },
+          routes['GET /cores'].body[0],
+        ],
+      },
+    });
+    render(
+      <MemoryRouter initialEntries={['/reservar']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
+    expect(
+      within(cores)
+        .getAllByRole('radio')
+        .map((r) => r.closest('label')!.textContent),
+    ).toEqual(['Lima 1', 'Indep. 1']);
   });
 
   it('deshabilita el origen y los pisos no elegibles, con el aviso del servidor', async () => {

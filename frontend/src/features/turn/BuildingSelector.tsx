@@ -8,28 +8,25 @@ type BuildingSelectorProps = {
   onChange: (coreId: string) => void;
 };
 
-/** Núcleo de ascensores, agrupado por edificio. */
+// ponytail: la abreviatura sale del nombre ("Independencia 1" → "Indep. 1", SCREENS.md §04).
+// Si el contrato suma un nombre corto del núcleo, usar ese.
+const shortName = (name: string) => name.replace(/\p{L}{9,}/u, (word) => `${word.slice(0, 5)}.`);
+
+/** Núcleo de ascensores: pills en una fila con wrap, en el orden de los edificios. */
 export function BuildingSelector({ buildings, cores, value, onChange }: BuildingSelectorProps) {
+  const options = buildings.flatMap((building) =>
+    cores
+      .filter((core) => core.buildingId === building.id)
+      .map((core) => ({ value: core.id, label: shortName(core.name) })),
+  );
   return (
-    <fieldset className="reserve__fieldset">
-      <legend className="reserve__legend">Edificio y núcleo</legend>
-      {buildings.map((building) => {
-        const options = cores
-          .filter((core) => core.buildingId === building.id)
-          .map((core) => ({ value: core.id, label: core.name }));
-        return (
-          options.length > 0 && (
-            <OptionGroup
-              key={building.id}
-              label={building.name}
-              name={`core-${building.id}`}
-              options={options}
-              value={value}
-              onChange={onChange}
-            />
-          )
-        );
-      })}
-    </fieldset>
+    <OptionGroup
+      label="Edificio"
+      name="core"
+      className="reserve__cores"
+      options={options}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
