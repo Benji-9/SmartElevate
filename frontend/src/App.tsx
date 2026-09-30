@@ -36,14 +36,18 @@ export function App() {
                 <Route index element={<HomePage />} />
                 <Route path="perfil" element={<ProfilePage />} />
               </Route>
-              <Route element={<ScreenLayout />}>
+              {/* Sin navegación inferior; en Pantalla llevan TopBar (VIEW-MODES.md §5). */}
+              <Route element={<ScreenLayout topBar />}>
                 <Route path="reservar" element={<ReserveTurnPage />} />
-                <Route path="turno/:id" element={<TurnPage />} />
-                <Route path="check-in/ok" element={<CheckInSuccessPage />} />
                 <Route path="perfil/viajes" element={<MyTripsPage />} />
                 <Route path="perfil/notificaciones" element={<NotificationsPage />} />
               </Route>
-              <Route element={<ScreenLayout bleed />}>
+              {/* Confirmaciones: columna de 480 sin TopBar también en Pantalla (§6). */}
+              <Route element={<ScreenLayout />}>
+                <Route path="turno/:id" element={<TurnPage />} />
+                <Route path="check-in/ok" element={<CheckInSuccessPage />} />
+              </Route>
+              <Route element={<ScreenLayout bleed topBar />}>
                 <Route path="check-in" element={<CheckInPage />} />
                 <Route path="check-in/codigo" element={<CheckInPage manual />} />
               </Route>
