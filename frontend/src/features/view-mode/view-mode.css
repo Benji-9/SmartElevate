@@ -1,0 +1,149 @@
+/*
+ * Modos de vista (VIEW-MODES.md §1–§4). Las pantallas reaccionan al ancho del contenedor
+ * `app` con @container, nunca a la ventana: en modo Teléfono el contenedor mide 390.
+ */
+.app-shell {
+  container: app / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--color-bg);
+}
+
+/* Las pantallas (.screen, .admin-shell) llenan el alto del shell. */
+.app-shell > * {
+  flex: 1;
+}
+
+/* ---- Pantalla: el marco no existe visualmente ---- */
+.stage[data-mode='pantalla'] .phone-slot,
+.stage[data-mode='pantalla'] .phone,
+.stage[data-mode='pantalla'] .phone-screen,
+.stage[data-mode='pantalla'] .app-scroll {
+  display: contents;
+}
+
+/* ---- Teléfono: marco de 390 × 844 centrado y escalado para que entre ---- */
+.stage[data-mode='telefono'] {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background: var(--color-disabled-bg);
+}
+
+/* El slot ocupa el tamaño ya escalado, para que no aparezca scroll de más. */
+.stage[data-mode='telefono'] .phone-slot {
+  width: calc((var(--phone-w) + 2 * var(--phone-bezel)) * var(--phone-scale));
+  height: calc((var(--phone-h) + 2 * var(--phone-bezel)) * var(--phone-scale));
+}
+
+/* Adorno de presentación: único uso de --surface-dark como bisel, sin sombra. */
+.stage[data-mode='telefono'] .phone {
+  width: calc(var(--phone-w) + 2 * var(--phone-bezel));
+  height: calc(var(--phone-h) + 2 * var(--phone-bezel));
+  padding: var(--phone-bezel);
+  border-radius: 46px;
+  background: var(--surface-dark);
+  transform: scale(var(--phone-scale));
+  transform-origin: top left;
+}
+
+.stage[data-mode='telefono'] .phone-screen {
+  display: flex;
+  flex-direction: column;
+  width: var(--phone-w);
+  height: var(--phone-h);
+  overflow: hidden;
+  border-radius: 36px;
+  background: var(--color-bg);
+}
+
+/* En pantallas oscuras (check-in) el fondo acompaña: en el borde escalado no asoma un filo claro. */
+.stage[data-mode='telefono'] .phone-screen[data-tone='dark'] {
+  background: var(--surface-dark);
+}
+
+/* La pantalla scrollea por dentro; la BottomNav (sticky) queda pegada abajo. */
+.stage[data-mode='telefono'] .app-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.stage[data-mode='telefono'] .app-shell {
+  min-height: 100%;
+}
+
+/* ---- Navegación según el layout (§5): la oculta no queda para lectores de pantalla ---- */
+.only-desktop {
+  display: none;
+}
+
+@container app (min-width: 900px) {
+  .only-mobile {
+    display: none;
+  }
+
+  .only-desktop {
+    display: flex;
+  }
+}
+
+/* ---- Barra de estado decorativa (solo dentro del marco) ---- */
+.status-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 28px 0 32px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.status-bar--dark {
+  background: var(--surface-dark);
+  color: var(--on-dark);
+}
+
+/* ---- Selector de vista (§3): flota sobre la app, fuera del marco ---- */
+.view-toggle {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+
+.view-toggle__option {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.view-toggle__option[aria-checked='true'] {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+@media (hover: hover) {
+  .view-toggle__option[aria-checked='false']:hover {
+    background: var(--color-disabled-bg);
+  }
+}
+
+@media print {
+  .view-toggle {
+    display: none;
+  }
+}

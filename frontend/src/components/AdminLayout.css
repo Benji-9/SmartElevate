@@ -1,15 +1,11 @@
 /*
  * Panel admin (Figma 09: 1440×900), solo de escritorio (VIEW-MODES.md §7).
- * Móvil por defecto: con el contenedor `app` de menos de 900 px se ve el aviso; desde
- * 900 px, el panel.
+ * Móvil por defecto: con el contenedor `app` (.app-shell de DeviceStage) de menos de 900 px
+ * se ve el aviso; desde 900 px, el panel.
  */
 .admin-shell {
-  container: app / inline-size;
-
-  /* Tokens de DESIGN-SYSTEM.md §3 que index.css todavía no tiene (la migración es aparte). */
-  --surface-dark: var(--BlackPearl);
-  --on-dark: var(--White);
-  --on-dark-muted: color-mix(in srgb, var(--White) 65%, transparent);
+  display: flex;
+  flex-direction: column;
 }
 
 .admin {
@@ -20,8 +16,8 @@
   display: grid;
   align-content: center;
   justify-items: center;
+  flex: 1;
   gap: 8px;
-  min-height: 100dvh;
   padding: 24px var(--space-screen);
   text-align: center;
 }
@@ -34,8 +30,8 @@
 @container app (min-width: 900px) {
   .admin {
     display: grid;
+    flex: 1;
     grid-template-columns: 248px minmax(0, 1fr);
-    min-height: 100dvh;
   }
 
   .admin-narrow {

@@ -1,13 +1,13 @@
 /*
  * Contenedor móvil (Figma: frames de 390×844). En pantallas anchas queda centrado.
- * Columna flex: el contenido crece y la BottomNav (sticky) queda pegada abajo aunque
- * haya poco contenido.
+ * Columna flex con el alto del .app-shell (ventana o marco de teléfono): el contenido crece
+ * y la BottomNav (sticky) queda pegada abajo aunque haya poco contenido.
  */
 .screen {
   display: flex;
   flex-direction: column;
+  width: 100%;
   max-width: var(--screen-max-width);
-  min-height: 100dvh;
   margin: 0 auto;
   background: var(--color-bg);
 }

@@ -3,6 +3,8 @@ import { AdminLayout } from './components/AdminLayout';
 import { ScreenLayout, TabLayout } from './components/Layouts';
 import { RequireSession } from './features/auth/RequireSession';
 import { SessionProvider } from './features/auth/SessionProvider';
+import { DeviceStage } from './features/view-mode/DeviceStage';
+import { ViewModeProvider } from './features/view-mode/ViewModeProvider';
 import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { CheckInPage } from './pages/CheckInPage';
@@ -25,34 +27,38 @@ export function App() {
   // Guarda `?demo=1` apenas se entra, aunque la primera pantalla no lo use.
   useDemoMode();
   return (
-    <SessionProvider>
-      <Routes>
-        <Route element={<RequireSession />}>
-          <Route element={<TabLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="perfil" element={<ProfilePage />} />
-          </Route>
-          <Route element={<ScreenLayout />}>
-            <Route path="reservar" element={<ReserveTurnPage />} />
-            <Route path="turno/:id" element={<TurnPage />} />
-            <Route path="check-in" element={<CheckInPage />} />
-            <Route path="check-in/codigo" element={<CheckInPage manual />} />
-            <Route path="check-in/ok" element={<CheckInSuccessPage />} />
-            <Route path="perfil/viajes" element={<MyTripsPage />} />
-            <Route path="perfil/notificaciones" element={<NotificationsPage />} />
-          </Route>
-        </Route>
-        <Route element={<RequireSession role="ADMIN" />}>
-          <Route path="admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboardPage />} />
-          </Route>
-        </Route>
-        <Route element={<ScreenLayout />}>
-          <Route path="login" element={<LoginPage />} />
-          <Route path="registro" element={<RegisterPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
-    </SessionProvider>
+    <ViewModeProvider>
+      <DeviceStage>
+        <SessionProvider>
+          <Routes>
+            <Route element={<RequireSession />}>
+              <Route element={<TabLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="perfil" element={<ProfilePage />} />
+              </Route>
+              <Route element={<ScreenLayout />}>
+                <Route path="reservar" element={<ReserveTurnPage />} />
+                <Route path="turno/:id" element={<TurnPage />} />
+                <Route path="check-in" element={<CheckInPage />} />
+                <Route path="check-in/codigo" element={<CheckInPage manual />} />
+                <Route path="check-in/ok" element={<CheckInSuccessPage />} />
+                <Route path="perfil/viajes" element={<MyTripsPage />} />
+                <Route path="perfil/notificaciones" element={<NotificationsPage />} />
+              </Route>
+            </Route>
+            <Route element={<RequireSession role="ADMIN" />}>
+              <Route path="admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboardPage />} />
+              </Route>
+            </Route>
+            <Route element={<ScreenLayout />}>
+              <Route path="login" element={<LoginPage />} />
+              <Route path="registro" element={<RegisterPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+          </Routes>
+        </SessionProvider>
+      </DeviceStage>
+    </ViewModeProvider>
   );
 }
