@@ -16,6 +16,7 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 | B-14 | [#25](https://github.com/Benji-9/SmartElevate/issues/25) | 🟡 | **Proveedor de email** | Necesario para verificar cuentas @uade.edu.ar. |
 | B-15 | [#26](https://github.com/Benji-9/SmartElevate/issues/26) | 🟡 | **Storage privado para certificados** | Depende de B-01. |
 | B-07 | [#1](https://github.com/Benji-9/SmartElevate/issues/1) | 🟡 | **Deployment Protection en previews de Vercel** | Si sigue activa, quien no es miembro del equipo de Vercel no puede abrir las previews. Confirmar si se desactivó. |
+| B-16 | [#79](https://github.com/Benji-9/SmartElevate/issues/79) | 🟡 | **Falta versión transparente y horizontal del logo de SmartElevate** | Solo hay un JPG cuadrado con fondo blanco opaco: el login lo pone sobre blanco, pero el `TopBar` y los fondos oscuros necesitan un PNG/SVG transparente y horizontal. |
 
 ## Cómo agregar un bloqueante
 
