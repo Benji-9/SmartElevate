@@ -14,10 +14,5 @@
 }
 
 .home__date {
-  font-size: var(--text-14);
   color: var(--color-text-muted);
-}
-
-.home__date::first-letter {
-  text-transform: uppercase;
 }

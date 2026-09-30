@@ -51,7 +51,21 @@ afterEach(() => {
 });
 
 describe('HomePage', () => {
-  it('saluda al usuario y muestra su turno activo con el check-in', async () => {
+  it('saluda al usuario con la fecha del día', async () => {
+    // Lunes 28/9 a las 12:00 en Buenos Aires.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-09-28T15:00:00Z') });
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/active': { body: null },
+      'GET /congestion': { body: congestion() },
+    });
+    renderHome();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
+    expect(screen.getByText('Lunes 28/9')).toBeInTheDocument();
+  });
+
+  it('muestra su turno activo con el check-in', async () => {
     stubApi({
       ...signedIn(),
       'GET /reservations/active': { body: reservation },
@@ -59,11 +73,9 @@ describe('HomePage', () => {
     });
     renderHome();
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
     const card = (await screen.findByRole('heading', { name: 'Tu turno' })).closest('section')!;
     expect(within(card).getByText('Confirmado')).toBeInTheDocument();
-    expect(within(card).getByText('14:32 – 14:34')).toBeInTheDocument();
-    expect(within(card).getByText('Lima 1 · Lima · Piso 7')).toBeInTheDocument();
+    expect(within(card).getByText('14:32 – 14:34 · Lima 1 · Piso 7')).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: 'Hacer check-in' })).toHaveAttribute(
       'href',
       '/check-in',
