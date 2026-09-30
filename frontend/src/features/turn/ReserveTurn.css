@@ -155,3 +155,70 @@
 .slot--full .slot__bar > span {
   background: var(--color-text-subtle);
 }
+
+/* Columnas del layout de Pantalla: en el móvil no existen (el pie sticky sigue siendo del form). */
+.reserve__column {
+  display: contents;
+}
+
+.reserve__summary {
+  display: none;
+}
+
+@media (hover: hover) {
+  .slot:not(.slot--full, :has(input:checked)):hover {
+    background: var(--color-disabled-bg);
+  }
+}
+
+/*
+ * Pantalla (VIEW-MODES.md §6): título grande sin volver, grilla 1fr/1fr y a la derecha las
+ * franjas con una tarjeta resumen; esa columna queda sticky debajo del TopBar.
+ */
+@container app (min-width: 900px) {
+  .reserve__header {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .reserve__header .screen-header__back {
+    display: none;
+  }
+
+  .reserve__header .screen-header__title {
+    font: 700 26px/32px var(--font-sans);
+  }
+
+  .reserve {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 32px;
+  }
+
+  .reserve__column {
+    display: grid;
+    gap: 24px;
+  }
+
+  .reserve__column--aside {
+    position: sticky;
+    top: calc(var(--topbar-h) + 32px);
+  }
+
+  .reserve__submit {
+    position: static;
+    margin: 0;
+    padding: 16px;
+    border-radius: var(--radius-card);
+    background: var(--color-disabled-bg);
+  }
+
+  .reserve__submit .button {
+    justify-self: end;
+  }
+
+  .reserve__summary {
+    display: block;
+  }
+}

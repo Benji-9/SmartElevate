@@ -4,7 +4,7 @@ import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BuildingSelector } from '../features/turn/BuildingSelector';
 import { FloorSelector } from '../features/turn/FloorSelector';
-import { formatTime } from '../features/turn/format';
+import { formatFloor, formatSlot, formatTime } from '../features/turn/format';
 import { OriginFloorInput } from '../features/turn/OriginFloorInput';
 import { SlotList } from '../features/turn/SlotList';
 import '../features/turn/ReserveTurn.css';
@@ -56,6 +56,14 @@ export function ReserveTurnPage() {
     : null;
   const departure = departures.data?.find((d) => d.id === departureId && d.occupied < d.capacity);
   const ready = origin !== null && validDestination !== null && departure !== undefined;
+  // "Lima 3 · Piso 7 · 7:25 – 7:27" con lo que ya se eligió.
+  const summary = [
+    core?.name,
+    validDestination !== null && `Piso ${formatFloor(validDestination)}`,
+    departure && formatSlot(departure.departsAt, departure.durationMinutes),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   function chooseCore(id: string) {
     setCoreId(id);
@@ -92,7 +100,7 @@ export function ReserveTurnPage() {
 
   return (
     <>
-      <ScreenHeader title="Reservar turno" />
+      <ScreenHeader title="Reservar turno" className="reserve__header" />
 
       {active.data && (
         <div className="reserve__notice">
@@ -115,67 +123,80 @@ export function ReserveTurnPage() {
       ) : !cores.length ? (
         <p className="page-placeholder">Todavía no hay núcleos disponibles para reservar.</p>
       ) : (
+        // Columnas del layout de Pantalla (VIEW-MODES.md §6); en el móvil no existen.
         <form className="reserve" onSubmit={handleSubmit}>
-          <BuildingSelector
-            buildings={buildings}
-            cores={cores}
-            value={coreId}
-            onChange={chooseCore}
-          />
+          <div className="reserve__column">
+            <BuildingSelector
+              buildings={buildings}
+              cores={cores}
+              value={coreId}
+              onChange={chooseCore}
+            />
 
-          {core && (
-            <OriginFloorInput floors={originFloors} value={origin} onChange={chooseOrigin} />
-          )}
-
-          {origin !== null &&
-            (floors.loading ? (
-              <p role="status" className="page-placeholder">
-                Cargando pisos…
-              </p>
-            ) : floors.error ? (
-              <p role="alert" className="reserve__alert">
-                {floors.error}
-              </p>
-            ) : (
-              <FloorSelector
-                floors={floors.data ?? []}
-                value={validDestination}
-                onChange={setDestination}
-              />
-            ))}
-
-          {core &&
-            (departures.error ? (
-              <p role="alert" className="reserve__alert">
-                {departures.error}
-              </p>
-            ) : !departures.data ? (
-              <p role="status" className="page-placeholder">
-                Cargando salidas…
-              </p>
-            ) : !departures.data.length ? (
-              <p className="page-placeholder">
-                No hay salidas abiertas para reservar en este núcleo. Probá en unos minutos.
-              </p>
-            ) : (
-              <SlotList
-                departures={departures.data}
-                value={departure?.id ?? null}
-                onChange={setDepartureId}
-              />
-            ))}
-
-          <div className="reserve__submit">
-            {submitError && (
-              <p role="alert" className="reserve__alert">
-                {submitError}
-              </p>
+            {core && (
+              <OriginFloorInput floors={originFloors} value={origin} onChange={chooseOrigin} />
             )}
-            <Button type="submit" disabled={!ready} loading={submitting} loadingLabel="Reservando…">
-              {departure
-                ? `Confirmar turno · ${formatTime(departure.departsAt)}`
-                : 'Confirmar turno'}
-            </Button>
+
+            {origin !== null &&
+              (floors.loading ? (
+                <p role="status" className="page-placeholder">
+                  Cargando pisos…
+                </p>
+              ) : floors.error ? (
+                <p role="alert" className="reserve__alert">
+                  {floors.error}
+                </p>
+              ) : (
+                <FloorSelector
+                  floors={floors.data ?? []}
+                  value={validDestination}
+                  onChange={setDestination}
+                />
+              ))}
+          </div>
+
+          <div className="reserve__column reserve__column--aside">
+            {core &&
+              (departures.error ? (
+                <p role="alert" className="reserve__alert">
+                  {departures.error}
+                </p>
+              ) : !departures.data ? (
+                <p role="status" className="page-placeholder">
+                  Cargando salidas…
+                </p>
+              ) : !departures.data.length ? (
+                <p className="page-placeholder">
+                  No hay salidas abiertas para reservar en este núcleo. Probá en unos minutos.
+                </p>
+              ) : (
+                <SlotList
+                  departures={departures.data}
+                  value={departure?.id ?? null}
+                  onChange={setDepartureId}
+                />
+              ))}
+
+            <div className="reserve__submit">
+              {/* Resumen de la elección: solo en Pantalla (en el móvil el pie es solo el botón). */}
+              <p className="reserve__summary text-body-strong">{summary || 'Elegí tu turno'}</p>
+              {submitError && (
+                <p role="alert" className="reserve__alert">
+                  {submitError}
+                </p>
+              )}
+              <Button
+                type="submit"
+                block={false}
+                disabled={!ready}
+                loading={submitting}
+                loadingLabel="Reservando…"
+              >
+                {departure
+                  ? `Confirmar turno · ${formatTime(departure.departsAt)}`
+                  : 'Confirmar turno'}
+              </Button>
+            </div>
           </div>
         </form>
       )}
