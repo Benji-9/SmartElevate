@@ -1,5 +1,11 @@
-/* Contenedor móvil (Figma: frames de 390×844). En pantallas anchas queda centrado. */
+/*
+ * Contenedor móvil (Figma: frames de 390×844). En pantallas anchas queda centrado.
+ * Columna flex: el contenido crece y la BottomNav (sticky) queda pegada abajo aunque
+ * haya poco contenido.
+ */
 .screen {
+  display: flex;
+  flex-direction: column;
   max-width: var(--screen-max-width);
   min-height: 100dvh;
   margin: 0 auto;
@@ -8,12 +14,8 @@
 
 .screen__main {
   display: grid;
+  flex: 1;
   align-content: start;
   gap: 16px;
   padding: 12px var(--space-screen) 24px;
-}
-
-.screen--with-nav .screen__main {
-  /* Deja lugar para la BottomNav fija. */
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
