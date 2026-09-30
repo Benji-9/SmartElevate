@@ -1,0 +1,150 @@
+/* Login y registro. */
+.auth {
+  display: grid;
+  gap: 24px;
+}
+
+.auth__intro {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+/* Login (SCREENS.md §01): main con pad 40/20/24/20 y gap 16; 8 px extra bajo la marca. */
+.screen__main:has(> .auth--login) {
+  padding-top: 40px;
+}
+
+.auth--login {
+  gap: 16px;
+}
+
+.auth--login .auth__intro {
+  margin-bottom: 8px;
+}
+
+/* El logo de UADE es AstronautBlue: va sobre blanco para que contraste en modo oscuro.
+   El de SmartElevate es transparente y cambia de colores solo (prefers-color-scheme). */
+.auth__uade-logo {
+  background: var(--White);
+}
+
+.auth__org {
+  display: grid;
+  justify-items: center;
+}
+
+.auth__uade-logo {
+  box-sizing: content-box;
+  padding: 6px 10px;
+  border-radius: var(--radius-input);
+}
+
+.auth__lead {
+  font-size: var(--text-14);
+}
+
+.auth__subtitle,
+.auth__lead {
+  color: var(--color-text-muted);
+}
+
+.auth__form {
+  display: grid;
+  gap: 16px;
+}
+
+/* 18 px de texto + 13 arriba y abajo = 44 px de área táctil, sin mover el layout. */
+.auth__text-button {
+  justify-self: end;
+  margin-block: -13px;
+  padding: 13px 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.auth__notice,
+.auth__alert,
+.auth__info {
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  font-size: var(--text-13);
+}
+
+.auth__notice,
+.auth__info {
+  background: var(--color-primary-tint);
+}
+
+.auth__alert {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-medium);
+}
+
+/* Aviso "¿Tenés movilidad reducida?" (SCREENS.md §02): pad 14, radius-md. */
+.auth__info {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-button);
+}
+
+.auth__info-title {
+  font-size: var(--text-14);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.user-type-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.auth__footer {
+  text-align: center;
+  font-size: var(--text-14);
+}
+
+/* Registro en móvil: mismo ritmo que `main` (el contenedor solo existe para la tarjeta). */
+.auth-card--register {
+  display: grid;
+  gap: 16px;
+}
+
+/*
+ * Pantalla (VIEW-MODES.md §6): tarjeta centrada sobre fondo surface-subtle, de 440 px en login
+ * y 480 en registro (con el botón de volver adentro, arriba).
+ */
+@container app (min-width: 900px) {
+  .screen:has(.auth-card) {
+    background: var(--color-disabled-bg);
+  }
+
+  .screen__main:has(> .auth-card) {
+    max-width: none;
+    align-content: center;
+    justify-items: center;
+    padding: 32px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 32px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sheet);
+    background: var(--color-surface);
+  }
+
+  .auth-card--register {
+    max-width: 480px;
+  }
+}

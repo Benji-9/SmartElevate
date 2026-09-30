@@ -1,0 +1,70 @@
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.switch__text {
+  display: grid;
+  gap: 2px;
+}
+
+.switch__label {
+  font-size: var(--text-14);
+  font-weight: var(--font-semibold);
+}
+
+.switch__description {
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
+}
+
+/* El checkbox nativo dibujado como pista + perilla. */
+.switch__input {
+  flex: none;
+  appearance: none;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch__input::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition: transform 0.15s;
+}
+
+.switch__input:checked {
+  background: var(--color-primary);
+}
+
+.switch__input:checked::before {
+  transform: translateX(18px);
+}
+
+.switch__input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch__input,
+  .switch__input::before {
+    transition: none;
+  }
+}

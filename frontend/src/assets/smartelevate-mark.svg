@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 322 456" width="322" height="456" role="img" aria-label="SmartElevate">
+<title>SmartElevate</title>
+<style>@media (prefers-color-scheme: dark){.ink{fill:#ffffff}.ink-line{stroke:#ffffff}.blue{fill:#6b98ff}.blue-line{stroke:#6b98ff}}</style>
+<g stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <path class="blue-line" stroke="#0050ef" stroke-width="9" d="M137.5 27L160.5 8L183.5 27"/>
+  <path class="ink-line" stroke="#061b2b" stroke-width="9" d="M137.5 63.5L160.5 44.5L183.5 63.5"/>
+  <rect class="ink-line" stroke="#061b2b" stroke-width="18" x="10.5" y="103" width="300" height="342" rx="31"/>
+  <path class="ink-line" stroke="#061b2b" stroke-width="9" d="M160.5 112V213"/>
+</g>
+<circle class="ink" fill="#061b2b" cx="80.5" cy="283" r="18"/>
+<circle class="ink" fill="#061b2b" cx="240.5" cy="283" r="18"/>
+<circle class="blue" fill="#0050ef" cx="160.5" cy="256" r="20.5"/>
+<path class="ink" fill="#061b2b" d="M55 445V338.0A26.0 26.0 0 0 1 107 338.0V445Z"/>
+<path class="ink" fill="#061b2b" d="M215 445V338.0A26.0 26.0 0 0 1 267 338.0V445Z"/>
+<path class="blue" fill="#0050ef" d="M131 445V320.0A30.0 30.0 0 0 1 191 320.0V445Z"/>
+</svg>

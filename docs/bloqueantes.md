@@ -26,6 +26,7 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 
 | ID | Issue | Tema | Resolución |
 | --- | --- | --- | --- |
+| B-16 | [#89](https://github.com/Benji-9/SmartElevate/issues/89) | Logo transparente y horizontal de SmartElevate | SVG vertical, horizontal y solo ícono en `frontend/src/assets/`, transparentes y con modo oscuro. |
 | B-02 | [#1](https://github.com/Benji-9/SmartElevate/issues/1), [#2](https://github.com/Benji-9/SmartElevate/issues/2) | Proyecto de Vercel y secrets | Proyecto `smart-elevate` (team `takiprojects`) creado, integración Git desconectada y secrets cargados en GitHub. |
 | B-03 | [#4](https://github.com/Benji-9/SmartElevate/issues/4) | El deploy solo corre desde `main` | Primer release (#12). Producción en https://smart-elevate.vercel.app. |
 | B-04 | [#8](https://github.com/Benji-9/SmartElevate/issues/8) | API contract fuera del repo | Contrato OpenAPI generado desde el código y versionado en `docs/openapi.json`, con tipos TS generados para el front ([ADR 0006](adr/0006-contrato-api-openapi-code-first.md)). |

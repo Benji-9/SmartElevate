@@ -1,0 +1,30 @@
+.congestion {
+  display: grid;
+  gap: 10px;
+}
+
+.congestion__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.congestion__updated {
+  color: var(--color-text-muted);
+}
+
+.congestion__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.congestion__error {
+  display: grid;
+  gap: 8px;
+  color: var(--color-danger);
+  font-size: var(--text-14);
+}

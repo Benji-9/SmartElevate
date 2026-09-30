@@ -1,0 +1,254 @@
+/* Acceso prioritario (PriorityAccessCard) y la pantalla de perfil. */
+.profile-title {
+  padding-block: 8px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-header .avatar {
+  width: 60px;
+  height: 60px;
+  font-size: var(--text-18);
+}
+
+.profile-header__info {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.profile-header__info p {
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.priority-card,
+.profile-options {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.priority-card h2 {
+  font-size: var(--text-16);
+  font-weight: var(--font-bold);
+}
+
+.priority-card__chip {
+  justify-self: start;
+}
+
+.priority-card__text,
+.priority-card__notice {
+  font-size: var(--text-14);
+  color: var(--color-text-muted);
+}
+
+.priority-card__notice {
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+}
+
+.priority-form {
+  display: grid;
+  gap: 12px;
+}
+
+.upload-dropzone {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 20px;
+  border: 1.5px dashed var(--color-primary);
+  border-radius: var(--radius-input);
+  background: var(--color-primary-tint);
+  text-align: center;
+  cursor: pointer;
+}
+
+input:focus-visible + .upload-dropzone {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.upload-dropzone--dragging {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint-strong);
+}
+
+.upload-dropzone__icon,
+.upload-dropzone__title {
+  color: var(--color-primary);
+}
+
+.upload-dropzone__title {
+  font-size: var(--text-14);
+  font-weight: var(--font-semibold);
+}
+
+.upload-dropzone__hint,
+.uploaded-file__size {
+  font-size: var(--text-12);
+  color: var(--color-text-muted);
+}
+
+.uploaded-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-disabled-bg);
+}
+
+.uploaded-file__icon {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.uploaded-file p {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.uploaded-file__name {
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+  overflow-wrap: anywhere;
+}
+
+.uploaded-file__remove {
+  flex: none;
+  min-height: 44px;
+  margin-block: -10px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--text-12);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+}
+
+.consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
+}
+
+.consent-checkbox input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.priority-error {
+  padding: 10px 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+}
+
+.profile-options {
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-options li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.profile-options a,
+.profile-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 14px 16px;
+  border-radius: var(--radius-input);
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-size: var(--text-15);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.profile-options button {
+  color: var(--color-danger);
+}
+
+.profile-options__arrow {
+  color: var(--color-text-muted);
+}
+
+.profile {
+  display: grid;
+  gap: 16px;
+}
+
+@media (hover: hover) {
+  .profile-options a:hover,
+  .profile-options button:hover {
+    background: var(--color-disabled-bg);
+  }
+}
+
+/*
+ * Pantalla (VIEW-MODES.md §6): grilla 5fr/7fr. Izquierda la cabecera (en tarjeta) y los
+ * ajustes; derecha "Acceso prioritario". La última fila (1fr) absorbe el alto de la tarjeta
+ * para que la izquierda no se estire. Por áreas: el orden del DOM (el del móvil) no cambia.
+ */
+@container app (min-width: 900px) {
+  .profile {
+    grid-template:
+      'title title' auto
+      'header priority' auto
+      'options priority' auto
+      '. priority' 1fr
+      / 5fr 7fr;
+    align-items: start;
+    gap: 16px 32px;
+  }
+
+  .profile-title {
+    grid-area: title;
+  }
+
+  .profile-header {
+    grid-area: header;
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+
+  .profile .priority-card {
+    grid-area: priority;
+  }
+
+  .profile-nav {
+    grid-area: options;
+  }
+}

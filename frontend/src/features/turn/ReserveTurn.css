@@ -1,0 +1,224 @@
+/* Pantalla Reservar turno (SCREENS.md §04). */
+.reserve {
+  display: grid;
+  gap: 24px;
+}
+
+/* Núcleos: pills en una fila con wrap (pad 8/14, 14/500). 44 px de alto por área táctil. */
+.reserve__cores .option {
+  min-height: 44px;
+  border-radius: var(--radius-pill);
+}
+
+/* Pisos de destino: botones de 50 × 44 con wrap, número 15/600. */
+.reserve__floors .option {
+  width: 50px;
+  min-height: 44px;
+  padding: 0;
+  font-size: var(--text-15);
+  font-weight: var(--font-semibold);
+}
+
+.reserve__notice,
+.reserve__alert {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  font-size: var(--text-13);
+}
+
+.reserve__notice {
+  background: var(--color-primary-tint);
+}
+
+.reserve__notice ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.reserve__notice-title {
+  font-weight: var(--font-semibold);
+}
+
+.reserve__alert {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-medium);
+}
+
+/* Que el foco de teclado no quede tapado por el pie fijo (WCAG 2.4.11). */
+:root:has(.reserve__submit) {
+  scroll-padding-bottom: 96px;
+}
+
+/* Botón de confirmar fijo al pie mientras el contenido scrollea. */
+.reserve__submit {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  margin-inline: calc(var(--space-screen) * -1);
+  padding: 12px var(--space-screen) calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--color-bg);
+}
+
+.slot-list {
+  display: grid;
+  gap: 8px;
+}
+
+/* Franja: pad 12/14, radius-md, borde --line; el radio visible es el borde del control. */
+.slot {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+/* Borde de 2 px: se resta 1 px al padding para que la fila no salte. */
+.slot:has(input:checked) {
+  padding: 11px 13px;
+  border: 2px solid var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.slot:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.slot__info {
+  display: grid;
+  gap: 6px;
+}
+
+.slot__time {
+  font-size: var(--text-15);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.slot__bar {
+  width: 120px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--color-border);
+}
+
+.slot__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.slot__count {
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.slot__radio {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: inherit;
+}
+
+/* El foco se marca en toda la fila. */
+.slot__radio:focus-visible {
+  outline: none;
+}
+
+/* Completa: hora y barra atenuadas; "Completo" queda legible. */
+.slot--full {
+  cursor: not-allowed;
+}
+
+.slot--full .slot__time {
+  color: var(--color-text-subtle);
+}
+
+.slot--full .slot__bar {
+  background: var(--color-disabled-bg);
+}
+
+.slot--full .slot__bar > span {
+  background: var(--color-text-subtle);
+}
+
+/* Columnas del layout de Pantalla: en el móvil no existen (el pie sticky sigue siendo del form). */
+.reserve__column {
+  display: contents;
+}
+
+.reserve__summary {
+  display: none;
+}
+
+@media (hover: hover) {
+  .slot:not(.slot--full, :has(input:checked)):hover {
+    background: var(--color-disabled-bg);
+  }
+}
+
+/*
+ * Pantalla (VIEW-MODES.md §6): título grande sin volver, grilla 1fr/1fr y a la derecha las
+ * franjas con una tarjeta resumen; esa columna queda sticky debajo del TopBar.
+ */
+@container app (min-width: 900px) {
+  .reserve__header {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .reserve__header .screen-header__back {
+    display: none;
+  }
+
+  .reserve__header .screen-header__title {
+    font: 700 26px/32px var(--font-sans);
+  }
+
+  .reserve {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 32px;
+  }
+
+  .reserve__column {
+    display: grid;
+    gap: 24px;
+  }
+
+  .reserve__column--aside {
+    position: sticky;
+    top: calc(var(--topbar-h) + 32px);
+  }
+
+  .reserve__submit {
+    position: static;
+    margin: 0;
+    padding: 16px;
+    border-radius: var(--radius-card);
+    background: var(--color-disabled-bg);
+  }
+
+  .reserve__submit .button {
+    justify-self: end;
+  }
+
+  .reserve__summary {
+    display: block;
+  }
+}

@@ -1,0 +1,150 @@
+/* Pantalla de turno (TurnPage) y sus componentes. */
+
+/*
+ * Pantallas de confirmación (05 turno confirmado, 07 viaje registrado): columna que llena
+ * el alto de `main` para que las acciones queden al pie. `main` es una grilla que alinea
+ * arriba; con `stretch` su única fila ocupa todo el alto.
+ */
+.screen__main:has(> .success-screen) {
+  align-content: stretch;
+}
+
+.success-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* 12 de `main` + 20 = pad superior 32 de la spec. */
+  padding-top: 20px;
+}
+
+.success-screen > .turn-actions {
+  margin-top: auto;
+}
+
+.success-hero {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.success-hero__icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--color-primary-tint-strong);
+  color: var(--color-primary);
+}
+
+.success-hero__detail,
+.turn-details__muted,
+.turn-details dt {
+  color: var(--color-text-muted);
+}
+
+.turn-details {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.turn-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--text-14);
+}
+
+.turn-details dd {
+  margin: 0;
+  font-weight: var(--font-semibold);
+  text-align: end;
+}
+
+.turn-hint,
+.turn-alert {
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  font-size: var(--text-13);
+}
+
+.turn-hint {
+  padding: 14px;
+  border-radius: var(--radius-button);
+  background: var(--color-primary-tint);
+}
+
+.turn-not-found {
+  display: grid;
+  gap: 4px;
+}
+
+.turn-not-found h2 {
+  font-size: var(--text-14);
+}
+
+.turn-alert {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-medium);
+}
+
+.turn-actions,
+.turn-dialog,
+.turn-dialog__actions {
+  display: grid;
+  gap: 12px;
+}
+
+/* Link con aspecto de botón (clases de Button.css). */
+.turn-actions a.button {
+  text-decoration: none;
+}
+
+/*
+ * Pantalla (VIEW-MODES.md §6, 05): los dos botones en fila, "Cancelar turno" a la izquierda e
+ * "Ir a check-in" a la derecha. El orden del DOM sigue siendo el del móvil (primary primero).
+ */
+@container app (min-width: 900px) {
+  /* En una ventana alta, las acciones siguen al contenido en vez de irse al pie. */
+  .success-screen > .turn-actions {
+    margin-top: 8px;
+  }
+
+  .turn-actions--row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .turn-actions--row > .button--primary {
+    grid-area: 1 / 2;
+  }
+}
+
+.turn-dialog {
+  width: min(100% - 2 * var(--space-screen), 400px);
+  padding: 20px;
+  border: 0;
+  border-radius: var(--radius-card-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* `display: grid` pisa el `display: none` nativo del diálogo cerrado. */
+.turn-dialog:not([open]) {
+  display: none;
+}
+
+.turn-dialog::backdrop {
+  background: color-mix(in srgb, var(--BlackPearl) 60%, transparent);
+}
+
+.turn-dialog__warning {
+  color: var(--color-danger);
+  font-weight: var(--font-medium);
+}

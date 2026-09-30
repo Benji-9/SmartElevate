@@ -40,6 +40,7 @@ Van en una **tabla de configuración validada** ([ADR 0010](../adr/0010-integrid
 | Tiempo por piso | 3 s | Medido por el equipo |
 | Zona horaria | America/Argentina/Buenos_Aires | Los instantes se guardan en UTC |
 | Edificios | Lima −4 a 10 · Independencia −4 a 11 | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
+| Turno mañana (filtro de KPIs) | 7:00–12:15 | Cursadas 7:45–11:45 y 8:15–12:15 ([kpis](kpis.md#filtros)) |
 | Umbral de pisos bajos | **A confirmar** | [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Ascensores y pisos servidos | Ver [asignación](asignacion.md#ascensores-y-pisos-servidos) | Falta confirmar si la batería baja de L2 son los viejos (07, 08) o los nuevos (35, 36) |
 | Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Tiempos de caminata **a medir** |

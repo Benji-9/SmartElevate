@@ -1,0 +1,65 @@
+/* Pantalla "Mis viajes" (MyTripsPage) y sus componentes. */
+.trips__day {
+  display: grid;
+  gap: 8px;
+}
+
+.trips__day-title {
+  font-size: var(--text-13);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+}
+
+.trips__day-title::first-letter {
+  text-transform: uppercase;
+}
+
+.trips__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trips__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.trips__slot {
+  font-size: var(--text-14);
+  font-weight: var(--font-semibold);
+}
+
+.trips__detail {
+  grid-column: 1 / -1;
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
+}
+
+.trips__notice,
+.trips__error {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  background: var(--color-primary-tint);
+  font-size: var(--text-13);
+}
+
+.trips__notice h2 {
+  font-size: var(--text-14);
+}
+
+.trips__notice--danger,
+.trips__error {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+}

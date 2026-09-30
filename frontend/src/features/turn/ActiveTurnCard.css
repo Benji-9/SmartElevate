@@ -1,0 +1,43 @@
+/* Tarjeta "Tu turno" (SCREENS.md §03): pad 16, gap 10, radius-xl, borde --line, sin tinte. */
+.turn-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card-lg);
+  font-size: var(--text-14);
+}
+
+.turn-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.turn-card__summary {
+  font-size: var(--text-15);
+  font-weight: var(--font-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.turn-card__help {
+  color: var(--color-text-muted);
+  font-size: var(--text-13);
+}
+
+.turn-card a.button {
+  margin-top: 4px;
+  text-decoration: none;
+}
+
+.turn-card__link {
+  justify-self: center;
+  padding: 12px;
+  font-weight: var(--font-semibold);
+}
+
+.turn-card--error {
+  color: var(--color-danger);
+  background: var(--color-danger-tint);
+}

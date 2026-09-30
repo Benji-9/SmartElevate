@@ -35,7 +35,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 │   │   ├── hooks/
 │   │   └── types/
 │   └── vercel.json
-├── docs/                     bloqueantes, ADRs
+├── docs/                     reglas, ADRs, bloqueantes, specs de UI (frontend/)
 ├── .github/                  workflows, PR template, dependabot
 ├── .claude/                  agentes de Claude Code para el equipo
 ├── CLAUDE.md                 contexto del repo para Claude Code
@@ -308,6 +308,7 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 ## Documentación
 
 - [docs/reglas/](docs/reglas/) — **reglas de negocio**: turnos, asignación, check-in QR, usuarios y prioridad, KPIs y parámetros configurables
+- [docs/frontend/](docs/frontend/README.md) — **specs de UI**: design system (tokens y componentes), pantallas y modos de vista Pantalla/Teléfono; reemplazan consultar Figma
 - [docs/glosario.md](docs/glosario.md) — términos del dominio
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records
