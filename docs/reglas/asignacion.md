@@ -24,8 +24,8 @@ Un núcleo puede tener **varias baterías** con pisos distintos, así que cada a
 | IND2 | 33, 34 | −4 a 11, **sin el 1** | Único que llega al 11. No para en el 1 |
 | IND1 | 05, 06 | −4 a 10 | **Dedicados** (ver [ascensores dedicados](#ascensores-dedicados)). No están numerados en el edificio: 05 y 06 son códigos nuestros |
 | L3 | 10, 11, 12, 13, 14, 15 | −3 a 10 | |
-| L2, batería baja | 07, 08 o 35, 36 (**a confirmar**) | −4 a 5 | 07 y 08 son los viejos; 35 y 36, los nuevos |
-| L2, batería alta | 35, 36 o 07, 08 (**a confirmar**) | −2, 0, 2 a 10 (sin el −1 ni el 1) | |
+| L2, batería baja | 07, 08 | −4 a 5 | Ascensores viejos |
+| L2, batería alta | 35, 36 | −2, 0, 2 a 10 (sin el −1 ni el 1) | Ascensores nuevos |
 | L1 | 01, 02, 03, 04 | −3 a 7 | |
 
 Los carteles listan los pisos donde para cada batería; conviene validarlos contra la botonera de las cabinas.
