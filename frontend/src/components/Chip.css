@@ -1,16 +1,23 @@
+/* DESIGN-SYSTEM.md §7 (.se-chip). Tipografía: .text-caption-strong (12/500). */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  font-size: var(--text-11);
-  font-weight: var(--font-semibold);
-  line-height: 1.5;
+  color: var(--color-text);
   white-space: nowrap;
 }
 
-.chip--primary {
+.chip__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--chip-dot);
+}
+
+.chip--accent {
   background: var(--color-primary-tint-strong);
   color: var(--color-primary);
 }
@@ -23,4 +30,30 @@
 .chip--danger {
   background: var(--color-danger-tint);
   color: var(--color-danger);
+}
+
+/* Punto de color + texto en --color-text: Status-Media y User-* no sirven como texto. */
+.chip--baja {
+  --chip-dot: var(--Status-Baja);
+  background: var(--Status-Baja-tint);
+}
+
+.chip--media {
+  --chip-dot: var(--Status-Media);
+  background: var(--Status-Media-tint);
+}
+
+.chip--alta {
+  --chip-dot: var(--Status-Alta);
+  background: var(--Status-Alta-tint);
+}
+
+.chip--alumnos {
+  --chip-dot: var(--User-Alumnos);
+  background: var(--User-Alumnos-tint);
+}
+
+.chip--docentes {
+  --chip-dot: var(--User-Docentes);
+  background: var(--User-Docentes-tint);
 }

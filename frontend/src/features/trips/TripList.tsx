@@ -1,9 +1,9 @@
-import { Chip } from '../../components/Chip';
+import { Chip, type ChipTone } from '../../components/Chip';
 import type { Trip, TripResult } from '../../types/pending';
 import { formatDate, formatFloor, formatSlot } from '../turn/format';
 
-const results: Record<TripResult, { label: string; tone: 'primary' | 'neutral' | 'danger' }> = {
-  COMPLETED: { label: 'Cumplido', tone: 'primary' },
+const results: Record<TripResult, { label: string; tone: ChipTone }> = {
+  COMPLETED: { label: 'Cumplido', tone: 'accent' },
   OTHER_ELEVATOR: { label: 'Otro ascensor', tone: 'neutral' },
   LATE: { label: 'Fuera de hora', tone: 'neutral' },
   CANCELLED: { label: 'Cancelado', tone: 'neutral' },
