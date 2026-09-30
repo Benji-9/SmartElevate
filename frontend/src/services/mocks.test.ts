@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type {
   AdminKpis,
+  AdminShift,
   CheckInResult,
   CongestionSnapshot,
   Departure,
@@ -241,5 +242,24 @@ describe('mocks', () => {
     expect(week.reservations).toBeGreaterThan(today.reservations);
     expect(lima.cores.map((c) => c.coreId)).toEqual(['L1', 'L2', 'L3']);
     await expect(call('GET', '/admin/kpis?period=YEAR')).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('KPIs del panel admin: el turno de cursada recorta las reservas a su horario', async () => {
+    const shifts = await call<AdminShift[]>('GET', '/admin/shifts');
+    expect(shifts).toEqual([
+      { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '12:15' },
+    ]);
+
+    const allDay = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY');
+    const morning = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY&shiftId=MORNING');
+
+    expect(morning.reservationsByHour.map((h) => h.hour)).toEqual([7, 8, 9, 10, 11, 12]);
+    expect(morning.reservations).toBe(
+      morning.reservationsByHour.reduce((sum, h) => sum + h.reservations, 0),
+    );
+    expect(morning.reservations).toBeLessThan(allDay.reservations);
+    await expect(call('GET', '/admin/kpis?period=TODAY&shiftId=NIGHT')).rejects.toMatchObject({
+      status: 404,
+    });
   });
 });
