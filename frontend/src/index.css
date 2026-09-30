@@ -175,6 +175,69 @@ a {
   border: 0;
 }
 
+/* Escala tipográfica (DESIGN-SYSTEM.md §4): tamaño, peso e interlineado. */
+.text-kpi {
+  font: 700 30px/36px var(--font-sans);
+}
+
+.text-title-lg {
+  font: 700 26px/32px var(--font-sans);
+}
+
+.text-title {
+  font: 700 24px/30px var(--font-sans);
+}
+
+.text-heading {
+  font: 700 20px/26px var(--font-sans);
+}
+
+.text-heading-sm {
+  font: 700 18px/24px var(--font-sans);
+}
+
+.text-card-title {
+  font: 700 16px/22px var(--font-sans);
+}
+
+.text-button {
+  font: 600 16px/24px var(--font-sans);
+}
+
+.text-body {
+  font: 400 15px/22px var(--font-sans);
+}
+
+.text-body-strong {
+  font: 600 15px/22px var(--font-sans);
+}
+
+.text-body-sm {
+  font: 400 14px/20px var(--font-sans);
+}
+
+.text-body-sm-strong {
+  font: 600 14px/20px var(--font-sans);
+}
+
+.text-label {
+  font: 500 13px/18px var(--font-sans);
+}
+
+.text-caption {
+  font: 400 12px/16px var(--font-sans);
+}
+
+.text-caption-strong {
+  font: 500 12px/16px var(--font-sans);
+}
+
+.text-overline {
+  font: 600 11px/14px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Texto de las pantallas que todavía no tienen contenido. */
 .page-placeholder {
   font-size: var(--text-14);
