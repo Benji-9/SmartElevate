@@ -51,6 +51,25 @@
   }
 }
 
+/* `block={false}` (y los links con `.button--inline`): ancho del contenido, solo en Pantalla. */
+@container app (min-width: 900px) {
+  .button--inline {
+    justify-self: start;
+    align-self: start;
+    width: auto;
+  }
+}
+
+@media (hover: hover) {
+  .button--primary:not(:disabled):hover {
+    opacity: 0.92;
+  }
+
+  .button--secondary:not(:disabled):hover {
+    background: var(--color-primary-tint);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .button__spinner {
     animation-duration: 2.4s;

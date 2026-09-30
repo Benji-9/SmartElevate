@@ -30,6 +30,18 @@ describe('Button', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  // El ancho real lo decide un container query (jsdom no lo evalúa): se verifica la clase.
+  it('con block={false} deja de ir a ancho completo en Pantalla; por defecto es block', () => {
+    render(
+      <>
+        <Button block={false}>Confirmar turno</Button>
+        <Button>Ingresar</Button>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveClass('button--inline');
+    expect(screen.getByRole('button', { name: 'Ingresar' })).not.toHaveClass('button--inline');
+  });
+
   it('es type="button" por defecto para no enviar formularios sin querer', () => {
     render(<Button variant="secondary">Cancelar turno</Button>);
     expect(screen.getByRole('button', { name: 'Cancelar turno' })).toHaveAttribute(

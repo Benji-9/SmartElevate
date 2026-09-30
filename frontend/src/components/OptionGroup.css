@@ -57,3 +57,9 @@
   color: var(--color-text-subtle);
   cursor: not-allowed;
 }
+
+@media (hover: hover) {
+  .option:not(.option--disabled, :has(input:checked)):hover {
+    background: var(--color-disabled-bg);
+  }
+}
