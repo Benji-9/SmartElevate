@@ -16,7 +16,6 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 | B-14 | [#25](https://github.com/Benji-9/SmartElevate/issues/25) | 🟡 | **Proveedor de email** | Necesario para verificar cuentas @uade.edu.ar. |
 | B-15 | [#26](https://github.com/Benji-9/SmartElevate/issues/26) | 🟡 | **Storage privado para certificados** | Depende de B-01. |
 | B-07 | [#1](https://github.com/Benji-9/SmartElevate/issues/1) | 🟡 | **Deployment Protection en previews de Vercel** | Si sigue activa, quien no es miembro del equipo de Vercel no puede abrir las previews. Confirmar si se desactivó. |
-| B-16 | [#89](https://github.com/Benji-9/SmartElevate/issues/89) | 🟡 | **Falta versión transparente y horizontal del logo de SmartElevate** | Solo hay un JPG cuadrado con fondo blanco opaco: el login lo pone sobre blanco, pero el `TopBar` y los fondos oscuros necesitan un PNG/SVG transparente y horizontal. |
 
 ## Cómo agregar un bloqueante
 
@@ -27,6 +26,7 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 
 | ID | Issue | Tema | Resolución |
 | --- | --- | --- | --- |
+| B-16 | [#89](https://github.com/Benji-9/SmartElevate/issues/89) | Logo transparente y horizontal de SmartElevate | SVG vertical, horizontal y solo ícono en `frontend/src/assets/`, transparentes y con modo oscuro. |
 | B-02 | [#1](https://github.com/Benji-9/SmartElevate/issues/1), [#2](https://github.com/Benji-9/SmartElevate/issues/2) | Proyecto de Vercel y secrets | Proyecto `smart-elevate` (team `takiprojects`) creado, integración Git desconectada y secrets cargados en GitHub. |
 | B-03 | [#4](https://github.com/Benji-9/SmartElevate/issues/4) | El deploy solo corre desde `main` | Primer release (#12). Producción en https://smart-elevate.vercel.app. |
 | B-04 | [#8](https://github.com/Benji-9/SmartElevate/issues/8) | API contract fuera del repo | Contrato OpenAPI generado desde el código y versionado en `docs/openapi.json`, con tipos TS generados para el front ([ADR 0006](adr/0006-contrato-api-openapi-code-first.md)). |
