@@ -12,14 +12,19 @@
   --White: #ffffff;
   --BlackPearl: #061b2b;
 
-  /* Congestión */
+  /* Congestión (tintes al 14 %: fondo de pills, texto --color-text encima) */
   --Status-Baja: #016836;
   --Status-Media: #f7a700;
   --Status-Alta: #cf0a2c;
+  --Status-Baja-tint: color-mix(in srgb, var(--Status-Baja) 14%, transparent);
+  --Status-Media-tint: color-mix(in srgb, var(--Status-Media) 14%, transparent);
+  --Status-Alta-tint: color-mix(in srgb, var(--Status-Alta) 14%, transparent);
 
-  /* Tipo de usuario */
+  /* Tipo de usuario (tintes al 25 %: fondo de badges) */
   --User-Alumnos: #c3d500;
   --User-Docentes: #ff5100;
+  --User-Alumnos-tint: color-mix(in srgb, var(--User-Alumnos) 25%, transparent);
+  --User-Docentes-tint: color-mix(in srgb, var(--User-Docentes) 25%, transparent);
 
   /* Tipografía: Inter 400/500/600/700 */
   --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
