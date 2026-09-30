@@ -1,29 +1,44 @@
 /* Pantalla de turno (TurnPage) y sus componentes. */
-.turn-hero {
+
+/*
+ * Pantallas de confirmación (05 turno confirmado, 07 viaje registrado): columna que llena
+ * el alto de `main` para que las acciones queden al pie. `main` es una grilla que alinea
+ * arriba; con `stretch` su única fila ocupa todo el alto.
+ */
+.screen__main:has(> .success-screen) {
+  align-content: stretch;
+}
+
+.success-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* 12 de `main` + 20 = pad superior 32 de la spec. */
+  padding-top: 20px;
+}
+
+.success-screen > .turn-actions {
+  margin-top: auto;
+}
+
+.success-hero {
   display: grid;
   justify-items: center;
-  gap: 8px;
-  padding: 16px 0 8px;
+  gap: 10px;
   text-align: center;
 }
 
-.turn-hero__icon {
+.success-hero__icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
-  background: var(--Status-Baja-tint);
-  color: var(--Status-Baja);
+  background: var(--color-primary-tint-strong);
+  color: var(--color-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  .turn-hero__icon {
-    color: color-mix(in srgb, var(--Status-Baja) 50%, var(--White));
-  }
-}
-
-.turn-hero__hall,
+.success-hero__detail,
 .turn-details__muted,
 .turn-details dt {
   color: var(--color-text-muted);
@@ -60,6 +75,8 @@
 }
 
 .turn-hint {
+  padding: 14px;
+  border-radius: var(--radius-button);
   background: var(--color-primary-tint);
 }
 
