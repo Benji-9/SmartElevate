@@ -13,12 +13,13 @@ export function OriginFloorInput({ floors, value, onChange }: OriginFloorInputPr
   const id = useId();
   return (
     <div className="input">
-      <label htmlFor={id} className="input__label">
+      {/* Mismo estilo que las etiquetas de "Edificio" y "Piso de destino". */}
+      <label htmlFor={id} className="option-group__label">
         Piso de origen
       </label>
       <select
         id={id}
-        className="input__field"
+        className="input__field text-body"
         value={value ?? ''}
         onChange={(e) => onChange(Number(e.target.value))}
       >
