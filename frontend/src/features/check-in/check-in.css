@@ -1,14 +1,20 @@
-/* Check-in (Figma 06 y 06b): cámara a pantalla completa con los bottom sheets encima. */
+/*
+ * Check-in (Figma 06 y 06b): cámara a pantalla completa con los bottom sheets encima.
+ * Llena la columna (ScreenLayout con `bleed`) en vez de ser `fixed`: dentro del marco de
+ * teléfono (con transform) un fixed se ancla mal. `clip` corta el oscurecido del visor.
+ */
 .check-in {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  max-width: var(--screen-max-width);
-  margin: 0 auto;
-  background: var(--BlackPearl);
-  overflow-y: auto;
+  background: var(--surface-dark);
+  overflow: clip;
+}
+
+/* Fondos de atrás también oscuros: con el marco escalado no asoma un filo claro en los bordes. */
+.app-shell:has(.check-in),
+.screen:has(.check-in) {
+  background: var(--surface-dark);
 }
 
 /* La vista de cámara siempre es oscura, también en modo claro. */
@@ -130,6 +136,19 @@
   max-width: var(--screen-max-width);
   margin: auto auto 0;
   border: 0;
+}
+
+/*
+ * Modo Teléfono: el diálogo modal va a la capa superior (fuera del marco), así que se ubica
+ * sobre el borde inferior de la pantalla del marco, que está centrado en la ventana.
+ */
+.stage[data-mode='telefono'] .check-in__code {
+  inset: calc(50% + var(--phone-h) / 2 * var(--phone-scale)) 0 auto;
+  width: calc(var(--phone-w) * var(--phone-scale));
+  margin: 0 auto;
+  border-radius: var(--radius-sheet) var(--radius-sheet) calc(36px * var(--phone-scale))
+    calc(36px * var(--phone-scale));
+  translate: 0 -100%;
 }
 
 /* `display: grid` pisa el `display: none` nativo del diálogo cerrado. */
