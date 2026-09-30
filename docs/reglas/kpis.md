@@ -16,3 +16,10 @@ Todos salen de **eventos que la app ya registra** (reserva, cancelación, check-
 | Espera de prioritarios | Espera real de los usuarios prioritarios, por separado | Reserva + check-in + categoría |
 
 Para *otro ascensor* y *fuera de hora* ver [check-in](check-in-qr.md#resultados).
+
+## Filtros
+
+El panel de administración filtra los KPIs por **período**, **sede** y **turno de cursada** ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
+
+- **Turno mañana: 7:00 a 12:15.** Cubre las dos formas de cursada de la mañana: **7:45–11:45** y **8:15–12:15**, con margen para la llegada.
+- Los turnos (nombre, inicio, fin) son **parámetros de la tabla de configuración**, en hora de Buenos Aires; el frontend los recibe del servidor. Por ahora solo está definido el turno mañana.
