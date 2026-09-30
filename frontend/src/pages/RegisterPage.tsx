@@ -92,7 +92,7 @@ export function RegisterPage() {
 
   if (registeredEmail) {
     return (
-      <>
+      <div className="auth-card auth-card--register">
         <ScreenHeader title="Crear cuenta" backTo="/login" />
         <div role="status" className="auth">
           <h2>Revisá tu email</h2>
@@ -102,12 +102,12 @@ export function RegisterPage() {
           </p>
           <Link to="/login">Ir a ingresar</Link>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="auth-card auth-card--register">
       <ScreenHeader title="Crear cuenta" backTo="/login" />
       <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
 
@@ -172,6 +172,6 @@ export function RegisterPage() {
           Crear cuenta
         </Button>
       </form>
-    </>
+    </div>
   );
 }
