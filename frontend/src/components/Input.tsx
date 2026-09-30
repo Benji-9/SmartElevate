@@ -37,12 +37,12 @@ export function Input({
         {...rest}
       />
       {hint && (
-        <p id={hintId} className="input__hint">
+        <p id={hintId} className="input__hint text-label">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} className="input__error">
+        <p id={errorId} className="input__error text-label">
           {error}
         </p>
       )}
