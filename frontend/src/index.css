@@ -49,6 +49,7 @@
   --radius-button: 12px;
   --radius-card: 16px;
   --radius-card-lg: 18px;
+  --radius-sheet: 24px; /* --radius-2xl: hojas inferiores, visor QR y paneles */
   --radius-pill: 999px;
 
   /* Espaciado */
@@ -115,6 +116,13 @@
     --color-danger: color-mix(in srgb, var(--Status-Alta) 60%, var(--White));
     --color-danger-tint: color-mix(in srgb, var(--Status-Alta) 18%, transparent);
     --color-focus: var(--White);
+
+    /* Tintes más densos para que se distingan del fondo; texto --color-text (blanco) encima. */
+    --Status-Baja-tint: color-mix(in srgb, var(--Status-Baja) 30%, transparent);
+    --Status-Media-tint: color-mix(in srgb, var(--Status-Media) 30%, transparent);
+    --Status-Alta-tint: color-mix(in srgb, var(--Status-Alta) 30%, transparent);
+    --User-Alumnos-tint: color-mix(in srgb, var(--User-Alumnos) 35%, transparent);
+    --User-Docentes-tint: color-mix(in srgb, var(--User-Docentes) 35%, transparent);
   }
 }
 

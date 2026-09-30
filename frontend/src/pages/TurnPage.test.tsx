@@ -57,14 +57,17 @@ describe('TurnPage', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Cargando');
     expect(
-      await screen.findByRole('heading', { level: 2, name: '¡Turno confirmado!' }),
+      await screen.findByRole('heading', { level: 1, name: '¡Turno confirmado!' }),
     ).toBeInTheDocument();
+    // Pantalla de confirmación: sin header ni botón volver.
+    expect(screen.queryByRole('heading', { name: 'Tu turno' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
     expect(screen.getByText('Esperá en Hall Lima, planta baja.')).toBeInTheDocument();
     expect(screen.getByText('Lima')).toBeInTheDocument();
     expect(screen.getByText(/pisos PB a 10/)).toBeInTheDocument();
     expect(screen.getByText('14:04 – 14:06')).toBeInTheDocument();
     expect(screen.getByText('7 / 12 personas')).toBeInTheDocument();
-    expect(screen.getByText(/escaneá el QR del ascensor/)).toBeInTheDocument();
+    expect(screen.getByText(/escaneá el QR que aparece en la pantalla/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir a check-in' })).toHaveAttribute(
       'href',
       '/check-in',
@@ -137,6 +140,8 @@ describe('TurnPage', () => {
     expect(
       await screen.findByRole('heading', { level: 2, name: 'No encontramos este turno' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Tu turno' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: 'Reservar un turno' })).toHaveAttribute(
       'href',

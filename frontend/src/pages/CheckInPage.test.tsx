@@ -88,8 +88,8 @@ describe('CheckInPage', () => {
     ).toBeInTheDocument();
     const sheet = screen.getByRole('region', { name: 'Tu turno' });
     expect(await within(sheet).findByText('14:04 – 14:06')).toBeInTheDocument();
-    expect(within(sheet).getByText('Ascensor L1')).toBeInTheDocument();
-    expect(within(sheet).getByText('Hall Lima, PB')).toBeInTheDocument();
+    expect(within(sheet).getByText('L1 · Piso 5')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument();
   });
 
   it('avisa si no hay turno activo', async () => {

@@ -76,6 +76,22 @@ export function UploadDropzone({ rules, onSelect }: UploadDropzoneProps) {
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
       >
+        <svg
+          className="upload-dropzone__icon"
+          viewBox="0 0 24 24"
+          width="28"
+          height="28"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 16V4m0 0L7 9m5-5l5 5M5 15v3a2 2 0 002 2h10a2 2 0 002-2v-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <span className="upload-dropzone__title">Elegí tu certificado</span>
         <span className="upload-dropzone__hint">{summary}</span>
       </label>

@@ -1,4 +1,8 @@
 /* Acceso prioritario (PriorityAccessCard) y la pantalla de perfil. */
+.profile-title {
+  padding-block: 8px;
+}
+
 .profile-header {
   display: flex;
   align-items: center;
@@ -6,8 +10,8 @@
 }
 
 .profile-header .avatar {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   font-size: var(--text-18);
 }
 
@@ -36,6 +40,7 @@
 
 .priority-card h2 {
   font-size: var(--text-16);
+  font-weight: var(--font-bold);
 }
 
 .priority-card__chip {
@@ -60,11 +65,11 @@
 
 .upload-dropzone {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   justify-items: center;
-  padding: 20px 16px;
-  border: 1.5px dashed var(--color-border-strong);
-  border-radius: var(--radius-card);
+  padding: 20px;
+  border: 1.5px dashed var(--color-primary);
+  border-radius: var(--radius-input);
   background: var(--color-primary-tint);
   text-align: center;
   cursor: pointer;
@@ -80,9 +85,14 @@ input:focus-visible + .upload-dropzone {
   background: var(--color-primary-tint-strong);
 }
 
+.upload-dropzone__icon,
 .upload-dropzone__title {
-  font-weight: var(--font-semibold);
   color: var(--color-primary);
+}
+
+.upload-dropzone__title {
+  font-size: var(--text-14);
+  font-weight: var(--font-semibold);
 }
 
 .upload-dropzone__hint,
@@ -94,20 +104,25 @@ input:focus-visible + .upload-dropzone {
 .uploaded-file {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: var(--radius-input);
+  background: var(--color-disabled-bg);
+}
+
+.uploaded-file__icon {
+  flex: none;
+  color: var(--color-text-muted);
 }
 
 .uploaded-file p {
   display: grid;
+  flex: 1;
   min-width: 0;
 }
 
 .uploaded-file__name {
-  font-size: var(--text-14);
+  font-size: var(--text-13);
   font-weight: var(--font-medium);
   overflow-wrap: anywhere;
 }
@@ -115,12 +130,14 @@ input:focus-visible + .upload-dropzone {
 .uploaded-file__remove {
   flex: none;
   min-height: 44px;
-  padding: 0 12px;
+  margin-block: -10px;
+  padding: 0 8px;
   border: 0;
   border-radius: var(--radius-button);
   background: none;
-  color: var(--color-danger);
-  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  font-size: var(--text-12);
+  font-weight: var(--font-medium);
   cursor: pointer;
 }
 
@@ -152,7 +169,7 @@ input:focus-visible + .upload-dropzone {
 .profile-options {
   gap: 0;
   margin: 0;
-  padding: 4px 16px;
+  padding: 0;
   list-style: none;
 }
 
@@ -164,9 +181,12 @@ input:focus-visible + .upload-dropzone {
 .profile-options button {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
   min-height: 48px;
-  padding: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-input);
   border: 0;
   background: none;
   color: var(--color-text);
@@ -178,4 +198,8 @@ input:focus-visible + .upload-dropzone {
 
 .profile-options button {
   color: var(--color-danger);
+}
+
+.profile-options__arrow {
+  color: var(--color-text-muted);
 }

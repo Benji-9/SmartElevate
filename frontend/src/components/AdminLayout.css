@@ -1,26 +1,70 @@
-/* Panel admin (Figma: 1440×900). Por debajo de 900px el sidebar pasa arriba. */
-.admin {
-  display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
-  min-height: 100dvh;
+/*
+ * Panel admin (Figma 09: 1440×900), solo de escritorio (VIEW-MODES.md §7).
+ * Móvil por defecto: con el contenedor `app` de menos de 900 px se ve el aviso; desde
+ * 900 px, el panel.
+ */
+.admin-shell {
+  container: app / inline-size;
+
+  /* Tokens de DESIGN-SYSTEM.md §3 que index.css todavía no tiene (la migración es aparte). */
+  --surface-dark: var(--BlackPearl);
+  --on-dark: var(--White);
+  --on-dark-muted: color-mix(in srgb, var(--White) 65%, transparent);
 }
 
+.admin {
+  display: none;
+}
+
+.admin-narrow {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  min-height: 100dvh;
+  padding: 24px var(--space-screen);
+  text-align: center;
+}
+
+.admin-narrow p {
+  font-size: var(--text-15);
+  color: var(--color-text-muted);
+}
+
+@container app (min-width: 900px) {
+  .admin {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+
+  .admin-narrow {
+    display: none;
+  }
+}
+
+/* El sidebar es oscuro también en modo claro. */
 .admin__sidebar {
   padding: 28px 16px;
+  /* En modo oscuro separa el sidebar del fondo, que también es oscuro. */
   border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--surface-dark);
+  color: var(--on-dark);
+}
+
+.admin__sidebar :focus-visible {
+  outline-color: var(--on-dark);
 }
 
 .admin__brand {
   font-size: var(--text-20);
   font-weight: var(--font-bold);
-  color: var(--color-primary);
 }
 
 .admin__subtitle {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   font-size: var(--text-12);
-  color: var(--color-text-muted);
+  color: var(--on-dark-muted);
 }
 
 .admin__sidebar ul {
@@ -35,23 +79,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 12px;
   border-radius: var(--radius-input);
-  color: var(--color-text-muted);
+  color: var(--on-dark-muted);
   font-size: var(--text-14);
   font-weight: var(--font-medium);
   text-decoration: none;
 }
 
 .admin__link.active {
-  background: var(--color-primary-tint-strong);
-  color: var(--color-primary);
+  background: color-mix(in srgb, var(--White) 12%, transparent);
+  color: var(--on-dark);
   font-weight: var(--font-semibold);
 }
 
 .admin__link--disabled {
-  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
@@ -65,20 +108,4 @@
   align-content: start;
   gap: 24px;
   padding: 32px;
-}
-
-@media (max-width: 900px) {
-  .admin {
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
-  }
-
-  .admin__sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .admin__main {
-    padding: 24px var(--space-screen);
-  }
 }
