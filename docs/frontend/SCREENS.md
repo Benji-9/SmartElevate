@@ -26,7 +26,7 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 
 - Cada franja horaria tiene **capacidad de 10 personas**; al llegar a 10 se muestra "Completo" y no se puede elegir.
 - Las franjas de ejemplo son de 5 minutos (7:15 – 7:20, 7:20 – 7:25…), pensadas para la entrada, el recreo y la salida de cada bloque de cursada.
-- **Pisos 0–4: no hay turnos, salvo usuarios prioritarios** (movilidad reducida) **o docentes**. Para el resto, esos botones de piso aparecen deshabilitados y se explica la regla en pantalla.
+- **Regla de pisos bajos** ([`asignacion.md`](../reglas/asignacion.md)): los trayectos cortos van por escalera, salvo **movilidad reducida**, que queda exenta (los docentes no). El umbral es un parámetro **a confirmar** ([#22](https://github.com/Benji-9/SmartElevate/issues/22)): el "0–4" del wireframe es de ejemplo. La elegibilidad de cada piso y el motivo los manda el servidor; la UI deshabilita esos botones y muestra el motivo, sin hardcodear pisos ni textos.
 - El **acceso prioritario** se solicita desde el perfil subiendo un certificado de discapacidad (PDF) o un certificado médico (PDF o imagen); queda en estado "Pendiente de validación" hasta que se valida.
 - El **check-in** se hace escaneando el QR que rota en la pantalla dentro de la cabina.
 - Los núcleos son **Lima 1, Lima 2, Lima 3, Independencia 1 e Independencia 2** (en botones cortos: "Indep. 1", "Indep. 2"). En el ejemplo, en Lima 3 los ascensores 1–3 sirven los pisos 7–10; la zonificación real por núcleo está por confirmar.
@@ -86,8 +86,8 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 `main`: pad 12/20/16/20, gap 16. `BottomNav` con **Inicio** activa.
 
-1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9 · Sede Lima" (14 px `--ink-muted`); a la derecha, avatar circular de 44 px (`--surface-subtle`).
-2. **Tarjeta "Próxima clase"** (pad 18, gap 6, `--radius-xl`, fondo `--accent`): rótulo `.text-overline` "PRÓXIMA CLASE" en `--on-dark-muted`; nombre de la materia 17 px / 700 `--on-accent`: "Seminario de Gestión de Tecnología"; detalle 14 px "Aula 705 · Piso 7 · Lima 3 · 7:45 hs" en `--on-dark-muted`; separación 6; botón interno blanco (pad 10/14, `--radius-sm`, texto 14 px / 600 `--accent`) "Reservar turno para esta clase" → `/reservar`.
+1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9" (14 px `--ink-muted`; la sede queda **pospuesta**: no hay de dónde sacarla, [#86](https://github.com/Benji-9/SmartElevate/issues/86)); a la derecha, avatar circular de 44 px (`--surface-subtle`).
+2. **Tarjeta "Próxima clase"** — **pospuesta**: todavía no hay fuente del horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)); no implementar por ahora. (pad 18, gap 6, `--radius-xl`, fondo `--accent`): rótulo `.text-overline` "PRÓXIMA CLASE" en `--on-dark-muted`; nombre de la materia 17 px / 700 `--on-accent`: "Seminario de Gestión de Tecnología"; detalle 14 px "Aula 705 · Piso 7 · Lima 3 · 7:45 hs" en `--on-dark-muted`; separación 6; botón interno blanco (pad 10/14, `--radius-sm`, texto 14 px / 600 `--accent`) "Reservar turno para esta clase" → `/reservar`.
 3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; línea 15 px / 500 "7:25 – 7:30 · Ascensores 1–3 · Piso 7"; ayuda 13 px `--ink-muted` "Escaneá el QR de la pantalla del ascensor al subir."; `Button` primary "Hacer check-in" → `/check-in`. Si no hay turno, ocultar la tarjeta.
 4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`); debajo un `CongestionRow` por núcleo:
 
@@ -105,7 +105,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 1. Etiqueta "Edificio" (14 px / 600) y **selector de edificio** (pills en fila con wrap, gap 8, pad 8/14, `--radius-pill`, texto 14 px / 500): Lima 1 · Lima 2 · **Lima 3 (seleccionado)** · Indep. 1 · Indep. 2. Seleccionado: fondo `--accent`, texto `--on-accent`; resto: `--surface`, borde 1 px `--border`.
 2. Etiqueta "Piso de destino" y **selector de piso**: botones de **50 × 44** (`--radius-sm`, número 15 px / 600) del **0 al 10**, con wrap y gap 8. Piso 7 seleccionado (`--accent`). Pisos **0–4 deshabilitados** para usuarios no prioritarios: fondo `--surface-subtle`, número `--ink-subtle`, `disabled`. Resto: `--surface` con borde `--border`.
-3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px): "Pisos 0–4: solo usuarios prioritarios (movilidad reducida o docentes)."
+3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Para 1 piso usá la escalera."). No hardcodear el texto del wireframe.
 4. Etiqueta "Franja horaria" y **lista de franjas** (gap 8). Cada franja: fila pad 12/14, gap 12, `--radius-md`, borde 1 px `--line`; a la izquierda hora (15 px / 600) y barra de capacidad (120 × 6, pista `--line`, relleno `--accent`, ancho = `taken/10 × 120`); luego "5/10" (13 px / 500 `--ink-muted`); a la derecha radio de 20 px.
 
 | Franja | Ocupación | Estado |
@@ -150,7 +150,7 @@ Al leer un QR válido → `/check-in/ok`.
 Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
 1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs".
-2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Llegás a tiempo" 15 px / 600 `--accent`; "Tu clase empieza a las 7:45 en el Aula 705." 13 px.
+2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Llegás a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
 3. **Encuesta de espera** (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
 4. Espacio flexible; `Button` primary "Volver al inicio" → `/`.
 
@@ -163,7 +163,7 @@ Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 1. **Cabecera** (fila, gap 14): avatar de 60 px; columna (gap 4): "Juana Martínez" (18 px / 700), `Chip` tone `alumnos` "Estudiante", "Legajo 1234567" (13 px `--ink-muted`), "jmartinez@uade.edu.ar" (13 px `--ink-muted`). El chip cambia de tono con el tipo de usuario.
 2. **Tarjeta "Acceso prioritario"** (pad 16, gap 12, `--radius-lg`, borde `--line`):
    - fila: "Acceso prioritario" (`.text-card-title`) + `Chip` accent "Pendiente de validación";
-   - texto 13 px `--ink-muted`: "Si tenés movilidad reducida, subí tu certificado de discapacidad o un certificado médico para habilitar turnos prioritarios (incluye pisos 0–4)."
+   - texto 13 px `--ink-muted`: "Si tenés movilidad reducida, subí tu certificado de discapacidad o un certificado médico para habilitar turnos prioritarios (incluye los pisos bajos)."
    - **Zona de carga** (pad 20, gap 6, `--radius-sm`, borde discontinuo 1,5 px `--accent`, fondo `--accent-tint`, contenido centrado): ícono de 28 px, "Subir certificado" 14 px / 600 `--accent`, "PDF o imagen" 12 px `--ink-muted`.
    - **Archivo cargado** (fila pad 10/12, gap 10, `--radius-sm`, `--surface-subtle`): ícono de archivo, nombre 13 px / 500 (`certificado_discapacidad.pdf`), acción "Quitar" 12 px / 500 `--accent`.
    - Estados del chip: "Pendiente de validación" → validado → rechazado (definir con el backend).
@@ -177,18 +177,18 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 
 **Contenido** (pad 32, gap 24):
 
-1. **Encabezado**: a la izquierda "Congestión y uso de ascensores" (`.text-title-lg`) y "Lunes 28/9 · Sede Lima · Bloque mañana (7:45–11:45)" (14 px `--ink-muted`); a la derecha tres `Chip` accent de filtro: "Hoy", "Sede Lima", "Bloque mañana".
+1. **Encabezado**: a la izquierda "Congestión y uso de ascensores" (`.text-title-lg`) y "Lunes 28/9 · Sede Lima · Turno mañana (7:00–12:15)" (14 px `--ink-muted`); a la derecha los filtros de período, sede y **turno de cursada** ("Turno mañana"). Los turnos y sus horarios los manda el servidor (tabla de configuración, ver [`kpis.md`](../reglas/kpis.md#filtros)).
 2. **4 tarjetas KPI** en fila (gap 16, cada una pad 20, gap 6, `--radius-lg`, borde `--line`): etiqueta 13 px `--ink-muted`, cifra `.text-kpi`, detalle 12 px / 500 `--accent`.
 
 | Etiqueta | Cifra | Detalle |
 |---|---|---|
-| Espera promedio | 4,1 min | −38% vs. línea base |
+| Espera promedio | 4,1 min | comparación con la línea base de [`kpis.md`](../reglas/kpis.md) (% que espera 5–10 min); el "−38 %" del wireframe era de ejemplo |
 | Turnos reservados | 1.284 | hoy |
 | Check-ins realizados | 87% | de los turnos reservados |
 | Ocupación promedio | 7,6 / 10 | personas por franja |
 
 3. **Fila de dos tarjetas** (gap 16, mismo ancho):
-   - **Gráfico "Reservas por franja (bloque mañana)"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (11 px `--ink-muted`). Datos de ejemplo (alto en px): 7:15 → 120 · 7:25 → 170 · 7:35 → 150 · 7:45 → 60 · 9:30 → 90 · 9:45 → 140 · 11:30 → 80 · 11:45 → 160. Barras de las franjas más cargadas (≥ 140) en `--accent` sólido, el resto en `--accent` al 45 %.
+   - **Gráfico "Reservas por franja (turno mañana)"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (11 px `--ink-muted`). Datos de ejemplo (alto en px): 7:15 → 120 · 7:25 → 170 · 7:35 → 150 · 7:45 → 60 · 9:30 → 90 · 9:45 → 140 · 11:30 → 80 · 11:45 → 160. Barras de las franjas más cargadas (≥ 140) en `--accent` sólido, el resto en `--accent` al 45 %.
    - **Tabla "Estado por núcleo"** (pad 20, `--radius-lg`, borde `--line`): columnas **Núcleo · Reservas · Ocupación · Espera · Estado**; encabezado 13 px / 600 `--ink-muted`; filas 13 px con pad 12/0 y divisor `--line`. La columna Estado es un `Chip` con tono `baja` / `media` / `alta`.
 
 | Núcleo | Reservas | Ocupación | Espera | Estado |
@@ -208,5 +208,5 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 - Un solo `h1` por pantalla; los títulos de sección con `h2`.
 - Todo `input` con `label` asociado; errores con `role="alert"`.
 - El estado de congestión, de franja ("Completo") y de validación siempre con texto, no solo color.
-- Selectores (edificio, piso, franja, tipo de usuario) navegables con teclado; el elegido con `aria-pressed` o `aria-checked`; los pisos 0–4 con `disabled`.
+- Selectores (edificio, piso, franja, tipo de usuario) navegables con teclado; el elegido con `aria-pressed` o `aria-checked`; los pisos no elegibles con `disabled`.
 - Foco visible con `--focus`. Áreas táctiles ≥ 44 × 44 px.
