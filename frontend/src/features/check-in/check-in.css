@@ -16,6 +16,9 @@
   --color-text: var(--White);
   --color-text-muted: color-mix(in srgb, var(--White) 75%, transparent);
   --color-primary-tint-strong: color-mix(in srgb, var(--White) 14%, transparent);
+  /* Fondo del botón volver (y de controles deshabilitados): blanco al 15 %. */
+  --color-disabled-bg: color-mix(in srgb, var(--White) 15%, transparent);
+  --color-text-subtle: color-mix(in srgb, var(--White) 65%, transparent);
   --color-focus: var(--White);
 
   position: relative;
@@ -26,6 +29,13 @@
   padding: 12px var(--space-screen) 24px;
   color: var(--color-text);
   isolation: isolate;
+}
+
+/* El oscurecido del visor (box-shadow) no tapa el header ni la hoja inferior. */
+.check-in__view .screen-header,
+.check-in__sheet {
+  position: relative;
+  z-index: 1;
 }
 
 .check-in__video {
@@ -42,15 +52,15 @@
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 12px;
+  gap: 20px;
   text-align: center;
 }
 
 .check-in__finder {
-  width: min(64vw, 240px);
+  width: min(100%, 250px);
   aspect-ratio: 1;
   border: 3px solid var(--White);
-  border-radius: var(--radius-card-lg);
+  border-radius: var(--radius-sheet);
   box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--BlackPearl) 45%, transparent);
 }
 
@@ -89,18 +99,26 @@
 .check-in__sheet {
   display: grid;
   gap: 12px;
-  padding: 20px var(--space-screen) calc(20px + env(safe-area-inset-bottom));
-  border-radius: var(--radius-card-lg) var(--radius-card-lg) 0 0;
+  padding: 20px var(--space-screen) calc(32px + env(safe-area-inset-bottom));
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   background: var(--color-surface);
   color: var(--color-text);
 }
 
-.check-in__sheet h2 {
+.check-in__code h2 {
   font-size: var(--text-18);
 }
 
-.check-in__sheet .chip {
-  justify-self: start;
+.check-in__sheet-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.check-in__route {
+  color: var(--color-text-muted);
 }
 
 .check-in__sheet a.button {
