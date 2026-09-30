@@ -26,12 +26,12 @@ export function Input({
 
   return (
     <div className={['input', error && 'input--invalid', className].filter(Boolean).join(' ')}>
-      <label htmlFor={inputId} className="input__label">
+      <label htmlFor={inputId} className="input__label text-label">
         {label}
       </label>
       <input
         id={inputId}
-        className="input__field"
+        className="input__field text-body"
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         {...rest}
