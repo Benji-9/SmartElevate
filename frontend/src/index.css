@@ -44,6 +44,7 @@
   --text-24: 1.5rem;
 
   /* Radios */
+  --radius-xs: 4px;
   --radius-input: 10px;
   --radius-button: 12px;
   --radius-card: 16px;
