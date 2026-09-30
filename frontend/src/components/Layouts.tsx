@@ -14,11 +14,14 @@ export function TabLayout() {
   );
 }
 
-/** Pantallas de un flujo (login, reserva, check-in…): sin navegación inferior. */
-export function ScreenLayout() {
+/**
+ * Pantallas de un flujo (login, reserva, check-in…): sin navegación inferior.
+ * `bleed` saca el pad para que la pantalla (la cámara del check-in) llene la columna.
+ */
+export function ScreenLayout({ bleed = false }: { bleed?: boolean }) {
   return (
     <div className="screen">
-      <main className="screen__main">
+      <main className={bleed ? 'screen__main screen__main--bleed' : 'screen__main'}>
         <Outlet />
       </main>
     </div>

@@ -19,3 +19,10 @@
   gap: 16px;
   padding: 12px var(--space-screen) 24px;
 }
+
+/* Pantallas a sangre (check-in): el contenido llena la columna sin el pad de main. */
+.screen__main--bleed {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}

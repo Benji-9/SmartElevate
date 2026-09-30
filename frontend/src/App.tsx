@@ -39,11 +39,13 @@ export function App() {
               <Route element={<ScreenLayout />}>
                 <Route path="reservar" element={<ReserveTurnPage />} />
                 <Route path="turno/:id" element={<TurnPage />} />
-                <Route path="check-in" element={<CheckInPage />} />
-                <Route path="check-in/codigo" element={<CheckInPage manual />} />
                 <Route path="check-in/ok" element={<CheckInSuccessPage />} />
                 <Route path="perfil/viajes" element={<MyTripsPage />} />
                 <Route path="perfil/notificaciones" element={<NotificationsPage />} />
+              </Route>
+              <Route element={<ScreenLayout bleed />}>
+                <Route path="check-in" element={<CheckInPage />} />
+                <Route path="check-in/codigo" element={<CheckInPage manual />} />
               </Route>
             </Route>
             <Route element={<RequireSession role="ADMIN" />}>
