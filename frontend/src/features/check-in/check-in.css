@@ -164,3 +164,48 @@
   display: grid;
   gap: 12px;
 }
+
+/*
+ * Pantalla (VIEW-MODES.md §6): columna centrada de 480 px con la página clara; arriba un panel
+ * oscuro con el visor y sus textos, y debajo una tarjeta clara con el turno.
+ */
+@container app (min-width: 900px) {
+  .app-shell:has(.check-in),
+  .screen:has(.check-in) {
+    background: var(--color-bg);
+  }
+
+  .check-in {
+    flex: none;
+    gap: 16px;
+    width: 100%;
+    max-width: var(--screen-max-width);
+    margin-inline: auto;
+    overflow: visible;
+    background: none;
+  }
+
+  .check-in__view {
+    flex: none;
+    padding: 32px;
+    overflow: clip;
+    /* Decorativo: en modo oscuro separa el panel del fondo (los dos son BlackPearl). */
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sheet);
+    background: var(--surface-dark);
+  }
+
+  .check-in__sheet {
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+
+  /* El código manual, como diálogo centrado en vez de hoja inferior. */
+  .check-in__code {
+    margin: auto;
+    padding: 32px;
+    border: 0;
+    border-radius: var(--radius-sheet);
+  }
+}

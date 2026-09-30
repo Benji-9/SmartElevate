@@ -107,6 +107,25 @@
   text-decoration: none;
 }
 
+/*
+ * Pantalla (VIEW-MODES.md §6, 05): los dos botones en fila, "Cancelar turno" a la izquierda e
+ * "Ir a check-in" a la derecha. El orden del DOM sigue siendo el del móvil (primary primero).
+ */
+@container app (min-width: 900px) {
+  /* En una ventana alta, las acciones siguen al contenido en vez de irse al pie. */
+  .success-screen > .turn-actions {
+    margin-top: 8px;
+  }
+
+  .turn-actions--row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .turn-actions--row > .button--primary {
+    grid-area: 1 / 2;
+  }
+}
+
 .turn-dialog {
   width: min(100% - 2 * var(--space-screen), 400px);
   padding: 20px;
