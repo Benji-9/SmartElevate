@@ -1,12 +1,9 @@
-import { Chip } from '../../components/Chip';
+import { Chip, type ChipTone } from '../../components/Chip';
 import type { CheckInOutcome, CheckInResult } from '../../types/pending';
 import { formatSlot } from '../turn/format';
 
-const outcomes: Record<
-  CheckInOutcome,
-  { title: string; detail: string; tone: 'primary' | 'neutral' | 'danger' }
-> = {
-  ON_TIME: { title: 'Check-in a tiempo', detail: 'Llegaste dentro de tu franja.', tone: 'primary' },
+const outcomes: Record<CheckInOutcome, { title: string; detail: string; tone: ChipTone }> = {
+  ON_TIME: { title: 'Check-in a tiempo', detail: 'Llegaste dentro de tu franja.', tone: 'accent' },
   OTHER_ELEVATOR: {
     title: 'Check-in en otro ascensor',
     detail: 'Subiste a un ascensor distinto al de tu turno. Igual quedó registrado.',

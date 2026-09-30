@@ -5,7 +5,7 @@ import './Layouts.css';
 /** Pantallas principales de la app móvil: contenido + navegación inferior. */
 export function TabLayout() {
   return (
-    <div className="screen screen--with-nav">
+    <div className="screen">
       <main className="screen__main">
         <Outlet />
       </main>

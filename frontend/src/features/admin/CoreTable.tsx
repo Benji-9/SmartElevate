@@ -1,5 +1,6 @@
 import { useId } from 'react';
-import { StatusPill } from '../../components/StatusPill';
+import { Chip } from '../../components/Chip';
+import { congestionLabel, congestionTone } from '../congestion/level';
 import type { CoreKpis } from '../../types/pending';
 import { formatMinutes, formatNumber, formatPercent } from './format';
 
@@ -32,7 +33,9 @@ export function CoreTable({ cores }: { cores: CoreKpis[] }) {
                   <td>{formatPercent(core.occupancyPercent)}</td>
                   <td>{formatMinutes(core.avgWaitSeconds)}</td>
                   <td>
-                    <StatusPill level={core.congestion} />
+                    <Chip tone={congestionTone[core.congestion]}>
+                      {congestionLabel[core.congestion]}
+                    </Chip>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '../../components/Button';
-import { Chip } from '../../components/Chip';
+import { Chip, type ChipTone } from '../../components/Chip';
 import { errorMessage, useResource } from '../../hooks/useResource';
 import {
   getMyPriorityRequest,
@@ -23,13 +23,13 @@ const dayMonth = new Intl.DateTimeFormat('en-GB', {
 
 const load = () => Promise.all([getMyPriorityRequest(), getPriorityUploadRules()]);
 
-type Status = { label: string; tone: 'primary' | 'neutral' | 'danger'; text: string };
+type Status = { label: string; tone: ChipTone; text: string };
 
 function describe(request: PriorityRequest | null): Status & { canUpload: boolean } {
   if (request?.status === 'PENDING') {
     return {
       label: 'Pendiente de validación',
-      tone: 'primary',
+      tone: 'accent',
       text: 'Estamos revisando tu certificado. Te avisamos cuando se resuelva.',
       canUpload: false,
     };
@@ -46,7 +46,7 @@ function describe(request: PriorityRequest | null): Status & { canUpload: boolea
     }
     return {
       label: expiresAt ? `Aprobado (vence el ${dayMonth.format(new Date(expiresAt))})` : 'Aprobado',
-      tone: 'primary',
+      tone: 'accent',
       text: 'Tenés lugares reservados en cada salida del ascensor.',
       canUpload: false,
     };

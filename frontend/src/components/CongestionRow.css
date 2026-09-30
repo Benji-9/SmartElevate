@@ -1,0 +1,53 @@
+/* DESIGN-SYSTEM.md §7 (.se-cong). */
+.congestion-row {
+  --congestion-color: var(--Status-Baja);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.congestion-row--media {
+  --congestion-color: var(--Status-Media);
+}
+
+.congestion-row--alta {
+  --congestion-color: var(--Status-Alta);
+}
+
+.congestion-row__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.congestion-row__label {
+  font: 500 14px/20px var(--font-sans);
+  color: var(--color-text);
+}
+
+.congestion-row__detail {
+  color: var(--color-text-muted);
+}
+
+.congestion-row__track {
+  flex: none;
+  width: 90px;
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.congestion-row__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-xs);
+  background: var(--congestion-color);
+}
+
+.congestion-row__level {
+  flex: none;
+  width: 48px;
+  font: 600 13px/18px var(--font-sans);
+  color: var(--color-text);
+}

@@ -31,12 +31,9 @@
 }
 
 .input__hint {
-  font-size: var(--text-12);
   color: var(--color-text-muted);
 }
 
 .input__error {
-  font-size: var(--text-12);
-  font-weight: var(--font-medium);
   color: var(--color-danger);
 }
