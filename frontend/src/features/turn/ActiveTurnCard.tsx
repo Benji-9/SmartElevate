@@ -63,7 +63,9 @@ export function ActiveTurnCard() {
   if (!reservation) {
     return (
       <section className="turn-card" aria-labelledby="turn-card-title">
-        <h2 id="turn-card-title">No tenés un turno activo</h2>
+        <h2 id="turn-card-title" className="text-card-title">
+          No tenés un turno activo
+        </h2>
         <p className="turn-card__help">Reservá un lugar en la próxima salida del ascensor.</p>
         <Link to="/reservar" className="button button--primary">
           Reservar turno
@@ -76,14 +78,14 @@ export function ActiveTurnCard() {
   return (
     <section className="turn-card" aria-labelledby="turn-card-title">
       <div className="turn-card__header">
-        <h2 id="turn-card-title">Tu turno</h2>
+        <h2 id="turn-card-title" className="text-card-title">
+          Tu turno
+        </h2>
         <Chip>Confirmado</Chip>
       </div>
-      <p className="turn-card__slot">
-        {formatSlot(departure.departsAt, departure.durationMinutes)}
-      </p>
-      <p>
-        {core.name} · {core.buildingName} · Piso {formatFloor(reservation.destinationFloor)}
+      <p className="turn-card__summary">
+        {formatSlot(departure.departsAt, departure.durationMinutes)} · {core.name} · Piso{' '}
+        {formatFloor(reservation.destinationFloor)}
       </p>
       <p className="turn-card__help">
         Esperá en {core.hall} y escaneá el QR del ascensor para hacer check-in.

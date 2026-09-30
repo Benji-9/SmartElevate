@@ -165,15 +165,18 @@ export function ReserveTurnPage() {
               />
             ))}
 
-          {submitError && (
-            <p role="alert" className="reserve__alert">
-              {submitError}
-            </p>
-          )}
-
-          <Button type="submit" disabled={!ready} loading={submitting} loadingLabel="Reservando…">
-            {departure ? `Confirmar turno · ${formatTime(departure.departsAt)}` : 'Confirmar turno'}
-          </Button>
+          <div className="reserve__submit">
+            {submitError && (
+              <p role="alert" className="reserve__alert">
+                {submitError}
+              </p>
+            )}
+            <Button type="submit" disabled={!ready} loading={submitting} loadingLabel="Reservando…">
+              {departure
+                ? `Confirmar turno · ${formatTime(departure.departsAt)}`
+                : 'Confirmar turno'}
+            </Button>
+          </div>
         </form>
       )}
     </>

@@ -2,7 +2,7 @@ import { useLocation } from 'react-router';
 import { Avatar } from '../components/Avatar';
 import { CongestionNow } from '../features/congestion/CongestionNow';
 import { ActiveTurnCard } from '../features/turn/ActiveTurnCard';
-import { formatDate } from '../features/turn/format';
+import { formatDay } from '../features/turn/format';
 import { useSession } from '../hooks/useSession';
 import './HomePage.css';
 
@@ -21,8 +21,8 @@ export function HomePage() {
       )}
       <header className="home__header">
         <div>
-          <h1>Hola, {fullName.split(/\s+/)[0]}</h1>
-          <p className="home__date">{formatDate(new Date())}</p>
+          <h1 className="text-title">Hola, {fullName.split(/\s+/)[0]}</h1>
+          <p className="home__date text-body-sm">{formatDay(new Date())}</p>
         </div>
         <Avatar name={fullName} />
       </header>

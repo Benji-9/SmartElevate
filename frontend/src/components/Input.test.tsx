@@ -29,4 +29,13 @@ describe('Input', () => {
       'Usá tu cuenta de UADE. Tiene que ser un email @uade.edu.ar.',
     );
   });
+
+  it('anuncia el error apenas aparece', () => {
+    const { rerender } = render(<Input label="Legajo" />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    rerender(<Input label="Legajo" error="Ingresá tu legajo." />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Ingresá tu legajo.');
+  });
 });

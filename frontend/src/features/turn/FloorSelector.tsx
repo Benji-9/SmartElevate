@@ -23,8 +23,7 @@ export function FloorSelector({ floors, value, onChange }: FloorSelectorProps) {
         }))}
         value={value === null ? null : String(value)}
         onChange={(floor) => onChange(Number(floor))}
-        layout="grid"
-        columns={5}
+        className="reserve__floors"
       />
       <FloorRuleNotice reasons={reasons} />
     </>

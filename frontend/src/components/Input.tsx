@@ -5,7 +5,10 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   /** Texto de ayuda debajo del campo. */
   hint?: string;
-  /** Mensaje de error: marca el campo como inválido y lo asocia con `aria-describedby`. */
+  /**
+   * Mensaje de error: marca el campo como inválido, lo asocia con `aria-describedby` y se
+   * anuncia al aparecer (`role="alert"`).
+   */
   error?: string;
 };
 
@@ -42,7 +45,7 @@ export function Input({
         </p>
       )}
       {error && (
-        <p id={errorId} className="input__error text-label">
+        <p id={errorId} role="alert" className="input__error text-label">
           {error}
         </p>
       )}

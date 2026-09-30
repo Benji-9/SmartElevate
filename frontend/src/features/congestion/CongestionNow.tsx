@@ -56,9 +56,11 @@ export function CongestionNow() {
   return (
     <section className="congestion" aria-labelledby="congestion-title">
       <div className="congestion__header">
-        <h2 id="congestion-title">Congestión ahora</h2>
+        <h2 id="congestion-title" className="text-card-title">
+          Congestión ahora
+        </h2>
         {snapshot && (
-          <p className="congestion__updated">
+          <p className="congestion__updated text-caption">
             Actualizado {minutesAgo.format(-minutesOld, 'minute')}
           </p>
         )}

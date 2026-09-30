@@ -46,11 +46,13 @@ export function LoginPage() {
   }
 
   return (
-    <section className="auth">
+    <section className="auth auth--login">
       <header className="auth__intro">
         <img className="auth__logo" src={logo} alt="" width={181} height={120} />
-        <h1>Bienvenido a SmartElevate</h1>
-        <p className="auth__subtitle">Reservá tu turno de ascensor y llegá a tiempo a clase.</p>
+        <h1 className="text-title">Bienvenido a SmartElevate</h1>
+        <p className="auth__subtitle text-body">
+          Reservá tu turno de ascensor y llegá a tiempo a clase.
+        </p>
       </header>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
@@ -67,6 +69,7 @@ export function LoginPage() {
           label="Contraseña"
           type="password"
           autoComplete="current-password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
