@@ -196,7 +196,7 @@ Se renderizan las dos y el container query muestra una u otra (la oculta con `di
 | Elemento | Especificación |
 |---|---|
 | Barra | `position: sticky; top: 0`, alto `--topbar-h` (64), fondo `--surface`, borde inferior 1 px `--line`, pad 0/32 |
-| Izquierda | texto "SmartElevate" en `.text-heading` `--ink` (provisorio: falta un logotipo horizontal con fondo transparente) |
+| Izquierda | logo `smartelevate-logo-horizontal.svg` a ~32 px de alto, con `alt="SmartElevate"` (ver `DESIGN-SYSTEM.md` §9) |
 | Centro/izquierda | tabs **Inicio · Reservar · Check-in · Perfil**, gap 24, `.text-body-sm-strong`; activa en `--accent` con subrayado de 2 px; inactiva `--ink-muted`; hover `--ink`; área táctil ≥ 44 px de alto |
 | Derecha | avatar de 36 px + "Juana Martínez" en `.text-body-sm-strong` |
 
