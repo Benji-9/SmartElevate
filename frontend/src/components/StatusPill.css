@@ -1,12 +1,13 @@
 /* El texto va siempre en --color-text: Status-Media no tiene contraste suficiente como texto. */
 .status-pill {
   --status-color: var(--Status-Baja);
+  --status-tint: var(--Status-Baja-tint);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--status-color) 12%, transparent);
+  background: var(--status-tint);
   color: var(--color-text);
   font-size: var(--text-12);
   font-weight: var(--font-semibold);
@@ -16,10 +17,12 @@
 
 .status-pill--medium {
   --status-color: var(--Status-Media);
+  --status-tint: var(--Status-Media-tint);
 }
 
 .status-pill--high {
   --status-color: var(--Status-Alta);
+  --status-tint: var(--Status-Alta-tint);
 }
 
 .status-pill__dot {

@@ -35,7 +35,7 @@ export function ScreenHeader({ title, backTo = '/' }: ScreenHeaderProps) {
           />
         </svg>
       </button>
-      <h1 className="screen-header__title">{title}</h1>
+      <h1 className="screen-header__title text-heading">{title}</h1>
     </header>
   );
 }

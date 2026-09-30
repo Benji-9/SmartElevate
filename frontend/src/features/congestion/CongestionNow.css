@@ -13,7 +13,7 @@
 .congestion__updated,
 .congestion__wait {
   font-size: var(--text-12);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .congestion__list {
