@@ -21,10 +21,10 @@ Un núcleo puede tener **varias baterías** con pisos distintos, así que cada a
 
 | Núcleo | Ascensores | Pisos servidos | Observaciones |
 | --- | --- | --- | --- |
-| IND2 | 33, 34 | −4 a 11, **sin el 1** | Único que llega al 11. Falta confirmar si realmente no para en el 1 |
-| IND1 | Sin numeración (cantidad a relevar) | −4 a 10 | En configuración necesita códigos propios (p. ej. `IND1-A`) |
+| IND2 | 33, 34 | −4 a 11, **sin el 1** | Único que llega al 11. No para en el 1 |
+| IND1 | 05, 06 | −4 a 10 | **Dedicados** (ver [ascensores dedicados](#ascensores-dedicados)). No están numerados en el edificio: 05 y 06 son códigos nuestros |
 | L3 | 10, 11, 12, 13, 14, 15 | −3 a 10 | |
-| L2, batería baja | 07, 08 o 35, 36 (**a confirmar**) | −4 a 5 | |
+| L2, batería baja | 07, 08 o 35, 36 (**a confirmar**) | −4 a 5 | 07 y 08 son los viejos; 35 y 36, los nuevos |
 | L2, batería alta | 35, 36 o 07, 08 (**a confirmar**) | −2, 0, 2 a 10 (sin el −1 ni el 1) | |
 | L1 | 01, 02, 03, 04 | −3 a 7 | |
 
@@ -72,6 +72,19 @@ Si el edificio de origen está congestionado, se puede ofrecer otro:
 - Solo se ofrece otro edificio si **hay conexión en el piso de origen**.
 - El **tiempo de caminata** hasta el otro edificio se **suma a la espera estimada**.
 
+## Ascensores dedicados
+
+Los dos ascensores de IND1 no se usan como ascensores comunes:
+
+| Ascensor | Uso | Estado |
+| --- | --- | --- |
+| IND1 05 | Exclusivo para **docentes** | Así funciona hoy |
+| IND1 06 | Exclusivo para **movilidad reducida** (ascensor accesible) | **Propuesta** del proyecto |
+
+- En un ascensor dedicado solo puede reservar quien tenga esa prioridad aprobada y vigente. Se evalúa en el servidor al reservar, como el resto de las prioridades.
+- Los **lugares reservados para prioritarios** (2 de 10) siguen aplicando a los ascensores **comunes**.
+- El uso de cada ascensor (común, docentes, movilidad reducida) es un dato de la **tabla de configuración**, no del código.
+
 ## Ascensor accesible
 
-El ascensor accesible está en **un solo edificio**. Para los prioritarios con movilidad reducida, las conexiones entre edificios son **críticas**: si no hay conexión accesible desde su piso de origen, la app no debe ofrecerles una alternativa que no pueden usar. Cuál es el ascensor accesible, si existe un ascensor dedicado para prioritarios y qué conexiones son accesibles sigue **a confirmar** ([#22](https://github.com/Benji-9/SmartElevate/issues/22)). En el plano, el acceso para sillas de ruedas está en IND1, sobre Av. Independencia (entrada del estacionamiento). Eso orienta, pero no confirma cuál es el ascensor.
+El ascensor accesible es **IND1 06**, con los pisos −4 a 10. En el plano, el acceso para sillas de ruedas está en IND1, sobre Av. Independencia (entrada del estacionamiento). Para los prioritarios con movilidad reducida, las conexiones entre núcleos son **críticas**: si no hay conexión accesible desde su piso de origen hasta IND1, la app no debe ofrecerles una alternativa que no pueden usar. Qué conexiones son accesibles sigue **a confirmar** ([#22](https://github.com/Benji-9/SmartElevate/issues/22)).
