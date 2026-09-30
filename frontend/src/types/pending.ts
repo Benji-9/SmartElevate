@@ -184,8 +184,13 @@ export type NotificationPreferences = {
 
 /** Período del panel admin; el servidor lo resuelve en hora de Buenos Aires. */
 export type AdminPeriod = 'TODAY' | 'WEEK' | 'MONTH';
-/** `buildingId` ausente = todas las sedes. */
-export type AdminKpisQuery = { period: AdminPeriod; buildingId?: string };
+/**
+ * Turno de cursada (kpis.md#filtros). Lo define la tabla de configuración; horas `"HH:mm"`
+ * en Buenos Aires, `endsAt` exclusivo.
+ */
+export type AdminShift = { id: string; name: string; startsAt: string; endsAt: string };
+/** `buildingId` ausente = todas las sedes; `shiftId` ausente = todo el día. */
+export type AdminKpisQuery = { period: AdminPeriod; buildingId?: string; shiftId?: string };
 
 /** Estado de un núcleo en el período (tabla "Estado por núcleo"). */
 export type CoreKpis = {

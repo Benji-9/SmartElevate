@@ -4,9 +4,15 @@ import { OptionGroup, type Option } from '../components/OptionGroup';
 import { CoreTable } from '../features/admin/CoreTable';
 import { ReservationsChart } from '../features/admin/ReservationsChart';
 import '../features/admin/admin.css';
-import { formatMinutes, formatNumber, formatPercent, formatPeriod } from '../features/admin/format';
+import {
+  formatMinutes,
+  formatNumber,
+  formatPercent,
+  formatPeriod,
+  formatShift,
+} from '../features/admin/format';
 import { useResource } from '../hooks/useResource';
-import { getAdminKpis, getBuildings } from '../services/api';
+import { getAdminKpis, getAdminShifts, getBuildings } from '../services/api';
 import type { AdminPeriod } from '../types/pending';
 
 const periods: Option<AdminPeriod>[] = [
@@ -21,11 +27,11 @@ function KpiCard({ label, value, detail }: { label: string; value: string; detai
   const labelId = useId();
   return (
     <article className="admin-card kpi" aria-labelledby={labelId}>
-      <h2 id={labelId} className="kpi__label">
+      <h2 id={labelId} className="text-label kpi__label">
         {label}
       </h2>
-      <p className="kpi__value">{value}</p>
-      <p className="kpi__detail">{detail}</p>
+      <p className="text-kpi">{value}</p>
+      <p className="text-caption-strong kpi__detail">{detail}</p>
     </article>
   );
 }
@@ -34,11 +40,18 @@ function KpiCard({ label, value, detail }: { label: string; value: string; detai
 export function AdminDashboardPage() {
   const [period, setPeriod] = useState<AdminPeriod>('TODAY');
   const [buildingId, setBuildingId] = useState(ALL);
-  // Las sedes son secundarias: si fallan, queda solo "Todas las sedes".
+  const [shiftId, setShiftId] = useState(ALL);
+  // Sedes y turnos son secundarios: si fallan, queda solo "Todas las sedes" / "Todo el día".
   const buildings = useResource(getBuildings);
+  const shifts = useResource(getAdminShifts);
   const load = useCallback(
-    () => getAdminKpis({ period, buildingId: buildingId === ALL ? undefined : buildingId }),
-    [period, buildingId],
+    () =>
+      getAdminKpis({
+        period,
+        buildingId: buildingId === ALL ? undefined : buildingId,
+        shiftId: shiftId === ALL ? undefined : shiftId,
+      }),
+    [period, buildingId, shiftId],
   );
   const kpis = useResource(load);
 
@@ -47,7 +60,19 @@ export function AdminDashboardPage() {
     ...(buildings.data ?? []).map((b) => ({ value: b.id, label: b.name })),
   ];
   const buildingName = buildingOptions.find((o) => o.value === buildingId)?.label;
+  const shiftOptions: Option<string>[] = [
+    { value: ALL, label: 'Todo el día' },
+    ...(shifts.data ?? []).map((s) => ({ value: s.id, label: s.name })),
+  ];
+  const shift = shifts.data?.find((s) => s.id === shiftId);
   const data = kpis.data;
+  const context = [
+    data && formatPeriod(data.from, data.to),
+    buildingName,
+    shift && formatShift(shift),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   let content;
   if (kpis.error) {
@@ -77,17 +102,17 @@ export function AdminDashboardPage() {
           <KpiCard
             label="Turnos reservados"
             value={formatNumber(data.reservations)}
-            detail="Sin contar los cancelados"
+            detail={periods.find((p) => p.value === period)?.label.toLowerCase()}
           />
           <KpiCard
             label="Check-ins realizados"
             value={formatPercent(data.checkInPercent)}
-            detail={`${formatNumber(data.checkIns)} de ${formatNumber(data.reservations)} turnos`}
+            detail="de los turnos reservados"
           />
           <KpiCard
             label="Ocupación promedio"
             value={`${formatNumber(data.avgOccupancy)} / ${data.capacity}`}
-            detail="Personas por salida"
+            detail="personas por franja"
           />
         </div>
         {data.reservations === 0 ? (
@@ -106,11 +131,8 @@ export function AdminDashboardPage() {
     <>
       <header className="admin__header">
         <div>
-          <h1>Congestión y uso de ascensores</h1>
-          <p className="admin__context">
-            {data ? `${formatPeriod(data.from, data.to)} · ` : ''}
-            {buildingName}
-          </p>
+          <h1 className="text-title-lg">Congestión y uso de ascensores</h1>
+          <p className="admin__context">{context}</p>
         </div>
         <div className="admin__filters">
           <OptionGroup
@@ -127,6 +149,14 @@ export function AdminDashboardPage() {
             options={buildingOptions}
             value={buildingId}
             onChange={setBuildingId}
+            hideLabel
+          />
+          <OptionGroup
+            label="Turno de cursada"
+            name="shift"
+            options={shiftOptions}
+            value={shiftId}
+            onChange={setShiftId}
             hideLabel
           />
         </div>
