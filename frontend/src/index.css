@@ -56,6 +56,14 @@
   --space-screen: 20px;
   --screen-max-width: 480px;
 
+  /* Layout (VIEW-MODES.md): marco del modo Teléfono (DeviceStage escribe --phone-scale). */
+  --phone-w: 390px;
+  --phone-h: 844px;
+  --phone-bezel: 10px;
+  --phone-scale: 1;
+  --container-max: 1120px;
+  --topbar-h: 64px;
+
   /*
    * Tokens semánticos: los componentes usan estos, no los de marca.
    * Los tintes se derivan de los tokens con opacidad (color-mix), sin colores nuevos.
@@ -89,6 +97,11 @@
   --color-danger: var(--Status-Alta);
   --color-danger-tint: color-mix(in srgb, var(--Status-Alta) 8%, transparent);
   --color-focus: var(--AstronautBlue);
+
+  /* Superficie oscura (cámara del check-in, sidebar admin, bisel del marco): igual en modo oscuro. */
+  --surface-dark: var(--BlackPearl);
+  --on-dark: var(--White);
+  --on-dark-muted: color-mix(in srgb, var(--White) 65%, transparent);
 
   font-family: var(--font-sans);
   font-size: 100%;
@@ -134,7 +147,6 @@
 
 body {
   margin: 0;
-  min-height: 100dvh;
   background: var(--color-bg);
 }
 
