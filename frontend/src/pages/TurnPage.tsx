@@ -103,7 +103,7 @@ export function TurnPage() {
         <SuccessHero title="¡Turno confirmado!">Esperá en {reservation.core.hall}.</SuccessHero>
         <TurnDetails reservation={reservation} />
         <CheckinHint />
-        <div className="turn-actions">
+        <div className="turn-actions turn-actions--row">
           <Link to="/check-in" className="button button--primary">
             Ir a check-in
           </Link>

@@ -219,7 +219,7 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
           )}
         </div>
         {turnContent}
-        <Link to="/check-in/codigo" replace className="button button--secondary">
+        <Link to="/check-in/codigo" replace className="button button--secondary button--inline">
           Ingresar código manualmente
         </Link>
       </section>

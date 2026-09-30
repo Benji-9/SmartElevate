@@ -46,7 +46,7 @@ export function LoginPage() {
   }
 
   return (
-    <section className="auth auth--login">
+    <section className="auth auth--login auth-card">
       <header className="auth__intro">
         <img className="auth__logo" src={logo} alt="" width={181} height={120} />
         <h1 className="text-title">Bienvenido a SmartElevate</h1>

@@ -28,7 +28,7 @@ export function ProfilePage() {
   }
 
   return (
-    <>
+    <div className="profile">
       <h1 className="profile-title text-heading">Mi perfil</h1>
       {user && (
         <header className="profile-header">
@@ -44,7 +44,7 @@ export function ProfilePage() {
         </header>
       )}
       <PriorityAccessCard />
-      <nav aria-label="Opciones del perfil">
+      <nav className="profile-nav" aria-label="Opciones del perfil">
         <ul className="profile-options">
           <li>
             <Link to="/perfil/viajes">Mis viajes{arrow}</Link>
@@ -59,6 +59,6 @@ export function ProfilePage() {
           </li>
         </ul>
       </nav>
-    </>
+    </div>
   );
 }

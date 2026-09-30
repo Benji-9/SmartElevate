@@ -62,7 +62,10 @@ describe('ProfilePage', () => {
       'href',
       '/perfil/notificaciones',
     );
-    expect(screen.getByRole('link', { name: 'Perfil' })).toHaveAttribute('aria-current', 'page');
+    // BottomNav y TopBar (el container query muestra una sola).
+    for (const tab of screen.getAllByRole('link', { name: 'Perfil' })) {
+      expect(tab).toHaveAttribute('aria-current', 'page');
+    }
   });
 
   it.each([

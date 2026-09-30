@@ -69,7 +69,7 @@ export function CongestionNow() {
       {error ? (
         <div role="alert" className="congestion__error">
           <p>{error}</p>
-          <Button variant="secondary" onClick={retry}>
+          <Button variant="secondary" block={false} onClick={retry}>
             Reintentar
           </Button>
         </div>

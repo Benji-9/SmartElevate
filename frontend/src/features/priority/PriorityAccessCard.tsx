@@ -86,7 +86,7 @@ export function PriorityAccessCard() {
         <p role="alert" className="priority-error">
           {error}
         </p>
-        <Button variant="secondary" onClick={reload}>
+        <Button variant="secondary" block={false} onClick={reload}>
           Reintentar
         </Button>
       </>
@@ -156,7 +156,13 @@ function PriorityRequestForm({ rules, onSubmitted }: FormProps) {
           {error}
         </p>
       )}
-      <Button type="submit" disabled={!file || !consent} loading={sending} loadingLabel="Enviando…">
+      <Button
+        type="submit"
+        block={false}
+        disabled={!file || !consent}
+        loading={sending}
+        loadingLabel="Enviando…"
+      >
         Enviar solicitud
       </Button>
     </form>
