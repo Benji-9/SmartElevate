@@ -48,6 +48,7 @@ export function ActiveTurnCard() {
         <p>{state.message}</p>
         <Button
           variant="secondary"
+          block={false}
           onClick={() => {
             setState({ status: 'loading' });
             setAttempt((n) => n + 1);
@@ -67,7 +68,7 @@ export function ActiveTurnCard() {
           No tenés un turno activo
         </h2>
         <p className="turn-card__help">Reservá un lugar en la próxima salida del ascensor.</p>
-        <Link to="/reservar" className="button button--primary">
+        <Link to="/reservar" className="button button--primary button--inline">
           Reservar turno
         </Link>
       </section>
@@ -90,7 +91,7 @@ export function ActiveTurnCard() {
       <p className="turn-card__help">
         Esperá en {core.hall} y escaneá el QR del ascensor para hacer check-in.
       </p>
-      <Link to="/check-in" className="button button--primary">
+      <Link to="/check-in" className="button button--primary button--inline">
         Hacer check-in
       </Link>
       <Link to={`/turno/${encodeURIComponent(reservation.id)}`} className="turn-card__link">

@@ -16,3 +16,30 @@
 .home__date {
   color: var(--color-text-muted);
 }
+
+/* En el móvil las columnas no existen: mismo ritmo que `main`. */
+.home,
+.home__main {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+/* Pantalla (VIEW-MODES.md §6): grilla 7fr/5fr y "Congestión ahora" dentro de una tarjeta. */
+@container app (min-width: 900px) {
+  .home {
+    grid-template-columns: 7fr 5fr;
+    align-items: start;
+    gap: 32px;
+  }
+
+  .home__title {
+    font: 700 26px/32px var(--font-sans);
+  }
+
+  .home .congestion {
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+}
