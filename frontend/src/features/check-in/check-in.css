@@ -75,6 +75,13 @@
   font-size: var(--text-18);
 }
 
+/* Modo demo (?demo=1): secondary en blanco para leerse sobre la cámara. */
+.check-in__demo {
+  --color-primary: var(--White);
+
+  max-width: 320px;
+}
+
 .check-in__alert {
   background: var(--White);
 }

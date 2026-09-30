@@ -3,6 +3,7 @@ import { AdminLayout } from './components/AdminLayout';
 import { ScreenLayout, TabLayout } from './components/Layouts';
 import { RequireSession } from './features/auth/RequireSession';
 import { SessionProvider } from './features/auth/SessionProvider';
+import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { CheckInPage } from './pages/CheckInPage';
 import { CheckInSuccessPage } from './pages/CheckInSuccessPage';
@@ -21,6 +22,8 @@ import { TurnPage } from './pages/TurnPage';
  * Todo es privado salvo login, registro y 404; `/admin` además pide rol ADMIN según `/me`.
  */
 export function App() {
+  // Guarda `?demo=1` apenas se entra, aunque la primera pantalla no lo use.
+  useDemoMode();
   return (
     <SessionProvider>
       <Routes>

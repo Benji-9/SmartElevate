@@ -193,6 +193,55 @@ describe('CheckInPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('sin ?demo=1 no ofrece simular el escaneo', async () => {
+    stubCamera();
+    stubApi(withTurn);
+    renderCheckIn();
+
+    await screen.findByText('14:04 – 14:06');
+    expect(
+      screen.queryByRole('button', { name: 'Simular escaneo del QR' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('con ?demo=1 "Simular escaneo del QR" registra el check-in y va al resultado', async () => {
+    stubCamera();
+    const fetchMock = stubApi({ ...withTurn, 'POST /check-ins': { body: result } });
+    renderCheckIn('/check-in?vista=telefono&demo=1');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Simular escaneo del QR' }));
+
+    expect(await screen.findByText(`Resultado: ${JSON.stringify(result)}`)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/check-ins',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ code: 'DEMO' }) }),
+    );
+  });
+
+  it('el escaneo simulado muestra el error de la API sin salir', async () => {
+    const message = 'No tenés un turno activo para hacer check-in.';
+    stubApi({ ...withTurn, 'POST /check-ins': { status: 409, body: { message } } });
+    renderCheckIn('/check-in?demo=1');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Simular escaneo del QR' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+  });
+
+  it('el modo demo se conserva al navegar y ?demo=0 lo apaga', () => {
+    stubApi(withTurn);
+    renderCheckIn('/check-in?demo=1').unmount();
+
+    const { unmount } = renderCheckIn('/check-in');
+    expect(screen.getByRole('button', { name: 'Simular escaneo del QR' })).toBeInTheDocument();
+    unmount();
+
+    renderCheckIn('/check-in?demo=0');
+    expect(
+      screen.queryByRole('button', { name: 'Simular escaneo del QR' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('libera la cámara al salir de la pantalla', async () => {
     stubCamera();
     stubApi(withTurn);
