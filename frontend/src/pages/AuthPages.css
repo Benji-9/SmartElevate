@@ -12,6 +12,24 @@
   text-align: center;
 }
 
+/* Los logos van sobre blanco: el JPG es opaco y el SVG es AstronautBlue (en modo oscuro no contrastaría). */
+.auth__logo,
+.auth__uade-logo {
+  background: var(--White);
+  border-radius: var(--radius-card);
+}
+
+.auth__org {
+  display: grid;
+  justify-items: center;
+}
+
+.auth__uade-logo {
+  box-sizing: content-box;
+  padding: 6px 10px;
+  border-radius: var(--radius-input);
+}
+
 .auth__subtitle,
 .auth__lead {
   font-size: var(--text-14);
