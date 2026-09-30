@@ -310,10 +310,14 @@ Foco de teclado global: `outline: 2px solid var(--focus); outline-offset: 2px;` 
 
 ## 9. Assets
 
+Los tres SVG de SmartElevate tienen el texto convertido a trazos (Inter Medium) y, con `prefers-color-scheme: dark`, cambian el azul oscuro por blanco y aclaran el azul, así que sirven sobre fondos claros y oscuros sin cajas blancas. Se reconstruyeron a partir de `Icono SmartElevate.jpg` (ya no está en el repo).
+
 | Archivo | Uso |
 |---|---|
-| `Icono SmartElevate.jpg` | Marca + logotipo de SmartElevate a color. **JPG con fondo blanco opaco**: solo sobre `--surface`, sin recolorear ni estirar. Login: 150 px de alto. No existe versión transparente todavía (hace falta para fondos oscuros). |
-| `UADE_id7RUMB-t-_1.svg` | Logotipo de UADE, un solo color (`AstronautBlue`). Preferido. Sobre `--surface`, más chico que la marca de SmartElevate. |
+| `frontend/src/assets/smartelevate-logo.svg` | Marca + logotipo de SmartElevate, vertical, **fondo transparente**. Login: 120 px de alto. Sin recolorear ni estirar. |
+| `frontend/src/assets/smartelevate-logo-horizontal.svg` | Ícono + logotipo en una línea, transparente. Para el `TopBar` (~32 px de alto). |
+| `frontend/src/assets/smartelevate-mark.svg` | Solo el ícono (ascensor con personas), transparente. Favicon o espacios chicos. |
+| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`). Preferido. Sobre `--surface`, más chico que la marca de SmartElevate. |
 | `UADE_id7RUMB-t-_0.png` | Mismo logotipo en PNG transparente. Solo donde no pueda usarse SVG. |
 
 ---

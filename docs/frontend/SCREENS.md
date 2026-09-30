@@ -62,7 +62,7 @@ interface CoreStatus { core: Core; level: CongestionLevel; occupancy: number /* 
 
 `main`: pad 40/20/24/20, gap 16.
 
-1. **Marca** (columna centrada, gap 12): logo `Icono SmartElevate.jpg` a 150 px; título `.text-title` centrado "Bienvenido a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
+1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Bienvenido a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
 2. Espacio de 8 px.
 3. `Input` "Email institucional", placeholder `nombre@uade.edu.ar` (`type="email"`).
 4. `Input` "Contraseña", placeholder `••••••••` (`type="password"`).

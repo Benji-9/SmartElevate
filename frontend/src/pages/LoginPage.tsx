@@ -5,7 +5,7 @@ import { Input } from '../components/Input';
 import { validateUadeEmail } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
-import logo from '../assets/smartelevate-logo.jpg';
+import logo from '../assets/smartelevate-logo.svg';
 import uadeLogo from '../assets/uade-logo.svg';
 import './AuthPages.css';
 
@@ -48,7 +48,7 @@ export function LoginPage() {
   return (
     <section className="auth">
       <header className="auth__intro">
-        <img className="auth__logo" src={logo} alt="" width={150} height={150} />
+        <img className="auth__logo" src={logo} alt="" width={181} height={120} />
         <h1>Bienvenido a SmartElevate</h1>
         <p className="auth__subtitle">Reservá tu turno de ascensor y llegá a tiempo a clase.</p>
       </header>

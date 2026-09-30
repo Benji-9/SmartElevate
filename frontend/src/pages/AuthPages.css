@@ -12,11 +12,10 @@
   text-align: center;
 }
 
-/* Los logos van sobre blanco: el JPG es opaco y el SVG es AstronautBlue (en modo oscuro no contrastaría). */
-.auth__logo,
+/* El logo de UADE es AstronautBlue: va sobre blanco para que contraste en modo oscuro.
+   El de SmartElevate es transparente y cambia de colores solo (prefers-color-scheme). */
 .auth__uade-logo {
   background: var(--White);
-  border-radius: var(--radius-card);
 }
 
 .auth__org {
