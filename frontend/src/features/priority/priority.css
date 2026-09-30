@@ -203,3 +203,52 @@ input:focus-visible + .upload-dropzone {
 .profile-options__arrow {
   color: var(--color-text-muted);
 }
+
+.profile {
+  display: grid;
+  gap: 16px;
+}
+
+@media (hover: hover) {
+  .profile-options a:hover,
+  .profile-options button:hover {
+    background: var(--color-disabled-bg);
+  }
+}
+
+/*
+ * Pantalla (VIEW-MODES.md §6): grilla 5fr/7fr. Izquierda la cabecera (en tarjeta) y los
+ * ajustes; derecha "Acceso prioritario". La última fila (1fr) absorbe el alto de la tarjeta
+ * para que la izquierda no se estire. Por áreas: el orden del DOM (el del móvil) no cambia.
+ */
+@container app (min-width: 900px) {
+  .profile {
+    grid-template:
+      'title title' auto
+      'header priority' auto
+      'options priority' auto
+      '. priority' 1fr
+      / 5fr 7fr;
+    align-items: start;
+    gap: 16px 32px;
+  }
+
+  .profile-title {
+    grid-area: title;
+  }
+
+  .profile-header {
+    grid-area: header;
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+
+  .profile .priority-card {
+    grid-area: priority;
+  }
+
+  .profile-nav {
+    grid-area: options;
+  }
+}
