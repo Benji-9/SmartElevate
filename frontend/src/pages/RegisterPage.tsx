@@ -20,7 +20,7 @@ const dot = (color: string) => (
 const userTypes: Option<DeclaredUserType>[] = [
   { value: 'STUDENT', label: 'Estudiante', adornment: dot('var(--User-Alumnos)') },
   { value: 'TEACHER', label: 'Docente', adornment: dot('var(--User-Docentes)') },
-  { value: 'STAFF', label: 'Personal', adornment: dot('var(--color-text-subtle)') },
+  { value: 'STAFF', label: 'Personal', adornment: dot('var(--color-text-muted)') },
 ];
 
 function validate(form: RegisterRequest): Errors {

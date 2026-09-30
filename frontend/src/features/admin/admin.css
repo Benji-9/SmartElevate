@@ -57,7 +57,7 @@
 
 .kpi__detail {
   font-size: var(--text-12);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .admin__panels {
@@ -82,7 +82,7 @@
   grid-template-columns: auto auto minmax(0, 1fr);
   gap: 4px 8px;
   font-size: var(--text-11);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .hour-chart__y-title {
@@ -167,7 +167,7 @@
 .core-table thead th {
   font-size: var(--text-12);
   font-weight: var(--font-semibold);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .core-table tbody th {

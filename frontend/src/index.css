@@ -52,15 +52,29 @@
   /*
    * Tokens semánticos: los componentes usan estos, no los de marca.
    * Los tintes se derivan de los tokens con opacidad (color-mix), sin colores nuevos.
+   *
+   * Equivalencia con los nombres de docs/frontend/DESIGN-SYSTEM.md §3:
+   *   --color-bg / --color-surface   → --surface
+   *   --color-text                   → --ink
+   *   --color-text-muted             → --ink-muted  (texto secundario, etiquetas, ayudas, tabs inactivas)
+   *   --color-text-subtle            → --ink-subtle (solo placeholders y deshabilitados)
+   *   --color-border                 → --line       (cards y divisores, decorativo)
+   *   --color-border-strong          → --border     (contorno de controles, 3,4:1)
+   *   --color-disabled-bg            → --surface-subtle
+   *   --color-primary                → --accent
+   *   --color-on-primary             → --on-accent
+   *   --color-primary-tint           → --accent-tint
+   *   --color-primary-tint-strong    → --accent-tint-strong
+   *   --color-focus                  → --focus
    */
   --color-bg: var(--White);
   --color-surface: var(--White);
   --color-text: var(--BlackPearl);
   --color-text-muted: color-mix(in srgb, var(--BlackPearl) 70%, transparent);
-  --color-text-subtle: color-mix(in srgb, var(--BlackPearl) 55%, transparent);
+  --color-text-subtle: color-mix(in srgb, var(--BlackPearl) 60%, transparent);
   --color-border: color-mix(in srgb, var(--BlackPearl) 12%, transparent);
-  --color-border-strong: color-mix(in srgb, var(--BlackPearl) 20%, transparent);
-  --color-disabled-bg: color-mix(in srgb, var(--BlackPearl) 5%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--BlackPearl) 50%, transparent);
+  --color-disabled-bg: color-mix(in srgb, var(--BlackPearl) 4%, transparent);
   --color-primary: var(--AstronautBlue);
   --color-on-primary: var(--White);
   --color-primary-tint: color-mix(in srgb, var(--AstronautBlue) 7%, transparent);
@@ -85,7 +99,8 @@
     --color-text-muted: color-mix(in srgb, var(--White) 75%, transparent);
     --color-text-subtle: color-mix(in srgb, var(--White) 60%, transparent);
     --color-border: color-mix(in srgb, var(--White) 14%, transparent);
-    --color-border-strong: color-mix(in srgb, var(--White) 24%, transparent);
+    /* Controles: >= 3:1 sobre --color-bg y --color-surface oscuros (WCAG 1.4.11). */
+    --color-border-strong: color-mix(in srgb, var(--White) 45%, transparent);
     --color-disabled-bg: color-mix(in srgb, var(--White) 6%, transparent);
     --color-primary: color-mix(in srgb, var(--AstronautBlue) 45%, var(--White));
     --color-on-primary: var(--BlackPearl);
