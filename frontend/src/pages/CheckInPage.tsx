@@ -167,17 +167,9 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
     );
   } else {
     turnContent = (
-      <>
-        <Chip>
-          {formatSlot(reservation.departure.departsAt, reservation.departure.durationMinutes)}
-        </Chip>
-        <p>
-          <strong>Ascensor {reservation.core.name}</strong> · {formatFloor(reservation.originFloor)}{' '}
-          <span aria-hidden="true">→</span>
-          <span className="visually-hidden">a</span> {formatFloor(reservation.destinationFloor)}
-        </p>
-        <p className="page-placeholder">{reservation.core.hall}</p>
-      </>
+      <p className="check-in__route text-body-sm">
+        {reservation.core.name} · Piso {formatFloor(reservation.destinationFloor)}
+      </p>
     );
   }
 
@@ -216,7 +208,16 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
       </div>
 
       <section className="check-in__sheet" aria-labelledby={turnTitleId}>
-        <h2 id={turnTitleId}>Tu turno</h2>
+        <div className="check-in__sheet-head">
+          <h2 id={turnTitleId} className="text-card-title">
+            Tu turno
+          </h2>
+          {reservation && (
+            <Chip>
+              {formatSlot(reservation.departure.departsAt, reservation.departure.durationMinutes)}
+            </Chip>
+          )}
+        </div>
         {turnContent}
         <Link to="/check-in/codigo" replace className="button button--secondary">
           Ingresar código manualmente
