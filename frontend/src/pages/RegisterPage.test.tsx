@@ -58,6 +58,21 @@ describe('RegisterPage', () => {
     );
   });
 
+  it('los campos muestran un ejemplo', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    const placeholders = Object.keys(valid).map((label) =>
+      screen.getByLabelText(label).getAttribute('placeholder'),
+    );
+    expect(placeholders).toEqual([
+      'Juana Martínez',
+      'nombre@uade.edu.ar',
+      'Ej: 1234567',
+      '••••••••',
+    ]);
+  });
+
   it('crea la cuenta con el tipo declarado y pide verificar el email', async () => {
     const fetchMock = stubApi({ ...signedOut, 'POST /auth/register': { status: 204 } });
     await renderRegister();
@@ -98,7 +113,10 @@ describe('RegisterPage', () => {
     await fill(valid);
     await submit();
 
-    expect(await screen.findByText('Ya hay una cuenta con ese email.')).toBeInTheDocument();
+    // Se anuncia una sola vez: en el campo, sin repetirlo en un aviso general.
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent('Ya hay una cuenta con ese email.');
     expect(screen.getByLabelText('Email institucional')).toHaveAccessibleDescription(
       'Ya hay una cuenta con ese email.',
     );

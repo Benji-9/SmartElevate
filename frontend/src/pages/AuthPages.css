@@ -8,8 +8,20 @@
   display: grid;
   justify-items: center;
   gap: 12px;
-  padding-top: 32px;
   text-align: center;
+}
+
+/* Login (SCREENS.md §01): main con pad 40/20/24/20 y gap 16; 8 px extra bajo la marca. */
+.screen__main:has(> .auth--login) {
+  padding-top: 40px;
+}
+
+.auth--login {
+  gap: 16px;
+}
+
+.auth--login .auth__intro {
+  margin-bottom: 8px;
 }
 
 /* El logo de UADE es AstronautBlue: va sobre blanco para que contraste en modo oscuro.
@@ -29,9 +41,12 @@
   border-radius: var(--radius-input);
 }
 
-.auth__subtitle,
 .auth__lead {
   font-size: var(--text-14);
+}
+
+.auth__subtitle,
+.auth__lead {
   color: var(--color-text-muted);
 }
 
@@ -40,9 +55,11 @@
   gap: 16px;
 }
 
+/* 18 px de texto + 13 arriba y abajo = 44 px de área táctil, sin mover el layout. */
 .auth__text-button {
   justify-self: end;
-  padding: 0;
+  margin-block: -13px;
+  padding: 13px 0;
   border: 0;
   background: none;
   font-size: var(--text-13);
@@ -70,13 +87,18 @@
   font-weight: var(--font-medium);
 }
 
+/* Aviso "¿Tenés movilidad reducida?" (SCREENS.md §02): pad 14, radius-md. */
 .auth__info {
   display: grid;
   gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-button);
 }
 
 .auth__info-title {
   font-size: var(--text-14);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
 }
 
 .user-type-dot {

@@ -20,7 +20,7 @@ const dot = (color: string) => (
 const userTypes: Option<DeclaredUserType>[] = [
   { value: 'STUDENT', label: 'Estudiante', adornment: dot('var(--User-Alumnos)') },
   { value: 'TEACHER', label: 'Docente', adornment: dot('var(--User-Docentes)') },
-  { value: 'STAFF', label: 'Personal', adornment: dot('var(--color-text-muted)') },
+  { value: 'STAFF', label: 'Personal', adornment: dot('var(--color-border-strong)') },
 ];
 
 function validate(form: RegisterRequest): Errors {
@@ -112,7 +112,12 @@ export function RegisterPage() {
       <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
-        <Input label="Nombre y apellido" autoComplete="name" {...bind('fullName')} />
+        <Input
+          label="Nombre y apellido"
+          autoComplete="name"
+          placeholder="Juana Martínez"
+          {...bind('fullName')}
+        />
         <Input
           label="Email institucional"
           type="email"
@@ -120,11 +125,18 @@ export function RegisterPage() {
           placeholder="nombre@uade.edu.ar"
           {...bind('email')}
         />
-        <Input label="Legajo" inputMode="numeric" autoComplete="off" {...bind('legajo')} />
+        <Input
+          label="Legajo"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Ej: 1234567"
+          {...bind('legajo')}
+        />
         <Input
           label="Contraseña"
           type="password"
           autoComplete="new-password"
+          placeholder="••••••••"
           {...bind('password')}
         />
 
