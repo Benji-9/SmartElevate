@@ -39,9 +39,11 @@ Van en una **tabla de configuración validada** ([ADR 0010](../adr/0010-integrid
 | Tiempo de carga (10 personas) | 14 s | Medido por el equipo |
 | Tiempo por piso | 3 s | Medido por el equipo |
 | Zona horaria | America/Argentina/Buenos_Aires | Los instantes se guardan en UTC |
-| Edificios | Lima −2 a 10 · Independencia −3 a 10 | |
+| Edificios | Lima −4 a 10 · Independencia −4 a 11 | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Umbral de pisos bajos | **A confirmar** | [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
-| Ascensores, pisos servidos, conexiones | **A relevar** | [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
+| Ascensores y pisos servidos | Ver [asignación](asignacion.md#ascensores-y-pisos-servidos) | Falta: qué batería de L2 es cuál y los ascensores de IND1 |
+| Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Tiempos de caminata **a medir** |
+| Ascensor accesible / dedicado | **A confirmar** | [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 
 ## Pendientes fuera del código
 
