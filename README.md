@@ -8,7 +8,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
+| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, Flyway, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
 | Frontend | React 19, Vite 8, TypeScript, React Router, Vitest + React Testing Library, ESLint + Prettier |
 | CI/CD | GitHub Actions |
 | Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI). Backend: hosting a definir ([bloqueante B-01](docs/bloqueantes.md)) |
@@ -73,8 +73,7 @@ export SPRING_PROFILES_ACTIVE=prod
 export DATABASE_URL=jdbc:postgresql://localhost:5432/smartelevate
 export DATABASE_USER=smartelevate
 export DATABASE_PASSWORD=smartelevate
-export JPA_DDL_AUTO=update                 # mientras no haya migraciones (ver ADR 0004)
-./mvnw spring-boot:run
+./mvnw spring-boot:run                     # Flyway crea el schema al arrancar
 ```
 
 #### Variables de entorno del backend
@@ -87,7 +86,15 @@ export JPA_DDL_AUTO=update                 # mientras no haya migraciones (ver A
 | `DATABASE_URL` | — | Solo `prod`. Formato JDBC: `jdbc:postgresql://host:5432/db` |
 | `DATABASE_USER` | — | Solo `prod` |
 | `DATABASE_PASSWORD` | — | Solo `prod` |
-| `JPA_DDL_AUTO` | `validate` | Solo `prod`. Estrategia de Hibernate para el schema |
+
+#### Migraciones de la base (Flyway)
+
+El schema lo crean los scripts de `backend/src/main/resources/db/migration/`, igual en dev (H2), en los tests y en prod (Postgres). Hibernate solo valida que las entidades coincidan (`ddl-auto: validate`). Decisión en el [ADR 0004](docs/adr/0004-migraciones-de-base-de-datos.md).
+
+- Un script por cambio, con nombre `V<n>__<descripcion>.sql` (p. ej. `V2__agregar_ascensor_a_reservas.sql`), en el mismo PR que el cambio de entidades.
+- **Una migración ya mergeada no se edita**: Flyway detecta el cambio y la app no arranca. Se corrige con una migración nueva.
+- SQL compatible con H2 y con Postgres: sin tipos ni funciones exclusivas de Postgres.
+- Si ya tenías un Postgres local con tablas creadas por Hibernate, recrealo con `docker compose down -v` y volvé a levantarlo.
 
 #### Imagen Docker
 

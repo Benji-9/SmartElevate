@@ -46,6 +46,7 @@ Si una regla es ambigua o contradictoria (hay 2 conocidas en `docs/reglas/turnos
 - Errores: lanzar excepciones y dejar que `common/error/GlobalExceptionHandler` arme el `ApiError`. Si hace falta un caso nuevo (p. ej. `TurnFullException` → 409), agregá el handler ahí; no armes respuestas de error a mano en los controllers.
 - Configuración por variables de entorno (ver tabla en README). **Nunca hardcodear secretos** ni URLs de producción.
 - Perfiles: `dev` (H2, default) y `prod` (Postgres). Los tests usan `dev`.
+- **Base de datos con Flyway** (ADR 0004): el schema lo crean las migraciones de `src/main/resources/db/migration/V<n>__<descripcion>.sql`, en todos los perfiles, y Hibernate solo valida (`ddl-auto: validate`). Toda entidad nueva o cambio de columnas trae su migración en el mismo PR; una migración ya mergeada no se edita. SQL compatible con H2 (`MODE=PostgreSQL`) y con Postgres.
 - Lombok está disponible; preferir `record` para DTOs y `@RequiredArgsConstructor` para inyección.
 - **Contrato OpenAPI** (ADR 0006): `docs/openapi.json` se genera desde el código y `OpenApiSpecTest` falla si está desactualizado. Si cambiás endpoints/DTOs: `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` y después `npm run gen:api` en frontend/. Commiteá ambos archivos. Anotá DTOs con `@Schema(requiredMode = REQUIRED)` en campos obligatorios.
 
