@@ -5,6 +5,13 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
     open-in-view: false
+    hibernate:
+      # El esquema lo crean las migraciones de Flyway (ADR 0004); Hibernate solo valida que las
+      # entidades coincidan con él. Vale para todos los perfiles.
+      ddl-auto: validate
+  flyway:
+    # Flyway nunca borra la base desde la app, ni por error en producción.
+    clean-disabled: true
 
 server:
   port: ${PORT:8080}

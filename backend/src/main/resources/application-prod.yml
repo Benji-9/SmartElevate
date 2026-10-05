@@ -1,12 +1,8 @@
 # Perfil de producción: Postgres configurado 100% por variables de entorno.
 # DATABASE_URL va en formato JDBC, p. ej. jdbc:postgresql://host:5432/smartelevate
+# El esquema lo crea Flyway al arrancar (ADR 0004); Hibernate solo lo valida.
 spring:
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USER}
     password: ${DATABASE_PASSWORD}
-  jpa:
-    hibernate:
-      # Sin migraciones todavía (ver docs/adr/0004). Cuando se agreguen entidades,
-      # sumar Flyway y dejar "validate".
-      ddl-auto: ${JPA_DDL_AUTO:validate}
