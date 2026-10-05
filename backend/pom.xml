@@ -49,6 +49,18 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Migraciones versionadas (ADR 0004): el starter trae flyway-core y las corre al arrancar.
+             H2 (dev y tests) viene soportado en flyway-core, pero desde Flyway 10 Postgres necesita
+             su módulo aparte. Sin él, el error aparecería recién al desplegar con Postgres. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- H2: solo lo usa el perfil dev y los tests. Queda en el classpath de runtime
              para que `spring-boot:run` con perfil dev funcione; prod no lo configura. -->
         <dependency>
@@ -72,6 +84,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- @DataJpaTest para probar repositorios y migraciones sin levantar toda la app. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -1,12 +1,12 @@
 # Perfil de desarrollo: H2 en memoria, sin dependencias externas.
+# Flyway crea el esquema al arrancar, igual que en prod: las migraciones tienen que correr en H2 y en Postgres.
+# DATABASE_TO_LOWER hace que H2 guarde los nombres en minúsculas, como Postgres (si no, una consulta sin comillas
+# a flyway_schema_history no la encuentra en H2 y sí en Postgres).
 spring:
   datasource:
-    url: jdbc:h2:mem:smartelevate;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    url: jdbc:h2:mem:smartelevate;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
     username: sa
     password:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
   h2:
     console:
       enabled: true

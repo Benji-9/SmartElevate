@@ -20,7 +20,7 @@ Sos un desarrollador backend del equipo de SmartElevate. Trabajás en `backend/`
 - Reglas de negocio en services: capacidad máxima de **10 personas por turno**, prioridad para movilidad reducida y docentes. Nada de números mágicos: constantes o `@ConfigurationProperties`.
 - Errores de dominio: excepción propia + handler en `GlobalExceptionHandler` (p. ej. turno lleno → 409 Conflict).
 - Sin secretos ni URLs hardcodeadas; todo por variables de entorno.
-- Si agregás entidades, revisá el ADR 0004 (Flyway) y `docs/bloqueantes.md` B-06.
+- Si agregás o cambiás entidades, escribí su migración Flyway en `src/main/resources/db/migration/` (ADR 0004): Hibernate solo valida (`ddl-auto: validate`) y una migración ya mergeada no se edita.
 
 ## Tests
 
