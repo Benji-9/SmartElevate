@@ -25,7 +25,7 @@ La app es para movilidad inmediata; abrir con más anticipación facilita acapar
 ## 3. Límites por usuario
 
 - **1 reserva activa** a la vez.
-- **Tope diario** de reservas (propuesta: 8).
+- **Tope diario**: 8 reservas por día.
 
 ## 4. Cancelación
 
@@ -45,7 +45,7 @@ Penalización leve y reversible: el objetivo es desalentar el acaparamiento, no 
 
 - **Ascensor dedicado** para prioritarios, donde exista (ver [asignación](asignacion.md#ascensor-accesible)).
 - En los ascensores comunes: **hasta 2 de los 10 lugares** de cada salida quedan reservados para prioritarios.
-- Si nadie los usa, se liberan antes de la salida (ver [conflicto 1](#preguntas-abiertas)).
+- Si nadie los usa, se liberan **3 min antes** de la salida, para que entren en la ventana de reserva (que cierra 2 min antes) y alguien más los pueda tomar.
 
 Así el cupo queda garantizado sin viajar con lugares vacíos. Se descartó una cola prioritaria pura, que es más difícil de explicar a los usuarios y de probar.
 
@@ -53,8 +53,16 @@ Así el cupo queda garantizado sin viajar con lugares vacíos. Se descartó una 
 
 Cuando una salida está llena, la solicitud entra en una **lista de espera** para las siguientes salidas, ordenada según las [reglas de prioridad](asignacion.md#orden-de-prioridad). Los lugares que se liberan después del cierre de la ventana (cancelaciones, prioritarios no usados) se asignan **automáticamente** al primero de la lista, en lugar de quedar vacíos.
 
+## Decisiones tomadas
+
+Resueltas en [#113](https://github.com/Benji-9/SmartElevate/issues/113):
+
+1. **Liberación de lugares prioritarios vs. cierre de ventana.** Se liberan **3 min antes** de la salida (no 1 min), así entran en la ventana de reserva, que cierra 2 min antes. No hace falta la lista de espera para aprovecharlos.
+2. **Umbral de no-show vs. ventana de check-in.** Un escaneo entre **+60 s y +2 min** se registra como *fuera de hora* y **cuenta como no-show** (ver [check-in](check-in-qr.md#resultados)).
+3. **Tope diario:** 8 reservas por día.
+4. **Pisos bajos:** no se puede reservar con destino en los pisos 1 a 4, salvo movilidad reducida (ver [asignación](asignacion.md#elegibilidad)).
+5. **Rotación del QR:** cada 60 s.
+
 ## Preguntas abiertas
 
-1. **Liberación de lugares prioritarios vs. cierre de ventana.** Las reglas dicen que los lugares prioritarios se liberan 1 min antes, pero la ventana de reserva cierra 2 min antes: un lugar liberado a −1 min nadie lo puede reservar. **Propuesta:** asignarlo a la lista de espera (sección 7), o liberarlo a −3 min para que entre en la ventana.
-2. **Umbral de no-show vs. ventana de check-in.** El no-show se marca a los 60 s, pero el QR se acepta hasta 2 min después de la salida. **Propuesta** en [check-in](check-in-qr.md#resultados): entre +60 s y +2 min el escaneo se registra como *fuera de hora* y cuenta como no-show.
-3. **Valores a calibrar**: tolerancia X de la cancelación, tope diario exacto.
+1. **Valores a calibrar**: tolerancia **X** de la cancelación ([sección 4](#4-cancelación)) y envejecimiento **N** de la prioridad ([asignación](asignacion.md#orden-de-prioridad)). Quedan sin valor en la tabla de configuración hasta que se definan.

@@ -35,7 +35,7 @@ Antes de implementar algo de `turn`, `elevator`, `user` o `priority` (backend o 
 - La prioridad se evalúa **en el servidor al reservar**, nunca desde un claim del JWT. El rol y la prioridad no vienen del registro (ADR 0009).
 - Los certificados son **datos de salud**: bucket privado, URLs firmadas cortas, borrado al resolver.
 
-Si una regla es ambigua o contradictoria (hay 2 conocidas en `docs/reglas/turnos.md#preguntas-abiertas`), frená y preguntá antes de elegir.
+Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` (hoy: los valores X y N, que siguen en NULL en `app_config`).
 
 ## Arquitectura
 
