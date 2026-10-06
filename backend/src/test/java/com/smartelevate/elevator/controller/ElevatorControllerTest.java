@@ -38,13 +38,14 @@ class ElevatorControllerTest {
     @Test
     void listsElevatorsWithoutFilters() throws Exception {
         given(service.findActive(null, null)).willReturn(List.of(
-                new ElevatorResponse("33", "IND2", "INDEPENDENCIA", ElevatorUsage.COMMON, true, List.of(-4, 0, 2, 11))));
+                new ElevatorResponse("33", "IND2", "Independencia 2", "INDEPENDENCIA", ElevatorUsage.COMMON, true, List.of(-4, 0, 2, 11))));
 
         mockMvc.perform(get("/api/elevators"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].code").value("33"))
                 .andExpect(jsonPath("$[0].core").value("IND2"))
+                .andExpect(jsonPath("$[0].coreName").value("Independencia 2"))
                 .andExpect(jsonPath("$[0].building").value("INDEPENDENCIA"))
                 .andExpect(jsonPath("$[0].usage").value("COMMON"))
                 .andExpect(jsonPath("$[0].active").value(true))
@@ -74,7 +75,7 @@ class ElevatorControllerTest {
     @Test
     void listsBuildingsWithCores() throws Exception {
         given(service.findBuildings()).willReturn(List.of(new BuildingResponse("LIMA", "Lima", -4, 10,
-                List.of(new BuildingResponse.CoreResponse("L1"), new BuildingResponse.CoreResponse("L2")))));
+                List.of(new BuildingResponse.CoreResponse("L1", "Lima 1"), new BuildingResponse.CoreResponse("L2", "Lima 2")))));
 
         mockMvc.perform(get("/api/buildings"))
                 .andExpect(status().isOk())
@@ -82,6 +83,7 @@ class ElevatorControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Lima"))
                 .andExpect(jsonPath("$[0].minFloor").value(-4))
                 .andExpect(jsonPath("$[0].maxFloor").value(10))
-                .andExpect(jsonPath("$[0].cores[1].code").value("L2"));
+                .andExpect(jsonPath("$[0].cores[1].code").value("L2"))
+                .andExpect(jsonPath("$[0].cores[1].name").value("Lima 2"));
     }
 }

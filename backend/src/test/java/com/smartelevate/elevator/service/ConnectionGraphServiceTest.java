@@ -15,11 +15,11 @@ import org.junit.jupiter.api.Test;
 class ConnectionGraphServiceTest {
 
     private static final Building BUILDING = new Building("X", "Edificio", -4, 11);
-    private static final Core IND2 = new Core("IND2", BUILDING);
-    private static final Core IND1 = new Core("IND1", BUILDING);
-    private static final Core L3 = new Core("L3", BUILDING);
-    private static final Core L2 = new Core("L2", BUILDING);
-    private static final Core L1 = new Core("L1", BUILDING);
+    private static final Core IND2 = new Core("IND2", BUILDING, "IND2");
+    private static final Core IND1 = new Core("IND1", BUILDING, "IND1");
+    private static final Core L3 = new Core("L3", BUILDING, "L3");
+    private static final Core L2 = new Core("L2", BUILDING, "L2");
+    private static final Core L1 = new Core("L1", BUILDING, "L1");
 
     private static CoreConnection connection(Core a, Core b, int from, int to, Integer seconds, Boolean accessible) {
         return new CoreConnection(null, a, b, from, to, seconds, accessible);

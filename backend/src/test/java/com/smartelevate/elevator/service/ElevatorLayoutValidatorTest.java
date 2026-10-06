@@ -16,8 +16,8 @@ class ElevatorLayoutValidatorTest {
 
     // Un edificio de -1 a 5 con dos núcleos: A sirve -1 a 5, B sirve 0 a 3 sin el 1.
     private static final Building BUILDING = new Building("B", "Edificio", -1, 5);
-    private static final Core A = new Core("A", BUILDING);
-    private static final Core B = new Core("B", BUILDING);
+    private static final Core A = new Core("A", BUILDING, "A");
+    private static final Core B = new Core("B", BUILDING, "B");
 
     private static Elevator elevator(String code, Core core, boolean active, Integer... floors) {
         return new Elevator(code, core, ElevatorUsage.COMMON, active, Set.of(floors));
@@ -51,19 +51,20 @@ class ElevatorLayoutValidatorTest {
         // B no para en el 1.
         assertThatThrownBy(() -> ElevatorLayoutValidator.validate(ELEVATORS, List.of(connection(0, 3))))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("la conexión A–B cubre el piso 1, que ningún ascensor activo de B sirve");
+                .hasMessageContaining("la conexión A–B cubre el piso 1, que ningún ascensor de B sirve");
         // B no llega al 4.
         assertThatThrownBy(() -> ElevatorLayoutValidator.validate(ELEVATORS, List.of(connection(3, 4))))
                 .hasMessageContaining("piso 4");
     }
 
     @Test
-    void inactiveElevatorsDoNotServeConnections() {
-        List<Elevator> withInactive = List.of(
+    void inactiveElevatorsStillCountSoABreakdownDoesNotPreventStartup() {
+        // Todos los ascensores de B fuera de servicio: la conexión sigue siendo válida.
+        List<Elevator> allOfBInactive = List.of(
                 elevator("1", A, true, 0, 1),
-                elevator("2", B, true, 0),
+                elevator("2", B, false, 0),
                 elevator("3", B, false, 1));
-        assertThatThrownBy(() -> ElevatorLayoutValidator.validate(withInactive, List.of(connection(0, 1))))
-                .hasMessageContaining("piso 1");
+        assertThatNoException().isThrownBy(
+                () -> ElevatorLayoutValidator.validate(allOfBInactive, List.of(connection(0, 1))));
     }
 }

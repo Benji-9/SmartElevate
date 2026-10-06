@@ -17,8 +17,10 @@ import org.springframework.stereotype.Component;
  * Valida al arrancar los ascensores y las conexiones de la base (ADR 0010); si algo no cierra, la app no levanta.
  * <ul>
  *   <li>Cada piso de un ascensor está dentro del rango de su edificio.</li>
- *   <li>Cada piso de una conexión lo sirven los dos núcleos (al menos un ascensor activo de cada uno).</li>
+ *   <li>Cada piso de una conexión lo sirven los dos núcleos (al menos un ascensor de cada uno).</li>
  * </ul>
+ * Es una validación estructural: cuenta también los ascensores inactivos. Que un ascensor esté fuera de servicio
+ * (avería) es un estado operativo que filtran las consultas, y no tiene que impedir que la app arranque.
  */
 @Component
 public class ElevatorLayoutValidator {
@@ -37,16 +39,14 @@ public class ElevatorLayoutValidator {
                                 elevator.getCode(), floor, building.getName(),
                                 building.getMinFloor(), building.getMaxFloor()));
             }
-            if (elevator.isActive()) {
-                servedByCore.computeIfAbsent(elevator.getCore().getCode(), k -> new HashSet<>())
-                        .addAll(elevator.getFloors());
-            }
+            servedByCore.computeIfAbsent(elevator.getCore().getCode(), k -> new HashSet<>())
+                    .addAll(elevator.getFloors());
         }
         for (CoreConnection connection : connections) {
             for (int floor = connection.getFromFloor(); floor <= connection.getToFloor(); floor++) {
                 for (Core core : List.of(connection.getCoreA(), connection.getCoreB())) {
                     check(servedByCore.getOrDefault(core.getCode(), Set.of()).contains(floor),
-                            "la conexión %s–%s cubre el piso %d, que ningún ascensor activo de %s sirve".formatted(
+                            "la conexión %s–%s cubre el piso %d, que ningún ascensor de %s sirve".formatted(
                                     connection.getCoreA().getCode(), connection.getCoreB().getCode(),
                                     floor, core.getCode()));
                 }

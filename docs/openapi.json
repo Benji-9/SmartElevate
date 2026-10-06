@@ -63,7 +63,7 @@
       "get" : {
         "operationId" : "elevators",
         "parameters" : [ {
-          "description" : "Código del edificio",
+          "description" : "Código del edificio, sin distinguir mayúsculas",
           "example" : "INDEPENDENCIA",
           "in" : "query",
           "name" : "building",
@@ -208,7 +208,7 @@
           },
           "cores" : {
             "type" : "array",
-            "description" : "Núcleos del edificio, por código",
+            "description" : "Núcleos del edificio, ordenados por código",
             "items" : {
               "$ref" : "#/components/schemas/CoreResponse"
             }
@@ -236,9 +236,13 @@
           "code" : {
             "type" : "string",
             "example" : "L3"
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "Lima 3"
           }
         },
-        "required" : [ "code" ]
+        "required" : [ "code", "name" ]
       },
       "ElevatorResponse" : {
         "type" : "object",
@@ -259,6 +263,10 @@
             "type" : "string",
             "example" : "IND2"
           },
+          "coreName" : {
+            "type" : "string",
+            "example" : "Independencia 2"
+          },
           "floors" : {
             "type" : "array",
             "description" : "Pisos servidos, de menor a mayor (0 = PB)",
@@ -274,7 +282,7 @@
             "enum" : [ "COMMON", "TEACHERS", "REDUCED_MOBILITY" ]
           }
         },
-        "required" : [ "active", "building", "code", "core", "floors", "usage" ]
+        "required" : [ "active", "building", "code", "core", "coreName", "floors", "usage" ]
       },
       "FieldViolation" : {
         "type" : "object",
