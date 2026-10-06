@@ -24,16 +24,16 @@ Van en una **tabla de configuración validada** ([ADR 0010](../adr/0010-integrid
 | Apertura de reserva | 30 min antes | Solo mismo día |
 | Cierre de reserva | 2 min antes | |
 | Reservas activas por usuario | 1 | |
-| Reservas diarias por usuario | 8 | A calibrar |
+| Reservas diarias por usuario | 8 | |
 | Límite de cancelación sin falta | 1 min antes | |
 | Tolerancia de espera para cancelar sin falta | **X min** | **A definir** |
 | Ventana de check-in | −1 min a +2 min | |
-| Umbral de no-show | +60 s | Ver conflicto en [turnos](turnos.md#preguntas-abiertas) |
+| Umbral de no-show | +60 s | Entre +60 s y +2 min el escaneo es *fuera de hora* y cuenta como no-show |
 | Suspensión por no-show | 3 en 7 días → 24 h | No aplica a prioritarios |
 | Lugares reservados para prioritarios | 2 de 10 | En ascensores comunes |
-| Liberación de lugares prioritarios | 1 min antes | Ver conflicto en [turnos](turnos.md#preguntas-abiertas) |
+| Liberación de lugares prioritarios | 3 min antes | Antes del cierre de la ventana (2 min) |
 | Envejecimiento de prioridad | **N min** | **A definir** |
-| Rotación del QR | 30–60 s | |
+| Rotación del QR | 60 s | |
 | Access token / refresh token | 15 min / a definir | |
 | Tamaño máximo de certificado | 5 MB | PDF, JPG, PNG |
 | Tiempo de carga (10 personas) | 14 s | Medido por el equipo |
@@ -41,7 +41,7 @@ Van en una **tabla de configuración validada** ([ADR 0010](../adr/0010-integrid
 | Zona horaria | America/Argentina/Buenos_Aires | Los instantes se guardan en UTC |
 | Edificios | Lima −4 a 10 · Independencia −4 a 11 | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Turno mañana (filtro de KPIs) | 7:00–12:15 | Cursadas 7:45–11:45 y 8:15–12:15 ([kpis](kpis.md#filtros)) |
-| Umbral de pisos bajos | **A confirmar** | [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
+| Umbral de pisos bajos | 4 | Sin reserva con destino en los pisos 1 a 4; movilidad reducida exenta |
 | Ascensores y pisos servidos | Ver [asignación](asignacion.md#ascensores-y-pisos-servidos) | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Tiempos de caminata **a medir** |
 | Ascensores dedicados | IND1 05 docentes · IND1 06 movilidad reducida (propuesto) | Ver [asignación](asignacion.md#ascensores-dedicados). Conexiones accesibles **a confirmar** |

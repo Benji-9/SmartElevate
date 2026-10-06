@@ -113,7 +113,7 @@ public class ConfigService {
         return get("time_per_floor", Duration::parse);
     }
 
-    /** A confirmar: falla hasta que tenga valor. */
+    /** Pisos bajos: no se reserva con destino entre el 1 y este piso (0 = sin restricción). */
     public int lowFloorsThreshold() {
         return get("low_floors_threshold", Integer::parseInt);
     }
@@ -140,19 +140,19 @@ public class ConfigService {
         check(noShowSuspensionDuration().isPositive(), "no_show_suspension_duration tiene que ser mayor a 0");
         check(prioritySeatsPerDeparture() >= 0 && prioritySeatsPerDeparture() <= turnCapacity(),
                 "priority_seats_per_departure tiene que estar entre 0 y turn_capacity");
-        check(!prioritySeatsReleaseBefore().isNegative(), "priority_seats_release_before no puede ser negativo");
+        // Liberados después del cierre de la ventana, nadie podría reservarlos (#113).
+        check(prioritySeatsReleaseBefore().compareTo(bookingClosesBefore()) > 0,
+                "priority_seats_release_before tiene que ser mayor que booking_closes_before");
         check(qrRotation().isPositive(), "qr_rotation tiene que ser mayor a 0");
         check(boardingTime().isPositive(), "boarding_time tiene que ser mayor a 0");
         check(timePerFloor().isPositive(), "time_per_floor tiene que ser mayor a 0");
+        check(lowFloorsThreshold() >= 0, "low_floors_threshold no puede ser negativo");
         // Los parámetros a definir solo tienen que existir; si ya tienen valor, se valida.
         if (isDefined("cancellation_wait_tolerance")) {
             check(cancellationWaitTolerance().isPositive(), "cancellation_wait_tolerance tiene que ser mayor a 0");
         }
         if (isDefined("priority_aging")) {
             check(priorityAging().isPositive(), "priority_aging tiene que ser mayor a 0");
-        }
-        if (isDefined("low_floors_threshold")) {
-            lowFloorsThreshold();
         }
     }
 

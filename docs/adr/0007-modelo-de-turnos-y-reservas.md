@@ -36,4 +36,4 @@ Detalle: [turnos](../reglas/turnos.md), [asignación](../reglas/asignacion.md).
 
 - La hora de salida es una **estimación**. Hay que medir espera real vs. estimada para calibrarla.
 - Hace falta una **tabla de configuración** (tiempos, capacidad, conexiones) desde el inicio ([ADR 0010](0010-integridad-de-reservas-tiempo-y-configuracion.md)).
-- Quedan **dos inconsistencias** entre reglas a resolver antes de implementar: la liberación de lugares prioritarios vs. el cierre de la ventana, y el umbral de no-show vs. la ventana de check-in. Ver [preguntas abiertas](../reglas/turnos.md#preguntas-abiertas).
+- Las **dos inconsistencias** entre reglas (liberación de lugares prioritarios vs. cierre de la ventana, y umbral de no-show vs. ventana de check-in) se resolvieron en [#113](https://github.com/Benji-9/SmartElevate/issues/113): los lugares prioritarios se liberan 3 min antes y un escaneo entre +60 s y +2 min es *fuera de hora* y cuenta como no-show. Ver [decisiones tomadas](../reglas/turnos.md#decisiones-tomadas).

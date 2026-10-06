@@ -36,7 +36,7 @@ Según el plano, los núcleos forman una cadena: **IND2 – IND1 – L3 – L2 �
 
 | Conexión | Pisos | Tiempo de caminata | Accesible |
 | --- | --- | --- | --- |
-| IND2 ↔ IND1 | −4 a 10 | **A medir** | **A confirmar** |
+| IND2 ↔ IND1 | −4 a 0 y 2 a 10 (IND2 no para en el 1) | **A medir** | **A confirmar** |
 | IND1 ↔ L3 | −3 a 10 | **A medir** | **A confirmar** |
 | L3 ↔ L2 | −3 a 10 | **A medir** | **A confirmar** |
 | L2 ↔ L1 | −3 a 7 | **A medir** | **A confirmar** |
@@ -48,7 +48,7 @@ Una solicitud es válida si:
 1. El piso de **origen es distinto del destino**.
 2. Ambos pisos están **dentro del rango del edificio**.
 3. El ascensor asignado **sirve ambos pisos**.
-4. No aplica la **regla de pisos bajos** (los trayectos cortos se hacen por escalera; el umbral sale del documento del proyecto y va en la tabla de parámetros), salvo para **movilidad reducida**, que queda **exenta** porque no puede usar escaleras.
+4. No aplica la **regla de pisos bajos**: los trayectos cortos se hacen por escalera, así que **no se puede reservar con destino en los pisos 1 a 4** (inclusive; el 4 es el umbral de la tabla de parámetros). Queda **exenta** la **movilidad reducida**, que no puede usar escaleras.
 
 ## Orden de prioridad
 
