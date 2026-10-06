@@ -35,12 +35,12 @@ class ConfigServiceTest {
         v.put("no_show_suspension_window", "P7D");
         v.put("no_show_suspension_duration", "PT24H");
         v.put("priority_seats_per_departure", "2");
-        v.put("priority_seats_release_before", "PT1M");
+        v.put("priority_seats_release_before", "PT3M");
         v.put("priority_aging", null);
-        v.put("qr_rotation", "PT30S");
+        v.put("qr_rotation", "PT60S");
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");
-        v.put("low_floors_threshold", null);
+        v.put("low_floors_threshold", "4");
         return v;
     }
 
@@ -82,6 +82,9 @@ class ConfigServiceTest {
             "priority_seats_per_departure, -1",
             "no_show_suspension_threshold, 0",
             "qr_rotation, PT0S",
+            "priority_seats_release_before, PT2M",
+            "priority_seats_release_before, PT1M",
+            "low_floors_threshold, -1",
             "time_per_floor, PT0S",
             "cancellation_wait_tolerance, PT0S",
             "priority_aging, PT-1M",
@@ -131,6 +134,5 @@ class ConfigServiceTest {
                 .hasMessageContaining("'priority_aging' todavía no está definido");
 
         assertThat(load(with("priority_aging", "PT5M")).priorityAging()).isEqualTo(Duration.ofMinutes(5));
-        assertThat(load(with("low_floors_threshold", "3")).lowFloorsThreshold()).isEqualTo(3);
     }
 }
