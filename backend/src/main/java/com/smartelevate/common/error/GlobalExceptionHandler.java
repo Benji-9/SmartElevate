@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -41,6 +42,15 @@ public class GlobalExceptionHandler {
         List<ApiError.FieldViolation> violations = ex.getConstraintViolations().stream()
                 .map(cv -> new ApiError.FieldViolation(cv.getPropertyPath().toString(), cv.getMessage()))
                 .toList();
+        return build(HttpStatus.BAD_REQUEST, "La solicitud tiene parámetros inválidos", request, violations);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                       HttpServletRequest request) {
+        List<ApiError.FieldViolation> violations =
+                List.of(new ApiError.FieldViolation(ex.getName(), "Tiene un valor inválido"));
         return build(HttpStatus.BAD_REQUEST, "La solicitud tiene parámetros inválidos", request, violations);
     }
 
