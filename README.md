@@ -153,6 +153,8 @@ Documentá con anotaciones: `@Tag` y `@Operation` en el controller, `@Schema` en
 
 Lo mismo que corre el CI del frontend: `npm ci && npm run lint && npm test -- --run && npm run build`.
 
+**Tests del backend contra Postgres real.** Casi todos los tests usan H2, pero los que dependen de Postgres (migraciones, locks del cupo) levantan un `postgres:18-alpine` en Docker con [Testcontainers](https://java.testcontainers.org/). Necesitan Docker corriendo (Docker Desktop en Windows/macOS); **sin Docker se saltean** (salen como *skipped*) y `./mvnw verify` sigue pasando. En CI siempre corren. Para un test nuevo: `@Import(PostgresTestcontainersConfig.class)` + `@Testcontainers(disabledWithoutDocker = true)` (ver `FlywayPostgresTest`).
+
 ## Estrategia de ramas
 
 ```
