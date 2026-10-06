@@ -38,8 +38,9 @@ class ConfigServiceSeedTest {
         assertThat(config.noShowSuspensionWindow()).isEqualTo(Duration.ofDays(7));
         assertThat(config.noShowSuspensionDuration()).isEqualTo(Duration.ofHours(24));
         assertThat(config.prioritySeatsPerDeparture()).isEqualTo(2);
-        assertThat(config.prioritySeatsReleaseBefore()).isEqualTo(Duration.ofMinutes(1));
-        assertThat(config.qrRotation()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(config.prioritySeatsReleaseBefore()).isEqualTo(Duration.ofMinutes(3));
+        assertThat(config.qrRotation()).isEqualTo(Duration.ofSeconds(60));
+        assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
     }
@@ -48,6 +49,5 @@ class ConfigServiceSeedTest {
     void parametersToBeDefinedExistButFailWhenRequested() {
         assertThatThrownBy(config::cancellationWaitTolerance).hasMessageContaining("todavía no está definido");
         assertThatThrownBy(config::priorityAging).hasMessageContaining("todavía no está definido");
-        assertThatThrownBy(config::lowFloorsThreshold).hasMessageContaining("todavía no está definido");
     }
 }
