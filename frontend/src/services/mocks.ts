@@ -3,12 +3,12 @@
 // Para apagar un endpoint cuando el real esté listo, borrá su ruta de `routes`:
 // lo que no matchea acá sigue de largo al backend.
 // Datos ficticios: los pisos y núcleos reales salen del relevamiento #22.
+import type { Building } from '../types/api';
 import { ApiError } from './api';
 import type {
   AdminKpis,
   AdminPeriod,
   AdminShift,
-  Building,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
@@ -117,11 +117,6 @@ function currentUser(): User {
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-const buildings: Building[] = [
-  { id: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10 },
-  { id: 'IND', name: 'Independencia', minFloor: -3, maxFloor: 10 },
-];
-
 const cores: Core[] = [
   {
     id: 'L1',
@@ -152,7 +147,7 @@ const cores: Core[] = [
   },
   {
     id: 'IND1',
-    buildingId: 'IND',
+    buildingId: 'INDEPENDENCIA',
     name: 'Independencia 1',
     floors: range(-3, 10),
     congestion: 'MEDIUM',
@@ -161,7 +156,7 @@ const cores: Core[] = [
   },
   {
     id: 'IND2',
-    buildingId: 'IND',
+    buildingId: 'INDEPENDENCIA',
     name: 'Independencia 2',
     floors: range(0, 10),
     congestion: 'LOW',
@@ -172,6 +167,21 @@ const cores: Core[] = [
 
 // Ocupación de ejemplo por salida; la segunda está llena para probar el 409.
 const OCCUPANCY = [4, 10, 7, 2, 9, 0, 5, 3, 8, 1, 6, 2, 0, 4, 1];
+
+// Misma forma que GET /api/buildings: los núcleos van con código y nombre visible.
+const coresOf = (buildingCode: string) =>
+  cores.filter((c) => c.buildingId === buildingCode).map((c) => ({ code: c.id, name: c.name }));
+
+const buildings: Building[] = [
+  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: coresOf('LIMA') },
+  {
+    code: 'INDEPENDENCIA',
+    name: 'Independencia',
+    minFloor: -3,
+    maxFloor: 10,
+    cores: coresOf('INDEPENDENCIA'),
+  },
+];
 
 function departuresFor(coreId: string): Departure[] {
   const step = DEPARTURE_MINUTES * 60_000;
@@ -209,7 +219,7 @@ function newReservation(
     core: {
       id: core.id,
       name: core.name,
-      buildingName: buildings.find((b) => b.id === core.buildingId)!.name,
+      buildingName: buildings.find((b) => b.code === core.buildingId)!.name,
       floors: core.floors,
       hall: core.hall,
     },

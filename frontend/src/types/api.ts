@@ -11,3 +11,6 @@ export type ApiErrorBody = Schemas['ApiError'];
 
 /** Error de un campo puntual (validación o dato duplicado). */
 export type FieldViolation = Schemas['FieldViolation'];
+
+/** Edificio con su rango de pisos y sus núcleos (código y nombre visible, p. ej. "Lima 1"). */
+export type Building = Schemas['BuildingResponse'];

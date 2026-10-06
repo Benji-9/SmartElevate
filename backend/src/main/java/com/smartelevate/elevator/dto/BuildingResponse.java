@@ -9,9 +9,11 @@ public record BuildingResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "Lima") String name,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "-4") int minFloor,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "10") int maxFloor,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Núcleos del edificio, por código")
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Núcleos del edificio, ordenados por código")
         List<CoreResponse> cores) {
 
-    public record CoreResponse(@Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "L3") String code) {
+    public record CoreResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "L3") String code,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "Lima 3") String name) {
     }
 }

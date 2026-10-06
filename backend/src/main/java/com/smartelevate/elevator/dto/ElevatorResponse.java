@@ -8,6 +8,7 @@ import java.util.List;
 public record ElevatorResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "33") String code,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "IND2") String core,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "Independencia 2") String coreName,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "INDEPENDENCIA") String building,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
                 description = "COMMON, o dedicado a docentes (TEACHERS) o a movilidad reducida (REDUCED_MOBILITY)")

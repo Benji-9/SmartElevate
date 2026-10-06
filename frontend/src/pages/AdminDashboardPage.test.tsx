@@ -5,11 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../App';
 import { NBSP } from '../features/admin/format';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
-import type { AdminKpis, AdminShift, Building } from '../types/pending';
+import type { Building } from '../types/api';
+import type { AdminKpis, AdminShift } from '../types/pending';
 
 const buildings: Building[] = [
-  { id: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10 },
-  { id: 'IND', name: 'Independencia', minFloor: -3, maxFloor: 10 },
+  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [] },
+  { code: 'INDEPENDENCIA', name: 'Independencia', minFloor: -3, maxFloor: 10, cores: [] },
 ];
 
 const shifts: AdminShift[] = [

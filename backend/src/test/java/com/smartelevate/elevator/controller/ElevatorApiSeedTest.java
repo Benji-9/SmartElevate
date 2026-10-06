@@ -64,6 +64,16 @@ class ElevatorApiSeedTest {
     }
 
     @Test
+    void buildingFilterIgnoresCase() throws Exception {
+        mockMvc.perform(get("/api/elevators").param("building", "lima").param("floor", "-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(12)));
+        mockMvc.perform(get("/api/elevators").param("building", "Independencia").param("floor", "11"))
+                .andExpect(jsonPath("$[*].code", contains("33", "34")))
+                .andExpect(jsonPath("$[0].coreName").value("Independencia 2"));
+    }
+
+    @Test
     void unknownBuildingReturnsEmptyList() throws Exception {
         mockMvc.perform(get("/api/elevators").param("building", "CHILE"))
                 .andExpect(status().isOk())
@@ -79,6 +89,8 @@ class ElevatorApiSeedTest {
                 .andExpect(jsonPath("$[0].maxFloor").value(11))
                 .andExpect(jsonPath("$[0].cores[*].code", contains("IND1", "IND2")))
                 .andExpect(jsonPath("$[1].maxFloor").value(10))
-                .andExpect(jsonPath("$[1].cores[*].code", contains("L1", "L2", "L3")));
+                .andExpect(jsonPath("$[1].cores[*].code", contains("L1", "L2", "L3")))
+                .andExpect(jsonPath("$[0].cores[*].name", contains("Independencia 1", "Independencia 2")))
+                .andExpect(jsonPath("$[1].cores[*].name", contains("Lima 1", "Lima 2", "Lima 3")));
     }
 }

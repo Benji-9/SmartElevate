@@ -1,5 +1,6 @@
 import { OptionGroup } from '../../components/OptionGroup';
-import type { Building, Core } from '../../types/pending';
+import type { Building } from '../../types/api';
+import type { Core } from '../../types/pending';
 
 type BuildingSelectorProps = {
   buildings: Building[];
@@ -14,10 +15,11 @@ const shortName = (name: string) => name.replace(/\p{L}{9,}/u, (word) => `${word
 
 /** Núcleo de ascensores: pills en una fila con wrap, en el orden de los edificios. */
 export function BuildingSelector({ buildings, cores, value, onChange }: BuildingSelectorProps) {
+  // El nombre visible sale del contrato (GET /buildings); solo se ofrecen núcleos del catálogo de /cores.
   const options = buildings.flatMap((building) =>
-    cores
-      .filter((core) => core.buildingId === building.id)
-      .map((core) => ({ value: core.id, label: shortName(core.name) })),
+    building.cores
+      .filter((core) => cores.some((c) => c.id === core.code))
+      .map((core) => ({ value: core.code, label: shortName(core.name) })),
   );
   return (
     <OptionGroup

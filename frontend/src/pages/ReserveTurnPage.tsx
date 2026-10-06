@@ -45,7 +45,7 @@ export function ReserveTurnPage() {
 
   const [buildings, cores] = catalog.data ?? [[], []];
   const core = cores.find((c) => c.id === coreId);
-  const building = buildings.find((b) => b.id === core?.buildingId);
+  const building = buildings.find((b) => b.code === core?.buildingId);
   const originFloors =
     core && building
       ? core.floors.filter((f) => f >= building.minFloor && f <= building.maxFloor)

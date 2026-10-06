@@ -36,10 +36,10 @@ public class ElevatorQueryService {
     public List<ElevatorResponse> findActive(String buildingCode, Integer floor) {
         return elevators.findAll().stream()
                 .filter(Elevator::isActive)
-                .filter(e -> buildingCode == null || e.getCore().getBuilding().getCode().equals(buildingCode))
+                .filter(e -> buildingCode == null || e.getCore().getBuilding().getCode().equalsIgnoreCase(buildingCode))
                 .filter(e -> floor == null || e.getFloors().contains(floor))
                 .sorted(BY_BUILDING_CORE_CODE)
-                .map(e -> new ElevatorResponse(e.getCode(), e.getCore().getCode(),
+                .map(e -> new ElevatorResponse(e.getCode(), e.getCore().getCode(), e.getCore().getName(),
                         e.getCore().getBuilding().getCode(), e.getUsage(), e.isActive(),
                         e.getFloors().stream().sorted().toList()))
                 .toList();
@@ -48,7 +48,7 @@ public class ElevatorQueryService {
     public List<BuildingResponse> findBuildings() {
         Map<String, List<BuildingResponse.CoreResponse>> coresByBuilding = cores.findAll(Sort.by("code")).stream()
                 .collect(Collectors.groupingBy(c -> c.getBuilding().getCode(),
-                        Collectors.mapping((Core c) -> new BuildingResponse.CoreResponse(c.getCode()),
+                        Collectors.mapping((Core c) -> new BuildingResponse.CoreResponse(c.getCode(), c.getName()),
                                 Collectors.toList())));
         return buildings.findAll(Sort.by("code")).stream()
                 .map(b -> new BuildingResponse(b.getCode(), b.getName(), b.getMinFloor(), b.getMaxFloor(),

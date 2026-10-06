@@ -25,7 +25,7 @@ public class ElevatorController {
     @GetMapping("/elevators")
     @Operation(summary = "Lista los ascensores activos con los pisos donde paran")
     public List<ElevatorResponse> elevators(
-            @Parameter(description = "Código del edificio", example = "INDEPENDENCIA")
+            @Parameter(description = "Código del edificio, sin distinguir mayúsculas", example = "INDEPENDENCIA")
             @RequestParam(required = false) String building,
             @Parameter(description = "Solo los ascensores que paran en este piso (0 = PB)", example = "11")
             @RequestParam(required = false) Integer floor) {

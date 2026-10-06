@@ -57,7 +57,7 @@ export function AdminDashboardPage() {
 
   const buildingOptions: Option<string>[] = [
     { value: ALL, label: 'Todas las sedes' },
-    ...(buildings.data ?? []).map((b) => ({ value: b.id, label: b.name })),
+    ...(buildings.data ?? []).map((b) => ({ value: b.code, label: b.name })),
   ];
   const buildingName = buildingOptions.find((o) => o.value === buildingId)?.label;
   const shiftOptions: Option<string>[] = [

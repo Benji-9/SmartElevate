@@ -22,4 +22,7 @@ public class Core {
     @ManyToOne(optional = false)
     @JoinColumn(name = "building_code")
     private Building building;
+
+    /** Nombre visible, p. ej. "Independencia 1". */
+    private String name;
 }
