@@ -2,8 +2,9 @@ package com.smartelevate.common.error;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,10 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final Clock clock;
 
     // @ResponseStatus hace que springdoc documente estas respuestas (con ApiError) en todos los endpoints.
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -75,7 +79,7 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest request,
                                            List<ApiError.FieldViolation> violations) {
-        ApiError body = new ApiError(Instant.now(), status.value(), status.getReasonPhrase(), message,
+        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message,
                 request.getRequestURI(), violations);
         return ResponseEntity.status(status).body(body);
     }

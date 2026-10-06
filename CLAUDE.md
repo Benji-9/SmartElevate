@@ -31,6 +31,7 @@ Antes de implementar algo de `turn`, `elevator`, `user` o `priority` (backend o 
 - La franja es una **salida de ascensor (~2 min)**, no un bloque de 15 min (ADR 0007).
 - **Parámetros en la tabla de configuración**, nunca hardcodeados (tiempos, ventanas, cupo, conexiones).
 - **Cupo atómico** (lock pesimista o constraint único), instantes en **UTC**, franjas en **America/Argentina/Buenos_Aires**, y un **`Clock` inyectable**: nada de `Instant.now()` directo en services (ADR 0010).
+  La hora se pide a `common/time/CampusTime` (`now()`, `today()`, `toInstant(fecha, hora)`) o al bean `Clock`; en tests, `Clock.fixed(...)`.
 - La prioridad se evalúa **en el servidor al reservar**, nunca desde un claim del JWT. El rol y la prioridad no vienen del registro (ADR 0009).
 - Los certificados son **datos de salud**: bucket privado, URLs firmadas cortas, borrado al resolver.
 
