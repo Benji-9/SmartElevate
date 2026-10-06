@@ -36,7 +36,7 @@ Según el plano, los núcleos forman una cadena: **IND2 – IND1 – L3 – L2 �
 
 | Conexión | Pisos | Tiempo de caminata | Accesible |
 | --- | --- | --- | --- |
-| IND2 ↔ IND1 | −4 a 10 | **A medir** | **A confirmar** |
+| IND2 ↔ IND1 | −4 a 0 y 2 a 10 (IND2 no para en el 1) | **A medir** | **A confirmar** |
 | IND1 ↔ L3 | −3 a 10 | **A medir** | **A confirmar** |
 | L3 ↔ L2 | −3 a 10 | **A medir** | **A confirmar** |
 | L2 ↔ L1 | −3 a 7 | **A medir** | **A confirmar** |
