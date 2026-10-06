@@ -35,7 +35,17 @@ const floorsFromPB: FloorOption[] = [
 
 const routes = {
   ...signedIn(),
-  'GET /buildings': { body: [{ id: 'LIMA', name: 'Lima', minFloor: -1, maxFloor: 5 }] },
+  'GET /buildings': {
+    body: [
+      {
+        code: 'LIMA',
+        name: 'Lima',
+        minFloor: -1,
+        maxFloor: 5,
+        cores: [{ code: 'L1', name: 'Lima 1' }],
+      },
+    ],
+  },
   'GET /cores': {
     body: [
       {
@@ -122,8 +132,20 @@ describe('ReserveTurnPage', () => {
       ...routes,
       'GET /buildings': {
         body: [
-          { id: 'LIMA', name: 'Lima', minFloor: -1, maxFloor: 5 },
-          { id: 'IND', name: 'Independencia', minFloor: -3, maxFloor: 10 },
+          {
+            code: 'LIMA',
+            name: 'Lima',
+            minFloor: -1,
+            maxFloor: 5,
+            cores: [{ code: 'L1', name: 'Lima 1' }],
+          },
+          {
+            code: 'INDEPENDENCIA',
+            name: 'Independencia',
+            minFloor: -3,
+            maxFloor: 10,
+            cores: [{ code: 'IND1', name: 'Independencia 1' }],
+          },
         ],
       },
       'GET /cores': {
@@ -131,7 +153,7 @@ describe('ReserveTurnPage', () => {
           {
             ...routes['GET /cores'].body[0],
             id: 'IND1',
-            buildingId: 'IND',
+            buildingId: 'INDEPENDENCIA',
             name: 'Independencia 1',
           },
           routes['GET /cores'].body[0],

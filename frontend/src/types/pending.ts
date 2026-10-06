@@ -41,11 +41,10 @@ export type RegisterRequest = {
 /** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
 export type Session = { accessToken: string };
 
-export type Building = { id: string; name: string; minFloor: number; maxFloor: number };
-
 /** Núcleo de ascensores (L1, IND2…) con su congestión actual. */
 export type Core = {
   id: string;
+  /** Código del edificio (`Building.code`). */
   buildingId: string;
   name: string;
   floors: number[];

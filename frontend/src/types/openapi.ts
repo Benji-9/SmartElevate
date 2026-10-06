@@ -81,7 +81,7 @@ export interface components {
     BuildingResponse: {
       /** @example LIMA */
       code: string;
-      /** @description Núcleos del edificio, por código */
+      /** @description Núcleos del edificio, ordenados por código */
       cores: components['schemas']['CoreResponse'][];
       /**
        * Format: int32
@@ -99,6 +99,8 @@ export interface components {
     CoreResponse: {
       /** @example L3 */
       code: string;
+      /** @example Lima 3 */
+      name: string;
     };
     /** @description Ascensor con los pisos donde para */
     ElevatorResponse: {
@@ -109,6 +111,8 @@ export interface components {
       code: string;
       /** @example IND2 */
       core: string;
+      /** @example Independencia 2 */
+      coreName: string;
       /**
        * @description Pisos servidos, de menor a mayor (0 = PB)
        * @example [
@@ -187,7 +191,7 @@ export interface operations {
     parameters: {
       query?: {
         /**
-         * @description Código del edificio
+         * @description Código del edificio, sin distinguir mayúsculas
          * @example INDEPENDENCIA
          */
         building?: string;

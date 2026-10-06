@@ -1,9 +1,8 @@
-import type { ApiErrorBody, FieldViolation, PingResponse } from '../types/api';
+import type { ApiErrorBody, Building, FieldViolation, PingResponse } from '../types/api';
 import type {
   AdminKpis,
   AdminKpisQuery,
   AdminShift,
-  Building,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
