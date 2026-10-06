@@ -1,6 +1,6 @@
 # 0012. Hosting del backend en Render y Postgres en Neon
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-06
 - **Autores:** @Benji-9
 
