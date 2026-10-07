@@ -15,15 +15,17 @@ import { LoginPage } from './pages/LoginPage';
 import { MyTripsPage } from './pages/MyTripsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ReserveTurnPage } from './pages/ReserveTurnPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { TermsPage } from './pages/TermsPage';
 import { TurnPage } from './pages/TurnPage';
 
 /**
  * Rutas de la app (una por frame del Figma). El router (Browser/Memory) lo provee quien la monta.
- * Todo es privado salvo login, registro, recuperar contraseña y 404; `/admin` además pide rol ADMIN según `/me`.
+ * Todo es privado salvo login, registro, recuperar contraseña, legales y 404; `/admin` además pide rol ADMIN según `/me`.
  */
 export function App() {
   // Guarda `?demo=1` apenas se entra, aunque la primera pantalla no lo use.
@@ -64,6 +66,8 @@ export function App() {
               <Route path="registro" element={<RegisterPage />} />
               <Route path="recuperar" element={<ForgotPasswordPage />} />
               <Route path="recuperar/nueva" element={<ResetPasswordPage />} />
+              <Route path="privacidad" element={<PrivacyPage />} />
+              <Route path="terminos" element={<TermsPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

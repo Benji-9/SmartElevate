@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, type Location } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { LegalFooter } from '../components/LegalFooter';
 import { validateUadeEmail } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
@@ -93,6 +94,7 @@ export function LoginPage() {
       <footer className="auth__org">
         <img className="auth__uade-logo" src={uadeLogo} alt="UADE" width={86} height={30} />
       </footer>
+      <LegalFooter />
     </section>
   );
 }

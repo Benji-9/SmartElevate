@@ -1,0 +1,36 @@
+.legal-footer {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding-block: 8px;
+  font-size: var(--text-12);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.legal-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 12 px de texto + 16 arriba y abajo = 44 px de área táctil. */
+.legal-footer__links a {
+  display: inline-block;
+  padding: 16px 8px;
+  margin-block: -12px;
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.legal-footer__links a:hover {
+  text-decoration: underline;
+}
+
+.legal-footer p {
+  margin: 0;
+}
