@@ -164,7 +164,10 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 | 7:25 – 7:30 | 5/10 | **seleccionada**: borde 2 px `--accent`, fondo `--accent-tint`, radio relleno |
 | 7:30 – 7:35 | 2/10 | disponible |
 
-5. `Button` primary con la franja elegida: "Confirmar turno · 7:25". Recomendación: dejarlo fijo al pie mientras el contenido scrollea.
+5. **Pie fijo** mientras el contenido scrollea, con:
+   - El **resumen** de lo elegido en una línea (15 px / 600): "Lima 3 · Piso 7 · 7:25 – 7:27". Sin nada elegido no se muestra.
+   - Mientras falte algo, el **próximo paso** (13 px, `--ink-muted`): "Falta elegir el edificio", "…el piso de origen", "…el piso de destino" o "…la franja horaria". Va asociado al botón con `aria-describedby`.
+   - `Button` primary con la franja elegida: "Confirmar turno · 7:25" (deshabilitado hasta completar todo).
 
 ## 05 · Turno confirmado — `/turno/:id`
 
