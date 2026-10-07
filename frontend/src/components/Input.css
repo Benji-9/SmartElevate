@@ -30,6 +30,43 @@
   border-color: var(--color-danger);
 }
 
+/* Con sufijo: el borde y el foco pasan al contenedor y el sufijo queda dentro del control. */
+.input__control {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+}
+
+.input__control:focus-within {
+  outline: 2px solid var(--color-focus);
+  border-color: transparent;
+}
+
+.input__control .input__field {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding-right: 0;
+  border: 0;
+  background: transparent;
+}
+
+.input__control .input__field:focus-visible {
+  outline: 0;
+}
+
+.input--invalid .input__control {
+  border-color: var(--color-danger);
+}
+
+.input__suffix {
+  padding: 0 14px 0 2px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .input__hint {
   color: var(--color-text-muted);
 }

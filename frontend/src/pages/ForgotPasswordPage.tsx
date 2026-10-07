@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
-import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { validateUadeEmail } from '../features/auth/validation';
+import { UadeEmailInput } from '../features/auth/UadeEmailInput';
+import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { ApiError, requestPasswordReset } from '../services/api';
 import './AuthPages.css';
 
@@ -18,15 +18,15 @@ export function ForgotPasswordPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const invalid = validateUadeEmail(email);
+    const invalid = validateUadeUser(email);
     setError(invalid);
     setServerError(null);
     if (invalid) return;
 
     setSubmitting(true);
     try {
-      await requestPasswordReset({ email: email.trim() });
-      setSentTo(email.trim());
+      await requestPasswordReset({ email: toUadeEmail(email) });
+      setSentTo(toUadeEmail(email));
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : 'No pudimos conectarnos. Probá de nuevo.');
     } finally {
@@ -53,15 +53,7 @@ export function ForgotPasswordPage() {
             Te mandamos un link a tu email institucional para que elijas una contraseña nueva.
           </p>
           <form className="auth__form" noValidate onSubmit={handleSubmit}>
-            <Input
-              label="Email institucional"
-              type="email"
-              autoComplete="username"
-              placeholder="nombre@uade.edu.ar"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={error}
-            />
+            <UadeEmailInput value={email} onChange={setEmail} error={error} />
             {serverError && (
               <p role="alert" className="auth__alert">
                 {serverError}
