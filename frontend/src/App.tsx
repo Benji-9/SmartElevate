@@ -9,6 +9,7 @@ import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { CheckInPage } from './pages/CheckInPage';
 import { CheckInSuccessPage } from './pages/CheckInSuccessPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { MyTripsPage } from './pages/MyTripsPage';
@@ -17,11 +18,12 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ReserveTurnPage } from './pages/ReserveTurnPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { TurnPage } from './pages/TurnPage';
 
 /**
  * Rutas de la app (una por frame del Figma). El router (Browser/Memory) lo provee quien la monta.
- * Todo es privado salvo login, registro y 404; `/admin` además pide rol ADMIN según `/me`.
+ * Todo es privado salvo login, registro, recuperar contraseña y 404; `/admin` además pide rol ADMIN según `/me`.
  */
 export function App() {
   // Guarda `?demo=1` apenas se entra, aunque la primera pantalla no lo use.
@@ -60,6 +62,8 @@ export function App() {
             <Route element={<ScreenLayout />}>
               <Route path="login" element={<LoginPage />} />
               <Route path="registro" element={<RegisterPage />} />
+              <Route path="recuperar" element={<ForgotPasswordPage />} />
+              <Route path="recuperar/nueva" element={<ResetPasswordPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

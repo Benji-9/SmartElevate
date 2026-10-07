@@ -12,6 +12,8 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 |---|---|---|---|
 | `/login` | 01 Login | no | público |
 | `/registro` | 02 Registro | no | público |
+| `/recuperar` | 02b Recuperar contraseña | no | público |
+| `/recuperar/nueva?token=…` | 02c Contraseña nueva (link del mail) | no | público |
 | `/` | 03 Inicio | sí (Inicio) | autenticado |
 | `/reservar` | 04 Reservar turno | no (tiene header con volver) | autenticado |
 | `/turno/:id` | 05 Turno confirmado | no | autenticado |
@@ -66,7 +68,7 @@ interface CoreStatus { core: Core; level: CongestionLevel; occupancy: number /* 
 2. Espacio de 8 px.
 3. `Input` "Email institucional", placeholder `nombre@uade.edu.ar` (`type="email"`).
 4. `Input` "Contraseña", placeholder `••••••••` (`type="password"`).
-5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, alineado a la derecha.
+5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, sin subrayado, alineado a la derecha; lleva a `/recuperar` (02b).
 6. `Button` primary "Ingresar".
 7. "¿No tenés cuenta? Registrate" — 14 px, `--ink-muted`, centrado; "Registrate" es un link a `/registro` en `--accent`.
 
@@ -81,6 +83,27 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
 5. `Button` primary "Crear cuenta".
+
+## 02b · Recuperar contraseña — `/recuperar`
+
+No hay frame en Figma: usa la misma estructura y componentes que 02 Registro. Contrato en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+
+`PageHeader` con volver (a `/login`) + "Recuperar contraseña". `main` como 02.
+
+1. Intro 14 px `--ink-muted`: "Te mandamos un link a tu email institucional para que elijas una contraseña nueva."
+2. `Input` "Email institucional" (ph `nombre@uade.edu.ar`), con la misma validación que el login.
+3. `Button` primary "Enviar link" → `POST /api/auth/password/forgot`.
+
+Estados: el servidor responde **202 siempre**, exista o no la cuenta, así que la confirmación no lo revela: título "Revisá tu email" y "Si {email} tiene una cuenta, te mandamos un link para elegir una contraseña nueva. Vence en unos minutos y sirve una sola vez.", con link "Volver a ingresar". Error del servidor (p. ej. límite de pedidos) → aviso `--danger-tint` sobre el botón.
+
+## 02c · Contraseña nueva — `/recuperar/nueva?token=…`
+
+Es la pantalla a la que lleva el link del mail. Misma estructura que 02b, con título "Contraseña nueva".
+
+1. `Input` "Contraseña nueva" y `Input` "Repetí la contraseña" (ph `••••••••`, `autocomplete="new-password"`). La UI solo valida que no esté vacía y que coincidan; la política la valida el servidor y su error va al lado del campo.
+2. `Button` primary "Guardar contraseña" → `POST /api/auth/password/reset` con `{ token, newPassword }`.
+
+Estados: OK → "Listo, cambiaste tu contraseña" + link "Ir a ingresar". Sin `token` en la URL, o token vencido / ya usado (400) → aviso `--danger-tint` con el motivo y link "Pedir otro link" a `/recuperar`.
 
 ## 03 · Inicio — `/`
 

@@ -317,7 +317,7 @@ Los tres SVG de SmartElevate tienen el texto convertido a trazos (Inter Medium) 
 | `frontend/src/assets/smartelevate-logo.svg` | Marca + logotipo de SmartElevate, vertical, **fondo transparente**. Login: 120 px de alto. Sin recolorear ni estirar. |
 | `frontend/src/assets/smartelevate-logo-horizontal.svg` | Ícono + logotipo en una línea, transparente. Para el `TopBar` (~32 px de alto). |
 | `frontend/src/assets/smartelevate-mark.svg` | Solo el ícono (ascensor con personas), transparente. Favicon o espacios chicos. |
-| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`). Preferido. Sobre `--surface`, más chico que la marca de SmartElevate. |
+| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`), **fondo transparente**; con `prefers-color-scheme: dark` pasa a blanco, igual que los de SmartElevate. Preferido. Más chico que la marca de SmartElevate. |
 | `UADE_id7RUMB-t-_0.png` | Mismo logotipo en PNG transparente. Solo donde no pueda usarse SVG. |
 
 ---
