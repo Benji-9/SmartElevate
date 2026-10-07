@@ -194,6 +194,8 @@ Pantalla **oscura**: fondo `--surface-dark`; barra de estado, título y textos e
 
 Al leer un QR válido → `/check-in/ok`.
 
+**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error.
+
 ## 07 · Viaje registrado — `/check-in/ok`
 
 Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.

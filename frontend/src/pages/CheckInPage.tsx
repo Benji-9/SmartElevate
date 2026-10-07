@@ -38,6 +38,10 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
   const turnTitleId = useId();
   const codeTitleId = useId();
   const codeDescriptionId = useId();
+  const reservation = turn.data;
+  // La cámara se pide solo con turno activo (#152). Si falla la carga del turno se pide igual:
+  // el servidor valida el check-in y no queremos trabar a quien sí tiene turno.
+  const wantsCamera = !turn.loading && (turn.error !== undefined || reservation != null);
 
   async function submit(value: string) {
     setSubmitting(true);
@@ -58,7 +62,7 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
   });
 
   useEffect(() => {
-    if (!('mediaDevices' in navigator)) return;
+    if (!wantsCamera || !('mediaDevices' in navigator)) return;
     let stopped = false;
     let stream: MediaStream | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -104,7 +108,7 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
       clearTimeout(timer);
       release();
     };
-  }, []);
+  }, [wantsCamera]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -119,7 +123,9 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
   }
 
   let cameraState;
-  if (camera === 'denied' || camera === 'unavailable') {
+  if (!wantsCamera) {
+    cameraState = null;
+  } else if (camera === 'denied' || camera === 'unavailable') {
     cameraState = (
       <section className="check-in__message" aria-labelledby="check-in-camera-title">
         <h2 id="check-in-camera-title">
@@ -145,7 +151,6 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
     );
   }
 
-  const reservation = turn.data;
   let turnContent;
   if (turn.loading) {
     turnContent = (
