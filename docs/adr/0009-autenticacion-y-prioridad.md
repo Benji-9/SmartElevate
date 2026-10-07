@@ -2,7 +2,7 @@
 
 - **Estado:** Propuesto
 - **Fecha:** 2026-09-28
-- **Issues:** [#6](https://github.com/Benji-9/SmartElevate/issues/6), [#24](https://github.com/Benji-9/SmartElevate/issues/24), [#25](https://github.com/Benji-9/SmartElevate/issues/25), [#26](https://github.com/Benji-9/SmartElevate/issues/26)
+- **Issues:** [#6](https://github.com/Benji-9/SmartElevate/issues/6), [#32](https://github.com/Benji-9/SmartElevate/issues/32), [#24](https://github.com/Benji-9/SmartElevate/issues/24), [#25](https://github.com/Benji-9/SmartElevate/issues/25), [#26](https://github.com/Benji-9/SmartElevate/issues/26)
 
 ## Contexto
 
@@ -22,7 +22,9 @@ Para la prioridad en la sesión:
 ## Decisión
 
 - Opción **2**, con email y legajo únicos.
-- **Rol y prioridad nunca vienen del registro**: los asigna un ADMIN. Los docentes se aprueban a mano o con una lista cargada.
+- **Rol y prioridad nunca vienen del registro**: los asigna un ADMIN.
+- El registro tiene un **tipo de usuario declarativo** (Estudiante / Docente) que no otorga nada. Los docentes declarados quedan en una cola del panel de administración, y el ADMIN los aprueba o rechaza.
+- El **primer ADMIN** se crea promoviendo a un usuario registrado con SQL en la consola de Neon. No hay endpoint ni seed, así que ningún dato del admin queda en el repo.
 - Movilidad reducida por certificado: **PENDIENTE → APROBADO/RECHAZADO**, siempre con **vencimiento**; al vencer, el usuario vuelve a ser común.
 - JWT con **access token corto (~15 min) y refresh**. La prioridad se evalúa **en el servidor** (opción **b**).
 - Archivos: tipo validado **por contenido**, con tope de tamaño.

@@ -11,6 +11,7 @@ Términos del dominio, para que backend, frontend y docs hablen igual. Entre par
 | **Check-in** | Escaneo del QR del ascensor que confirma el uso de la reserva. |
 | **No-show** | Reserva sin check-in válido a tiempo. |
 | **Prioritario** | Usuario con prioridad aprobada y vigente: movilidad reducida (`REDUCED_MOBILITY`) o docente (`TEACHER`). |
+| **Tipo de usuario declarado** (`declaredUserType`) | Lo que la persona elige al registrarse: Estudiante (`STUDENT`) o Docente (`TEACHER`). No otorga nada; un docente declarado espera la aprobación de un ADMIN. |
 | **Lugares reservados** | Hasta 2 de 10 lugares por salida en ascensores comunes, guardados para prioritarios. |
 | **Envejecimiento** (aging) | Aumento de prioridad de una solicitud tras N min de espera. |
 | **Edificio** (`Building`) | Lima (−4 a 10) o Independencia (−4 a 11). Agrupa núcleos. |

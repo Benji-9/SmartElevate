@@ -38,7 +38,7 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 
 ```ts
 type CongestionLevel = 'baja' | 'media' | 'alta';
-type UserType = 'estudiante' | 'docente' | 'personal';
+type UserType = 'estudiante' | 'docente'; // declarativo, ver #32
 type Core = 'Lima 1' | 'Lima 2' | 'Lima 3' | 'Independencia 1' | 'Independencia 2';
 
 interface Slot { id: string; start: string; end: string; taken: number; capacity: 10 }        // "7:25", "7:30"
@@ -78,7 +78,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
 2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (ph `nombre@uade.edu.ar`), "Legajo" (ph `Ej: 1234567`), "Contraseña" (ph `••••••••`).
-3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (3 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`), **Docente**, **Personal** (no seleccionadas: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`, Personal → `--border`.
+3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
 5. `Button` primary "Crear cuenta".
 
@@ -173,7 +173,7 @@ Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
 Escritorio **1440 × 900**. Layout en dos columnas.
 
-**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`), Turnos, Núcleos y ascensores, Usuarios prioritarios, Reportes (`--on-dark-muted`).
+**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`), Turnos, Núcleos y ascensores, Usuarios prioritarios (cola de docentes a validar, spec pendiente en [#140](https://github.com/Benji-9/SmartElevate/issues/140)), Reportes (`--on-dark-muted`).
 
 **Contenido** (pad 32, gap 24):
 
