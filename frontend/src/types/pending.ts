@@ -26,10 +26,10 @@ export type User = {
 export type LoginRequest = { email: string; password: string };
 
 /**
- * Tipo de usuario que la persona declara al registrarse (#32). Es informativo: no otorga
- * rol ni prioridad; un ADMIN valida a los docentes.
+ * Tipo de usuario que la persona declara al registrarse (#32). No otorga rol ni prioridad:
+ * un docente declarado queda pendiente hasta que un ADMIN lo aprueba desde el panel.
  */
-export type DeclaredUserType = 'STUDENT' | 'TEACHER' | 'STAFF';
+export type DeclaredUserType = 'STUDENT' | 'TEACHER';
 
 export type RegisterRequest = {
   fullName: string;

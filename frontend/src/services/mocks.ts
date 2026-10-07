@@ -88,7 +88,7 @@ const users: User[] = [
     legajo: '1000001',
     role: 'ADMIN',
     priority: 'NONE',
-    declaredUserType: 'STAFF',
+    declaredUserType: 'STUDENT',
   },
   {
     id: 'u-3',
