@@ -38,6 +38,10 @@ export type RegisterRequest = {
   password: string;
   declaredUserType: DeclaredUserType;
 };
+/** Pide el link para elegir otra contraseña (#138). El servidor responde 202 siempre. */
+export type ForgotPasswordRequest = { email: string };
+/** `token` viene en el link del mail; es de un solo uso y vence (#138). */
+export type ResetPasswordRequest = { token: string; newPassword: string };
 /** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
 export type Session = { accessToken: string };
 

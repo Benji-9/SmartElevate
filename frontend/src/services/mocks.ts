@@ -24,6 +24,7 @@ import type {
   RegisterRequest,
   Reservation,
   ReserveRequest,
+  ResetPasswordRequest,
   Session,
   Trip,
   TripPage,
@@ -356,6 +357,28 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         declaredUserType,
       });
       unverified.add(normalized);
+    },
+  ],
+  [
+    'POST',
+    /^\/auth\/password\/forgot$/,
+    // 202 exista o no la cuenta, para no revelar qué emails están registrados.
+    () => undefined,
+  ],
+  [
+    'POST',
+    /^\/auth\/password\/reset$/,
+    (body) => {
+      // Token de prueba "VENCIDO": el link ya no sirve.
+      const { token, newPassword } = body as ResetPasswordRequest;
+      if (!token || token.toUpperCase().includes('VENCIDO')) {
+        throw new ApiError(400, 'El link venció o ya se usó. Pedí uno nuevo.');
+      }
+      if (!newPassword) {
+        throw new ApiError(400, 'Datos inválidos', [
+          { field: 'newPassword', message: 'Elegí una contraseña.' },
+        ]);
+      }
     },
   ],
   ['GET', /^\/me$/, () => currentUser()],

@@ -91,13 +91,15 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
   });
 
-  it('"¿Olvidaste tu contraseña?" avisa que todavía no está disponible', async () => {
+  it('"¿Olvidaste tu contraseña?" lleva a recuperar la contraseña', async () => {
     stubApi(signedOut);
     await renderLogin();
 
-    await userEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }));
+    await userEvent.click(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('todavía no está disponible');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Recuperar contraseña' }),
+    ).toBeInTheDocument();
   });
 
   it('linkea al registro', async () => {

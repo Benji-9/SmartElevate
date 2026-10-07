@@ -9,6 +9,7 @@ import type {
   Core,
   Departure,
   FloorOption,
+  ForgotPasswordRequest,
   LoginRequest,
   NoShowStatus,
   NotificationPreferences,
@@ -17,6 +18,7 @@ import type {
   RegisterRequest,
   Reservation,
   ReserveRequest,
+  ResetPasswordRequest,
   Session,
   TripPage,
   User,
@@ -91,10 +93,9 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, message, violations);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return (await response.json()) as T;
+  // 204, o 202 sin cuerpo (p. ej. /auth/password/forgot): no hay JSON que leer.
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 /** Pide un access token nuevo con la cookie de refresh. Las llamadas simultáneas comparten el intento. */
@@ -162,6 +163,13 @@ export async function restoreSession(): Promise<User | null> {
   if (!(await refreshAccessToken())) return null;
   return getMe().catch(() => null);
 }
+
+/** Manda el link para elegir otra contraseña. No revela si el email tiene cuenta (siempre 202). */
+export const requestPasswordReset = (body: ForgotPasswordRequest) =>
+  api.post<void>('/auth/password/forgot', body);
+/** Guarda la contraseña nueva con el token del mail. 400 si el token venció o ya se usó. */
+export const resetPassword = (body: ResetPasswordRequest) =>
+  api.post<void>('/auth/password/reset', body);
 
 export async function logout(): Promise<void> {
   try {

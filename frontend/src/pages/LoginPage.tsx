@@ -21,7 +21,6 @@ export function LoginPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [showForgotNotice, setShowForgotNotice] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,18 +73,9 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
         />
-        <button
-          type="button"
-          className="auth__text-button"
-          onClick={() => setShowForgotNotice(true)}
-        >
+        <Link to="/recuperar" className="auth__text-button">
           ¿Olvidaste tu contraseña?
-        </button>
-        {showForgotNotice && (
-          <p role="status" className="auth__notice">
-            La recuperación de contraseña todavía no está disponible.
-          </p>
-        )}
+        </Link>
         {serverError && (
           <p role="alert" className="auth__alert">
             {serverError}
