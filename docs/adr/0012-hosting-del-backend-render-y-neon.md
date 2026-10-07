@@ -39,4 +39,4 @@ Planes verificados el 2026-10-06:
 - Con 0.1 CPU y 512 MB, el arranque es lento y la memoria queda justa. Si el MVP lo necesita, el paso siguiente es Render Starter (USD 7/mes, sin sleep) sin cambiar nada más.
 - El health check de Render es `/api/ping`. Un problema con la base igual se ve al deployar, porque Flyway corre al arrancar y la app no levanta si no llega a Postgres.
 - El rollback de Render no revierte migraciones: se corrigen con una migración nueva ([ADR 0004](0004-migraciones-de-base-de-datos.md)).
-- Desbloquea el storage de certificados (B-15). Las propuestas de email y storage están en [`docs/infraestructura.md`](../infraestructura.md#pendiente-email-y-storage).
+- Desbloquea el storage de certificados (B-15). Email y storage se resolvieron en el [ADR 0013](0013-email-con-brevo-y-storage-en-r2.md).
