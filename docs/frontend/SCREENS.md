@@ -105,7 +105,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 1. Etiqueta "Edificio" (14 px / 600) y **selector de edificio** (pills en fila con wrap, gap 8, pad 8/14, `--radius-pill`, texto 14 px / 500): Lima 1 · Lima 2 · **Lima 3 (seleccionado)** · Indep. 1 · Indep. 2. Seleccionado: fondo `--accent`, texto `--on-accent`; resto: `--surface`, borde 1 px `--border`.
 2. Etiqueta "Piso de destino" y **selector de piso**: botones de **50 × 44** (`--radius-sm`, número 15 px / 600) del **0 al 10**, con wrap y gap 8. Piso 7 seleccionado (`--accent`). Pisos **0–4 deshabilitados** para usuarios no prioritarios: fondo `--surface-subtle`, número `--ink-subtle`, `disabled`. Resto: `--surface` con borde `--border`.
-3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Para 1 piso usá la escalera."). No hardcodear el texto del wireframe.
+3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Hasta el piso 4 usá la escalera."). No hardcodear el texto del wireframe.
 4. Etiqueta "Franja horaria" y **lista de franjas** (gap 8). Cada franja: fila pad 12/14, gap 12, `--radius-md`, borde 1 px `--line`; a la izquierda hora (15 px / 600) y barra de capacidad (120 × 6, pista `--line`, relleno `--accent`, ancho = `taken/10 × 120`); luego "5/10" (13 px / 500 `--ink-muted`); a la derecha radio de 20 px.
 
 | Franja | Ocupación | Estado |

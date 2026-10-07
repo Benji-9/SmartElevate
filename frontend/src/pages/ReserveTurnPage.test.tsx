@@ -27,9 +27,9 @@ const departures: Departure[] = [
 ];
 
 const floorsFromPB: FloorOption[] = [
-  { floor: -1, eligible: false, reason: 'Para 1 piso usá la escalera.' },
+  { floor: -1, eligible: true, reason: null },
   { floor: 0, eligible: false, reason: 'Es tu piso de origen.' },
-  { floor: 1, eligible: false, reason: 'Para 1 piso usá la escalera.' },
+  { floor: 1, eligible: false, reason: 'Hasta el piso 4 usá la escalera.' },
   { floor: 5, eligible: true, reason: null },
 ];
 
@@ -181,7 +181,7 @@ describe('ReserveTurnPage', () => {
     expect(await screen.findByRole('radio', { name: 'PB' })).toBeDisabled();
     expect(screen.getByRole('radio', { name: '1' })).toBeDisabled();
     expect(screen.getByRole('radio', { name: '5' })).toBeEnabled();
-    expect(screen.getByText('Para 1 piso usá la escalera.')).toBeInTheDocument();
+    expect(screen.getByText('Hasta el piso 4 usá la escalera.')).toBeInTheDocument();
     expect(screen.getByText('Es tu piso de origen.')).toBeInTheDocument();
   });
 

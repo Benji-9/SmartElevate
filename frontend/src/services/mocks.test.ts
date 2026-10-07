@@ -4,6 +4,7 @@ import type {
   AdminShift,
   CheckInResult,
   CongestionSnapshot,
+  Core,
   Departure,
   FloorOption,
   NoShowStatus,
@@ -12,6 +13,7 @@ import type {
   Reservation,
   TripPage,
 } from '../types/pending';
+import type { Building } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 
@@ -96,16 +98,32 @@ describe('mocks', () => {
     expect(snapshot.cores.map((c) => c.name)).toContain('Independencia 2');
   });
 
-  it('los pisos de destino marcan el origen y los trayectos cortos como no elegibles', async () => {
+  it('los pisos de destino marcan el origen y los pisos bajos (1 a 4) como no elegibles', async () => {
     await call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
 
-    const floors = await call<FloorOption[]>('GET', '/cores/L1/floors?origin=3');
+    const floors = await call<FloorOption[]>('GET', '/cores/L1/floors?origin=0');
     const byFloor = (n: number) => floors.find((f) => f.floor === n);
 
-    expect(byFloor(3)).toMatchObject({ eligible: false });
+    expect(byFloor(0)).toMatchObject({ eligible: false });
+    expect(byFloor(1)).toMatchObject({ eligible: false, reason: expect.any(String) });
     expect(byFloor(4)).toMatchObject({ eligible: false, reason: expect.any(String) });
-    expect(byFloor(8)).toEqual({ floor: 8, eligible: true, reason: null });
+    expect(byFloor(-1)).toEqual({ floor: -1, eligible: true, reason: null });
+    expect(byFloor(5)).toEqual({ floor: 5, eligible: true, reason: null });
     await call('POST', '/auth/logout');
+  });
+
+  it('edificios y núcleos usan los pisos del relevamiento', async () => {
+    const buildings = await call<Building[]>('GET', '/buildings');
+    const cores = await call<Core[]>('GET', '/cores');
+    const floorsOf = (id: string) => cores.find((c) => c.id === id)!.floors;
+
+    expect(buildings.map((b) => [b.code, b.minFloor, b.maxFloor])).toEqual([
+      ['LIMA', -4, 10],
+      ['INDEPENDENCIA', -4, 11],
+    ]);
+    expect(floorsOf('IND2')).not.toContain(1);
+    expect(floorsOf('IND2').at(-1)).toBe(11);
+    expect([floorsOf('L1')[0], floorsOf('L1').at(-1)]).toEqual([-3, 7]);
   });
 
   it('login, /me y logout simulan la sesión con cookie', async () => {
