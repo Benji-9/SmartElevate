@@ -21,6 +21,7 @@ import {
 } from '../services/api';
 import type { Building } from '../types/api';
 import type { Core, Departure } from '../types/pending';
+import { Skeleton } from '../components/Skeleton';
 
 const loadCatalog = () => Promise.all([getBuildings(), getCores()]);
 // Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
@@ -186,9 +187,7 @@ export function ReserveTurnPage() {
       <ScreenHeader title="Reservar turno" className="reserve__header" />
 
       {catalog.loading || active.loading ? (
-        <p role="status" className="page-placeholder">
-          Cargando núcleos…
-        </p>
+        <Skeleton label="Cargando núcleos…" rows={3} height={44} />
       ) : active.data ? (
         // Con un turno activo no se puede reservar otro (turnos.md §3): no se ofrece el formulario.
         <div className="reserve__notice">
@@ -235,9 +234,7 @@ export function ReserveTurnPage() {
 
             {origin !== null &&
               (floors.loading ? (
-                <p role="status" className="page-placeholder">
-                  Cargando pisos…
-                </p>
+                <Skeleton label="Cargando pisos…" rows={2} height={44} />
               ) : floors.error ? (
                 <p role="alert" className="reserve__alert">
                   {floors.error}
@@ -258,9 +255,7 @@ export function ReserveTurnPage() {
                   {departures.error}
                 </p>
               ) : !departures.data ? (
-                <p role="status" className="page-placeholder">
-                  Cargando salidas…
-                </p>
+                <Skeleton label="Cargando salidas…" rows={4} height={56} />
               ) : !departures.data.length ? (
                 <p className="page-placeholder">
                   No hay salidas abiertas para reservar en este núcleo. Probá en unos minutos.
