@@ -76,6 +76,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: var(--radius-input);
   color: var(--on-dark-muted);
