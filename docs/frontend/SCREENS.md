@@ -152,6 +152,8 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 
 `PageHeader` con volver + "Reservar turno". `main`: pad 8/20/20/20, gap 12.
 
+**Precarga del último viaje:** si la persona ya reservó desde ese dispositivo, el formulario abre con el núcleo, el origen y el destino de ese turno (guardados en `localStorage` al reservar con éxito), y arriba un aviso (mismo estilo que el de pisos) "Usamos tu último viaje: Lima 3 · PB → 7. Podés cambiarlo abajo.". Lo que ya no sea válido (núcleo que no existe, piso fuera de rango o no elegible) se ignora sin error. **La franja nunca se precarga:** depende del cupo del momento. Al cambiar cualquier elección el aviso se va.
+
 1. Etiqueta "Edificio" (14 px / 600) y **selector de edificio** (pills en fila con wrap, gap 8, pad 8/14, `--radius-pill`, texto 14 px / 500): Lima 1 · Lima 2 · **Lima 3 (seleccionado)** · Indep. 1 · Indep. 2. Seleccionado: fondo `--accent`, texto `--on-accent`; resto: `--surface`, borde 1 px `--border`.
 2. Etiqueta "Piso de destino" y **selector de piso**: botones de **50 × 44** (`--radius-sm`, número 15 px / 600) del **0 al 10**, con wrap y gap 8. Piso 7 seleccionado (`--accent`). Pisos **0–4 deshabilitados** para usuarios no prioritarios: fondo `--surface-subtle`, número `--ink-subtle`, `disabled`. Resto: `--surface` con borde `--border`.
 3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Hasta el piso 4 usá la escalera."). No hardcodear el texto del wireframe.
