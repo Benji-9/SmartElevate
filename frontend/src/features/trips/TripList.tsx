@@ -5,7 +5,8 @@ import { formatDate, formatFloor, formatSlot } from '../turn/format';
 const results: Record<TripResult, { label: string; tone: ChipTone }> = {
   COMPLETED: { label: 'Cumplido', tone: 'accent' },
   OTHER_ELEVATOR: { label: 'Otro ascensor', tone: 'neutral' },
-  LATE: { label: 'Fuera de hora', tone: 'neutral' },
+  // Fuera de hora cuenta como falta (check-in-qr.md#resultados): mismo tono y lo dice el texto.
+  LATE: { label: 'Falta (fuera de hora)', tone: 'danger' },
   CANCELLED: { label: 'Cancelado', tone: 'neutral' },
   NO_SHOW: { label: 'Falta', tone: 'danger' },
 };
