@@ -1,6 +1,6 @@
 # 0009. Autenticación con email institucional y prioridad validada en el servidor
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-09-28
 - **Issues:** [#6](https://github.com/Benji-9/SmartElevate/issues/6), [#32](https://github.com/Benji-9/SmartElevate/issues/32), [#24](https://github.com/Benji-9/SmartElevate/issues/24), [#25](https://github.com/Benji-9/SmartElevate/issues/25), [#26](https://github.com/Benji-9/SmartElevate/issues/26)
 

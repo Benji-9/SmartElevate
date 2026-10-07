@@ -1,6 +1,6 @@
 # Usuarios, autenticación y prioridad
 
-> Estado: **propuesta** para cerrar [#6](https://github.com/Benji-9/SmartElevate/issues/6). Decisión de diseño en [ADR 0009](../adr/0009-autenticacion-y-prioridad.md).
+> Estado: **aprobado** ([#6](https://github.com/Benji-9/SmartElevate/issues/6)). Decisión de diseño en [ADR 0009](../adr/0009-autenticacion-y-prioridad.md).
 
 ## Registro
 
