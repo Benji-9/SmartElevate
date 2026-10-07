@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router';
 import { Avatar } from '../components/Avatar';
 import { Chip, type ChipTone } from '../components/Chip';
+import { LegalFooter } from '../components/LegalFooter';
 import { PriorityAccessCard } from '../features/priority/PriorityAccessCard';
 import '../features/priority/priority.css';
 import { useSession } from '../hooks/useSession';
@@ -58,6 +59,7 @@ export function ProfilePage() {
           </li>
         </ul>
       </nav>
+      <LegalFooter />
     </div>
   );
 }

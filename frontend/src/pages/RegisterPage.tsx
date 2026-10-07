@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { LegalFooter } from '../components/LegalFooter';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { validateUadeEmail } from '../features/auth/validation';
@@ -167,10 +168,15 @@ export function RegisterPage() {
             {serverError}
           </p>
         )}
+        <p className="auth__lead">
+          Al crear tu cuenta aceptás los <Link to="/terminos">Términos de uso</Link> y la{' '}
+          <Link to="/privacidad">Política de privacidad</Link>.
+        </p>
         <Button type="submit" loading={submitting} loadingLabel="Creando cuenta…">
           Crear cuenta
         </Button>
       </form>
+      <LegalFooter />
     </div>
   );
 }

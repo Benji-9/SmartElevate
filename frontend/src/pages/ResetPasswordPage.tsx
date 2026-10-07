@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ApiError, resetPassword } from '../services/api';
 import './AuthPages.css';
@@ -100,6 +101,7 @@ export function ResetPasswordPage() {
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Contraseña nueva" backTo="/login" />
       {content}
+      <LegalFooter />
     </div>
   );
 }

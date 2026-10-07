@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { validateUadeEmail } from '../features/auth/validation';
 import { ApiError, requestPasswordReset } from '../services/api';
@@ -72,6 +73,7 @@ export function ForgotPasswordPage() {
           </form>
         </>
       )}
+      <LegalFooter />
     </div>
   );
 }

@@ -14,6 +14,8 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/registro` | 02 Registro | no | público |
 | `/recuperar` | 02b Recuperar contraseña | no | público |
 | `/recuperar/nueva?token=…` | 02c Contraseña nueva (link del mail) | no | público |
+| `/privacidad` | Política de privacidad | no | público |
+| `/terminos` | Términos de uso | no | público |
 | `/` | 03 Inicio | sí (Inicio) | autenticado |
 | `/reservar` | 04 Reservar turno | no (tiene header con volver) | autenticado |
 | `/turno/:id` | 05 Turno confirmado | no | autenticado |
@@ -82,7 +84,9 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (ph `nombre@uade.edu.ar`), "Legajo" (ph `Ej: 1234567`), "Contraseña" (ph `••••••••`).
 3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
-5. `Button` primary "Crear cuenta".
+5. Texto 14 px `--ink-muted`: "Al crear tu cuenta aceptás los Términos de uso y la Política de privacidad." (links a `/terminos` y `/privacidad`).
+6. `Button` primary "Crear cuenta".
+7. Footer legal (ver abajo).
 
 ## 02b · Recuperar contraseña — `/recuperar`
 
@@ -104,6 +108,14 @@ Es la pantalla a la que lleva el link del mail. Misma estructura que 02b, con t�
 2. `Button` primary "Guardar contraseña" → `POST /api/auth/password/reset` con `{ token, newPassword }`.
 
 Estados: OK → "Listo, cambiaste tu contraseña" + link "Ir a ingresar". Sin `token` en la URL, o token vencido / ya usado (400) → aviso `--danger-tint` con el motivo y link "Pedir otro link" a `/recuperar`.
+
+## Footer legal y páginas legales
+
+No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145)).
+
+- **Footer legal** (`LegalFooter`): al final de Login, Registro, 02b, 02c, Perfil y las dos páginas legales. Columna centrada, gap 4, 12 px `--ink-muted`: fila de links (500, `--accent`, sin subrayado, área táctil de 44 px) **Privacidad · Términos de uso · Contacto** (`mailto:` al email del proyecto) y debajo "SmartElevate · Proyecto académico de estudiantes de UADE".
+- **Páginas legales** (`/privacidad`, `/terminos`): `PageHeader` con volver + título; "Última actualización" 13 px `--ink-muted`; secciones numeradas con `h2` de 16 px / 600 y texto 14 px con interlineado 1,55. La leyenda obligatoria de la AAIP (Disposición 10/2008) va en un aviso `--accent-tint` dentro de "Tus derechos". En Pantalla usan la columna de 480 px.
+- Contenido: la política sigue la Ley 25.326, el Decreto 1558/2001, las normas de la AAIP y el Convenio 108/108+, con los derechos del RGPD; los términos son los de un proyecto académico. **No es asesoramiento legal**: validar con la cátedra ([#24](https://github.com/Benji-9/SmartElevate/issues/24)). Si cambian proveedores, regiones o el tratamiento de datos, actualizar `PrivacyPage.tsx`.
 
 ## 03 · Inicio — `/`
 
