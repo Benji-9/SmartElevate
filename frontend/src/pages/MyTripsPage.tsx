@@ -8,6 +8,7 @@ import '../features/trips/trips.css';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { getNoShowStatus, getTrips } from '../services/api';
 import type { TripPage } from '../types/pending';
+import { Skeleton } from '../components/Skeleton';
 
 export function MyTripsPage() {
   const first = useResource(getTrips);
@@ -45,11 +46,7 @@ export function MyTripsPage() {
       </div>
     );
   } else if (first.loading) {
-    content = (
-      <p role="status" className="page-placeholder">
-        Cargando tus viajes…
-      </p>
-    );
+    content = <Skeleton label="Cargando tus viajes…" rows={3} height={72} />;
   } else if (trips.length === 0) {
     content = (
       <p className="page-placeholder">

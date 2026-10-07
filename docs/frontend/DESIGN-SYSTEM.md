@@ -239,6 +239,7 @@ Todos aceptan `className`. Las clases (prefijo `se-`) están en la sección 7.
 | `Chip` | `tone?: 'accent' \| 'baja' \| 'media' \| 'alta' \| 'alumnos' \| 'docentes'` (default `accent`) | `accent`: sin punto, para estados de reserva ("Confirmado", "Pendiente de validación"). Los demás llevan punto de color + texto en `ink`. |
 | `CongestionRow` | `label: string`, `level: 'baja' \| 'media' \| 'alta'`, `value: number` (0–1) | Nombre del núcleo · barra de 90 × 8 px · nivel escrito (48 px de ancho). Apilar una por núcleo. |
 | `BottomNav` | `items: { id, label, icon? }[]`, `active: string`, `onSelect?: (id) => void` | Cuatro destinos: Inicio, Reservar, Check-in, Perfil. Activa en `accent`, resto en `ink-muted`. Sin `icon` muestra un cuadrado gris de 24 px (marcador: **el set de íconos aún no está elegido**). |
+| `Skeleton` | `label: string`, `rows?: number` (default 1), `height?: number` (px, default 20) | Estado de carga con la forma del contenido (bloques `surface-subtle` que laten; sin animación con `prefers-reduced-motion`). Es un `role="status"` que anuncia `label` ("Cargando tus viajes…"). Lo usan Inicio, Mis viajes y Reservar. |
 
 ### Patrones que no son componente todavía
 

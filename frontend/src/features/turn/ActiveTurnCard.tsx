@@ -7,6 +7,7 @@ import { ApiError, getActiveReservation } from '../../services/api';
 import type { Reservation } from '../../types/pending';
 import { formatFloor, formatSlot } from './format';
 import './ActiveTurnCard.css';
+import { Skeleton } from '../../components/Skeleton';
 
 type State =
   | { status: 'loading' }
@@ -53,11 +54,7 @@ export function ActiveTurnCard() {
   }, [attempt]);
 
   if (state.status === 'loading') {
-    return (
-      <p role="status" className="page-placeholder">
-        Cargando tu turno…
-      </p>
-    );
+    return <Skeleton label="Cargando tu turno…" height={168} className="skeleton--card" />;
   }
 
   if (state.status === 'error') {

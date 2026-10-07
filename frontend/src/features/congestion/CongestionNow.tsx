@@ -4,6 +4,7 @@ import { CongestionRow } from '../../components/CongestionRow';
 import { ApiError, getCongestion } from '../../services/api';
 import type { CongestionLevel, CongestionSnapshot } from '../../types/pending';
 import './CongestionNow.css';
+import { Skeleton } from '../../components/Skeleton';
 
 // ponytail: `CoreCongestion` no trae ocupación; el largo de la barra sale del nivel.
 // Cuando la API exponga la ocupación del núcleo (0–1), pasarla directo a `value`.
@@ -74,9 +75,7 @@ export function CongestionNow() {
           </Button>
         </div>
       ) : !snapshot ? (
-        <p role="status" className="page-placeholder">
-          Cargando congestión…
-        </p>
+        <Skeleton label="Cargando congestión…" rows={5} />
       ) : snapshot.cores.length === 0 ? (
         <p className="page-placeholder">No hay núcleos para mostrar.</p>
       ) : (
