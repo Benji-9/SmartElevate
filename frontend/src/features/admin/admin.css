@@ -44,20 +44,11 @@
 }
 
 .kpi__label {
-  font-size: var(--text-13);
-  font-weight: var(--font-medium);
   color: var(--color-text-muted);
 }
 
-.kpi__value {
-  font-size: var(--text-24);
-  font-weight: var(--font-bold);
-  color: var(--color-primary);
-}
-
 .kpi__detail {
-  font-size: var(--text-12);
-  color: var(--color-text-subtle);
+  color: var(--color-primary);
 }
 
 .admin__panels {
@@ -69,7 +60,6 @@
 
 .admin__panels h2 {
   margin-bottom: 16px;
-  font-size: var(--text-16);
 }
 
 /* Gráfico: eje Y (título + marcas) | barras; debajo, título del eje X. */
@@ -82,7 +72,7 @@
   grid-template-columns: auto auto minmax(0, 1fr);
   gap: 4px 8px;
   font-size: var(--text-11);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .hour-chart__y-title {
@@ -103,7 +93,7 @@
 .hour-chart__bars {
   display: flex;
   align-items: flex-end;
-  height: 200px;
+  height: 240px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -120,9 +110,15 @@
 }
 
 .hour-chart__bar {
-  width: calc(100% - 4px);
+  width: 28px;
+  max-width: calc(100% - 4px);
   height: calc(var(--value) * (100% - 36px));
-  border-radius: 4px 4px 0 0;
+  border-radius: 6px 6px 0 0;
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+/* Las franjas más cargadas, en sólido. */
+.hour-chart__bar--peak {
   background: var(--color-primary);
 }
 
@@ -153,21 +149,24 @@
 .core-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-14);
+  font-size: var(--text-13);
 }
 
 .core-table th,
 .core-table td {
-  padding: 10px 8px;
+  padding: 12px 16px 12px 0;
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   white-space: nowrap;
 }
 
+.core-table :is(th, td):last-child {
+  padding-right: 0;
+}
+
 .core-table thead th {
-  font-size: var(--text-12);
   font-weight: var(--font-semibold);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .core-table tbody th {

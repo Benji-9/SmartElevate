@@ -5,11 +5,16 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../App';
 import { NBSP } from '../features/admin/format';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
-import type { AdminKpis, Building } from '../types/pending';
+import type { Building } from '../types/api';
+import type { AdminKpis, AdminShift } from '../types/pending';
 
 const buildings: Building[] = [
-  { id: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10 },
-  { id: 'IND', name: 'Independencia', minFloor: -3, maxFloor: 10 },
+  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [] },
+  { code: 'INDEPENDENCIA', name: 'Independencia', minFloor: -3, maxFloor: 10, cores: [] },
+];
+
+const shifts: AdminShift[] = [
+  { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '12:15' },
 ];
 
 // 29/9 03:00 UTC = 00:00 en Buenos Aires.
@@ -53,6 +58,7 @@ function renderAdmin(routes = {}) {
   const fetchMock = stubApi({
     ...signedIn({ ...testUser, role: 'ADMIN' }),
     'GET /buildings': { body: buildings },
+    'GET /admin/shifts': { body: shifts },
     'GET /admin/kpis?period=TODAY': { body: kpis() },
     ...routes,
   });
@@ -65,19 +71,21 @@ function renderAdmin(routes = {}) {
 }
 
 describe('AdminDashboardPage', () => {
-  it('muestra las 4 tarjetas de KPIs contra la línea base', async () => {
+  it('muestra las 4 tarjetas de KPIs con su detalle', async () => {
     renderAdmin();
 
     expect(await screen.findByText('Cargando indicadores…')).toBeInTheDocument();
     const wait = await screen.findByRole('article', { name: 'Espera promedio' });
     expect(wait).toHaveTextContent('3,5 min');
     expect(wait).toHaveTextContent('18 % espera 5–10 min (línea base: 43,5 %)');
-    expect(screen.getByRole('article', { name: 'Turnos reservados' })).toHaveTextContent('1.240');
-    const checkIns = screen.getByRole('article', { name: 'Check-ins realizados' });
-    expect(checkIns).toHaveTextContent('81 %');
-    expect(checkIns).toHaveTextContent('1.004 de 1.240 turnos');
+    expect(screen.getByRole('article', { name: 'Turnos reservados' })).toHaveTextContent(
+      '1.240hoy',
+    );
+    expect(screen.getByRole('article', { name: 'Check-ins realizados' })).toHaveTextContent(
+      '81 %de los turnos reservados',
+    );
     expect(screen.getByRole('article', { name: 'Ocupación promedio' })).toHaveTextContent(
-      '6,8 / 10',
+      '6,8 / 10personas por franja',
     );
     expect(screen.getByText('29 de septiembre de 2026 · Todas las sedes')).toBeInTheDocument();
   });
@@ -124,6 +132,42 @@ describe('AdminDashboardPage', () => {
       '/api/admin/kpis?period=WEEK&buildingId=LIMA',
       expect.anything(),
     );
+  });
+
+  it('filtra por turno de cursada con los turnos que manda el servidor', async () => {
+    const fetchMock = renderAdmin({
+      'GET /admin/kpis?period=TODAY&shiftId=MORNING': { body: kpis({ reservations: 700 }) },
+    });
+
+    const group = await screen.findByRole('radiogroup', { name: 'Turno de cursada' });
+    expect(within(group).getByRole('radio', { name: 'Todo el día' })).toBeChecked();
+    await userEvent.click(await within(group).findByRole('radio', { name: 'Turno mañana' }));
+
+    expect(
+      await screen.findByText(
+        '29 de septiembre de 2026 · Todas las sedes · Turno mañana (7:00–12:15)',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Turnos reservados' })).toHaveTextContent('700');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/kpis?period=TODAY&shiftId=MORNING',
+      expect.anything(),
+    );
+  });
+
+  it('en pantallas angostas avisa que el panel es para computadora', async () => {
+    // jsdom no evalúa container queries: el aviso siempre está en el DOM y el CSS
+    // (@container app) decide si se ve el aviso o el panel.
+    renderAdmin();
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'El panel de administración es para computadora',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Abrilo desde una pantalla más grande para ver el detalle de congestión.'),
+    ).toBeInTheDocument();
   });
 
   it('muestra el error y permite reintentar', async () => {

@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
-import { StatusPill } from '../../components/StatusPill';
+import { CongestionRow } from '../../components/CongestionRow';
 import { ApiError, getCongestion } from '../../services/api';
-import type { CongestionSnapshot } from '../../types/pending';
+import type { CongestionLevel, CongestionSnapshot } from '../../types/pending';
 import './CongestionNow.css';
+
+// ponytail: `CoreCongestion` no trae ocupación; el largo de la barra sale del nivel.
+// Cuando la API exponga la ocupación del núcleo (0–1), pasarla directo a `value`.
+const levelValue: Record<CongestionLevel, number> = { LOW: 1 / 3, MEDIUM: 2 / 3, HIGH: 1 };
 
 const minutesAgo = new Intl.RelativeTimeFormat('es-AR', { style: 'short', numeric: 'always' });
 
@@ -52,9 +56,11 @@ export function CongestionNow() {
   return (
     <section className="congestion" aria-labelledby="congestion-title">
       <div className="congestion__header">
-        <h2 id="congestion-title">Congestión ahora</h2>
+        <h2 id="congestion-title" className="text-card-title">
+          Congestión ahora
+        </h2>
         {snapshot && (
-          <p className="congestion__updated">
+          <p className="congestion__updated text-caption">
             Actualizado {minutesAgo.format(-minutesOld, 'minute')}
           </p>
         )}
@@ -63,7 +69,7 @@ export function CongestionNow() {
       {error ? (
         <div role="alert" className="congestion__error">
           <p>{error}</p>
-          <Button variant="secondary" onClick={retry}>
+          <Button variant="secondary" block={false} onClick={retry}>
             Reintentar
           </Button>
         </div>
@@ -76,16 +82,13 @@ export function CongestionNow() {
       ) : (
         <ul className="congestion__list">
           {snapshot.cores.map((core) => (
-            <li
-              key={core.coreId}
-              className={`congestion__row congestion__row--${core.level.toLowerCase()}`}
-            >
-              <span className="congestion__name">{core.name}</span>
-              <span className="congestion__bar" aria-hidden="true">
-                <span />
-              </span>
-              <StatusPill level={core.level} />
-              <span className="congestion__wait">~{core.estimatedWaitMinutes} min de espera</span>
+            <li key={core.coreId}>
+              <CongestionRow
+                label={core.name}
+                level={core.level}
+                value={levelValue[core.level]}
+                detail={`~${core.estimatedWaitMinutes} min de espera`}
+              />
             </li>
           ))}
         </ul>

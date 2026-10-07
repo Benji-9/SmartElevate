@@ -5,6 +5,7 @@ import { Chip } from '../components/Chip';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { CancelTurnDialog } from '../features/turn/CancelTurnDialog';
 import { CheckinHint } from '../features/turn/CheckinHint';
+import { SuccessHero } from '../features/turn/SuccessHero';
 import { TurnDetails } from '../features/turn/TurnDetails';
 import '../features/turn/turn.css';
 import { ApiError, cancelReservation, getReservation } from '../services/api';
@@ -96,27 +97,13 @@ export function TurnPage() {
       </>
     );
   } else {
-    content = (
-      <>
-        <section className="turn-hero" aria-labelledby="turn-hero-title">
-          <span className="turn-hero__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="32" height="32">
-              <path
-                d="M5 12.5l4.5 4.5L19 7.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <h2 id="turn-hero-title">¡Turno confirmado!</h2>
-          <p className="turn-hero__hall">Esperá en {reservation.core.hall}.</p>
-        </section>
+    // Turno activo: pantalla de confirmación sin header, con el hero como `h1`.
+    return (
+      <div className="success-screen">
+        <SuccessHero title="¡Turno confirmado!">Esperá en {reservation.core.hall}.</SuccessHero>
         <TurnDetails reservation={reservation} />
         <CheckinHint />
-        <div className="turn-actions">
+        <div className="turn-actions turn-actions--row">
           <Link to="/check-in" className="button button--primary">
             Ir a check-in
           </Link>
@@ -132,7 +119,7 @@ export function TurnPage() {
           onConfirm={confirmCancel}
           onClose={closeDialog}
         />
-      </>
+      </div>
     );
   }
 

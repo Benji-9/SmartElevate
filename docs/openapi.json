@@ -12,8 +12,115 @@
   "tags" : [ {
     "description" : "Verificación de conectividad",
     "name" : "ping"
+  }, {
+    "description" : "Edificios, núcleos y ascensores (solo lectura)",
+    "name" : "elevator"
   } ],
   "paths" : {
+    "/api/buildings" : {
+      "get" : {
+        "operationId" : "buildings",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BuildingResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Lista los edificios con su rango de pisos y sus núcleos",
+        "tags" : [ "elevator" ]
+      }
+    },
+    "/api/elevators" : {
+      "get" : {
+        "operationId" : "elevators",
+        "parameters" : [ {
+          "description" : "Código del edificio, sin distinguir mayúsculas",
+          "example" : "INDEPENDENCIA",
+          "in" : "query",
+          "name" : "building",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Solo los ascensores que paran en este piso (0 = PB)",
+          "example" : 11,
+          "in" : "query",
+          "name" : "floor",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ElevatorResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Lista los ascensores activos con los pisos donde paran",
+        "tags" : [ "elevator" ]
+      }
+    },
     "/api/ping" : {
       "get" : {
         "operationId" : "ping",
@@ -90,6 +197,92 @@
           }
         },
         "required" : [ "error", "message", "path", "status", "timestamp" ]
+      },
+      "BuildingResponse" : {
+        "type" : "object",
+        "description" : "Edificio con su rango de pisos y sus núcleos",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "example" : "LIMA"
+          },
+          "cores" : {
+            "type" : "array",
+            "description" : "Núcleos del edificio, ordenados por código",
+            "items" : {
+              "$ref" : "#/components/schemas/CoreResponse"
+            }
+          },
+          "maxFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 10
+          },
+          "minFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : -4
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "Lima"
+          }
+        },
+        "required" : [ "code", "cores", "maxFloor", "minFloor", "name" ]
+      },
+      "CoreResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "example" : "L3"
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "Lima 3"
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "ElevatorResponse" : {
+        "type" : "object",
+        "description" : "Ascensor con los pisos donde para",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "building" : {
+            "type" : "string",
+            "example" : "INDEPENDENCIA"
+          },
+          "code" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "core" : {
+            "type" : "string",
+            "example" : "IND2"
+          },
+          "coreName" : {
+            "type" : "string",
+            "example" : "Independencia 2"
+          },
+          "floors" : {
+            "type" : "array",
+            "description" : "Pisos servidos, de menor a mayor (0 = PB)",
+            "example" : [ -4, -3, -2, -1, 0, 2, 3 ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "usage" : {
+            "type" : "string",
+            "description" : "COMMON, o dedicado a docentes (TEACHERS) o a movilidad reducida (REDUCED_MOBILITY)",
+            "enum" : [ "COMMON", "TEACHERS", "REDUCED_MOBILITY" ]
+          }
+        },
+        "required" : [ "active", "building", "code", "core", "coreName", "floors", "usage" ]
       },
       "FieldViolation" : {
         "type" : "object",

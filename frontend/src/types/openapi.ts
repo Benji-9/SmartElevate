@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+  '/api/buildings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Lista los edificios con su rango de pisos y sus núcleos */
+    get: operations['buildings'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/elevators': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Lista los ascensores activos con los pisos donde paran */
+    get: operations['elevators'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ping': {
     parameters: {
       query?: never;
@@ -43,6 +77,61 @@ export interface components {
       /** @description Solo en errores de validación */
       violations?: components['schemas']['FieldViolation'][];
     };
+    /** @description Edificio con su rango de pisos y sus núcleos */
+    BuildingResponse: {
+      /** @example LIMA */
+      code: string;
+      /** @description Núcleos del edificio, ordenados por código */
+      cores: components['schemas']['CoreResponse'][];
+      /**
+       * Format: int32
+       * @example 10
+       */
+      maxFloor: number;
+      /**
+       * Format: int32
+       * @example -4
+       */
+      minFloor: number;
+      /** @example Lima */
+      name: string;
+    };
+    CoreResponse: {
+      /** @example L3 */
+      code: string;
+      /** @example Lima 3 */
+      name: string;
+    };
+    /** @description Ascensor con los pisos donde para */
+    ElevatorResponse: {
+      active: boolean;
+      /** @example INDEPENDENCIA */
+      building: string;
+      /** @example 33 */
+      code: string;
+      /** @example IND2 */
+      core: string;
+      /** @example Independencia 2 */
+      coreName: string;
+      /**
+       * @description Pisos servidos, de menor a mayor (0 = PB)
+       * @example [
+       *       -4,
+       *       -3,
+       *       -2,
+       *       -1,
+       *       0,
+       *       2,
+       *       3
+       *     ]
+       */
+      floors: number[];
+      /**
+       * @description COMMON, o dedicado a docentes (TEACHERS) o a movilidad reducida (REDUCED_MOBILITY)
+       * @enum {string}
+       */
+      usage: 'COMMON' | 'TEACHERS' | 'REDUCED_MOBILITY';
+    };
     FieldViolation: {
       field: string;
       message: string;
@@ -60,6 +149,93 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  buildings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BuildingResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  elevators: {
+    parameters: {
+      query?: {
+        /**
+         * @description Código del edificio, sin distinguir mayúsculas
+         * @example INDEPENDENCIA
+         */
+        building?: string;
+        /**
+         * @description Solo los ascensores que paran en este piso (0 = PB)
+         * @example 11
+         */
+        floor?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ElevatorResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   ping: {
     parameters: {
       query?: never;

@@ -1,8 +1,8 @@
-import type { ApiErrorBody, FieldViolation, PingResponse } from '../types/api';
+import type { ApiErrorBody, Building, FieldViolation, PingResponse } from '../types/api';
 import type {
   AdminKpis,
   AdminKpisQuery,
-  Building,
+  AdminShift,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
@@ -215,7 +215,13 @@ export const getNotificationPreferences = () =>
 export const saveNotificationPreferences = (body: NotificationPreferences) =>
   api.put<NotificationPreferences>('/me/notification-preferences', body);
 /** KPIs del panel admin. Solo rol ADMIN (lo valida el backend). */
-export function getAdminKpis({ period, buildingId }: AdminKpisQuery) {
-  const query = new URLSearchParams({ period, ...(buildingId ? { buildingId } : {}) });
+export function getAdminKpis({ period, buildingId, shiftId }: AdminKpisQuery) {
+  const query = new URLSearchParams({
+    period,
+    ...(buildingId ? { buildingId } : {}),
+    ...(shiftId ? { shiftId } : {}),
+  });
   return api.get<AdminKpis>(`/admin/kpis?${query}`);
 }
+/** Turnos de cursada para filtrar los KPIs. */
+export const getAdminShifts = () => api.get<AdminShift[]>('/admin/shifts');

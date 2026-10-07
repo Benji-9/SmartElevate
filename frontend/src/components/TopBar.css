@@ -1,0 +1,68 @@
+/*
+ * TopBar (VIEW-MODES.md §5). Sin `display`: lo pone `.only-desktop` (flex en el layout de
+ * Pantalla, none en el móvil).
+ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  align-items: center;
+  gap: 32px;
+  height: var(--topbar-h);
+  padding: 0 32px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.topbar__logo {
+  flex: none;
+  width: auto;
+  height: 32px;
+}
+
+.topbar__nav {
+  align-self: stretch;
+}
+
+.topbar__nav ul {
+  display: flex;
+  gap: 24px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Alto completo de la barra (≥ 44 px de área táctil); la activa se subraya con 2 px. */
+.topbar__tab {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.topbar__tab.active {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.topbar__avatar.avatar {
+  width: 36px;
+  height: 36px;
+  font-size: var(--text-13);
+}
+
+@media (hover: hover) {
+  .topbar__tab:not(.active):hover {
+    color: var(--color-text);
+  }
+}

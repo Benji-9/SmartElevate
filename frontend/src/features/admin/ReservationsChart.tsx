@@ -4,6 +4,9 @@ import { formatNumber } from './format';
 
 type ReservationsChartProps = { data: AdminKpis['reservationsByHour'] };
 
+/** Desde qué parte del máximo una franja cuenta como de las más cargadas (barra sólida). */
+const PEAK_RATIO = 0.8;
+
 /**
  * Barras de reservas por hora, en CSS. El dibujo es decorativo (`aria-hidden`): los
  * lectores de pantalla leen la tabla equivalente.
@@ -15,7 +18,9 @@ export function ReservationsChart({ data }: ReservationsChartProps) {
   return (
     <figure className="admin-card hour-chart" aria-labelledby={titleId}>
       <figcaption>
-        <h2 id={titleId}>Reservas por franja</h2>
+        <h2 id={titleId} className="text-card-title">
+          Reservas por franja
+        </h2>
       </figcaption>
 
       <div className="hour-chart__plot" aria-hidden="true">
@@ -29,7 +34,9 @@ export function ReservationsChart({ data }: ReservationsChartProps) {
           {data.map(({ hour, reservations }) => (
             <li key={hour} style={{ '--value': reservations / max } as CSSProperties}>
               <span className="hour-chart__value">{formatNumber(reservations)}</span>
-              <span className="hour-chart__bar" />
+              <span
+                className={`hour-chart__bar${reservations >= max * PEAK_RATIO ? ' hour-chart__bar--peak' : ''}`}
+              />
               <span className="hour-chart__hour">{hour}</span>
             </li>
           ))}

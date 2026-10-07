@@ -8,10 +8,10 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
+| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, Flyway, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
 | Frontend | React 19, Vite 8, TypeScript, React Router, Vitest + React Testing Library, ESLint + Prettier |
 | CI/CD | GitHub Actions |
-| Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI). Backend: hosting a definir ([bloqueante B-01](docs/bloqueantes.md)) |
+| Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI), backend en Render (Docker) y Postgres en Neon. Accesos y operación en [`docs/infraestructura.md`](docs/infraestructura.md) |
 
 ## Estructura
 
@@ -35,7 +35,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 │   │   ├── hooks/
 │   │   └── types/
 │   └── vercel.json
-├── docs/                     bloqueantes, ADRs
+├── docs/                     reglas, ADRs, bloqueantes, specs de UI (frontend/)
 ├── .github/                  workflows, PR template, dependabot
 ├── .claude/                  agentes de Claude Code para el equipo
 ├── CLAUDE.md                 contexto del repo para Claude Code
@@ -73,8 +73,7 @@ export SPRING_PROFILES_ACTIVE=prod
 export DATABASE_URL=jdbc:postgresql://localhost:5432/smartelevate
 export DATABASE_USER=smartelevate
 export DATABASE_PASSWORD=smartelevate
-export JPA_DDL_AUTO=update                 # mientras no haya migraciones (ver ADR 0004)
-./mvnw spring-boot:run
+./mvnw spring-boot:run                     # Flyway crea el schema al arrancar
 ```
 
 #### Variables de entorno del backend
@@ -87,7 +86,15 @@ export JPA_DDL_AUTO=update                 # mientras no haya migraciones (ver A
 | `DATABASE_URL` | — | Solo `prod`. Formato JDBC: `jdbc:postgresql://host:5432/db` |
 | `DATABASE_USER` | — | Solo `prod` |
 | `DATABASE_PASSWORD` | — | Solo `prod` |
-| `JPA_DDL_AUTO` | `validate` | Solo `prod`. Estrategia de Hibernate para el schema |
+
+#### Migraciones de la base (Flyway)
+
+El schema lo crean los scripts de `backend/src/main/resources/db/migration/`, igual en dev (H2), en los tests y en prod (Postgres). Hibernate solo valida que las entidades coincidan (`ddl-auto: validate`). Decisión en el [ADR 0004](docs/adr/0004-migraciones-de-base-de-datos.md).
+
+- Un script por cambio, con nombre `V<n>__<descripcion>.sql` (p. ej. `V2__agregar_ascensor_a_reservas.sql`), en el mismo PR que el cambio de entidades.
+- **Una migración ya mergeada no se edita**: Flyway detecta el cambio y la app no arranca. Se corrige con una migración nueva.
+- SQL compatible con H2 y con Postgres: sin tipos ni funciones exclusivas de Postgres.
+- Si ya tenías un Postgres local con tablas creadas por Hibernate, recrealo con `docker compose down -v` y volvé a levantarlo.
 
 #### Imagen Docker
 
@@ -145,6 +152,8 @@ Documentá con anotaciones: `@Tag` y `@Operation` en el controller, `@Schema` en
 | Backend: regenerar `docs/openapi.json` | `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` |
 
 Lo mismo que corre el CI del frontend: `npm ci && npm run lint && npm test -- --run && npm run build`.
+
+**Tests del backend contra Postgres real.** Casi todos los tests usan H2, pero los que dependen de Postgres (migraciones, locks del cupo) levantan un `postgres:18-alpine` en Docker con [Testcontainers](https://java.testcontainers.org/). Necesitan Docker corriendo (Docker Desktop en Windows/macOS); **sin Docker se saltean** (salen como *skipped*) y `./mvnw verify` sigue pasando. En CI siempre corren. Para un test nuevo: `@Import(PostgresTestcontainersConfig.class)` + `@Testcontainers(disabledWithoutDocker = true)` (ver `FlywayPostgresTest`).
 
 ## Estrategia de ramas
 
@@ -216,6 +225,7 @@ Commits chicos y atómicos. El título del PR también sigue la convención.
 | [`ci-frontend.yml`](.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, lint, tests, build |
 | [`branch-policy.yml`](.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
+| [`keep-alive-backend.yml`](.github/workflows/keep-alive-backend.yml) | Cada 10 min, 07:00–22:59 (Buenos Aires) | `GET /api/ping` para que Render no duerma el backend ([detalle](docs/infraestructura.md#keep-alive)) |
 
 Detalles:
 
@@ -224,6 +234,7 @@ Detalles:
 - El deploy nunca corre para PRs de forks (el workflow tiene acceso a secrets).
 - Los deploys automáticos de Vercel por Git están apagados (`"git": { "deploymentEnabled": false }` en `vercel.json`): **el único camino de deploy es el workflow**.
 - Decisiones y trade-offs: [ADR 0003](docs/adr/0003-deploy-frontend-vercel-via-github-actions.md).
+- El backend no tiene workflow de deploy: Render lo buildea solo desde `main` cuando pasa `backend-verify` ([ADR 0012](docs/adr/0012-hosting-del-backend-render-y-neon.md)).
 
 ### ¿Cómo llega `/api` al backend en Vercel?
 
@@ -267,7 +278,7 @@ En el repo → **Settings → Secrets and variables → Actions**:
   - `VERCEL_ORG_ID`
   - `VERCEL_PROJECT_ID`
 - **Variables** (pestaña *Variables*):
-  - `BACKEND_URL` — URL pública del backend, sin `/` final (p. ej. `https://smartelevate-api.onrender.com`). Se puede definir distinta por environment (`preview` / `production`) en **Settings → Environments**; los environments los crea el workflow en la primera corrida.
+  - `BACKEND_URL` — URL pública del backend, sin `/` final (hoy `https://smartelevate.onrender.com`). Se puede definir distinta por environment (`preview` / `production`) en **Settings → Environments**; los environments los crea el workflow en la primera corrida.
 
 ### 4. Vercel: variables de entorno
 
@@ -308,6 +319,7 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 ## Documentación
 
 - [docs/reglas/](docs/reglas/) — **reglas de negocio**: turnos, asignación, check-in QR, usuarios y prioridad, KPIs y parámetros configurables
+- [docs/frontend/](docs/frontend/README.md) — **specs de UI**: design system (tokens y componentes), pantallas y modos de vista Pantalla/Teléfono; reemplazan consultar Figma
 - [docs/glosario.md](docs/glosario.md) — términos del dominio
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records

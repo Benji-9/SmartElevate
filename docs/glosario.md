@@ -13,9 +13,12 @@ Términos del dominio, para que backend, frontend y docs hablen igual. Entre par
 | **Prioritario** | Usuario con prioridad aprobada y vigente: movilidad reducida (`REDUCED_MOBILITY`) o docente (`TEACHER`). |
 | **Lugares reservados** | Hasta 2 de 10 lugares por salida en ascensores comunes, guardados para prioritarios. |
 | **Envejecimiento** (aging) | Aumento de prioridad de una solicitud tras N min de espera. |
-| **Edificio** (`Building`) | Lima (−2 a 10) o Independencia (−3 a 10). |
-| **Ascensor** (`Elevator`) | IND1, IND2, L1, L2, L3… Cada uno sirve un conjunto de pisos. |
-| **Conexión** (`Connection`) | Paso entre edificios válido en un rango de pisos, con su tiempo de caminata. |
-| **Ascensor accesible** | Ascensor apto para movilidad reducida; existe en un solo edificio. |
+| **Edificio** (`Building`) | Lima (−4 a 10) o Independencia (−4 a 11). Agrupa núcleos. |
+| **Núcleo** (`Core`) | Grupo de ascensores de un edificio: IND1, IND2, L1, L2, L3. Es el nodo del grafo de conexiones. |
+| **Ascensor** (`Elevator`) | Cabina identificada por su código (01–08, 10–15, 33–36). Cada uno sirve su propia lista de pisos. |
+| **Batería** | Ascensores de un mismo núcleo que sirven los mismos pisos (p. ej. L2 tiene una baja y una alta). |
+| **Conexión** (`Connection`) | Paso entre núcleos válido en un rango de pisos, con su tiempo de caminata. |
+| **Ascensor dedicado** | Ascensor exclusivo de un tipo de prioritario: IND1 05 (docentes) e IND1 06 (movilidad reducida). |
+| **Ascensor accesible** | Ascensor apto para movilidad reducida: IND1 06. |
 | **Certificado** | Documento que respalda la movilidad reducida. Estados: pendiente, aprobado (con vencimiento), rechazado. |
 | **Revisor** (`REVIEWER`) | Rol que revisa certificados. |

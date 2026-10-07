@@ -3,7 +3,7 @@ export const TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 const timeFormat = new Intl.DateTimeFormat('es-AR', {
   timeZone: TIME_ZONE,
-  hour: '2-digit',
+  hour: 'numeric',
   minute: '2-digit',
   hourCycle: 'h23',
 });
@@ -15,11 +15,24 @@ const dateFormat = new Intl.DateTimeFormat('es-AR', {
   month: 'long',
 });
 
-/** `"14:32"` a partir de un instante ISO en UTC. */
-export const formatTime = (iso: string) => timeFormat.format(new Date(iso));
+const dayFormat = new Intl.DateTimeFormat('es-AR', {
+  timeZone: TIME_ZONE,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'numeric',
+});
 
-/** `"martes, 29 de septiembre"`. */
+/** `"7:25"`, `"14:32"` a partir de un instante ISO en UTC (es-AR pone "07:25": se saca el 0). */
+export const formatTime = (iso: string) => timeFormat.format(new Date(iso)).replace(/^0(?=\d)/, '');
+
+/** `"martes, 29 de septiembre"`: para usar dentro de una oración. */
 export const formatDate = (date: Date) => dateFormat.format(date);
+
+/** `"Martes 29/9"` (DESIGN-SYSTEM §8): la fecha suelta, como en el saludo del inicio. */
+export function formatDay(date: Date) {
+  const part = Object.fromEntries(dayFormat.formatToParts(date).map((p) => [p.type, p.value]));
+  return `${part.weekday[0].toUpperCase()}${part.weekday.slice(1)} ${part.day}/${part.month}`;
+}
 
 /** `"14:32 – 14:34"`: la franja de una salida. */
 export const formatSlot = (departsAt: string, durationMinutes: number) =>

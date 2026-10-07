@@ -49,6 +49,8 @@ describe('ProfilePage', () => {
     renderProfile();
 
     expect(await screen.findByRole('heading', { name: 'Ana Pérez' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Mi perfil' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
     expect(screen.getByText('Docente')).toBeInTheDocument();
     expect(screen.getByText('Legajo 1099999')).toBeInTheDocument();
     expect(screen.getByText('ana.perez@uade.edu.ar')).toBeInTheDocument();
@@ -60,7 +62,24 @@ describe('ProfilePage', () => {
       'href',
       '/perfil/notificaciones',
     );
-    expect(screen.getByRole('link', { name: 'Perfil' })).toHaveAttribute('aria-current', 'page');
+    // BottomNav y TopBar (el container query muestra una sola).
+    for (const tab of screen.getAllByRole('link', { name: 'Perfil' })) {
+      expect(tab).toHaveAttribute('aria-current', 'page');
+    }
+  });
+
+  it.each([
+    ['STUDENT', 'Estudiante'],
+    ['STAFF', 'Personal'],
+  ] as const)('muestra el tipo de usuario %s con texto', async (declaredUserType, label) => {
+    stubApi({
+      ...signedIn({ ...testUser, declaredUserType }),
+      'GET /priority-requests/me': { body: null },
+      'GET /priority-requests/upload-rules': { body: rules },
+    });
+    renderProfile();
+
+    expect(await screen.findByText(label)).toBeInTheDocument();
   });
 
   it('envía el certificado con el consentimiento y pasa a pendiente', async () => {

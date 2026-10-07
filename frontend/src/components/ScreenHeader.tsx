@@ -5,10 +5,11 @@ type ScreenHeaderProps = {
   title: string;
   /** A dónde ir si la pantalla se abrió directo (sin historial). */
   backTo?: string;
+  className?: string;
 };
 
 /** Encabezado de pantalla con botón "Volver" y el título como `h1`. */
-export function ScreenHeader({ title, backTo = '/' }: ScreenHeaderProps) {
+export function ScreenHeader({ title, backTo = '/', className }: ScreenHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,7 +23,7 @@ export function ScreenHeader({ title, backTo = '/' }: ScreenHeaderProps) {
   }
 
   return (
-    <header className="screen-header">
+    <header className={['screen-header', className].filter(Boolean).join(' ')}>
       <button type="button" className="screen-header__back" aria-label="Volver" onClick={goBack}>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <path
@@ -35,7 +36,7 @@ export function ScreenHeader({ title, backTo = '/' }: ScreenHeaderProps) {
           />
         </svg>
       </button>
-      <h1 className="screen-header__title">{title}</h1>
+      <h1 className="screen-header__title text-heading">{title}</h1>
     </header>
   );
 }

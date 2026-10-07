@@ -3,6 +3,7 @@ import { OnTimeCard } from '../features/check-in/OnTimeCard';
 import { WaitFeedback } from '../features/check-in/WaitFeedback';
 import '../features/check-in/checkin.css';
 import { formatTime } from '../features/turn/format';
+import { SuccessHero } from '../features/turn/SuccessHero';
 import '../features/turn/turn.css';
 import type { CheckInResult } from '../types/pending';
 
@@ -19,25 +20,10 @@ export function CheckInSuccessPage() {
   if (!isResult(state)) return <Navigate to="/" replace />;
 
   return (
-    <>
-      <section className="turn-hero" aria-labelledby="checkin-hero-title">
-        <span className="turn-hero__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="32" height="32">
-            <path
-              d="M5 12.5l4.5 4.5L19 7.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-        <h1 id="checkin-hero-title">Viaje registrado</h1>
-        <p className="turn-hero__hall">
-          {state.elevatorName} · {state.coreName} · {formatTime(state.checkedInAt)}
-        </p>
-      </section>
+    <div className="success-screen success-screen--check-in">
+      <SuccessHero title="Viaje registrado">
+        {state.elevatorName} · {state.coreName} · {formatTime(state.checkedInAt)} hs
+      </SuccessHero>
       <OnTimeCard result={state} />
       <WaitFeedback reservationId={state.reservationId} />
       <div className="turn-actions">
@@ -45,6 +31,6 @@ export function CheckInSuccessPage() {
           Volver al inicio
         </Link>
       </div>
-    </>
+    </div>
   );
 }

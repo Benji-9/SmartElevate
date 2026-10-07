@@ -4,14 +4,13 @@
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  min-height: 49px;
-  padding: 0.75rem 1rem;
+  min-height: 48px;
+  padding: 0 var(--space-screen);
   border: 1.5px solid transparent;
   border-radius: var(--radius-button);
-  font-size: var(--text-15);
-  font-weight: var(--font-semibold);
+  /* Igual que .text-button (16/600): va acá porque también lo usan links con forma de botón. */
+  font: var(--font-semibold) var(--text-16) / 24px var(--font-sans);
   cursor: pointer;
-  transition: opacity 120ms ease;
 }
 
 .button--primary {
@@ -20,20 +19,21 @@
 }
 
 .button--secondary {
-  min-height: 52px;
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-.button:disabled {
+/* Mientras carga conserva el color de su variante (y el spinner lo indica). */
+.button:disabled:not([aria-busy='true']) {
+  border-color: transparent;
+  background: var(--color-disabled-bg);
+  color: var(--color-text-subtle);
   cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .button[aria-busy='true'] {
   cursor: progress;
-  opacity: 0.75;
 }
 
 .button__spinner {
@@ -48,6 +48,25 @@
 @keyframes button-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* `block={false}` (y los links con `.button--inline`): ancho del contenido, solo en Pantalla. */
+@container app (min-width: 900px) {
+  .button--inline {
+    justify-self: start;
+    align-self: start;
+    width: auto;
+  }
+}
+
+@media (hover: hover) {
+  .button--primary:not(:disabled):hover {
+    opacity: 0.92;
+  }
+
+  .button--secondary:not(:disabled):hover {
+    background: var(--color-primary-tint);
   }
 }
 

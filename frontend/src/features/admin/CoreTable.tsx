@@ -1,5 +1,6 @@
 import { useId } from 'react';
-import { StatusPill } from '../../components/StatusPill';
+import { Chip } from '../../components/Chip';
+import { congestionLabel, congestionTone } from '../congestion/level';
 import type { CoreKpis } from '../../types/pending';
 import { formatMinutes, formatNumber, formatPercent } from './format';
 
@@ -9,7 +10,9 @@ export function CoreTable({ cores }: { cores: CoreKpis[] }) {
 
   return (
     <section className="admin-card" aria-labelledby={titleId}>
-      <h2 id={titleId}>Estado por núcleo</h2>
+      <h2 id={titleId} className="text-card-title">
+        Estado por núcleo
+      </h2>
       {cores.length === 0 ? (
         <p className="page-placeholder">No hay núcleos para mostrar.</p>
       ) : (
@@ -20,7 +23,7 @@ export function CoreTable({ cores }: { cores: CoreKpis[] }) {
                 <th scope="col">Núcleo</th>
                 <th scope="col">Reservas</th>
                 <th scope="col">Ocupación</th>
-                <th scope="col">Espera promedio</th>
+                <th scope="col">Espera</th>
                 <th scope="col">Estado</th>
               </tr>
             </thead>
@@ -32,7 +35,9 @@ export function CoreTable({ cores }: { cores: CoreKpis[] }) {
                   <td>{formatPercent(core.occupancyPercent)}</td>
                   <td>{formatMinutes(core.avgWaitSeconds)}</td>
                   <td>
-                    <StatusPill level={core.congestion} />
+                    <Chip tone={congestionTone[core.congestion]}>
+                      {congestionLabel[core.congestion]}
+                    </Chip>
                   </td>
                 </tr>
               ))}

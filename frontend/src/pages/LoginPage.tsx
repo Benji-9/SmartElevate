@@ -2,10 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, type Location } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { Logo } from '../components/Logo';
 import { validateUadeEmail } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
+import logo from '../assets/smartelevate-logo.svg';
+import uadeLogo from '../assets/uade-logo.svg';
 import './AuthPages.css';
 
 type Errors = { email?: string; password?: string };
@@ -45,11 +46,13 @@ export function LoginPage() {
   }
 
   return (
-    <section className="auth">
+    <section className="auth auth--login auth-card">
       <header className="auth__intro">
-        <Logo />
-        <h1>Bienvenido a SmartElevate</h1>
-        <p className="auth__subtitle">Reservá tu turno de ascensor y llegá a tiempo a clase.</p>
+        <img className="auth__logo" src={logo} alt="" width={181} height={120} />
+        <h1 className="text-title">Bienvenido a SmartElevate</h1>
+        <p className="auth__subtitle text-body">
+          Reservá tu turno de ascensor y llegá a tiempo a clase.
+        </p>
       </header>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
@@ -66,6 +69,7 @@ export function LoginPage() {
           label="Contraseña"
           type="password"
           autoComplete="current-password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
@@ -95,6 +99,10 @@ export function LoginPage() {
       <p className="auth__footer">
         ¿No tenés cuenta? <Link to="/registro">Registrate</Link>
       </p>
+
+      <footer className="auth__org">
+        <img className="auth__uade-logo" src={uadeLogo} alt="UADE" width={86} height={30} />
+      </footer>
     </section>
   );
 }

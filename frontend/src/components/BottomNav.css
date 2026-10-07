@@ -1,12 +1,12 @@
+/*
+ * Sticky, no fixed (VIEW-MODES.md §4): es el último hijo de la columna de la pantalla y
+ * dentro del marco de teléfono (con transform) un fixed se ancla mal.
+ */
 .bottom-nav {
-  position: fixed;
-  right: 0;
+  position: sticky;
   bottom: 0;
-  left: 0;
   z-index: 10;
-  max-width: var(--screen-max-width);
-  margin: 0 auto;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  padding: 10px 8px calc(24px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -22,12 +22,13 @@
 .bottom-nav__link {
   display: grid;
   justify-items: center;
+  align-content: center;
   gap: 4px;
-  padding: 6px 4px;
+  min-height: 44px;
+  padding: 4px;
   border-radius: var(--radius-input);
-  color: var(--color-text-subtle);
-  font-size: var(--text-11);
-  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+  font: 500 11px/14px var(--font-sans);
   text-decoration: none;
 }
 

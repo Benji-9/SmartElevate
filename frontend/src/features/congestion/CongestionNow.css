@@ -1,6 +1,6 @@
 .congestion {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .congestion__header {
@@ -10,70 +10,16 @@
   gap: 8px;
 }
 
-.congestion__updated,
-.congestion__wait {
-  font-size: var(--text-12);
-  color: var(--color-text-subtle);
+.congestion__updated {
+  color: var(--color-text-muted);
 }
 
 .congestion__list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.congestion__row {
-  --status-color: var(--Status-Baja);
-  --level: 33%;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 6px 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-}
-
-.congestion__row--medium {
-  --status-color: var(--Status-Media);
-  --level: 66%;
-}
-
-.congestion__row--high {
-  --status-color: var(--Status-Alta);
-  --level: 100%;
-}
-
-.congestion__name {
-  font-size: var(--text-15);
-  font-weight: var(--font-semibold);
-}
-
-.congestion__bar {
-  grid-column: 1;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-disabled-bg);
-  overflow: hidden;
-}
-
-.congestion__bar > span {
-  display: block;
-  width: var(--level);
-  height: 100%;
-  background: var(--status-color);
-}
-
-.congestion__wait {
-  grid-column: 1;
-}
-
-.congestion__row .status-pill {
-  grid-column: 2;
-  grid-row: 1 / span 2;
 }
 
 .congestion__error {

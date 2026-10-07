@@ -3,11 +3,12 @@
 // Para apagar un endpoint cuando el real esté listo, borrá su ruta de `routes`:
 // lo que no matchea acá sigue de largo al backend.
 // Datos ficticios: los pisos y núcleos reales salen del relevamiento #22.
+import type { Building } from '../types/api';
 import { ApiError } from './api';
 import type {
   AdminKpis,
   AdminPeriod,
-  Building,
+  AdminShift,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
@@ -48,9 +49,17 @@ const TRIPS_PAGE_SIZE = 10;
 const DAY_MS = 86_400_000;
 const BA_OFFSET_MS = 3 * 3_600_000;
 const PERIOD_DAYS: Record<AdminPeriod, number> = { TODAY: 1, WEEK: 7, MONTH: 30 };
-// Reservas de un día típico por hora (8 a 22 h), con picos en los cambios de clase.
-const FIRST_HOUR = 8;
-const HOURLY_RESERVATIONS = [18, 42, 25, 12, 30, 22, 15, 20, 38, 16, 10, 34, 26, 12, 6];
+// Turnos de cursada (kpis.md#filtros): el turno mañana cubre las cursadas 7:45–11:45 y 8:15–12:15.
+const SHIFTS: AdminShift[] = [
+  { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '12:15' },
+];
+const minutesOf = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+// Reservas de un día típico por hora (7 a 22 h), con picos en los cambios de clase.
+const FIRST_HOUR = 7;
+const HOURLY_RESERVATIONS = [28, 18, 42, 25, 12, 30, 22, 15, 20, 38, 16, 10, 34, 26, 12, 6];
 // Parte de las reservas, ocupación y espera promedio de cada núcleo (panel admin).
 const CORE_STATS: Record<string, { share: number; occupancyPercent: number; waitSeconds: number }> =
   {
@@ -108,11 +117,6 @@ function currentUser(): User {
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-const buildings: Building[] = [
-  { id: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10 },
-  { id: 'IND', name: 'Independencia', minFloor: -3, maxFloor: 10 },
-];
-
 const cores: Core[] = [
   {
     id: 'L1',
@@ -143,7 +147,7 @@ const cores: Core[] = [
   },
   {
     id: 'IND1',
-    buildingId: 'IND',
+    buildingId: 'INDEPENDENCIA',
     name: 'Independencia 1',
     floors: range(-3, 10),
     congestion: 'MEDIUM',
@@ -152,7 +156,7 @@ const cores: Core[] = [
   },
   {
     id: 'IND2',
-    buildingId: 'IND',
+    buildingId: 'INDEPENDENCIA',
     name: 'Independencia 2',
     floors: range(0, 10),
     congestion: 'LOW',
@@ -163,6 +167,21 @@ const cores: Core[] = [
 
 // Ocupación de ejemplo por salida; la segunda está llena para probar el 409.
 const OCCUPANCY = [4, 10, 7, 2, 9, 0, 5, 3, 8, 1, 6, 2, 0, 4, 1];
+
+// Misma forma que GET /api/buildings: los núcleos van con código y nombre visible.
+const coresOf = (buildingCode: string) =>
+  cores.filter((c) => c.buildingId === buildingCode).map((c) => ({ code: c.id, name: c.name }));
+
+const buildings: Building[] = [
+  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: coresOf('LIMA') },
+  {
+    code: 'INDEPENDENCIA',
+    name: 'Independencia',
+    minFloor: -3,
+    maxFloor: 10,
+    cores: coresOf('INDEPENDENCIA'),
+  },
+];
 
 function departuresFor(coreId: string): Departure[] {
   const step = DEPARTURE_MINUTES * 60_000;
@@ -200,7 +219,7 @@ function newReservation(
     core: {
       id: core.id,
       name: core.name,
-      buildingName: buildings.find((b) => b.id === core.buildingId)!.name,
+      buildingName: buildings.find((b) => b.code === core.buildingId)!.name,
       floors: core.floors,
       hall: core.hall,
     },
@@ -516,6 +535,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/me\/notification-preferences$/,
     (body) => (notificationPreferences = body as NotificationPreferences),
   ],
+  ['GET', /^\/admin\/shifts$/, () => SHIFTS],
   [
     'GET',
     /^\/admin\/kpis$/,
@@ -525,12 +545,19 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       const buildingId = query.get('buildingId');
       const selected = cores.filter((c) => !buildingId || c.buildingId === buildingId);
       if (!selected.length) throw new ApiError(404, 'La sede no existe');
+      const shiftId = query.get('shiftId');
+      const shift = SHIFTS.find((s) => s.id === shiftId);
+      if (shiftId && !shift) throw new ApiError(404, 'El turno no existe');
+      // Horas que se solapan con el turno (con 12:15 entra la hora de las 12).
+      const inShift = (hour: number) =>
+        !shift ||
+        (hour * 60 < minutesOf(shift.endsAt) && (hour + 1) * 60 > minutesOf(shift.startsAt));
 
       const share = selected.reduce((sum, c) => sum + CORE_STATS[c.id].share, 0);
       const reservationsByHour = HOURLY_RESERVATIONS.map((n, i) => ({
         hour: FIRST_HOUR + i,
         reservations: Math.round(n * days * share),
-      }));
+      })).filter((h) => inShift(h.hour));
       const reservations = reservationsByHour.reduce((sum, h) => sum + h.reservations, 0);
       const checkIns = Math.round(reservations * 0.81);
       // ponytail: Buenos Aires fijo en UTC-3 (hoy no tiene horario de verano).

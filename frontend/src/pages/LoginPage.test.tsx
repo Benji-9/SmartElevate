@@ -106,4 +106,22 @@ describe('LoginPage', () => {
 
     expect(screen.getByRole('link', { name: 'Registrate' })).toHaveAttribute('href', '/registro');
   });
+
+  it('los campos muestran un ejemplo sin reemplazar la etiqueta', async () => {
+    stubApi(signedOut);
+    await renderLogin();
+
+    expect(screen.getByLabelText('Email institucional')).toHaveAttribute(
+      'placeholder',
+      'nombre@uade.edu.ar',
+    );
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('placeholder', '••••••••');
+  });
+
+  it('muestra el logo de UADE al pie', async () => {
+    stubApi(signedOut);
+    await renderLogin();
+
+    expect(screen.getByRole('img', { name: 'UADE' })).toBeInTheDocument();
+  });
 });

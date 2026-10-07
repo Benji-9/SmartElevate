@@ -8,12 +8,15 @@ import { createQrReader } from '../features/check-in/qrReader';
 import '../features/check-in/check-in.css';
 import { formatFloor, formatSlot } from '../features/turn/format';
 import '../features/turn/turn.css';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { checkIn, getActiveReservation } from '../services/api';
 
 type Camera = 'starting' | 'on' | 'denied' | 'unavailable';
 
 const SCAN_INTERVAL_MS = 300;
+/** Código de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
+const DEMO_CODE = 'DEMO';
 
 /**
  * Check-in (Figma 06 y 06b). Escanea el QR del ascensor con la cámara; en `/check-in/codigo`
@@ -21,6 +24,7 @@ const SCAN_INTERVAL_MS = 300;
  */
 export function CheckInPage({ manual = false }: { manual?: boolean }) {
   const navigate = useNavigate();
+  const demo = useDemoMode();
   const videoRef = useRef<HTMLVideoElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const failedCode = useRef<string | null>(null);
@@ -163,17 +167,9 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
     );
   } else {
     turnContent = (
-      <>
-        <Chip>
-          {formatSlot(reservation.departure.departsAt, reservation.departure.durationMinutes)}
-        </Chip>
-        <p>
-          <strong>Ascensor {reservation.core.name}</strong> · {formatFloor(reservation.originFloor)}{' '}
-          <span aria-hidden="true">→</span>
-          <span className="visually-hidden">a</span> {formatFloor(reservation.destinationFloor)}
-        </p>
-        <p className="page-placeholder">{reservation.core.hall}</p>
-      </>
+      <p className="check-in__route text-body-sm">
+        {reservation.core.name} · Piso {formatFloor(reservation.destinationFloor)}
+      </p>
     );
   }
 
@@ -192,6 +188,16 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
         <ScreenHeader title="Check-in" />
         <div className="check-in__body">
           {cameraState}
+          {demo && (
+            <Button
+              variant="secondary"
+              className="check-in__demo"
+              disabled={submitting}
+              onClick={() => void submit(DEMO_CODE)}
+            >
+              Simular escaneo del QR
+            </Button>
+          )}
           {submitting && !manual && <p role="status">Registrando tu check-in…</p>}
           {error && !manual && (
             <p role="alert" className="turn-alert check-in__alert">
@@ -202,9 +208,18 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
       </div>
 
       <section className="check-in__sheet" aria-labelledby={turnTitleId}>
-        <h2 id={turnTitleId}>Tu turno</h2>
+        <div className="check-in__sheet-head">
+          <h2 id={turnTitleId} className="text-card-title">
+            Tu turno
+          </h2>
+          {reservation && (
+            <Chip>
+              {formatSlot(reservation.departure.departsAt, reservation.departure.durationMinutes)}
+            </Chip>
+          )}
+        </div>
         {turnContent}
-        <Link to="/check-in/codigo" replace className="button button--secondary">
+        <Link to="/check-in/codigo" replace className="button button--secondary button--inline">
           Ingresar código manualmente
         </Link>
       </section>

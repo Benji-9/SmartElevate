@@ -57,6 +57,7 @@ export function WaitFeedback({ reservationId }: { reservationId: string }) {
         <Button
           type="submit"
           variant="secondary"
+          block={false}
           disabled={!range}
           loading={sending}
           loadingLabel="Enviando…"
