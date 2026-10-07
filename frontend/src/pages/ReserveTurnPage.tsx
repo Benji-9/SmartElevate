@@ -5,6 +5,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { BuildingSelector } from '../features/turn/BuildingSelector';
 import { FloorSelector } from '../features/turn/FloorSelector';
 import { formatFloor, formatSlot, formatTime } from '../features/turn/format';
+import { loadLastTrip, saveLastTrip } from '../features/turn/lastTrip';
 import { OriginFloorInput } from '../features/turn/OriginFloorInput';
 import { SlotList } from '../features/turn/SlotList';
 import '../features/turn/ReserveTurn.css';
@@ -18,11 +19,20 @@ import {
   getDestinationFloors,
   reserve,
 } from '../services/api';
-import type { Departure } from '../types/pending';
+import type { Building } from '../types/api';
+import type { Core, Departure } from '../types/pending';
 
 const loadCatalog = () => Promise.all([getBuildings(), getCores()]);
 // Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
 const loadActive = () => getActiveReservation().catch(() => null);
+
+/** Pisos de origen posibles: los del núcleo dentro del rango de su edificio. */
+function originFloorsOf(core: Core | undefined, buildings: Building[]) {
+  const building = buildings.find((b) => b.code === core?.buildingId);
+  return core && building
+    ? core.floors.filter((f) => f >= building.minFloor && f <= building.maxFloor)
+    : [];
+}
 
 export function ReserveTurnPage() {
   const navigate = useNavigate();
@@ -36,6 +46,10 @@ export function ReserveTurnPage() {
   const [rejected, setRejected] = useState<Departure | null>(null);
   const slotsLabel = useRef<HTMLSpanElement>(null);
   const missingId = useId();
+  const [lastTrip] = useState(loadLastTrip);
+  const [prefillDone, setPrefillDone] = useState(false);
+  // Lo elegido salió del último viaje y todavía no se tocó.
+  const [fromLastTrip, setFromLastTrip] = useState(false);
 
   const catalog = useResource(loadCatalog);
   const active = useResource(loadActive);
@@ -50,12 +64,24 @@ export function ReserveTurnPage() {
   );
 
   const [buildings, cores] = catalog.data ?? [[], []];
+
+  // Con el catálogo cargado, se precarga el último viaje si sigue siendo válido (la franja nunca).
+  // El destino se valida contra los pisos elegibles más abajo (`validDestination`).
+  if (!prefillDone && catalog.data) {
+    setPrefillDone(true);
+    const savedCore = cores.find((c) => c.id === lastTrip?.coreId);
+    if (lastTrip && savedCore) {
+      setCoreId(savedCore.id);
+      if (originFloorsOf(savedCore, buildings).includes(lastTrip.originFloor)) {
+        setOrigin(lastTrip.originFloor);
+        setDestination(lastTrip.destinationFloor);
+      }
+      setFromLastTrip(true);
+    }
+  }
+
   const core = cores.find((c) => c.id === coreId);
-  const building = buildings.find((b) => b.code === core?.buildingId);
-  const originFloors =
-    core && building
-      ? core.floors.filter((f) => f >= building.minFloor && f <= building.maxFloor)
-      : [];
+  const originFloors = originFloorsOf(core, buildings);
   // Si la elección dejó de ser válida (p. ej. la salida se llenó al recargar), no cuenta.
   const validDestination = floors.data?.some((f) => f.floor === destination && f.eligible)
     ? destination
@@ -105,6 +131,7 @@ export function ReserveTurnPage() {
   }
 
   function chooseCore(id: string) {
+    setFromLastTrip(false);
     setCoreId(id);
     setOrigin(null);
     setDestination(null);
@@ -118,8 +145,14 @@ export function ReserveTurnPage() {
   }
 
   function chooseOrigin(floor: number) {
+    setFromLastTrip(false);
     setOrigin(floor);
     setDestination(null);
+  }
+
+  function chooseDestination(floor: number) {
+    setFromLastTrip(false);
+    setDestination(floor);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -130,6 +163,11 @@ export function ReserveTurnPage() {
     try {
       const reservation = await reserve({
         departureId: departure.id,
+        originFloor: origin,
+        destinationFloor: validDestination,
+      });
+      saveLastTrip({
+        coreId: departure.coreId,
         originFloor: origin,
         destinationFloor: validDestination,
       });
@@ -175,6 +213,15 @@ export function ReserveTurnPage() {
         // Columnas del layout de Pantalla (VIEW-MODES.md §6); en el móvil no existen.
         <form className="reserve" onSubmit={handleSubmit}>
           <div className="reserve__column">
+            {fromLastTrip && core && (
+              <p className="reserve__notice">
+                Usamos tu último viaje: {core.name}
+                {origin !== null && ` · ${formatFloor(origin)}`}
+                {validDestination !== null && ` → ${formatFloor(validDestination)}`}. Podés
+                cambiarlo abajo.
+              </p>
+            )}
+
             <BuildingSelector
               buildings={buildings}
               cores={cores}
@@ -199,7 +246,7 @@ export function ReserveTurnPage() {
                 <FloorSelector
                   floors={floors.data ?? []}
                   value={validDestination}
-                  onChange={setDestination}
+                  onChange={chooseDestination}
                 />
               ))}
           </div>
