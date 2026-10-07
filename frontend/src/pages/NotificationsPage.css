@@ -28,3 +28,14 @@
   display: grid;
   gap: 12px;
 }
+
+.notifications__saved {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-13);
+}
+
+/* Vacío sale del flujo (sin hueco en la grilla) pero sigue en el árbol de accesibilidad. */
+.notifications__saved:empty {
+  position: absolute;
+}

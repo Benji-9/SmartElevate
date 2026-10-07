@@ -50,7 +50,7 @@ export function LoginPage() {
     <section className="auth auth--login auth-card">
       <header className="auth__intro">
         <img className="auth__logo" src={logo} alt="" width={181} height={120} />
-        <h1 className="text-title">Bienvenido a SmartElevate</h1>
+        <h1 className="text-title">Te damos la bienvenida a SmartElevate</h1>
         <p className="auth__subtitle text-body">
           Reservá tu turno de ascensor y llegá a tiempo a clase.
         </p>

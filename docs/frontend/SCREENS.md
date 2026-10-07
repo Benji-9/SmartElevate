@@ -66,7 +66,7 @@ interface CoreStatus { core: Core; level: CongestionLevel; occupancy: number /* 
 
 `main`: pad 40/20/24/20, gap 16.
 
-1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Bienvenido a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
+1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Te damos la bienvenida a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
 2. Espacio de 8 px.
 3. `Input` "Email institucional" con el sufijo fijo `@uade.edu.ar` (ph `jmartinez`): se escribe solo el usuario. Ver [Email institucional](#email-institucional).
 4. `Input` "Contraseña", placeholder `••••••••` (`type="password"`).
@@ -223,7 +223,7 @@ Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
    - **Zona de carga** (pad 20, gap 6, `--radius-sm`, borde discontinuo 1,5 px `--accent`, fondo `--accent-tint`, contenido centrado): ícono de 28 px, "Subir certificado" 14 px / 600 `--accent`, "PDF o imagen" 12 px `--ink-muted`.
    - **Archivo cargado** (fila pad 10/12, gap 10, `--radius-sm`, `--surface-subtle`): ícono de archivo, nombre 13 px / 500 (`certificado_discapacidad.pdf`), acción "Quitar" 12 px / 500 `--accent`.
    - Estados del chip: "Pendiente de validación" → validado → rechazado (definir con el backend).
-3. **Lista de ajustes** (`--radius-lg`, borde `--line`): filas pad 14/16, 15 px / 500, flecha "→" a la derecha en `--ink-muted`, divisor `--line` entre filas: "Mis viajes", "Notificaciones", "Cerrar sesión".
+3. **Lista de ajustes** (`--radius-lg`, borde `--line`): filas pad 14/16, 15 px / 500, flecha "→" a la derecha en `--ink-muted`, divisor `--line` entre filas: "Mis viajes" y "Notificaciones". Debajo, separado de la lista y sin flecha (es una acción, no un destino), `Button` secondary "Cerrar sesión".
 
 ## 09 · Panel de administración — `/admin`
 

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { Avatar } from '../components/Avatar';
+import { Button } from '../components/Button';
 import { Chip, type ChipTone } from '../components/Chip';
 import { LegalFooter } from '../components/LegalFooter';
 import { PriorityAccessCard } from '../features/priority/PriorityAccessCard';
@@ -44,21 +45,22 @@ export function ProfilePage() {
         </header>
       )}
       <PriorityAccessCard />
-      <nav className="profile-nav" aria-label="Opciones del perfil">
-        <ul className="profile-options">
-          <li>
-            <Link to="/perfil/viajes">Mis viajes{arrow}</Link>
-          </li>
-          <li>
-            <Link to="/perfil/notificaciones">Notificaciones{arrow}</Link>
-          </li>
-          <li>
-            <button type="button" onClick={handleLogout}>
-              Cerrar sesión{arrow}
-            </button>
-          </li>
-        </ul>
-      </nav>
+      <div className="profile-nav">
+        <nav aria-label="Opciones del perfil">
+          <ul className="profile-options">
+            <li>
+              <Link to="/perfil/viajes">Mis viajes{arrow}</Link>
+            </li>
+            <li>
+              <Link to="/perfil/notificaciones">Notificaciones{arrow}</Link>
+            </li>
+          </ul>
+        </nav>
+        {/* Es una acción, no un destino: fuera de la lista y sin flecha (#159). */}
+        <Button variant="secondary" onClick={handleLogout}>
+          Cerrar sesión
+        </Button>
+      </div>
       <LegalFooter />
     </div>
   );
