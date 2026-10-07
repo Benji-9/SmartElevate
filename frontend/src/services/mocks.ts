@@ -155,8 +155,8 @@ const cores: Core[] = [
     name: 'Independencia 1',
     // Ascensores dedicados (docentes y movilidad reducida, #101).
     floors: range(-4, 10),
-    congestion: 'MEDIUM',
-    estimatedWaitMinutes: 6,
+    congestion: 'LOW',
+    estimatedWaitMinutes: 1,
     hall: 'Hall Independencia, planta baja',
   },
   {
