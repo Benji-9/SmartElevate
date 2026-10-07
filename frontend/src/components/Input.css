@@ -39,7 +39,7 @@
   background: var(--color-surface);
 }
 
-.input__control:focus-within {
+.input__control:has(.input__field:focus-visible) {
   outline: 2px solid var(--color-focus);
   border-color: transparent;
 }
@@ -65,6 +65,24 @@
   padding: 0 14px 0 2px;
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+/* Mostrar/Ocultar contraseña: área táctil de 44 × 44 px dentro del control de 48 px. */
+.input__toggle {
+  min-width: 44px;
+  min-height: 44px;
+  margin-right: 2px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.input__toggle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
 }
 
 .input__hint {

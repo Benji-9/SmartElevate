@@ -136,6 +136,27 @@ describe('LoginPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('muestra y oculta la contraseña, y la vuelve a ocultar al enviar', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': { status: 401, body: { message: 'Email o contraseña incorrectos' } },
+    });
+    await renderLogin();
+    const field = screen.getByLabelText('Contraseña');
+    expect(field).toHaveAttribute('type', 'password');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    expect(field).toHaveAttribute('type', 'text');
+    await userEvent.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+    expect(field).toHaveAttribute('type', 'password');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    await submit('ana.perez', 'secreta');
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(field).toHaveAttribute('type', 'password');
+  });
+
   it('linkea al registro', async () => {
     stubApi(signedOut);
     await renderLogin();
