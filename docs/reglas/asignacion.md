@@ -1,6 +1,6 @@
 # Reglas de asignación
 
-> Estado: **propuesta** (complementa [#7](https://github.com/Benji-9/SmartElevate/issues/7)). Decisión de diseño en [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md).
+> Estado: **aprobado** (complementa [#7](https://github.com/Benji-9/SmartElevate/issues/7)). Decisión de diseño en [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md).
 
 Cómo se decide a qué ascensor y salida va cada solicitud.
 

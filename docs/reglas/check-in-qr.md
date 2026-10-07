@@ -1,6 +1,6 @@
 # Check-in con QR
 
-> Estado: **propuesta**. Decisión de diseño en [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md).
+> Estado: **aprobado**. Decisión de diseño en [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md).
 
 El check-in confirma que el usuario usó su reserva. Alimenta el no-show y los KPIs.
 

@@ -1,7 +1,18 @@
 .notifications__intro {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--text-14);
+  font-size: var(--text-13);
+}
+
+/* Figma 11: los avisos van en una tarjeta con divisores entre filas. */
+.notifications__list {
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.notifications__list > :last-child {
+  border-bottom: none;
 }
 
 .notifications__alert {
@@ -16,4 +27,15 @@
 .notifications__error {
   display: grid;
   gap: 12px;
+}
+
+.notifications__saved {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-13);
+}
+
+/* Vacío sale del flujo (sin hueco en la grilla) pero sigue en el árbol de accesibilidad. */
+.notifications__saved:empty {
+  position: absolute;
 }

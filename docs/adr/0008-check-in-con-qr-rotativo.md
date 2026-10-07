@@ -1,6 +1,6 @@
 # 0008. Check-in con QR rotativo firmado
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-09-28
 - **Issues:** [#7](https://github.com/Benji-9/SmartElevate/issues/7), [#23](https://github.com/Benji-9/SmartElevate/issues/23)
 

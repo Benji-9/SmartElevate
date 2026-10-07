@@ -70,7 +70,7 @@ describe('ProfilePage', () => {
 
   it.each([
     ['STUDENT', 'Estudiante'],
-    ['STAFF', 'Personal'],
+    ['TEACHER', 'Docente'],
   ] as const)('muestra el tipo de usuario %s con texto', async (declaredUserType, label) => {
     stubApi({
       ...signedIn({ ...testUser, declaredUserType }),
@@ -212,10 +212,18 @@ describe('ProfilePage', () => {
     const fetchMock = stubProfile(null);
     renderProfile();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
+    const logout = await screen.findByRole('button', { name: 'Cerrar sesión' });
+    // Es una acción, no un destino: va fuera de la navegación del perfil.
+    expect(screen.getByRole('navigation', { name: 'Opciones del perfil' })).not.toContainElement(
+      logout,
+    );
+    await userEvent.click(logout);
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Bienvenido a SmartElevate' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Te damos la bienvenida a SmartElevate',
+      }),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/logout', expect.anything());
   });

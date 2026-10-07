@@ -12,6 +12,10 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 |---|---|---|---|
 | `/login` | 01 Login | no | público |
 | `/registro` | 02 Registro | no | público |
+| `/recuperar` | 02b Recuperar contraseña | no | público |
+| `/recuperar/nueva?token=…` | 02c Contraseña nueva (link del mail) | no | público |
+| `/privacidad` | Política de privacidad | no | público |
+| `/terminos` | Términos de uso | no | público |
 | `/` | 03 Inicio | sí (Inicio) | autenticado |
 | `/reservar` | 04 Reservar turno | no (tiene header con volver) | autenticado |
 | `/turno/:id` | 05 Turno confirmado | no | autenticado |
@@ -38,7 +42,7 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 
 ```ts
 type CongestionLevel = 'baja' | 'media' | 'alta';
-type UserType = 'estudiante' | 'docente' | 'personal';
+type UserType = 'estudiante' | 'docente'; // declarativo, ver #32
 type Core = 'Lima 1' | 'Lima 2' | 'Lima 3' | 'Independencia 1' | 'Independencia 2';
 
 interface Slot { id: string; start: string; end: string; taken: number; capacity: 10 }        // "7:25", "7:30"
@@ -62,11 +66,11 @@ interface CoreStatus { core: Core; level: CongestionLevel; occupancy: number /* 
 
 `main`: pad 40/20/24/20, gap 16.
 
-1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Bienvenido a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
+1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Te damos la bienvenida a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
 2. Espacio de 8 px.
-3. `Input` "Email institucional", placeholder `nombre@uade.edu.ar` (`type="email"`).
+3. `Input` "Email institucional" con el sufijo fijo `@uade.edu.ar` (ph `jmartinez`): se escribe solo el usuario. Ver [Email institucional](#email-institucional).
 4. `Input` "Contraseña", placeholder `••••••••` (`type="password"`).
-5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, alineado a la derecha.
+5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, sin subrayado, alineado a la derecha; lleva a `/recuperar` (02b).
 6. `Button` primary "Ingresar".
 7. "¿No tenés cuenta? Registrate" — 14 px, `--ink-muted`, centrado; "Registrate" es un link a `/registro` en `--accent`.
 
@@ -77,10 +81,55 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 `PageHeader` con volver + "Crear cuenta". `main`: pad 8/20/20/20, gap 14.
 
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
-2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (ph `nombre@uade.edu.ar`), "Legajo" (ph `Ej: 1234567`), "Contraseña" (ph `••••••••`).
-3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (3 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`), **Docente**, **Personal** (no seleccionadas: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`, Personal → `--border`.
+2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`, hint "Está en tu credencial UADE."), "Contraseña" (ph `••••••••`). La UI solo valida que la contraseña no esté vacía: la política mínima todavía no está definida ([#156](https://github.com/Benji-9/SmartElevate/issues/156), [#118](https://github.com/Benji-9/SmartElevate/issues/118)); cuando se defina, va como `hint` del campo y se valida igual en el cliente.
+3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
-5. `Button` primary "Crear cuenta".
+5. Texto 14 px `--ink-muted`: "Al crear tu cuenta aceptás los Términos de uso y la Política de privacidad." (links a `/terminos` y `/privacidad`).
+6. `Button` primary "Crear cuenta".
+7. Footer legal (ver abajo).
+
+## 02b · Recuperar contraseña — `/recuperar`
+
+No hay frame en Figma: usa la misma estructura y componentes que 02 Registro. Contrato en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+
+`PageHeader` con volver (a `/login`) + "Recuperar contraseña". `main` como 02.
+
+1. Intro 14 px `--ink-muted`: "Te mandamos un link a tu email institucional para que elijas una contraseña nueva."
+2. `Input` "Email institucional" con el sufijo fijo `@uade.edu.ar`, igual que el login.
+3. `Button` primary "Enviar link" → `POST /api/auth/password/forgot`.
+
+Estados: el servidor responde **202 siempre**, exista o no la cuenta, así que la confirmación no lo revela: título "Revisá tu email" y "Si {email} tiene una cuenta, te mandamos un link para elegir una contraseña nueva. Vence en unos minutos y sirve una sola vez.", con link "Volver a ingresar". Error del servidor (p. ej. límite de pedidos) → aviso `--danger-tint` sobre el botón.
+
+## 02c · Contraseña nueva — `/recuperar/nueva?token=…`
+
+Es la pantalla a la que lleva el link del mail. Misma estructura que 02b, con título "Contraseña nueva".
+
+1. `Input` "Contraseña nueva" y `Input` "Repetí la contraseña" (ph `••••••••`, `autocomplete="new-password"`). La UI solo valida que no esté vacía y que coincidan; la política la valida el servidor y su error va al lado del campo.
+2. `Button` primary "Guardar contraseña" → `POST /api/auth/password/reset` con `{ token, newPassword }`.
+
+Estados: OK → "Listo, cambiaste tu contraseña" + link "Ir a ingresar". Sin `token` en la URL, o token vencido / ya usado (400) → aviso `--danger-tint` con el motivo y link "Pedir otro link" a `/recuperar`.
+
+## Email institucional
+
+Login, Registro y 02b usan el mismo campo ([#162](https://github.com/Benji-9/SmartElevate/issues/162)): `Input` con `suffix="@uade.edu.ar"` (constante `UADE_DOMAIN` en `features/auth/validation.ts`).
+
+- Se escribe solo el usuario; el sufijo `@uade.edu.ar` queda fijo a la derecha dentro del control (`.text-body`, `--ink-muted`) y el email completo se arma al enviar.
+- El sufijo entra en `aria-describedby`: el lector anuncia "Email institucional, @uade.edu.ar".
+- `type="text"`, `autocomplete="username"`, `autocapitalize="none"`, `spellcheck="false"`.
+- Si se pega o autocompleta el email completo con `@uade.edu.ar`, el campo se queda con el usuario. Validación al enviar: vacío → "Ingresá tu email institucional."; con `@` (otro dominio) → "Usá tu email @uade.edu.ar."; con espacios → "Escribilo sin espacios.". Los espacios de los bordes se recortan.
+- Es ayuda de UI: el servidor sigue validando el dominio.
+
+## Campos de contraseña
+
+Todo `Input` con `type="password"` (Login, Registro y 02c) trae a la derecha, dentro del control, un `button type="button"` "Mostrar" / "Ocultar" (13 px, 500, `--accent`, área táctil de 44 × 44 px) con nombre accesible "Mostrar contraseña" / "Ocultar contraseña". Al enviar el formulario el campo vuelve a `type="password"` ([#156](https://github.com/Benji-9/SmartElevate/issues/156)).
+
+## Footer legal y páginas legales
+
+No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145)).
+
+- **Footer legal** (`LegalFooter`): al final de Login, Registro, 02b, 02c, Perfil y las dos páginas legales. Columna centrada, gap 4, 12 px `--ink-muted`: fila de links (500, `--accent`, sin subrayado, área táctil de 44 px) **Privacidad · Términos de uso · Contacto** (`mailto:` al email del proyecto) y debajo "SmartElevate · Proyecto académico de estudiantes de UADE".
+- **Páginas legales** (`/privacidad`, `/terminos`): `PageHeader` con volver + título; "Última actualización" 13 px `--ink-muted`; secciones numeradas con `h2` de 16 px / 600 y texto 14 px con interlineado 1,55. La leyenda obligatoria de la AAIP (Disposición 10/2008) va en un aviso `--accent-tint` dentro de "Tus derechos". En Pantalla usan la columna de 480 px.
+- Contenido: la política sigue la Ley 25.326, el Decreto 1558/2001, las normas de la AAIP y el Convenio 108/108+, con los derechos del RGPD; los términos son los de un proyecto académico. **No es asesoramiento legal**: validar con la cátedra ([#24](https://github.com/Benji-9/SmartElevate/issues/24)). Si cambian proveedores, regiones o el tratamiento de datos, actualizar `PrivacyPage.tsx`.
 
 ## 03 · Inicio — `/`
 
@@ -88,7 +137,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9" (14 px `--ink-muted`; la sede queda **pospuesta**: no hay de dónde sacarla, [#86](https://github.com/Benji-9/SmartElevate/issues/86)); a la derecha, avatar circular de 44 px (`--surface-subtle`).
 2. **Tarjeta "Próxima clase"** — **pospuesta**: todavía no hay fuente del horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)); no implementar por ahora. (pad 18, gap 6, `--radius-xl`, fondo `--accent`): rótulo `.text-overline` "PRÓXIMA CLASE" en `--on-dark-muted`; nombre de la materia 17 px / 700 `--on-accent`: "Seminario de Gestión de Tecnología"; detalle 14 px "Aula 705 · Piso 7 · Lima 3 · 7:45 hs" en `--on-dark-muted`; separación 6; botón interno blanco (pad 10/14, `--radius-sm`, texto 14 px / 600 `--accent`) "Reservar turno para esta clase" → `/reservar`.
-3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; línea 15 px / 500 "7:25 – 7:30 · Ascensores 1–3 · Piso 7"; ayuda 13 px `--ink-muted` "Escaneá el QR de la pantalla del ascensor al subir."; `Button` primary "Hacer check-in" → `/check-in`. Si no hay turno, ocultar la tarjeta.
+3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; cuenta regresiva 18 px / 700 `--accent` "Sale en 6 min" (con el `departsAt` de la API, se actualiza cada ~30 s; "Sale ahora" al llegar la hora. El destacado por límite de cancelación espera que la API exponga ese instante, [#155](https://github.com/Benji-9/SmartElevate/issues/155)); línea 15 px / 500 "7:25 – 7:30 · Ascensores 1–3 · Piso 7"; ayuda 13 px `--ink-muted` "Escaneá el QR de la pantalla del ascensor al subir."; `Button` primary "Hacer check-in" → `/check-in`. Si no hay turno, ocultar la tarjeta.
 4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`); debajo un `CongestionRow` por núcleo:
 
 | Núcleo | level | value |
@@ -103,9 +152,11 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 `PageHeader` con volver + "Reservar turno". `main`: pad 8/20/20/20, gap 12.
 
+**Precarga del último viaje:** si la persona ya reservó desde ese dispositivo, el formulario abre con el núcleo, el origen y el destino de ese turno (guardados en `localStorage` al reservar con éxito), y arriba un aviso (mismo estilo que el de pisos) "Usamos tu último viaje: Lima 3 · PB → 7. Podés cambiarlo abajo.". Lo que ya no sea válido (núcleo que no existe, piso fuera de rango o no elegible) se ignora sin error. **La franja nunca se precarga:** depende del cupo del momento. Al cambiar cualquier elección el aviso se va.
+
 1. Etiqueta "Edificio" (14 px / 600) y **selector de edificio** (pills en fila con wrap, gap 8, pad 8/14, `--radius-pill`, texto 14 px / 500): Lima 1 · Lima 2 · **Lima 3 (seleccionado)** · Indep. 1 · Indep. 2. Seleccionado: fondo `--accent`, texto `--on-accent`; resto: `--surface`, borde 1 px `--border`.
 2. Etiqueta "Piso de destino" y **selector de piso**: botones de **50 × 44** (`--radius-sm`, número 15 px / 600) del **0 al 10**, con wrap y gap 8. Piso 7 seleccionado (`--accent`). Pisos **0–4 deshabilitados** para usuarios no prioritarios: fondo `--surface-subtle`, número `--ink-subtle`, `disabled`. Resto: `--surface` con borde `--border`.
-3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Para 1 piso usá la escalera."). No hardcodear el texto del wireframe.
+3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Hasta el piso 4 usá la escalera."). No hardcodear el texto del wireframe.
 4. Etiqueta "Franja horaria" y **lista de franjas** (gap 8). Cada franja: fila pad 12/14, gap 12, `--radius-md`, borde 1 px `--line`; a la izquierda hora (15 px / 600) y barra de capacidad (120 × 6, pista `--line`, relleno `--accent`, ancho = `taken/10 × 120`); luego "5/10" (13 px / 500 `--ink-muted`); a la derecha radio de 20 px.
 
 | Franja | Ocupación | Estado |
@@ -115,7 +166,10 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 | 7:25 – 7:30 | 5/10 | **seleccionada**: borde 2 px `--accent`, fondo `--accent-tint`, radio relleno |
 | 7:30 – 7:35 | 2/10 | disponible |
 
-5. `Button` primary con la franja elegida: "Confirmar turno · 7:25". Recomendación: dejarlo fijo al pie mientras el contenido scrollea.
+5. **Pie fijo** mientras el contenido scrollea, con:
+   - El **resumen** de lo elegido en una línea (15 px / 600): "Lima 3 · Piso 7 · 7:25 – 7:27". Sin nada elegido no se muestra.
+   - Mientras falte algo, el **próximo paso** (13 px, `--ink-muted`): "Falta elegir el edificio", "…el piso de origen", "…el piso de destino" o "…la franja horaria". Va asociado al botón con `aria-describedby`.
+   - `Button` primary con la franja elegida: "Confirmar turno · 7:25" (deshabilitado hasta completar todo).
 
 ## 05 · Turno confirmado — `/turno/:id`
 
@@ -134,7 +188,7 @@ Sin header ni tabs. `main`: pad 32/20/24/20, gap 16.
 
 3. **Ayuda de check-in** (pad 14, `--radius-md`, `--accent-tint`, 13 px): "Al subir, escaneá el QR que aparece en la pantalla dentro del ascensor para registrar tu viaje."
 4. Espacio flexible que empuja los botones al pie.
-5. `Button` primary "Ir a check-in" → `/check-in`; `Button` secondary "Cancelar turno" (pide confirmación antes de cancelar).
+5. `Button` primary "Ir a check-in" → `/check-in`; `Button` secondary "Cancelar turno", que pide confirmación en un diálogo modal: título "¿Cancelar el turno?" (si el servidor avisa que cuenta como falta, el título es "Si cancelás ahora, cuenta como falta"); botones "Mantener turno" (primary, primero y con el foco al abrir) y "Cancelar turno" (secondary). La acción destructiva nunca lleva el énfasis.
 
 ## 06 · Check-in (QR) — `/check-in`
 
@@ -145,12 +199,14 @@ Pantalla **oscura**: fondo `--surface-dark`; barra de estado, título y textos e
 
 Al leer un QR válido → `/check-in/ok`.
 
+**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error.
+
 ## 07 · Viaje registrado — `/check-in/ok`
 
 Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
-1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs".
-2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Llegás a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
+1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs". Cambia según el resultado ([check-in](../reglas/check-in-qr.md#resultados)): con *otro ascensor*, título "Viaje registrado en otro ascensor"; con *fuera de hora* (cuenta como falta), sin tilde: signo de advertencia sobre `--Status-Alta-tint` en `--Status-Alta` y título "Llegaste fuera de tu franja: cuenta como falta".
+2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Check-in a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in ("Subiste dentro de tu franja. ¡Gracias por usar tu turno!") y la franja del turno. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
 3. **Encuesta de espera** (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
 4. Espacio flexible; `Button` primary "Volver al inicio" → `/`.
 
@@ -167,13 +223,13 @@ Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
    - **Zona de carga** (pad 20, gap 6, `--radius-sm`, borde discontinuo 1,5 px `--accent`, fondo `--accent-tint`, contenido centrado): ícono de 28 px, "Subir certificado" 14 px / 600 `--accent`, "PDF o imagen" 12 px `--ink-muted`.
    - **Archivo cargado** (fila pad 10/12, gap 10, `--radius-sm`, `--surface-subtle`): ícono de archivo, nombre 13 px / 500 (`certificado_discapacidad.pdf`), acción "Quitar" 12 px / 500 `--accent`.
    - Estados del chip: "Pendiente de validación" → validado → rechazado (definir con el backend).
-3. **Lista de ajustes** (`--radius-lg`, borde `--line`): filas pad 14/16, 15 px / 500, flecha "→" a la derecha en `--ink-muted`, divisor `--line` entre filas: "Mis viajes", "Notificaciones", "Cerrar sesión".
+3. **Lista de ajustes** (`--radius-lg`, borde `--line`): filas pad 14/16, 15 px / 500, flecha "→" a la derecha en `--ink-muted`, divisor `--line` entre filas: "Mis viajes" y "Notificaciones". Debajo, separado de la lista y sin flecha (es una acción, no un destino), `Button` secondary "Cerrar sesión".
 
 ## 09 · Panel de administración — `/admin`
 
 Escritorio **1440 × 900**. Layout en dos columnas.
 
-**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`), Turnos, Núcleos y ascensores, Usuarios prioritarios, Reportes (`--on-dark-muted`).
+**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). Turnos, Núcleos y ascensores, Usuarios prioritarios (cola de docentes a validar, spec pendiente en [#140](https://github.com/Benji-9/SmartElevate/issues/140)) y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
 
 **Contenido** (pad 32, gap 24):
 
@@ -182,8 +238,8 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 
 | Etiqueta | Cifra | Detalle |
 |---|---|---|
-| Espera promedio | 4,1 min | comparación con la línea base de [`kpis.md`](../reglas/kpis.md) (% que espera 5–10 min); el "−38 %" del wireframe era de ejemplo |
-| Turnos reservados | 1.284 | hoy |
+| Espera promedio | 4,1 min | % que espera 5–10 min y la línea base de [`kpis.md`](../reglas/kpis.md); debajo, un `Chip` con la variación en puntos: "▼ 25,5 pts · mejor que la línea base" (tono `baja`), "▲ … peor que la línea base" (tono `alta`) o "Igual que la línea base" (`neutral`). Flecha, color **y** texto ([#158](https://github.com/Benji-9/SmartElevate/issues/158)); el "−38 %" del wireframe era de ejemplo |
+| Turnos reservados | 1.284 | hoy (la comparación con el período anterior espera que la API la exponga, #158) |
 | Check-ins realizados | 87% | de los turnos reservados |
 | Ocupación promedio | 7,6 / 10 | personas por franja |
 

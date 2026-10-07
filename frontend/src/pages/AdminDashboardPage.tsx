@@ -1,5 +1,6 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
 import { Button } from '../components/Button';
+import { Chip } from '../components/Chip';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { CoreTable } from '../features/admin/CoreTable';
 import { ReservationsChart } from '../features/admin/ReservationsChart';
@@ -23,7 +24,33 @@ const periods: Option<AdminPeriod>[] = [
 
 const ALL = 'ALL';
 
-function KpiCard({ label, value, detail }: { label: string; value: string; detail: ReactNode }) {
+/**
+ * Variación del % que espera 5–10 min contra la línea base de la encuesta (kpis.md): menos
+ * es mejor. Lo dice con flecha, color y texto, para no depender solo del color.
+ */
+function BaselineComparison({ percent, baseline }: { percent: number; baseline: number }) {
+  const diff = Math.round((percent - baseline) * 10) / 10;
+  if (diff === 0) return <Chip tone="neutral">Igual que la línea base</Chip>;
+  const better = diff < 0;
+  return (
+    <Chip tone={better ? 'baja' : 'alta'}>
+      <span aria-hidden="true">{better ? '▼' : '▲'}</span>
+      {`${formatNumber(Math.abs(diff))} pts · ${better ? 'mejor' : 'peor'} que la línea base`}
+    </Chip>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  detail,
+  comparison,
+}: {
+  label: string;
+  value: string;
+  detail: ReactNode;
+  comparison?: ReactNode;
+}) {
   const labelId = useId();
   return (
     <article className="admin-card kpi" aria-labelledby={labelId}>
@@ -32,6 +59,7 @@ function KpiCard({ label, value, detail }: { label: string; value: string; detai
       </h2>
       <p className="text-kpi">{value}</p>
       <p className="text-caption-strong kpi__detail">{detail}</p>
+      {comparison}
     </article>
   );
 }
@@ -98,6 +126,9 @@ export function AdminDashboardPage() {
             label="Espera promedio"
             value={formatMinutes(data.avgWaitSeconds)}
             detail={`${formatPercent(data.wait5To10Percent)} espera 5–10 min (línea base: ${formatPercent(data.baselinePercent)})`}
+            comparison={
+              <BaselineComparison percent={data.wait5To10Percent} baseline={data.baselinePercent} />
+            }
           />
           <KpiCard
             label="Turnos reservados"

@@ -38,9 +38,8 @@ describe('NotificationsPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Notificaciones' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Cargando');
     expect(await screen.findByRole('switch', { name: 'Recordatorio de salida' })).not.toBeChecked();
-    expect(screen.getByRole('switch', { name: 'Lugar liberado' })).toHaveAccessibleDescription(
-      /lista de espera/,
-    );
+    // Sin lista de espera en la UI, no se ofrece el aviso de lugar liberado (#157).
+    expect(screen.queryByRole('switch', { name: 'Lugar liberado' })).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Cancelación por demora' })).not.toBeChecked();
     expect(screen.getByRole('switch', { name: 'Acceso prioritario' })).toBeChecked();
   });
@@ -58,6 +57,7 @@ describe('NotificationsPage', () => {
     await userEvent.click(toggle);
 
     expect(toggle).toBeChecked();
+    expect(await screen.findByRole('status')).toHaveTextContent('Guardamos tu preferencia.');
     expect(requestPermission).toHaveBeenCalledOnce();
     const [[, init]] = putCalls(fetchMock);
     expect(JSON.parse(String(init?.body))).toEqual({ ...prefs, departureReminder: true });
@@ -71,7 +71,7 @@ describe('NotificationsPage', () => {
     });
     renderPage();
 
-    const toggle = await screen.findByRole('switch', { name: 'Lugar liberado' });
+    const toggle = await screen.findByRole('switch', { name: 'Recordatorio de salida' });
     await userEvent.click(toggle);
 
     expect(requestPermission).toHaveBeenCalledOnce();
@@ -124,6 +124,7 @@ describe('NotificationsPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
     expect(toggle).not.toBeChecked();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('muestra el error si no se pudieron cargar', async () => {

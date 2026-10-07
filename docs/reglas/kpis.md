@@ -1,6 +1,6 @@
 # KPIs de congestión
 
-> Estado: **propuesta** (parte de [#7](https://github.com/Benji-9/SmartElevate/issues/7)).
+> Estado: **aprobado** (parte de [#7](https://github.com/Benji-9/SmartElevate/issues/7)).
 
 Todos salen de **eventos que la app ya registra** (reserva, cancelación, check-in, no-show), sin sensores extra.
 

@@ -1,6 +1,6 @@
 # Usuarios, autenticación y prioridad
 
-> Estado: **propuesta** para cerrar [#6](https://github.com/Benji-9/SmartElevate/issues/6). Decisión de diseño en [ADR 0009](../adr/0009-autenticacion-y-prioridad.md).
+> Estado: **aprobado** ([#6](https://github.com/Benji-9/SmartElevate/issues/6)). Decisión de diseño en [ADR 0009](../adr/0009-autenticacion-y-prioridad.md).
 
 ## Registro
 
@@ -8,11 +8,22 @@
 - **Email y legajo únicos.**
 - No hay acceso al sistema de UADE: el **legajo es autodeclarado**. La verificación real es la del email institucional.
 
+### Tipo de usuario declarado
+
+Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
+
+- En el registro, la persona elige **Estudiante** o **Docente** (`declaredUserType`: `STUDENT` / `TEACHER`, `STUDENT` por defecto). No hay opción "Personal".
+- Es **declarativo**: se guarda como dato, pero **no otorga rol ni prioridad**. Todo usuario nace común.
+- Si declara **Docente**, queda en la cola **"Docentes a validar"** del panel de administración ([#140](https://github.com/Benji-9/SmartElevate/issues/140)):
+  - Si el ADMIN aprueba, obtiene la prioridad `TEACHER`.
+  - Si rechaza, sigue como usuario común.
+- La prioridad se sigue evaluando **solo en el servidor al reservar**, nunca a partir de este campo.
+
 ## Roles y prioridad
 
 - El **rol y la prioridad nunca vienen en el body del registro**: todo usuario nace común.
-- Los asigna un **ADMIN**.
-- **Docentes**: aprobación manual del ADMIN o carga de una lista de docentes.
+- Los asigna un **ADMIN** desde el panel de administración.
+- **Docentes**: el ADMIN aprueba a los que se declararon docentes ([ver arriba](#tipo-de-usuario-declarado)).
 - **Movilidad reducida**: por certificado ([ver abajo](#certificado-de-prioridad)).
 
 Modelo propuesto (a validar al implementar):
@@ -22,6 +33,16 @@ Modelo propuesto (a validar al implementar):
 | Rol | `USER`, `REVIEWER` (revisa certificados), `ADMIN` |
 | Categoría de prioridad | `NONE`, `TEACHER`, `REDUCED_MOBILITY` |
 | Estado de la solicitud de prioridad | `PENDING`, `APPROVED`, `REJECTED`, con fecha de vencimiento |
+
+### Primer ADMIN
+
+No hay endpoint, seed ni migración que cree administradores: así no queda ningún dato del admin en el repo, que es público.
+
+1. La persona se **registra normalmente** con su email @uade.edu.ar y lo **verifica**.
+2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Neon**. En dev, lo mismo en `/h2-console`. La sentencia exacta se documenta en [`infraestructura.md`](../infraestructura.md) junto con la migración de usuarios ([#121](https://github.com/Benji-9/SmartElevate/issues/121)).
+3. Desde ahí, los demás `ADMIN` y `REVIEWER` los asigna un ADMIN desde el panel.
+
+Render free no permite SSH ni comandos sueltos, así que no hay un comando para correr dentro del servidor.
 
 ## Certificado de prioridad
 

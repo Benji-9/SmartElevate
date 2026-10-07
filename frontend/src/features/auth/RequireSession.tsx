@@ -13,10 +13,15 @@ export function RequireSession({ role }: RequireSessionProps) {
   const location = useLocation();
 
   if (loading) {
+    // Mismo contenedor que las pantallas, así el texto no queda pegado al borde.
     return (
-      <p role="status" className="page-placeholder">
-        Cargando…
-      </p>
+      <div className="screen">
+        <main className="screen__main">
+          <p role="status" className="page-placeholder">
+            Cargando…
+          </p>
+        </main>
+      </div>
     );
   }
   if (!user) {

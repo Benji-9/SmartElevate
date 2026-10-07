@@ -1,6 +1,6 @@
 # 0006. Contrato de la API con OpenAPI (code-first)
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-09-28
 
 ## Contexto

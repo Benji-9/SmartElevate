@@ -2,7 +2,8 @@
 // con VITE_USE_MOCKS (ver api.ts); nunca entran al build de producción.
 // Para apagar un endpoint cuando el real esté listo, borrá su ruta de `routes`:
 // lo que no matchea acá sigue de largo al backend.
-// Datos ficticios: los pisos y núcleos reales salen del relevamiento #22.
+// Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
+// halls y ocupación siguen siendo de ejemplo.
 import type { Building } from '../types/api';
 import { ApiError } from './api';
 import type {
@@ -23,6 +24,7 @@ import type {
   RegisterRequest,
   Reservation,
   ReserveRequest,
+  ResetPasswordRequest,
   Session,
   Trip,
   TripPage,
@@ -36,8 +38,8 @@ const DEPARTURE_MINUTES = 2;
 const CAPACITY = 10;
 const WINDOW_MINUTES = 30;
 const CONGESTION_REFRESH_SECONDS = 60;
-/** Regla de pisos bajos (ficticia): trayectos de hasta N pisos van por escalera. */
-const LOW_FLOOR_MAX_DISTANCE = 1;
+/** Pisos bajos (`low_floors_threshold`): sin reserva con destino del 1 a este piso. */
+const LOW_FLOORS_THRESHOLD = 4;
 /** Se puede cancelar sin falta hasta este tiempo antes de la salida. */
 const CANCEL_DEADLINE_MS = 60_000;
 const UPLOAD_RULES: PriorityUploadRules = {
@@ -63,11 +65,12 @@ const HOURLY_RESERVATIONS = [28, 18, 42, 25, 12, 30, 22, 15, 20, 38, 16, 10, 34,
 // Parte de las reservas, ocupación y espera promedio de cada núcleo (panel admin).
 const CORE_STATS: Record<string, { share: number; occupancyPercent: number; waitSeconds: number }> =
   {
-    L1: { share: 0.3, occupancyPercent: 92, waitSeconds: 420 },
-    L2: { share: 0.22, occupancyPercent: 70, waitSeconds: 260 },
-    L3: { share: 0.1, occupancyPercent: 41, waitSeconds: 90 },
-    IND1: { share: 0.24, occupancyPercent: 75, waitSeconds: 300 },
-    IND2: { share: 0.14, occupancyPercent: 38, waitSeconds: 120 },
+    L1: { share: 0.32, occupancyPercent: 92, waitSeconds: 420 },
+    L2: { share: 0.26, occupancyPercent: 70, waitSeconds: 260 },
+    L3: { share: 0.14, occupancyPercent: 41, waitSeconds: 90 },
+    // Solo ascensores dedicados (docentes y movilidad reducida): pocas reservas.
+    IND1: { share: 0.04, occupancyPercent: 35, waitSeconds: 60 },
+    IND2: { share: 0.24, occupancyPercent: 58, waitSeconds: 180 },
   };
 
 // Usuarios de ejemplo: cualquier contraseña sirve, salvo "incorrecta".
@@ -88,7 +91,7 @@ const users: User[] = [
     legajo: '1000001',
     role: 'ADMIN',
     priority: 'NONE',
-    declaredUserType: 'STAFF',
+    declaredUserType: 'STUDENT',
   },
   {
     id: 'u-3',
@@ -122,7 +125,7 @@ const cores: Core[] = [
     id: 'L1',
     buildingId: 'LIMA',
     name: 'Lima 1',
-    floors: range(-2, 10),
+    floors: range(-3, 7),
     congestion: 'HIGH',
     estimatedWaitMinutes: 9,
     hall: 'Hall Lima, planta baja',
@@ -131,7 +134,9 @@ const cores: Core[] = [
     id: 'L2',
     buildingId: 'LIMA',
     name: 'Lima 2',
-    floors: range(0, 10),
+    // Unión de las dos baterías (07–08: −4 a 5; 35–36: −2, 0, 2 a 10) hasta que el
+    // contrato las exponga (#101).
+    floors: range(-4, 10),
     congestion: 'MEDIUM',
     estimatedWaitMinutes: 5,
     hall: 'Hall Lima, planta baja',
@@ -140,7 +145,7 @@ const cores: Core[] = [
     id: 'L3',
     buildingId: 'LIMA',
     name: 'Lima 3',
-    floors: range(0, 6),
+    floors: range(-3, 10),
     congestion: 'LOW',
     estimatedWaitMinutes: 2,
     hall: 'Hall Lima, entrepiso',
@@ -149,16 +154,18 @@ const cores: Core[] = [
     id: 'IND1',
     buildingId: 'INDEPENDENCIA',
     name: 'Independencia 1',
-    floors: range(-3, 10),
-    congestion: 'MEDIUM',
-    estimatedWaitMinutes: 6,
+    // Ascensores dedicados (docentes y movilidad reducida, #101).
+    floors: range(-4, 10),
+    congestion: 'LOW',
+    estimatedWaitMinutes: 1,
     hall: 'Hall Independencia, planta baja',
   },
   {
     id: 'IND2',
     buildingId: 'INDEPENDENCIA',
     name: 'Independencia 2',
-    floors: range(0, 10),
+    // No para en el 1.
+    floors: [...range(-4, 0), ...range(2, 11)],
     congestion: 'LOW',
     estimatedWaitMinutes: 3,
     hall: 'Hall Independencia, planta baja',
@@ -173,12 +180,12 @@ const coresOf = (buildingCode: string) =>
   cores.filter((c) => c.buildingId === buildingCode).map((c) => ({ code: c.id, name: c.name }));
 
 const buildings: Building[] = [
-  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: coresOf('LIMA') },
+  { code: 'LIMA', name: 'Lima', minFloor: -4, maxFloor: 10, cores: coresOf('LIMA') },
   {
     code: 'INDEPENDENCIA',
     name: 'Independencia',
-    minFloor: -3,
-    maxFloor: 10,
+    minFloor: -4,
+    maxFloor: 11,
     cores: coresOf('INDEPENDENCIA'),
   },
 ];
@@ -268,7 +275,8 @@ const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
     durationMinutes: DEPARTURE_MINUTES,
     coreName: core.name,
     originFloor: 0,
-    destinationFloor: (i % 6) + 3,
+    // 5 a 7: fuera de los pisos bajos y servidos por todos los núcleos.
+    destinationFloor: (i % 3) + 5,
     result: TRIP_RESULTS[i % TRIP_RESULTS.length],
   };
 });
@@ -351,6 +359,28 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       unverified.add(normalized);
     },
   ],
+  [
+    'POST',
+    /^\/auth\/password\/forgot$/,
+    // 202 exista o no la cuenta, para no revelar qué emails están registrados.
+    () => undefined,
+  ],
+  [
+    'POST',
+    /^\/auth\/password\/reset$/,
+    (body) => {
+      // Token de prueba "VENCIDO": el link ya no sirve.
+      const { token, newPassword } = body as ResetPasswordRequest;
+      if (!token || token.toUpperCase().includes('VENCIDO')) {
+        throw new ApiError(400, 'El link venció o ya se usó. Pedí uno nuevo.');
+      }
+      if (!newPassword) {
+        throw new ApiError(400, 'Datos inválidos', [
+          { field: 'newPassword', message: 'Elegí una contraseña.' },
+        ]);
+      }
+    },
+  ],
   ['GET', /^\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
   ['GET', /^\/cores$/, () => cores],
@@ -380,11 +410,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       const exempt = currentUser().priority === 'REDUCED_MOBILITY';
       return core.floors.map((floor): FloorOption => {
         if (floor === origin) return { floor, eligible: false, reason: 'Es tu piso de origen.' };
-        if (!exempt && Math.abs(floor - origin) <= LOW_FLOOR_MAX_DISTANCE) {
+        if (!exempt && floor >= 1 && floor <= LOW_FLOORS_THRESHOLD) {
           return {
             floor,
             eligible: false,
-            reason: `Para ${LOW_FLOOR_MAX_DISTANCE} piso usá la escalera.`,
+            reason: `Hasta el piso ${LOW_FLOORS_THRESHOLD} usá la escalera.`,
           };
         }
         return { floor, eligible: true, reason: null };

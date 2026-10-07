@@ -37,22 +37,45 @@ describe('CheckInSuccessPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Viaje registrado' })).toBeVisible();
     expect(screen.getByText('Ascensor 2 · L1 · 14:04 hs')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Llegás a tiempo' })).toBeInTheDocument();
-    expect(screen.getByText('Subiste dentro de tu franja.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Check-in a tiempo' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Subiste dentro de tu franja. ¡Gracias por usar tu turno!'),
+    ).toBeInTheDocument();
     expect(screen.getByText('14:04 – 14:06')).toBeInTheDocument();
     expect(screen.getByText('Nos ayuda a medir la congestión real.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
   });
 
   it.each([
-    ['OTHER_ELEVATOR', 'Check-in en otro ascensor', /ascensor distinto/],
-    ['LATE', 'Check-in fuera de hora', /cuenta como falta/],
-  ] as const)('explica el resultado %s con texto', (outcome, title, detail) => {
+    ['ON_TIME', 'Viaje registrado', 'Check-in a tiempo', /dentro de tu franja/],
+    [
+      'OTHER_ELEVATOR',
+      'Viaje registrado en otro ascensor',
+      'Check-in en otro ascensor',
+      /ascensor distinto/,
+    ],
+    [
+      'LATE',
+      'Llegaste fuera de tu franja: cuenta como falta',
+      'Check-in fuera de hora',
+      /pasada tu franja: cuenta como falta/,
+    ],
+  ] as const)('explica el resultado %s en el título y la tarjeta', (outcome, h1, title, detail) => {
     stubApi(signedIn());
     renderPage({ ...result, outcome });
 
-    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(h1);
+    expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument();
     expect(screen.getByText(detail)).toBeInTheDocument();
+  });
+
+  it('con LATE no muestra el título de éxito', () => {
+    stubApi(signedIn());
+    renderPage({ ...result, outcome: 'LATE' });
+
+    expect(screen.queryByRole('heading', { name: /registrado/ })).not.toBeInTheDocument();
   });
 
   it('envía la encuesta una sola vez', async () => {

@@ -151,7 +151,7 @@ describe('App', () => {
   });
 
   it.each([
-    ['/login', 'Bienvenido a SmartElevate'],
+    ['/login', 'Te damos la bienvenida a SmartElevate'],
     ['/registro', 'Crear cuenta'],
     ['/no-existe', 'Página no encontrada'],
   ])('sin sesión, %s es pública y muestra "%s" sin TopBar', async (path, title) => {
@@ -163,6 +163,14 @@ describe('App', () => {
     expect(screen.queryByRole('navigation', { name: 'Principal' })).not.toBeInTheDocument();
   });
 
+  it('la 404 ofrece volver y un link al inicio', async () => {
+    stubApi(signedOut);
+    renderAt('/no-existe');
+
+    expect(await screen.findByRole('button', { name: 'Volver' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/');
+  });
+
   it.each(['/', '/reservar', '/turno/42', '/check-in/codigo', '/perfil', '/perfil/viajes'])(
     'sin sesión, %s redirige a /login',
     async (path) => {
@@ -170,7 +178,10 @@ describe('App', () => {
       renderAt(path);
 
       expect(
-        await screen.findByRole('heading', { level: 1, name: 'Bienvenido a SmartElevate' }),
+        await screen.findByRole('heading', {
+          level: 1,
+          name: 'Te damos la bienvenida a SmartElevate',
+        }),
       ).toBeInTheDocument();
     },
   );
@@ -202,7 +213,8 @@ describe('App', () => {
       'aria-current',
       'page',
     );
-    expect(within(nav).getByText('Reportes')).toHaveAttribute('aria-disabled', 'true');
+    // Las secciones que todavía no existen no se muestran (#158).
+    expect(within(nav).queryByText('Reportes')).not.toBeInTheDocument();
   });
 
   it('/admin sin rol ADMIN vuelve al inicio', async () => {
@@ -220,7 +232,10 @@ describe('App', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Bienvenido a SmartElevate' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Te damos la bienvenida a SmartElevate',
+      }),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/logout', expect.anything());
   });

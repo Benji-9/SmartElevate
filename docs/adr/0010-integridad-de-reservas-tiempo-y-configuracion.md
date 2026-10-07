@@ -1,6 +1,6 @@
 # 0010. Integridad de reservas, manejo del tiempo y configuración
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-09-28
 - **Issue:** [#7](https://github.com/Benji-9/SmartElevate/issues/7)
 

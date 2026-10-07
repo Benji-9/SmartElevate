@@ -38,6 +38,11 @@
   color: var(--color-primary);
 }
 
+.success-hero--danger .success-hero__icon {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+}
+
 .success-hero__detail,
 .turn-details__muted,
 .turn-details dt {

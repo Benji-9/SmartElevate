@@ -13,11 +13,9 @@ const options: { key: keyof NotificationPreferences; label: string; description:
     label: 'Recordatorio de salida',
     description: 'Te avisamos un rato antes de que salga tu ascensor.',
   },
-  {
-    key: 'spotReleased',
-    label: 'Lugar liberado',
-    description: 'Si estás en lista de espera y se libera un lugar en la salida.',
-  },
+  // "Lugar liberado" (`spotReleased`) queda oculto: avisa de la lista de espera, que la UI todavía
+  // no tiene (docs/reglas/turnos.md §7, fuera de la Fase 2 #105). Volver a mostrarlo cuando se
+  // implemente la lista de espera (#157). El valor del servidor se reenvía sin cambios al guardar.
   {
     key: 'delayCancellation',
     label: 'Cancelación por demora',
@@ -50,11 +48,13 @@ export function NotificationsPage() {
   // Cambios locales (optimistas) sobre lo que vino del servidor.
   const [edited, setEdited] = useState<NotificationPreferences | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const prefs = edited ?? data;
 
   async function toggle(key: keyof NotificationPreferences, value: boolean) {
     if (!prefs) return;
     setMessage(null);
+    setSaved(false);
     if (value) {
       const blocker = await notificationBlocker();
       if (blocker) {
@@ -65,6 +65,7 @@ export function NotificationsPage() {
     setEdited({ ...prefs, [key]: value });
     try {
       await saveNotificationPreferences({ ...prefs, [key]: value });
+      setSaved(true);
     } catch (saveError) {
       setEdited((current) => current && { ...current, [key]: !value });
       setMessage(errorMessage(saveError));
@@ -92,13 +93,20 @@ export function NotificationsPage() {
   } else {
     content = (
       <>
-        <p className="notifications__intro">Elegí qué avisos querés recibir.</p>
+        <p className="notifications__intro">
+          Elegí qué avisos querés recibir. Te pedimos permiso del navegador recién cuando actives el
+          primero.
+        </p>
         {message && (
           <p role="alert" className="notifications__alert">
             {message}
           </p>
         )}
-        <div role="group" aria-label="Avisos">
+        {/* Siempre montado (vacío) para que el lector de pantalla anuncie el cambio (#159). */}
+        <p role="status" className="notifications__saved">
+          {saved && 'Guardamos tu preferencia.'}
+        </p>
+        <div role="group" aria-label="Avisos" className="notifications__list">
           {options.map((option) => (
             <Switch
               key={option.key}
@@ -109,6 +117,9 @@ export function NotificationsPage() {
             />
           ))}
         </div>
+        <p className="notifications__intro">
+          Los avisos llegan como notificaciones del navegador. Podés desactivarlos cuando quieras.
+        </p>
       </>
     );
   }

@@ -1,4 +1,5 @@
-/* Login y registro. */
+/* Login, registro y recuperar contraseña. Los logos (SmartElevate y UADE) son transparentes y
+   pasan a blanco solos en modo oscuro (prefers-color-scheme dentro del SVG). */
 .auth {
   display: grid;
   gap: 24px;
@@ -24,21 +25,9 @@
   margin-bottom: 8px;
 }
 
-/* El logo de UADE es AstronautBlue: va sobre blanco para que contraste en modo oscuro.
-   El de SmartElevate es transparente y cambia de colores solo (prefers-color-scheme). */
-.auth__uade-logo {
-  background: var(--White);
-}
-
 .auth__org {
   display: grid;
   justify-items: center;
-}
-
-.auth__uade-logo {
-  box-sizing: content-box;
-  padding: 6px 10px;
-  border-radius: var(--radius-input);
 }
 
 .auth__lead {
@@ -65,10 +54,10 @@
   font-size: var(--text-13);
   font-weight: var(--font-medium);
   color: var(--color-primary);
+  text-decoration: none;
   cursor: pointer;
 }
 
-.auth__notice,
 .auth__alert,
 .auth__info {
   padding: 12px 14px;
@@ -76,7 +65,6 @@
   font-size: var(--text-13);
 }
 
-.auth__notice,
 .auth__info {
   background: var(--color-primary-tint);
 }
@@ -111,6 +99,19 @@
 .auth__footer {
   text-align: center;
   font-size: var(--text-14);
+}
+
+/*
+ * Links sueltos ("Registrate", "Ir a ingresar", "Pedir otro link"): 20 px de texto + 12 arriba y
+ * abajo = 44 px de área táctil (#160). El margen negativo compensa el padding cuando el link es
+ * hijo de la grilla; en un link inline el padding vertical ya no mueve el layout.
+ */
+.auth > a,
+.auth__alert a,
+.auth__footer a {
+  justify-self: start;
+  padding-block: 12px;
+  margin-block: -12px;
 }
 
 /* Registro en móvil: mismo ritmo que `main` (el contenedor solo existe para la tarjeta). */

@@ -25,7 +25,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 36px;
+  /* Área táctil mínima de 44 × 44 (DESIGN-SYSTEM.md §7, #160). */
+  min-width: 44px;
+  min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-input);
@@ -36,7 +38,6 @@
 }
 
 .option-group__options--grid .option {
-  min-height: 44px;
   padding-inline: 4px;
 }
 

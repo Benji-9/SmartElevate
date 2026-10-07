@@ -1,0 +1,26 @@
+.skeleton {
+  display: grid;
+  gap: 8px;
+}
+
+.skeleton__block {
+  border-radius: var(--radius-input);
+  background: var(--color-disabled-bg);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton--card .skeleton__block {
+  border-radius: var(--radius-card-lg);
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton__block {
+    animation: none;
+  }
+}

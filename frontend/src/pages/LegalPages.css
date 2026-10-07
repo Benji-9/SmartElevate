@@ -1,0 +1,45 @@
+/* Privacidad y términos: texto largo en la columna de 480 px. */
+.legal {
+  display: grid;
+  gap: 16px;
+  font-size: var(--text-14);
+  line-height: 1.55;
+}
+
+.legal p,
+.legal ul {
+  margin: 0;
+}
+
+.legal section {
+  display: grid;
+  gap: 8px;
+}
+
+.legal h2 {
+  font-size: var(--text-16);
+  font-weight: var(--font-semibold);
+}
+
+.legal ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 20px;
+}
+
+.legal a {
+  color: var(--color-primary);
+}
+
+.legal__updated {
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
+}
+
+/* Leyenda obligatoria de la AAIP (Disposición 10/2008). */
+.legal__notice {
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  background: var(--color-primary-tint);
+  font-size: var(--text-13);
+}

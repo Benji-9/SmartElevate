@@ -48,6 +48,7 @@ function stubCamera({ qr = null, error }: { qr?: string | null; error?: Error } 
   });
   Object.defineProperty(navigator, 'mediaDevices', { value: { getUserMedia }, configurable: true });
   vi.mocked(createQrReader).mockResolvedValue(async () => qr);
+  return getUserMedia;
 }
 
 afterEach(() => {
@@ -75,14 +76,15 @@ const withTurn = { ...signedIn(), 'GET /reservations/active': { body: reservatio
 
 describe('CheckInPage', () => {
   it('muestra el visor, las indicaciones y el turno activo', async () => {
-    stubCamera();
+    const getUserMedia = stubCamera();
     stubApi(withTurn);
     renderCheckIn();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Check-in' })).toBeInTheDocument();
     expect(
-      screen.getByText('Apuntá la cámara al QR de la pantalla del ascensor'),
+      await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
     ).toBeInTheDocument();
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
     expect(
       screen.getByText('El código rota: escanealo desde dentro de la cabina'),
     ).toBeInTheDocument();
@@ -92,8 +94,8 @@ describe('CheckInPage', () => {
     expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument();
   });
 
-  it('avisa si no hay turno activo', async () => {
-    stubCamera();
+  it('sin turno activo avisa y no pide la cámara', async () => {
+    const getUserMedia = stubCamera();
     stubApi({ ...signedIn(), 'GET /reservations/active': { body: null } });
     renderCheckIn();
 
@@ -102,6 +104,21 @@ describe('CheckInPage', () => {
       'href',
       '/reservar',
     );
+    expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it('si falla la carga del turno pide la cámara igual (el servidor valida)', async () => {
+    const getUserMedia = stubCamera();
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/active': { status: 500, body: { message: 'Error inesperado' } },
+    });
+    renderCheckIn();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
+    expect(await screen.findByText(/Apuntá la cámara/)).toBeInTheDocument();
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
   });
 
   it('al leer un QR registra el check-in y va al resultado', async () => {
@@ -151,7 +168,9 @@ describe('CheckInPage', () => {
     stubApi(withTurn);
     renderCheckIn();
 
-    expect(screen.getByRole('heading', { name: 'No pudimos usar la cámara' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'No pudimos usar la cámara' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ingresar código manualmente' })).toBeInTheDocument();
   });
 

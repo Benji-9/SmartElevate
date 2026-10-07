@@ -7,11 +7,30 @@ import { ApiError, getActiveReservation } from '../../services/api';
 import type { Reservation } from '../../types/pending';
 import { formatFloor, formatSlot } from './format';
 import './ActiveTurnCard.css';
+import { Skeleton } from '../../components/Skeleton';
 
 type State =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; reservation: Reservation | null };
+
+/**
+ * "Sale en 6 min": tiempo hasta la salida reservada, a partir del instante UTC de la API
+ * (no depende de la zona del dispositivo). Se actualiza cada 30 s mientras está montado.
+ */
+function DepartureCountdown({ departsAt }: { departsAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const minutes = Math.ceil((Date.parse(departsAt) - now) / 60_000);
+  return (
+    <p className="turn-card__countdown">{minutes > 0 ? `Sale en ${minutes} min` : 'Sale ahora'}</p>
+  );
+}
 
 /** Tarjeta "Tu turno" del inicio, o el CTA para reservar si no hay turno activo. */
 export function ActiveTurnCard() {
@@ -35,11 +54,7 @@ export function ActiveTurnCard() {
   }, [attempt]);
 
   if (state.status === 'loading') {
-    return (
-      <p role="status" className="page-placeholder">
-        Cargando tu turno…
-      </p>
-    );
+    return <Skeleton label="Cargando tu turno…" height={168} className="skeleton--card" />;
   }
 
   if (state.status === 'error') {
@@ -84,6 +99,7 @@ export function ActiveTurnCard() {
         </h2>
         <Chip>Confirmado</Chip>
       </div>
+      <DepartureCountdown departsAt={departure.departsAt} />
       <p className="turn-card__summary">
         {formatSlot(departure.departsAt, departure.durationMinutes)} · {core.name} · Piso{' '}
         {formatFloor(reservation.destinationFloor)}

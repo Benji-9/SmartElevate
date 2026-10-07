@@ -1,6 +1,6 @@
 # 0013. Email con Brevo y storage de certificados en Cloudflare R2
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-06
 - **Autores:** @Benji-9
 

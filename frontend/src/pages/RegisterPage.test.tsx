@@ -22,7 +22,7 @@ async function fill(values: Partial<Record<string, string>>) {
 
 const valid = {
   'Nombre y apellido': 'Ana Pérez',
-  'Email institucional': 'ana.perez@uade.edu.ar',
+  'Email institucional': 'ana.perez',
   Legajo: '1099999',
   Contraseña: 'secreta',
 };
@@ -40,7 +40,9 @@ describe('RegisterPage', () => {
       'Ingresá tu nombre y apellido.',
     );
     expect(screen.getByLabelText('Email institucional')).toBeInvalid();
-    expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription('Ingresá tu legajo.');
+    expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription(
+      'Está en tu credencial UADE. Ingresá tu legajo.',
+    );
     expect(screen.getByLabelText('Contraseña')).toBeInvalid();
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
   });
@@ -54,8 +56,40 @@ describe('RegisterPage', () => {
 
     expect(screen.getByText('Usá tu email @uade.edu.ar.')).toBeInTheDocument();
     expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription(
-      'El legajo tiene que ser numérico.',
+      'Está en tu credencial UADE. El legajo tiene que ser numérico.',
     );
+  });
+
+  it('al pegar el email completo manda el email una sola vez', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/register': { status: 204 } });
+    await renderRegister();
+
+    await fill({ ...valid, 'Email institucional': '' });
+    await userEvent.click(screen.getByLabelText('Email institucional'));
+    await userEvent.paste('ana.perez@uade.edu.ar');
+    await submit();
+
+    await screen.findByRole('heading', { name: 'Revisá tu email' });
+    const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/register')!;
+    expect(JSON.parse(init!.body as string).email).toBe('ana.perez@uade.edu.ar');
+  });
+
+  it('dice dónde encontrar el legajo antes de escribir', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription(
+      'Está en tu credencial UADE.',
+    );
+  });
+
+  it('deja ver la contraseña', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'text');
   });
 
   it('los campos muestran un ejemplo', async () => {
@@ -65,12 +99,7 @@ describe('RegisterPage', () => {
     const placeholders = Object.keys(valid).map((label) =>
       screen.getByLabelText(label).getAttribute('placeholder'),
     );
-    expect(placeholders).toEqual([
-      'Juana Martínez',
-      'nombre@uade.edu.ar',
-      'Ej: 1234567',
-      '••••••••',
-    ]);
+    expect(placeholders).toEqual(['Juana Martínez', 'jmartinez', 'Ej: 1234567', '••••••••']);
   });
 
   it('crea la cuenta con el tipo declarado y pide verificar el email', async () => {
@@ -118,7 +147,7 @@ describe('RegisterPage', () => {
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).toHaveTextContent('Ya hay una cuenta con ese email.');
     expect(screen.getByLabelText('Email institucional')).toHaveAccessibleDescription(
-      'Ya hay una cuenta con ese email.',
+      '@uade.edu.ar Ya hay una cuenta con ese email.',
     );
     expect(screen.getByLabelText('Nombre y apellido')).toHaveValue('Ana Pérez');
   });

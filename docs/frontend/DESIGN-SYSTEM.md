@@ -235,10 +235,11 @@ Todos aceptan `className`. Las clases (prefijo `se-`) están en la sección 7.
 | Componente | Props | Notas |
 |---|---|---|
 | `Button` | `variant: 'primary' \| 'secondary'` (default `primary`), `block?: boolean` (default `true`), + atributos de `<button>` | Un solo `primary` por vista. Etiqueta con verbo: "Ingresar", "Confirmar turno · 7:25". Alto mínimo 48 px. `disabled` usa `surface-subtle` + `ink-subtle`. |
-| `Input` | `label?: string`, `error?: string`, + atributos de `<input>` | Etiqueta arriba (13 px, 500). Con `error`: borde y mensaje en `Status-Alta`, `aria-invalid`, mensaje con `role="alert"`. El placeholder es un ejemplo, no reemplaza la etiqueta. |
+| `Input` | `label?: string`, `error?: string`, + atributos de `<input>` | Etiqueta arriba (13 px, 500). Con `error`: borde y mensaje en `Status-Alta`, `aria-invalid`, mensaje con `role="alert"`. El placeholder es un ejemplo, no reemplaza la etiqueta. `suffix?: string`: texto fijo a la derecha dentro del control (`--ink-muted`), anunciado con `aria-describedby` (p. ej. `@uade.edu.ar`). Con `type="password"` suma el botón "Mostrar"/"Ocultar" contraseña (44 × 44 px), que se resetea al enviar. |
 | `Chip` | `tone?: 'accent' \| 'baja' \| 'media' \| 'alta' \| 'alumnos' \| 'docentes'` (default `accent`) | `accent`: sin punto, para estados de reserva ("Confirmado", "Pendiente de validación"). Los demás llevan punto de color + texto en `ink`. |
 | `CongestionRow` | `label: string`, `level: 'baja' \| 'media' \| 'alta'`, `value: number` (0–1) | Nombre del núcleo · barra de 90 × 8 px · nivel escrito (48 px de ancho). Apilar una por núcleo. |
 | `BottomNav` | `items: { id, label, icon? }[]`, `active: string`, `onSelect?: (id) => void` | Cuatro destinos: Inicio, Reservar, Check-in, Perfil. Activa en `accent`, resto en `ink-muted`. Sin `icon` muestra un cuadrado gris de 24 px (marcador: **el set de íconos aún no está elegido**). |
+| `Skeleton` | `label: string`, `rows?: number` (default 1), `height?: number` (px, default 20) | Estado de carga con la forma del contenido (bloques `surface-subtle` que laten; sin animación con `prefers-reduced-motion`). Es un `role="status"` que anuncia `label` ("Cargando tus viajes…"). Lo usan Inicio, Mis viajes y Reservar. |
 
 ### Patrones que no son componente todavía
 
@@ -317,7 +318,7 @@ Los tres SVG de SmartElevate tienen el texto convertido a trazos (Inter Medium) 
 | `frontend/src/assets/smartelevate-logo.svg` | Marca + logotipo de SmartElevate, vertical, **fondo transparente**. Login: 120 px de alto. Sin recolorear ni estirar. |
 | `frontend/src/assets/smartelevate-logo-horizontal.svg` | Ícono + logotipo en una línea, transparente. Para el `TopBar` (~32 px de alto). |
 | `frontend/src/assets/smartelevate-mark.svg` | Solo el ícono (ascensor con personas), transparente. Favicon o espacios chicos. |
-| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`). Preferido. Sobre `--surface`, más chico que la marca de SmartElevate. |
+| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`), **fondo transparente**; con `prefers-color-scheme: dark` pasa a blanco, igual que los de SmartElevate. Preferido. Más chico que la marca de SmartElevate. |
 | `UADE_id7RUMB-t-_0.png` | Mismo logotipo en PNG transparente. Solo donde no pueda usarse SVG. |
 
 ---

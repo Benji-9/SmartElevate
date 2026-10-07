@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, type Location } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { validateUadeEmail } from '../features/auth/validation';
+import { LegalFooter } from '../components/LegalFooter';
+import { UadeEmailInput } from '../features/auth/UadeEmailInput';
+import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
@@ -21,12 +23,11 @@ export function LoginPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [showForgotNotice, setShowForgotNotice] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next: Errors = {
-      email: validateUadeEmail(email),
+      email: validateUadeUser(email),
       password: password ? undefined : 'Ingresá tu contraseña.',
     };
     setErrors(next);
@@ -35,7 +36,7 @@ export function LoginPage() {
 
     setSubmitting(true);
     try {
-      await login({ email: email.trim(), password });
+      await login({ email: toUadeEmail(email), password });
       navigate(from ?? '/', { replace: true });
     } catch (error) {
       setServerError(
@@ -49,22 +50,14 @@ export function LoginPage() {
     <section className="auth auth--login auth-card">
       <header className="auth__intro">
         <img className="auth__logo" src={logo} alt="" width={181} height={120} />
-        <h1 className="text-title">Bienvenido a SmartElevate</h1>
+        <h1 className="text-title">Te damos la bienvenida a SmartElevate</h1>
         <p className="auth__subtitle text-body">
           Reservá tu turno de ascensor y llegá a tiempo a clase.
         </p>
       </header>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
-        <Input
-          label="Email institucional"
-          type="email"
-          autoComplete="username"
-          placeholder="nombre@uade.edu.ar"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-        />
+        <UadeEmailInput value={email} onChange={setEmail} error={errors.email} />
         <Input
           label="Contraseña"
           type="password"
@@ -74,18 +67,9 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
         />
-        <button
-          type="button"
-          className="auth__text-button"
-          onClick={() => setShowForgotNotice(true)}
-        >
+        <Link to="/recuperar" className="auth__text-button">
           ¿Olvidaste tu contraseña?
-        </button>
-        {showForgotNotice && (
-          <p role="status" className="auth__notice">
-            La recuperación de contraseña todavía no está disponible.
-          </p>
-        )}
+        </Link>
         {serverError && (
           <p role="alert" className="auth__alert">
             {serverError}
@@ -103,6 +87,7 @@ export function LoginPage() {
       <footer className="auth__org">
         <img className="auth__uade-logo" src={uadeLogo} alt="UADE" width={86} height={30} />
       </footer>
+      <LegalFooter />
     </section>
   );
 }

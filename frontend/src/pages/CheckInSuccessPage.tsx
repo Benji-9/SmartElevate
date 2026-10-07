@@ -14,14 +14,22 @@ const isResult = (state: unknown): state is CheckInResult =>
   typeof (state as CheckInResult).reservationId === 'string' &&
   ['ON_TIME', 'OTHER_ELEVATOR', 'LATE'].includes((state as CheckInResult).outcome);
 
+// El hero cierra el flujo: con LATE dice la consecuencia en vez de mostrar éxito (#149).
+const heroes = {
+  ON_TIME: { title: 'Viaje registrado', tone: 'success' },
+  OTHER_ELEVATOR: { title: 'Viaje registrado en otro ascensor', tone: 'success' },
+  LATE: { title: 'Llegaste fuera de tu franja: cuenta como falta', tone: 'danger' },
+} as const;
+
 export function CheckInSuccessPage() {
   const { state } = useLocation();
   // Entrada directa o recarga: no hay check-in reciente que mostrar.
   if (!isResult(state)) return <Navigate to="/" replace />;
 
+  const hero = heroes[state.outcome];
   return (
     <div className="success-screen success-screen--check-in">
-      <SuccessHero title="Viaje registrado">
+      <SuccessHero title={hero.title} tone={hero.tone}>
         {state.elevatorName} · {state.coreName} · {formatTime(state.checkedInAt)} hs
       </SuccessHero>
       <OnTimeCard result={state} />

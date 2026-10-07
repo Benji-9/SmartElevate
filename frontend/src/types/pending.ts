@@ -26,10 +26,10 @@ export type User = {
 export type LoginRequest = { email: string; password: string };
 
 /**
- * Tipo de usuario que la persona declara al registrarse (#32). Es informativo: no otorga
- * rol ni prioridad; un ADMIN valida a los docentes.
+ * Tipo de usuario que la persona declara al registrarse (#32). No otorga rol ni prioridad:
+ * un docente declarado queda pendiente hasta que un ADMIN lo aprueba desde el panel.
  */
-export type DeclaredUserType = 'STUDENT' | 'TEACHER' | 'STAFF';
+export type DeclaredUserType = 'STUDENT' | 'TEACHER';
 
 export type RegisterRequest = {
   fullName: string;
@@ -38,6 +38,10 @@ export type RegisterRequest = {
   password: string;
   declaredUserType: DeclaredUserType;
 };
+/** Pide el link para elegir otra contraseña (#138). El servidor responde 202 siempre. */
+export type ForgotPasswordRequest = { email: string };
+/** `token` viene en el link del mail; es de un solo uso y vence (#138). */
+export type ResetPasswordRequest = { token: string; newPassword: string };
 /** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
 export type Session = { accessToken: string };
 

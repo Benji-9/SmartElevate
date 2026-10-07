@@ -2,7 +2,10 @@ import type { CheckInOutcome, CheckInResult } from '../../types/pending';
 import { formatSlot } from '../turn/format';
 
 const outcomes: Record<CheckInOutcome, { title: string; detail: string }> = {
-  ON_TIME: { title: 'Llegás a tiempo', detail: 'Subiste dentro de tu franja.' },
+  ON_TIME: {
+    title: 'Check-in a tiempo',
+    detail: 'Subiste dentro de tu franja. ¡Gracias por usar tu turno!',
+  },
   OTHER_ELEVATOR: {
     title: 'Check-in en otro ascensor',
     detail: 'Subiste a un ascensor distinto al de tu turno. Igual quedó registrado.',
