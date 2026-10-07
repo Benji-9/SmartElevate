@@ -92,13 +92,16 @@ export function NotificationsPage() {
   } else {
     content = (
       <>
-        <p className="notifications__intro">Elegí qué avisos querés recibir.</p>
+        <p className="notifications__intro">
+          Elegí qué avisos querés recibir. Te pedimos permiso del navegador recién cuando actives el
+          primero.
+        </p>
         {message && (
           <p role="alert" className="notifications__alert">
             {message}
           </p>
         )}
-        <div role="group" aria-label="Avisos">
+        <div role="group" aria-label="Avisos" className="notifications__list">
           {options.map((option) => (
             <Switch
               key={option.key}
@@ -109,6 +112,9 @@ export function NotificationsPage() {
             />
           ))}
         </div>
+        <p className="notifications__intro">
+          Los avisos llegan como notificaciones del navegador. Podés desactivarlos cuando quieras.
+        </p>
       </>
     );
   }

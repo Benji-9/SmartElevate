@@ -37,8 +37,12 @@ describe('CheckInSuccessPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Viaje registrado' })).toBeVisible();
     expect(screen.getByText('Ascensor 2 · L1 · 14:04 hs')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Llegás a tiempo' })).toBeInTheDocument();
-    expect(screen.getByText('Subiste dentro de tu franja.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Check-in a tiempo' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Subiste dentro de tu franja. ¡Gracias por usar tu turno!'),
+    ).toBeInTheDocument();
     expect(screen.getByText('14:04 – 14:06')).toBeInTheDocument();
     expect(screen.getByText('Nos ayuda a medir la congestión real.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
