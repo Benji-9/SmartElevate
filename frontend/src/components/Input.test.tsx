@@ -38,4 +38,12 @@ describe('Input', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Ingresá tu legajo.');
   });
+
+  it('el sufijo se ve dentro del control y se anuncia como descripción', () => {
+    render(<Input label="Email institucional" suffix="@uade.edu.ar" hint="Tu usuario." />);
+
+    expect(screen.getByLabelText('Email institucional')).toHaveAccessibleDescription(
+      '@uade.edu.ar Tu usuario.',
+    );
+  });
 });

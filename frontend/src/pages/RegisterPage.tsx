@@ -5,7 +5,8 @@ import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { validateUadeEmail } from '../features/auth/validation';
+import { UadeEmailInput } from '../features/auth/UadeEmailInput';
+import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { ApiError, register } from '../services/api';
 import type { DeclaredUserType, RegisterRequest } from '../types/pending';
 import './AuthPages.css';
@@ -26,7 +27,7 @@ const userTypes: Option<DeclaredUserType>[] = [
 function validate(form: RegisterRequest): Errors {
   return {
     fullName: form.fullName.trim() ? undefined : 'Ingresá tu nombre y apellido.',
-    email: validateUadeEmail(form.email),
+    email: validateUadeUser(form.email),
     legajo: !form.legajo.trim()
       ? 'Ingresá tu legajo.'
       : /^\d+$/.test(form.legajo.trim())
@@ -66,7 +67,7 @@ export function RegisterPage() {
     const payload = {
       ...form,
       fullName: form.fullName.trim(),
-      email: form.email.trim(),
+      email: toUadeEmail(form.email),
       legajo: form.legajo.trim(),
     };
     try {
@@ -118,12 +119,10 @@ export function RegisterPage() {
           placeholder="Juana Martínez"
           {...bind('fullName')}
         />
-        <Input
-          label="Email institucional"
-          type="email"
-          autoComplete="email"
-          placeholder="nombre@uade.edu.ar"
-          {...bind('email')}
+        <UadeEmailInput
+          value={form.email}
+          onChange={(email) => setForm({ ...form, email })}
+          error={errors.email}
         />
         <Input
           label="Legajo"

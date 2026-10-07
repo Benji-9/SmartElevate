@@ -68,7 +68,7 @@ interface CoreStatus { core: Core; level: CongestionLevel; occupancy: number /* 
 
 1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Bienvenido a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
 2. Espacio de 8 px.
-3. `Input` "Email institucional", placeholder `nombre@uade.edu.ar` (`type="email"`).
+3. `Input` "Email institucional" con el sufijo fijo `@uade.edu.ar` (ph `jmartinez`): se escribe solo el usuario. Ver [Email institucional](#email-institucional).
 4. `Input` "Contraseña", placeholder `••••••••` (`type="password"`).
 5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, sin subrayado, alineado a la derecha; lleva a `/recuperar` (02b).
 6. `Button` primary "Ingresar".
@@ -81,7 +81,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 `PageHeader` con volver + "Crear cuenta". `main`: pad 8/20/20/20, gap 14.
 
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
-2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (ph `nombre@uade.edu.ar`), "Legajo" (ph `Ej: 1234567`), "Contraseña" (ph `••••••••`).
+2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`), "Contraseña" (ph `••••••••`).
 3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
 5. Texto 14 px `--ink-muted`: "Al crear tu cuenta aceptás los Términos de uso y la Política de privacidad." (links a `/terminos` y `/privacidad`).
@@ -95,7 +95,7 @@ No hay frame en Figma: usa la misma estructura y componentes que 02 Registro. Co
 `PageHeader` con volver (a `/login`) + "Recuperar contraseña". `main` como 02.
 
 1. Intro 14 px `--ink-muted`: "Te mandamos un link a tu email institucional para que elijas una contraseña nueva."
-2. `Input` "Email institucional" (ph `nombre@uade.edu.ar`), con la misma validación que el login.
+2. `Input` "Email institucional" con el sufijo fijo `@uade.edu.ar`, igual que el login.
 3. `Button` primary "Enviar link" → `POST /api/auth/password/forgot`.
 
 Estados: el servidor responde **202 siempre**, exista o no la cuenta, así que la confirmación no lo revela: título "Revisá tu email" y "Si {email} tiene una cuenta, te mandamos un link para elegir una contraseña nueva. Vence en unos minutos y sirve una sola vez.", con link "Volver a ingresar". Error del servidor (p. ej. límite de pedidos) → aviso `--danger-tint` sobre el botón.
@@ -108,6 +108,16 @@ Es la pantalla a la que lleva el link del mail. Misma estructura que 02b, con t�
 2. `Button` primary "Guardar contraseña" → `POST /api/auth/password/reset` con `{ token, newPassword }`.
 
 Estados: OK → "Listo, cambiaste tu contraseña" + link "Ir a ingresar". Sin `token` en la URL, o token vencido / ya usado (400) → aviso `--danger-tint` con el motivo y link "Pedir otro link" a `/recuperar`.
+
+## Email institucional
+
+Login, Registro y 02b usan el mismo campo ([#162](https://github.com/Benji-9/SmartElevate/issues/162)): `Input` con `suffix="@uade.edu.ar"` (constante `UADE_DOMAIN` en `features/auth/validation.ts`).
+
+- Se escribe solo el usuario; el sufijo `@uade.edu.ar` queda fijo a la derecha dentro del control (`.text-body`, `--ink-muted`) y el email completo se arma al enviar.
+- El sufijo entra en `aria-describedby`: el lector anuncia "Email institucional, @uade.edu.ar".
+- `type="text"`, `autocomplete="username"`, `autocapitalize="none"`, `spellcheck="false"`.
+- Si se pega o autocompleta el email completo con `@uade.edu.ar`, el campo se queda con el usuario. Validación al enviar: vacío → "Ingresá tu email institucional."; con `@` (otro dominio) → "Usá tu email @uade.edu.ar."; con espacios → "Escribilo sin espacios.". Los espacios de los bordes se recortan.
+- Es ayuda de UI: el servidor sigue validando el dominio.
 
 ## Footer legal y páginas legales
 
