@@ -81,7 +81,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 `PageHeader` con volver + "Crear cuenta". `main`: pad 8/20/20/20, gap 14.
 
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
-2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`), "Contraseña" (ph `••••••••`).
+2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`, hint "Está en tu credencial UADE."), "Contraseña" (ph `••••••••`). La UI solo valida que la contraseña no esté vacía: la política mínima todavía no está definida ([#156](https://github.com/Benji-9/SmartElevate/issues/156), [#118](https://github.com/Benji-9/SmartElevate/issues/118)); cuando se defina, va como `hint` del campo y se valida igual en el cliente.
 3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
 5. Texto 14 px `--ink-muted`: "Al crear tu cuenta aceptás los Términos de uso y la Política de privacidad." (links a `/terminos` y `/privacidad`).
@@ -118,6 +118,10 @@ Login, Registro y 02b usan el mismo campo ([#162](https://github.com/Benji-9/Sma
 - `type="text"`, `autocomplete="username"`, `autocapitalize="none"`, `spellcheck="false"`.
 - Si se pega o autocompleta el email completo con `@uade.edu.ar`, el campo se queda con el usuario. Validación al enviar: vacío → "Ingresá tu email institucional."; con `@` (otro dominio) → "Usá tu email @uade.edu.ar."; con espacios → "Escribilo sin espacios.". Los espacios de los bordes se recortan.
 - Es ayuda de UI: el servidor sigue validando el dominio.
+
+## Campos de contraseña
+
+Todo `Input` con `type="password"` (Login, Registro y 02c) trae a la derecha, dentro del control, un `button type="button"` "Mostrar" / "Ocultar" (13 px, 500, `--accent`, área táctil de 44 × 44 px) con nombre accesible "Mostrar contraseña" / "Ocultar contraseña". Al enviar el formulario el campo vuelve a `type="password"` ([#156](https://github.com/Benji-9/SmartElevate/issues/156)).
 
 ## Footer legal y páginas legales
 

@@ -40,7 +40,9 @@ describe('RegisterPage', () => {
       'Ingresá tu nombre y apellido.',
     );
     expect(screen.getByLabelText('Email institucional')).toBeInvalid();
-    expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription('Ingresá tu legajo.');
+    expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription(
+      'Está en tu credencial UADE. Ingresá tu legajo.',
+    );
     expect(screen.getByLabelText('Contraseña')).toBeInvalid();
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
   });
@@ -54,7 +56,7 @@ describe('RegisterPage', () => {
 
     expect(screen.getByText('Usá tu email @uade.edu.ar.')).toBeInTheDocument();
     expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription(
-      'El legajo tiene que ser numérico.',
+      'Está en tu credencial UADE. El legajo tiene que ser numérico.',
     );
   });
 
@@ -70,6 +72,24 @@ describe('RegisterPage', () => {
     await screen.findByRole('heading', { name: 'Revisá tu email' });
     const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/register')!;
     expect(JSON.parse(init!.body as string).email).toBe('ana.perez@uade.edu.ar');
+  });
+
+  it('dice dónde encontrar el legajo antes de escribir', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    expect(screen.getByLabelText('Legajo')).toHaveAccessibleDescription(
+      'Está en tu credencial UADE.',
+    );
+  });
+
+  it('deja ver la contraseña', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'text');
   });
 
   it('los campos muestran un ejemplo', async () => {
