@@ -150,7 +150,7 @@ Al leer un QR válido → `/check-in/ok`.
 Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
 1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs".
-2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Llegás a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
+2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Check-in a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in ("Subiste dentro de tu franja. ¡Gracias por usar tu turno!") y la franja del turno. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
 3. **Encuesta de espera** (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
 4. Espacio flexible; `Button` primary "Volver al inicio" → `/`.
 
