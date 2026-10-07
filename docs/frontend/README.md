@@ -7,6 +7,7 @@ Especificación del frontend extraída del wireframe de Figma, versionada acá p
 | [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md) | Tokens CSS, tipografía, componentes (`Button`, `Input`, `Chip`, `CongestionRow`, `BottomNav`), voz y contenido | toques estilos o componentes |
 | [SCREENS.md](SCREENS.md) | Las 9 pantallas móviles: rutas, medidas, textos, estados y checklist de accesibilidad | implementes o cambies una pantalla |
 | [VIEW-MODES.md](VIEW-MODES.md) | Modo Pantalla / Teléfono, container queries, `TopBar`, layout de escritorio, ayudas de demo | toques layout o navegación |
+| [usabilidad.md](usabilidad.md) | Plan, guion de tareas y resultados de la prueba de usabilidad con usuarios reales | prepares o hagas una ronda de prueba |
 
 ## Orden de prioridad ante contradicciones
 
