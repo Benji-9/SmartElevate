@@ -183,7 +183,7 @@ Sin header ni tabs. `main`: pad 32/20/24/20, gap 16.
 
 3. **Ayuda de check-in** (pad 14, `--radius-md`, `--accent-tint`, 13 px): "Al subir, escaneá el QR que aparece en la pantalla dentro del ascensor para registrar tu viaje."
 4. Espacio flexible que empuja los botones al pie.
-5. `Button` primary "Ir a check-in" → `/check-in`; `Button` secondary "Cancelar turno" (pide confirmación antes de cancelar).
+5. `Button` primary "Ir a check-in" → `/check-in`; `Button` secondary "Cancelar turno", que pide confirmación en un diálogo modal: título "¿Cancelar el turno?" (si el servidor avisa que cuenta como falta, el título es "Si cancelás ahora, cuenta como falta"); botones "Mantener turno" (primary, primero y con el foco al abrir) y "Cancelar turno" (secondary). La acción destructiva nunca lleva el énfasis.
 
 ## 06 · Check-in (QR) — `/check-in`
 

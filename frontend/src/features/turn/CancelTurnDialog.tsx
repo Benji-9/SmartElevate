@@ -43,10 +43,13 @@ export function CancelTurnDialog({
         if (cancelling) event.preventDefault();
       }}
     >
-      <h2 id={titleId}>¿Cancelar el turno?</h2>
+      {/* Con falta, la consecuencia va en el título: es lo primero que se lee y anuncia (#151). */}
+      <h2 id={titleId}>
+        {countsAsNoShow ? 'Si cancelás ahora, cuenta como falta' : '¿Cancelar el turno?'}
+      </h2>
       {countsAsNoShow ? (
         <p id={descriptionId} className="turn-dialog__warning">
-          Ya pasó el límite para cancelar: si cancelás ahora, cuenta como falta.
+          Ya pasó el límite para cancelar sin que cuente como falta.
         </p>
       ) : (
         <p id={descriptionId}>Vas a liberar tu lugar para que lo use otra persona.</p>
@@ -56,12 +59,21 @@ export function CancelTurnDialog({
           {error}
         </p>
       )}
+      {/*
+       * Mantener es la opción segura: va primero (recibe el foco al abrir) y con el énfasis
+       * del botón primario; la acción destructiva queda como secundaria (#151).
+       */}
       <div className="turn-dialog__actions">
-        <Button loading={cancelling} loadingLabel="Cancelando…" onClick={onConfirm}>
-          Sí, cancelar
+        <Button disabled={cancelling} onClick={onClose}>
+          Mantener turno
         </Button>
-        <Button variant="secondary" disabled={cancelling} onClick={onClose}>
-          Volver
+        <Button
+          variant="secondary"
+          loading={cancelling}
+          loadingLabel="Cancelando…"
+          onClick={onConfirm}
+        >
+          Cancelar turno
         </Button>
       </div>
     </dialog>

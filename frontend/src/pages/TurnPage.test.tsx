@@ -45,9 +45,9 @@ function renderTurn(id = 'r-1') {
   );
 }
 
-async function openCancelDialog() {
+async function openCancelDialog(name = '¿Cancelar el turno?') {
   await userEvent.click(await screen.findByRole('button', { name: 'Cancelar turno' }));
-  return screen.getByRole('dialog', { name: '¿Cancelar el turno?' });
+  return screen.getByRole('dialog', { name });
 }
 
 describe('TurnPage', () => {
@@ -84,7 +84,7 @@ describe('TurnPage', () => {
 
     const dialog = await openCancelDialog();
     expect(dialog).toHaveAccessibleDescription(/liberar tu lugar/);
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Sí, cancelar' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar turno' }));
 
     expect(await screen.findByText('Inicio: Cancelaste tu turno.')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -93,12 +93,15 @@ describe('TurnPage', () => {
     );
   });
 
-  it('"Volver" cierra el diálogo sin cancelar', async () => {
+  it('"Mantener turno" es la opción por defecto y cierra el diálogo sin cancelar', async () => {
     const fetchMock = stubApi({ ...signedIn(), 'GET /reservations/r-1': { body: reservation } });
     renderTurn();
 
     const dialog = await openCancelDialog();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Volver' }));
+    const [first, second] = within(dialog).getAllByRole('button');
+    expect(first).toHaveAccessibleName('Mantener turno');
+    expect(second).toHaveAccessibleName('Cancelar turno');
+    await userEvent.click(first);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith(
@@ -107,16 +110,16 @@ describe('TurnPage', () => {
     );
   });
 
-  it('avisa antes de confirmar si la cancelación cuenta como falta', async () => {
+  it('si la cancelación cuenta como falta, lo dice en el título', async () => {
     stubApi({
       ...signedIn(),
       'GET /reservations/r-1': { body: { ...reservation, cancelCountsAsNoShow: true } },
     });
     renderTurn();
 
-    const dialog = await openCancelDialog();
+    const dialog = await openCancelDialog('Si cancelás ahora, cuenta como falta');
 
-    expect(dialog).toHaveAccessibleDescription(/cuenta como falta/);
+    expect(dialog).toHaveAccessibleDescription(/límite para cancelar/);
   });
 
   it('muestra el error si no se pudo cancelar', async () => {
@@ -128,7 +131,7 @@ describe('TurnPage', () => {
     renderTurn();
 
     const dialog = await openCancelDialog();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Sí, cancelar' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar turno' }));
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('La salida ya partió');
   });
