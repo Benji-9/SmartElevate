@@ -66,11 +66,12 @@ describe('MyTripsPage', () => {
     expect(within(today).getByText('Otro ascensor')).toBeInTheDocument();
 
     const monday = screen.getByRole('region', { name: 'lunes, 28 de septiembre' });
-    expect(within(monday).getByText('Fuera de hora')).toBeInTheDocument();
+    const late = within(monday).getByText('Falta (fuera de hora)');
     expect(within(monday).getByText('Cancelado')).toBeInTheDocument();
 
     const sunday = screen.getByRole('region', { name: 'domingo, 27 de septiembre' });
-    expect(within(sunday).getByText('Falta')).toBeInTheDocument();
+    // Fuera de hora cuenta como falta: mismo tono que "Falta" (#154).
+    expect(late).toHaveClass(within(sunday).getByText('Falta').className, { exact: true });
     expect(within(sunday).getByRole('listitem')).toHaveTextContent('Lima 1 · PB → a 7');
 
     expect(screen.queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();

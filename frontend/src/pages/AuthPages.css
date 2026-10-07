@@ -101,6 +101,19 @@
   font-size: var(--text-14);
 }
 
+/*
+ * Links sueltos ("Registrate", "Ir a ingresar", "Pedir otro link"): 20 px de texto + 12 arriba y
+ * abajo = 44 px de área táctil (#160). El margen negativo compensa el padding cuando el link es
+ * hijo de la grilla; en un link inline el padding vertical ya no mueve el layout.
+ */
+.auth > a,
+.auth__alert a,
+.auth__footer a {
+  justify-self: start;
+  padding-block: 12px;
+  margin-block: -12px;
+}
+
 /* Registro en móvil: mismo ritmo que `main` (el contenedor solo existe para la tarjeta). */
 .auth-card--register {
   display: grid;
