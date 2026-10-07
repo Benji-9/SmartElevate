@@ -146,7 +146,7 @@ export function RegisterPage() {
           value={form.declaredUserType}
           onChange={(declaredUserType) => setForm({ ...form, declaredUserType })}
           layout="grid"
-          columns={3}
+          columns={2}
         />
         <p className="auth__lead">
           Es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.
