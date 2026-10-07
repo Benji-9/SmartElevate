@@ -54,11 +54,16 @@
   font-size: var(--text-13);
 }
 
+/* Figma 10: el aviso de faltas va en rojo desde la primera falta; solo el título en --danger. */
 .trips__notice h2 {
   font-size: var(--text-14);
+  color: var(--color-danger);
 }
 
-.trips__notice--danger,
+.trips__notice {
+  background: var(--color-danger-tint);
+}
+
 .trips__error {
   background: var(--color-danger-tint);
   color: var(--color-danger);

@@ -14,10 +14,7 @@ export function NoShowNotice({ status }: { status: NoShowStatus }) {
 
   const summary = `Tenés ${faltas(recentNoShows)} en los últimos ${windowDays} días.`;
   return (
-    <section
-      className={`trips__notice${suspended ? ' trips__notice--danger' : ''}`}
-      aria-labelledby="no-show-title"
-    >
+    <section className="trips__notice" aria-labelledby="no-show-title">
       <h2 id="no-show-title">{suspended ? 'No podés reservar por ahora' : 'Tenés faltas'}</h2>
       {suspended ? (
         <p>
