@@ -100,6 +100,31 @@ describe('ReserveTurnPage', () => {
     });
   });
 
+  it('al pie muestra lo elegido y qué falta, asociado al botón', async () => {
+    stubApi(routes);
+    render(
+      <MemoryRouter initialEntries={['/reservar']}>
+        <App />
+      </MemoryRouter>,
+    );
+    const confirm = async () => screen.findByRole('button', { name: /Confirmar turno/ });
+
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el edificio');
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Lima 1' }));
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de origen');
+    expect(screen.getByText('Lima 1', { selector: 'p' })).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), 'PB');
+    await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de destino');
+
+    await userEvent.click(await screen.findByRole('radio', { name: '5' }));
+    expect(await confirm()).toBeEnabled();
+    expect(await confirm()).not.toHaveAccessibleDescription();
+    expect(screen.getByText('Lima 1 · Piso 5 · 14:32 – 14:34')).toBeInTheDocument();
+  });
+
   it('muestra las salidas completas deshabilitadas', async () => {
     stubApi(routes);
     await renderReserve();
