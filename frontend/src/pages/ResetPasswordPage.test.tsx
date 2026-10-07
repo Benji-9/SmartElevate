@@ -32,6 +32,18 @@ describe('ResetPasswordPage', () => {
     );
   });
 
+  it('cada campo deja ver su contraseña', async () => {
+    stubApi(signedOut);
+    await renderReset();
+
+    const [first, second] = screen.getAllByRole('button', { name: 'Mostrar contraseña' });
+    await userEvent.click(second);
+
+    expect(screen.getByLabelText('Repetí la contraseña')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAttribute('type', 'password');
+    expect(first).toBeInTheDocument();
+  });
+
   it('las dos contraseñas tienen que coincidir', async () => {
     const fetchMock = stubApi(signedOut);
     await renderReset();

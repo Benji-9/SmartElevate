@@ -129,6 +129,7 @@ export function RegisterPage() {
           inputMode="numeric"
           autoComplete="off"
           placeholder="Ej: 1234567"
+          hint="Está en tu credencial UADE."
           {...bind('legajo')}
         />
         <Input
