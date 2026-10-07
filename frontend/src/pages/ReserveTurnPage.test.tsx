@@ -98,6 +98,12 @@ describe('ReserveTurnPage', () => {
       originFloor: 0,
       destinationFloor: 5,
     });
+    // Queda guardado para precargar la próxima reserva (sin la franja).
+    expect(JSON.parse(localStorage.getItem('se:lastTrip')!)).toEqual({
+      coreId: 'L1',
+      originFloor: 0,
+      destinationFloor: 5,
+    });
   });
 
   it('al pie muestra lo elegido y qué falta, asociado al botón', async () => {
@@ -293,5 +299,72 @@ describe('ReserveTurnPage', () => {
     expect(await screen.findByRole('radiogroup', { name: 'Edificio' })).toBeInTheDocument();
     expect(screen.queryByText(/Ya tenés un turno activo/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  describe('precarga del último viaje', () => {
+    const renderPage = () =>
+      render(
+        <MemoryRouter initialEntries={['/reservar']}>
+          <App />
+        </MemoryRouter>,
+      );
+    const saveTrip = (trip: unknown) => localStorage.setItem('se:lastTrip', JSON.stringify(trip));
+
+    it('abre con el núcleo y los pisos del último viaje; solo falta la franja', async () => {
+      saveTrip({ coreId: 'L1', originFloor: 0, destinationFloor: 5 });
+      stubApi(routes);
+      renderPage();
+
+      expect(await screen.findByRole('radio', { name: '5' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Lima 1' })).toBeChecked();
+      expect(screen.getByLabelText('Piso de origen')).toHaveDisplayValue('PB');
+      expect(screen.getByRole('radio', { name: /^14:32/ })).not.toBeChecked();
+      expect(screen.getByText(/Usamos tu último viaje/)).toHaveTextContent(
+        'Usamos tu último viaje: Lima 1 · PB → 5. Podés cambiarlo abajo.',
+      );
+      expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
+        'Falta elegir la franja horaria',
+      );
+
+      // Se puede cambiar: al tocar otro piso el aviso se va.
+      await userEvent.click(screen.getByRole('radio', { name: '-1' }));
+      expect(screen.getByRole('radio', { name: '-1' })).toBeChecked();
+      expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
+    });
+
+    it('ignora sin error un destino que ya no es elegible', async () => {
+      saveTrip({ coreId: 'L1', originFloor: 0, destinationFloor: 1 });
+      stubApi(routes);
+      renderPage();
+
+      expect(await screen.findByRole('radio', { name: '1' })).not.toBeChecked();
+      expect(screen.getByLabelText('Piso de origen')).toHaveDisplayValue('PB');
+      expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
+        'Falta elegir el piso de destino',
+      );
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('ignora un núcleo que ya no existe y abre vacío', async () => {
+      saveTrip({ coreId: 'X9', originFloor: 0, destinationFloor: 5 });
+      const fetchMock = stubApi(routes);
+      renderPage();
+
+      expect(await screen.findByRole('radio', { name: 'Lima 1' })).not.toBeChecked();
+      expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('X9'))).toBe(false);
+    });
+
+    it('sin viaje guardado, o con un valor roto, abre vacío', async () => {
+      localStorage.setItem('se:lastTrip', '{roto');
+      stubApi(routes);
+      renderPage();
+
+      expect(await screen.findByRole('radio', { name: 'Lima 1' })).not.toBeChecked();
+      expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
+        'Falta elegir el edificio',
+      );
+    });
   });
 });
