@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -35,6 +35,7 @@ export function ReserveTurnPage() {
   // Salida rechazada con 409 al confirmar: puede ser que se haya llenado.
   const [rejected, setRejected] = useState<Departure | null>(null);
   const slotsLabel = useRef<HTMLSpanElement>(null);
+  const missingId = useId();
 
   const catalog = useResource(loadCatalog);
   const active = useResource(loadActive);
@@ -82,6 +83,16 @@ export function ReserveTurnPage() {
   ]
     .filter(Boolean)
     .join(' · ');
+  // El próximo paso, para que el botón deshabilitado diga qué falta.
+  const missing = !core
+    ? 'Falta elegir el edificio'
+    : origin === null
+      ? 'Falta elegir el piso de origen'
+      : validDestination === null
+        ? 'Falta elegir el piso de destino'
+        : !departure
+          ? 'Falta elegir la franja horaria'
+          : null;
 
   // La lista de franjas cambió: se lleva el foco ahí para elegir otra.
   useEffect(() => {
@@ -217,8 +228,24 @@ export function ReserveTurnPage() {
               ))}
 
             <div className="reserve__submit">
-              {/* Resumen de la elección: solo en Pantalla (en el móvil el pie es solo el botón). */}
-              <p className="reserve__summary text-body-strong">{summary || 'Elegí tu turno'}</p>
+              <div className="reserve__status">
+                {/* En el móvil el "Elegí tu turno" vacío no se muestra: ya lo dice lo que falta. */}
+                <p
+                  className={[
+                    'reserve__summary text-body-strong',
+                    !summary && 'reserve__summary--empty',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {summary || 'Elegí tu turno'}
+                </p>
+                {missing && (
+                  <p id={missingId} className="reserve__missing">
+                    {missing}
+                  </p>
+                )}
+              </div>
               {alertMessage && (
                 <p role="alert" className="reserve__alert">
                   {alertMessage}
@@ -228,6 +255,7 @@ export function ReserveTurnPage() {
                 type="submit"
                 block={false}
                 disabled={!ready}
+                aria-describedby={missing ? missingId : undefined}
                 loading={submitting}
                 loadingLabel="Reservando…"
               >

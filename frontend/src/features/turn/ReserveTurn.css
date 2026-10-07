@@ -161,8 +161,19 @@
   display: contents;
 }
 
-.reserve__summary {
+/* Resumen de lo elegido y el paso que falta, arriba del botón (también en el móvil). */
+.reserve__status {
+  display: grid;
+  gap: 2px;
+}
+
+.reserve__summary--empty {
   display: none;
+}
+
+.reserve__missing {
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
 }
 
 @media (hover: hover) {
@@ -218,7 +229,7 @@
     justify-self: end;
   }
 
-  .reserve__summary {
+  .reserve__summary--empty {
     display: block;
   }
 }
