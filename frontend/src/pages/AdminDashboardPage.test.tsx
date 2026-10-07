@@ -78,6 +78,7 @@ describe('AdminDashboardPage', () => {
     const wait = await screen.findByRole('article', { name: 'Espera promedio' });
     expect(wait).toHaveTextContent('3,5 min');
     expect(wait).toHaveTextContent('18 % espera 5–10 min (línea base: 43,5 %)');
+    expect(within(wait).getByText('25,5 pts · mejor que la línea base')).toBeInTheDocument();
     expect(screen.getByRole('article', { name: 'Turnos reservados' })).toHaveTextContent(
       '1.240hoy',
     );
@@ -88,6 +89,28 @@ describe('AdminDashboardPage', () => {
       '6,8 / 10personas por franja',
     );
     expect(screen.getByText('29 de septiembre de 2026 · Todas las sedes')).toBeInTheDocument();
+  });
+
+  it('dice si la espera está peor o igual que la línea base, no solo con color', async () => {
+    renderAdmin({
+      'GET /admin/kpis?period=TODAY': { body: kpis({ wait5To10Percent: 50 }) },
+      'GET /admin/kpis?period=WEEK': { body: kpis({ wait5To10Percent: 43.5 }) },
+    });
+
+    const wait = await screen.findByRole('article', { name: 'Espera promedio' });
+    expect(within(wait).getByText('6,5 pts · peor que la línea base')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Últimos 7 días' }));
+    expect(await screen.findByText('Igual que la línea base')).toBeInTheDocument();
+  });
+
+  it('el menú lateral solo muestra secciones que existen', async () => {
+    renderAdmin();
+
+    const nav = await screen.findByRole('navigation', { name: 'Administración' });
+    expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/admin');
+    expect(within(nav).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(nav).queryByText('Próximamente')).not.toBeInTheDocument();
   });
 
   it('el gráfico tiene una tabla equivalente para lectores de pantalla', async () => {

@@ -1,9 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
 import './AdminLayout.css';
 
-// Solo el Dashboard tiene diseño (Figma 09); el resto del menú queda para más adelante.
-const upcoming = ['Turnos', 'Núcleos y ascensores', 'Usuarios prioritarios', 'Reportes'];
-
 /**
  * Panel de administración, solo de escritorio (VIEW-MODES.md §7): con el contenedor de
  * menos de 900 px se muestra un aviso en lugar del panel.
@@ -23,14 +20,7 @@ export function AdminLayout() {
                   Dashboard
                 </NavLink>
               </li>
-              {upcoming.map((label) => (
-                <li key={label}>
-                  <span className="admin__link admin__link--disabled" aria-disabled="true">
-                    {label}
-                    <span className="admin__soon">Próximamente</span>
-                  </span>
-                </li>
-              ))}
+              {/* Turnos, Núcleos, Usuarios prioritarios y Reportes se suman cuando existan (#158). */}
             </ul>
           </nav>
         </aside>
