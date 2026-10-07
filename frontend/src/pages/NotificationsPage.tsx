@@ -13,11 +13,9 @@ const options: { key: keyof NotificationPreferences; label: string; description:
     label: 'Recordatorio de salida',
     description: 'Te avisamos un rato antes de que salga tu ascensor.',
   },
-  {
-    key: 'spotReleased',
-    label: 'Lugar liberado',
-    description: 'Si estás en lista de espera y se libera un lugar en la salida.',
-  },
+  // "Lugar liberado" (`spotReleased`) queda oculto: avisa de la lista de espera, que la UI todavía
+  // no tiene (docs/reglas/turnos.md §7, fuera de la Fase 2 #105). Volver a mostrarlo cuando se
+  // implemente la lista de espera (#157). El valor del servidor se reenvía sin cambios al guardar.
   {
     key: 'delayCancellation',
     label: 'Cancelación por demora',
