@@ -87,6 +87,26 @@ describe('HomePage', () => {
     expect(screen.queryByRole('link', { name: 'Reservar turno' })).not.toBeInTheDocument();
   });
 
+  it('muestra cuánto falta para la salida y lo actualiza sin recargar', async () => {
+    // 14:25:30 en Buenos Aires; la salida es a las 14:32.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-09-29T17:25:30Z') });
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/active': { body: reservation },
+      'GET /congestion': { body: congestion() },
+    });
+    renderHome();
+
+    const card = (await screen.findByRole('heading', { name: 'Tu turno' })).closest('section')!;
+    expect(within(card).getByText('Sale en 7 min')).toBeInTheDocument();
+
+    await act(() => vi.advanceTimersByTimeAsync(30_000));
+    expect(within(card).getByText('Sale en 6 min')).toBeInTheDocument();
+
+    await act(() => vi.advanceTimersByTimeAsync(6 * 60_000));
+    expect(within(card).getByText('Sale ahora')).toBeInTheDocument();
+  });
+
   it('sin turno activo invita a reservar', async () => {
     stubApi({
       ...signedIn(),
