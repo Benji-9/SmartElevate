@@ -186,7 +186,7 @@ Sin header ni tabs. `main`: pad 32/20/24/20, gap 16.
 
 3. **Ayuda de check-in** (pad 14, `--radius-md`, `--accent-tint`, 13 px): "Al subir, escaneá el QR que aparece en la pantalla dentro del ascensor para registrar tu viaje."
 4. Espacio flexible que empuja los botones al pie.
-5. `Button` primary "Ir a check-in" → `/check-in`; `Button` secondary "Cancelar turno" (pide confirmación antes de cancelar).
+5. `Button` primary "Ir a check-in" → `/check-in`; `Button` secondary "Cancelar turno", que pide confirmación en un diálogo modal: título "¿Cancelar el turno?" (si el servidor avisa que cuenta como falta, el título es "Si cancelás ahora, cuenta como falta"); botones "Mantener turno" (primary, primero y con el foco al abrir) y "Cancelar turno" (secondary). La acción destructiva nunca lleva el énfasis.
 
 ## 06 · Check-in (QR) — `/check-in`
 
@@ -197,11 +197,13 @@ Pantalla **oscura**: fondo `--surface-dark`; barra de estado, título y textos e
 
 Al leer un QR válido → `/check-in/ok`.
 
+**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error.
+
 ## 07 · Viaje registrado — `/check-in/ok`
 
 Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
-1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs".
+1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs". Cambia según el resultado ([check-in](../reglas/check-in-qr.md#resultados)): con *otro ascensor*, título "Viaje registrado en otro ascensor"; con *fuera de hora* (cuenta como falta), sin tilde: signo de advertencia sobre `--Status-Alta-tint` en `--Status-Alta` y título "Llegaste fuera de tu franja: cuenta como falta".
 2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Check-in a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in ("Subiste dentro de tu franja. ¡Gracias por usar tu turno!") y la franja del turno. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
 3. **Encuesta de espera** (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
 4. Espacio flexible; `Button` primary "Volver al inicio" → `/`.
