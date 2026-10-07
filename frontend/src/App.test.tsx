@@ -202,7 +202,8 @@ describe('App', () => {
       'aria-current',
       'page',
     );
-    expect(within(nav).getByText('Reportes')).toHaveAttribute('aria-disabled', 'true');
+    // Las secciones que todavía no existen no se muestran (#158).
+    expect(within(nav).queryByText('Reportes')).not.toBeInTheDocument();
   });
 
   it('/admin sin rol ADMIN vuelve al inicio', async () => {

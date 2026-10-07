@@ -90,14 +90,6 @@
   font-weight: var(--font-semibold);
 }
 
-.admin__link--disabled {
-  cursor: not-allowed;
-}
-
-.admin__soon {
-  font-size: var(--text-11);
-}
-
 .admin__main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

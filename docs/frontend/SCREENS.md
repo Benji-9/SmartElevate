@@ -224,7 +224,7 @@ Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
 Escritorio **1440 × 900**. Layout en dos columnas.
 
-**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`), Turnos, Núcleos y ascensores, Usuarios prioritarios (cola de docentes a validar, spec pendiente en [#140](https://github.com/Benji-9/SmartElevate/issues/140)), Reportes (`--on-dark-muted`).
+**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). Turnos, Núcleos y ascensores, Usuarios prioritarios (cola de docentes a validar, spec pendiente en [#140](https://github.com/Benji-9/SmartElevate/issues/140)) y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
 
 **Contenido** (pad 32, gap 24):
 
@@ -233,8 +233,8 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 
 | Etiqueta | Cifra | Detalle |
 |---|---|---|
-| Espera promedio | 4,1 min | comparación con la línea base de [`kpis.md`](../reglas/kpis.md) (% que espera 5–10 min); el "−38 %" del wireframe era de ejemplo |
-| Turnos reservados | 1.284 | hoy |
+| Espera promedio | 4,1 min | % que espera 5–10 min y la línea base de [`kpis.md`](../reglas/kpis.md); debajo, un `Chip` con la variación en puntos: "▼ 25,5 pts · mejor que la línea base" (tono `baja`), "▲ … peor que la línea base" (tono `alta`) o "Igual que la línea base" (`neutral`). Flecha, color **y** texto ([#158](https://github.com/Benji-9/SmartElevate/issues/158)); el "−38 %" del wireframe era de ejemplo |
+| Turnos reservados | 1.284 | hoy (la comparación con el período anterior espera que la API la exponga, #158) |
 | Check-ins realizados | 87% | de los turnos reservados |
 | Ocupación promedio | 7,6 / 10 | personas por franja |
 

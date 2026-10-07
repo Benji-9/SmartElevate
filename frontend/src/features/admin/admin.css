@@ -43,6 +43,12 @@
   gap: 6px;
 }
 
+/* Variación contra la referencia: un Chip que puede ocupar dos líneas en tarjetas angostas. */
+.kpi .chip {
+  justify-self: start;
+  white-space: normal;
+}
+
 .kpi__label {
   color: var(--color-text-muted);
 }
