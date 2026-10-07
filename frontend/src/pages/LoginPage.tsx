@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate, type Location } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
-import { validateUadeEmail } from '../features/auth/validation';
+import { UadeEmailInput } from '../features/auth/UadeEmailInput';
+import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
@@ -26,7 +27,7 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next: Errors = {
-      email: validateUadeEmail(email),
+      email: validateUadeUser(email),
       password: password ? undefined : 'Ingresá tu contraseña.',
     };
     setErrors(next);
@@ -35,7 +36,7 @@ export function LoginPage() {
 
     setSubmitting(true);
     try {
-      await login({ email: email.trim(), password });
+      await login({ email: toUadeEmail(email), password });
       navigate(from ?? '/', { replace: true });
     } catch (error) {
       setServerError(
@@ -56,15 +57,7 @@ export function LoginPage() {
       </header>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
-        <Input
-          label="Email institucional"
-          type="email"
-          autoComplete="username"
-          placeholder="nombre@uade.edu.ar"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-        />
+        <UadeEmailInput value={email} onChange={setEmail} error={errors.email} />
         <Input
           label="Contraseña"
           type="password"

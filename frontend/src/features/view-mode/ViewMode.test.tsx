@@ -89,12 +89,12 @@ describe('Modos de vista', () => {
 
   it('cambiar de modo no reinicia la pantalla ni borra lo escrito', async () => {
     await renderLogin();
-    await userEvent.type(screen.getByLabelText('Email institucional'), 'ana.perez@uade.edu.ar');
+    await userEvent.type(screen.getByLabelText('Email institucional'), 'ana.perez');
 
     await userEvent.click(option('Teléfono'));
     await userEvent.click(option('Pantalla'));
 
-    expect(screen.getByLabelText('Email institucional')).toHaveValue('ana.perez@uade.edu.ar');
+    expect(screen.getByLabelText('Email institucional')).toHaveValue('ana.perez');
     expect(
       screen.getByRole('heading', { level: 1, name: 'Bienvenido a SmartElevate' }),
     ).toBeInTheDocument();
