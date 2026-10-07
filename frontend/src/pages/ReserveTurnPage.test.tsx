@@ -185,9 +185,14 @@ describe('ReserveTurnPage', () => {
     expect(screen.getByText('Es tu piso de origen.')).toBeInTheDocument();
   });
 
-  it('muestra el error del servidor al confirmar y recarga las salidas', async () => {
-    const fetchMock = stubApi({
+  it('si la salida elegida se llenó al confirmar, lo avisa y lleva el foco a las franjas', async () => {
+    let departureCalls = 0;
+    stubApi({
       ...routes,
+      // Al recargar, la salida de las 14:32 ya está completa.
+      'GET /cores/L1/departures': () => ({
+        body: departureCalls++ ? [{ ...departures[0], occupied: 10 }, departures[1]] : departures,
+      }),
       'POST /reservations': { status: 409, body: { message: 'La salida está llena. Elegí otra.' } },
     });
     await renderReserve();
@@ -196,10 +201,35 @@ describe('ReserveTurnPage', () => {
     await userEvent.click(screen.getByRole('radio', { name: /^14:32/ }));
     await userEvent.click(screen.getByRole('button', { name: /Confirmar turno/ }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('La salida está llena. Elegí otra.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'La salida de las 14:32 se llenó. Elegí otra.',
+    );
+    expect(screen.getByText('Franja horaria')).toHaveFocus();
+    expect(screen.getByRole('radio', { name: /^14:32/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Confirmar turno' })).toBeDisabled();
+  });
+
+  it('si el 409 no es por cupo, muestra el mensaje del servidor', async () => {
+    const fetchMock = stubApi({
+      ...routes,
+      'POST /reservations': {
+        status: 409,
+        body: { message: 'Ya tenés un turno activo. Cancelalo para reservar otro.' },
+      },
+    });
+    await renderReserve();
+
+    await userEvent.click(await screen.findByRole('radio', { name: '5' }));
+    await userEvent.click(screen.getByRole('radio', { name: /^14:32/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar turno/ }));
+
     const departureCalls = () =>
       fetchMock.mock.calls.filter(([url]) => url === '/api/cores/L1/departures').length;
     await expect.poll(departureCalls).toBe(2);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ya tenés un turno activo. Cancelalo para reservar otro.',
+    );
+    expect(screen.getByRole('radio', { name: /^14:32/ })).toBeChecked();
   });
 
   it('con un turno activo no ofrece el formulario y lleva al turno', async () => {

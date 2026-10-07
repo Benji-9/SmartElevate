@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -10,6 +10,7 @@ import { SlotList } from '../features/turn/SlotList';
 import '../features/turn/ReserveTurn.css';
 import { errorMessage, useResource } from '../hooks/useResource';
 import {
+  ApiError,
   getActiveReservation,
   getBuildings,
   getCores,
@@ -17,6 +18,7 @@ import {
   getDestinationFloors,
   reserve,
 } from '../services/api';
+import type { Departure } from '../types/pending';
 
 const loadCatalog = () => Promise.all([getBuildings(), getCores()]);
 // Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
@@ -30,6 +32,9 @@ export function ReserveTurnPage() {
   const [departureId, setDepartureId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Salida rechazada con 409 al confirmar: puede ser que se haya llenado.
+  const [rejected, setRejected] = useState<Departure | null>(null);
+  const slotsLabel = useRef<HTMLSpanElement>(null);
 
   const catalog = useResource(loadCatalog);
   const active = useResource(loadActive);
@@ -55,6 +60,19 @@ export function ReserveTurnPage() {
     ? destination
     : null;
   const departure = departures.data?.find((d) => d.id === departureId && d.occupied < d.capacity);
+  // Con las salidas ya recargadas, la rechazada no tiene lugar: se llenó.
+  const filled =
+    rejected &&
+    !departures.loading &&
+    departures.data &&
+    !departures.data.some((d) => d.id === rejected.id && d.occupied < d.capacity)
+      ? rejected
+      : null;
+  const alertMessage = filled
+    ? `La salida de las ${formatTime(filled.departsAt)} se llenó. Elegí otra.`
+    : rejected && departures.loading
+      ? null
+      : submitError;
   const ready = origin !== null && validDestination !== null && departure !== undefined;
   // "Lima 3 · Piso 7 · 7:25 – 7:27" con lo que ya se eligió.
   const summary = [
@@ -65,12 +83,27 @@ export function ReserveTurnPage() {
     .filter(Boolean)
     .join(' · ');
 
+  // La lista de franjas cambió: se lleva el foco ahí para elegir otra.
+  useEffect(() => {
+    if (filled) slotsLabel.current?.focus();
+  }, [filled]);
+
+  function clearSubmitError() {
+    setSubmitError(null);
+    setRejected(null);
+  }
+
   function chooseCore(id: string) {
     setCoreId(id);
     setOrigin(null);
     setDestination(null);
     setDepartureId(null);
-    setSubmitError(null);
+    clearSubmitError();
+  }
+
+  function chooseDeparture(id: string) {
+    setDepartureId(id);
+    clearSubmitError();
   }
 
   function chooseOrigin(floor: number) {
@@ -82,7 +115,7 @@ export function ReserveTurnPage() {
     event.preventDefault();
     if (origin === null || validDestination === null || !departure) return;
     setSubmitting(true);
-    setSubmitError(null);
+    clearSubmitError();
     try {
       const reservation = await reserve({
         departureId: departure.id,
@@ -92,6 +125,7 @@ export function ReserveTurnPage() {
       navigate(`/turno/${encodeURIComponent(reservation.id)}`);
     } catch (error) {
       setSubmitError(errorMessage(error));
+      if (error instanceof ApiError && error.status === 409) setRejected(departure);
       // La ocupación pudo cambiar (p. ej. la salida se llenó): se muestra la actual.
       departures.reload();
       setSubmitting(false);
@@ -177,16 +211,17 @@ export function ReserveTurnPage() {
                 <SlotList
                   departures={departures.data}
                   value={departure?.id ?? null}
-                  onChange={setDepartureId}
+                  onChange={chooseDeparture}
+                  labelRef={slotsLabel}
                 />
               ))}
 
             <div className="reserve__submit">
               {/* Resumen de la elección: solo en Pantalla (en el móvil el pie es solo el botón). */}
               <p className="reserve__summary text-body-strong">{summary || 'Elegí tu turno'}</p>
-              {submitError && (
+              {alertMessage && (
                 <p role="alert" className="reserve__alert">
-                  {submitError}
+                  {alertMessage}
                 </p>
               )}
               <Button
