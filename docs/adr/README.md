@@ -24,3 +24,4 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0009](0009-autenticacion-y-prioridad.md) | Autenticación con email institucional y prioridad validada en el servidor | Propuesto |
 | [0010](0010-integridad-de-reservas-tiempo-y-configuracion.md) | Integridad de reservas, manejo del tiempo y configuración | Propuesto |
 | [0011](0011-spring-boot-4-y-java-25.md) | Spring Boot 4.1 y Java 25 | Aceptado |
+| [0012](0012-hosting-del-backend-render-y-neon.md) | Hosting del backend en Render y Postgres en Neon | Aceptado |

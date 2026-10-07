@@ -11,7 +11,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 | Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, Flyway, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
 | Frontend | React 19, Vite 8, TypeScript, React Router, Vitest + React Testing Library, ESLint + Prettier |
 | CI/CD | GitHub Actions |
-| Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI). Backend: hosting a definir ([bloqueante B-01](docs/bloqueantes.md)) |
+| Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI), backend en Render (Docker) y Postgres en Neon. Accesos y operación en [`docs/infraestructura.md`](docs/infraestructura.md) |
 
 ## Estructura
 
@@ -225,6 +225,7 @@ Commits chicos y atómicos. El título del PR también sigue la convención.
 | [`ci-frontend.yml`](.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, lint, tests, build |
 | [`branch-policy.yml`](.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
+| [`keep-alive-backend.yml`](.github/workflows/keep-alive-backend.yml) | Cada 10 min, 07:00–22:59 (Buenos Aires) | `GET /api/ping` para que Render no duerma el backend ([detalle](docs/infraestructura.md#keep-alive)) |
 
 Detalles:
 
@@ -233,6 +234,7 @@ Detalles:
 - El deploy nunca corre para PRs de forks (el workflow tiene acceso a secrets).
 - Los deploys automáticos de Vercel por Git están apagados (`"git": { "deploymentEnabled": false }` en `vercel.json`): **el único camino de deploy es el workflow**.
 - Decisiones y trade-offs: [ADR 0003](docs/adr/0003-deploy-frontend-vercel-via-github-actions.md).
+- El backend no tiene workflow de deploy: Render lo buildea solo desde `main` cuando pasa `backend-verify` ([ADR 0012](docs/adr/0012-hosting-del-backend-render-y-neon.md)).
 
 ### ¿Cómo llega `/api` al backend en Vercel?
 
@@ -276,7 +278,7 @@ En el repo → **Settings → Secrets and variables → Actions**:
   - `VERCEL_ORG_ID`
   - `VERCEL_PROJECT_ID`
 - **Variables** (pestaña *Variables*):
-  - `BACKEND_URL` — URL pública del backend, sin `/` final (p. ej. `https://smartelevate-api.onrender.com`). Se puede definir distinta por environment (`preview` / `production`) en **Settings → Environments**; los environments los crea el workflow en la primera corrida.
+  - `BACKEND_URL` — URL pública del backend, sin `/` final (hoy `https://smartelevate.onrender.com`). Se puede definir distinta por environment (`preview` / `production`) en **Settings → Environments**; los environments los crea el workflow en la primera corrida.
 
 ### 4. Vercel: variables de entorno
 

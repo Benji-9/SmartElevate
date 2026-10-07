@@ -1,0 +1,24 @@
+name: Keep-alive Backend
+
+# Render (plan free) duerme el backend tras 15 min sin tráfico y despertarlo tarda ~1 min.
+# Le pegamos a /api/ping (no toca la base, así Neon puede dormir) cada 10 min en horario de campus.
+# Cron en UTC: 10:00–01:59 UTC = 07:00–22:59 en Buenos Aires.
+# GitHub solo ejecuta `schedule` desde la rama por defecto (main). Ver docs/infraestructura.md#keep-alive.
+on:
+  schedule:
+    - cron: '*/10 0-1,10-23 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    name: ping-backend
+    if: vars.BACKEND_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET /api/ping
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: curl --fail --silent --show-error --max-time 150 --retry 2 "${BACKEND_URL%/}/api/ping"
