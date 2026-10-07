@@ -17,7 +17,7 @@ async function renderLogin(path = '/login') {
       <App />
     </MemoryRouter>,
   );
-  await screen.findByRole('heading', { level: 1, name: 'Bienvenido a SmartElevate' });
+  await screen.findByRole('heading', { level: 1, name: 'Te damos la bienvenida a SmartElevate' });
 }
 
 async function submit(email: string, password: string) {

@@ -57,6 +57,7 @@ describe('NotificationsPage', () => {
     await userEvent.click(toggle);
 
     expect(toggle).toBeChecked();
+    expect(await screen.findByRole('status')).toHaveTextContent('Guardamos tu preferencia.');
     expect(requestPermission).toHaveBeenCalledOnce();
     const [[, init]] = putCalls(fetchMock);
     expect(JSON.parse(String(init?.body))).toEqual({ ...prefs, departureReminder: true });
@@ -123,6 +124,7 @@ describe('NotificationsPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
     expect(toggle).not.toBeChecked();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('muestra el error si no se pudieron cargar', async () => {

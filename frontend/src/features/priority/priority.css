@@ -177,8 +177,7 @@ input:focus-visible + .upload-dropzone {
   border-top: 1px solid var(--color-border);
 }
 
-.profile-options a,
-.profile-options button {
+.profile-options a {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -196,8 +195,9 @@ input:focus-visible + .upload-dropzone {
   cursor: pointer;
 }
 
-.profile-options button {
-  color: var(--color-danger);
+.profile-nav {
+  display: grid;
+  gap: 16px;
 }
 
 .profile-options__arrow {
@@ -210,8 +210,7 @@ input:focus-visible + .upload-dropzone {
 }
 
 @media (hover: hover) {
-  .profile-options a:hover,
-  .profile-options button:hover {
+  .profile-options a:hover {
     background: var(--color-disabled-bg);
   }
 }
