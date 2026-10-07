@@ -23,6 +23,7 @@ describe('ForgotPasswordPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
 
     expect(screen.getByLabelText('Email institucional')).toBeInvalid();
+    expect(screen.getByText('Usá tu email @uade.edu.ar.')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/password/forgot', expect.anything());
   });
 
@@ -30,12 +31,28 @@ describe('ForgotPasswordPage', () => {
     const fetchMock = stubApi({ ...signedOut, 'POST /auth/password/forgot': { status: 202 } });
     await renderForgot();
 
-    await userEvent.type(screen.getByLabelText('Email institucional'), 'ana.perez@uade.edu.ar');
+    await userEvent.type(screen.getByLabelText('Email institucional'), 'ana.perez');
     await userEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Si ana.perez@uade.edu.ar tiene una cuenta, te mandamos un link',
     );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/password/forgot',
+      expect.objectContaining({ body: JSON.stringify({ email: 'ana.perez@uade.edu.ar' }) }),
+    );
+  });
+
+  it('al pegar el email completo se queda con el usuario', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/password/forgot': { status: 202 } });
+    await renderForgot();
+
+    await userEvent.click(screen.getByLabelText('Email institucional'));
+    await userEvent.paste('ana.perez@uade.edu.ar');
+    expect(screen.getByLabelText('Email institucional')).toHaveValue('ana.perez');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
+
+    await screen.findByRole('status');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/password/forgot',
       expect.objectContaining({ body: JSON.stringify({ email: 'ana.perez@uade.edu.ar' }) }),
