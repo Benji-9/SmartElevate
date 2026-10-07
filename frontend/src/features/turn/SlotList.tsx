@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type Ref } from 'react';
 import type { Departure } from '../../types/pending';
 import { formatSlot } from './format';
 
@@ -6,14 +6,16 @@ type SlotListProps = {
   departures: Departure[];
   value: string | null;
   onChange: (departureId: string) => void;
+  /** Para llevar el foco al título (p. ej. cuando la salida elegida se llenó). */
+  labelRef?: Ref<HTMLSpanElement>;
 };
 
 /** Salidas de ascensor para reservar, con su ocupación. Las completas no se pueden elegir. */
-export function SlotList({ departures, value, onChange }: SlotListProps) {
+export function SlotList({ departures, value, onChange, labelRef }: SlotListProps) {
   const labelId = useId();
   return (
     <div className="option-group">
-      <span id={labelId} className="option-group__label">
+      <span id={labelId} ref={labelRef} tabIndex={-1} className="option-group__label">
         Franja horaria
       </span>
       <div role="radiogroup" aria-labelledby={labelId} className="slot-list">
