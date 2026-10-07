@@ -19,7 +19,7 @@ import {
 } from '../services/api';
 
 const loadCatalog = () => Promise.all([getBuildings(), getCores()]);
-// Si no se puede saber, no se avisa: el servidor rechaza la reserva igual.
+// Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
 const loadActive = () => getActiveReservation().catch(() => null);
 
 export function ReserveTurnPage() {
@@ -102,20 +102,24 @@ export function ReserveTurnPage() {
     <>
       <ScreenHeader title="Reservar turno" className="reserve__header" />
 
-      {active.data && (
+      {catalog.loading || active.loading ? (
+        <p role="status" className="page-placeholder">
+          Cargando núcleos…
+        </p>
+      ) : active.data ? (
+        // Con un turno activo no se puede reservar otro (turnos.md §3): no se ofrece el formulario.
         <div className="reserve__notice">
           <p>
             Ya tenés un turno activo para la salida de las{' '}
             {formatTime(active.data.departure.departsAt)}. Para reservar otro, primero cancelalo.
           </p>
-          <Link to={`/turno/${encodeURIComponent(active.data.id)}`}>Ver mi turno</Link>
+          <Link
+            to={`/turno/${encodeURIComponent(active.data.id)}`}
+            className="button button--primary button--inline"
+          >
+            Ver mi turno
+          </Link>
         </div>
-      )}
-
-      {catalog.loading ? (
-        <p role="status" className="page-placeholder">
-          Cargando núcleos…
-        </p>
       ) : catalog.error ? (
         <p role="alert" className="reserve__alert">
           {catalog.error}

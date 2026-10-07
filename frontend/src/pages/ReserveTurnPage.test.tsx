@@ -202,7 +202,7 @@ describe('ReserveTurnPage', () => {
     await expect.poll(departureCalls).toBe(2);
   });
 
-  it('avisa si ya hay un turno activo y ofrece verlo', async () => {
+  it('con un turno activo no ofrece el formulario y lleva al turno', async () => {
     stubApi({
       ...routes,
       'GET /reservations/active': {
@@ -220,5 +220,23 @@ describe('ReserveTurnPage', () => {
       'href',
       '/turno/r-1',
     );
+    expect(screen.queryByRole('radiogroup', { name: 'Edificio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Confirmar turno/ })).not.toBeInTheDocument();
+  });
+
+  it('si no se puede saber si hay un turno activo, muestra el formulario igual', async () => {
+    stubApi({
+      ...routes,
+      'GET /reservations/active': { status: 500, body: { message: 'Error interno' } },
+    });
+    render(
+      <MemoryRouter initialEntries={['/reservar']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('radiogroup', { name: 'Edificio' })).toBeInTheDocument();
+    expect(screen.queryByText(/Ya tenés un turno activo/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
