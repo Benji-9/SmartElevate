@@ -9,7 +9,6 @@ import type { DeclaredUserType } from '../types/pending';
 const userTypes: Record<DeclaredUserType, { label: string; tone: ChipTone }> = {
   STUDENT: { label: 'Estudiante', tone: 'alumnos' },
   TEACHER: { label: 'Docente', tone: 'docentes' },
-  STAFF: { label: 'Personal', tone: 'neutral' },
 };
 
 const arrow = (

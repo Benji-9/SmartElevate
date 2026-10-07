@@ -1,6 +1,6 @@
 # Reglas de turnos
 
-> Estado: **propuesta** para cerrar [#7](https://github.com/Benji-9/SmartElevate/issues/7). Decisión de diseño en [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md). Los valores concretos viven en la [tabla de parámetros](README.md#parámetros-configurables): no hardcodearlos.
+> Estado: **aprobado** ([#7](https://github.com/Benji-9/SmartElevate/issues/7)). Decisión de diseño en [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md). Los valores concretos viven en la [tabla de parámetros](README.md#parámetros-configurables): no hardcodearlos.
 
 ## 1. Franja y horario de operación
 

@@ -1,6 +1,6 @@
 # Reglas de negocio
 
-Referencia funcional de SmartElevate: qué tiene que hacer el sistema. Todo está en estado **propuesta** hasta que el equipo lo apruebe en el PR y se cierren [#6](https://github.com/Benji-9/SmartElevate/issues/6) y [#7](https://github.com/Benji-9/SmartElevate/issues/7).
+Referencia funcional de SmartElevate: qué tiene que hacer el sistema. El equipo **aprobó** estas reglas ([#6](https://github.com/Benji-9/SmartElevate/issues/6), [#7](https://github.com/Benji-9/SmartElevate/issues/7)). Se cambian por PR, y si el cambio da vuelta una decisión, con un ADR nuevo.
 
 | Documento | Contenido | Módulo backend |
 | --- | --- | --- |

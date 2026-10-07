@@ -70,7 +70,7 @@ describe('ProfilePage', () => {
 
   it.each([
     ['STUDENT', 'Estudiante'],
-    ['STAFF', 'Personal'],
+    ['TEACHER', 'Docente'],
   ] as const)('muestra el tipo de usuario %s con texto', async (declaredUserType, label) => {
     stubApi({
       ...signedIn({ ...testUser, declaredUserType }),

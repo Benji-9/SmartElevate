@@ -6,9 +6,7 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 
 | ID | Issue | Estado | Tema | Impacto |
 | --- | --- | --- | --- | --- |
-| B-05 | [#6](https://github.com/Benji-9/SmartElevate/issues/6) | 📝 | **Autenticación y prioridad** | Propuesta en [usuarios y prioridad](reglas/usuarios-y-prioridad.md) y [ADR 0009](adr/0009-autenticacion-y-prioridad.md). Bloquea `user` y `priority` hasta que se apruebe. |
-| B-10 | [#7](https://github.com/Benji-9/SmartElevate/issues/7) | 📝 | **Reglas de negocio de turnos** | Propuesta en [reglas](reglas/README.md) y [ADR 0007](adr/0007-modelo-de-turnos-y-reservas.md). Las 2 inconsistencias se resolvieron en [#113](https://github.com/Benji-9/SmartElevate/issues/113). Quedan los valores X (tolerancia de cancelación) y N (envejecimiento) por definir ([preguntas abiertas](reglas/turnos.md#preguntas-abiertas)). |
-| B-11 | [#22](https://github.com/Benji-9/SmartElevate/issues/22) | 🔴 | **Datos del edificio sin relevar** | Sin ascensores, pisos servidos y conexiones no se puede cargar la configuración ni asignar turnos. |
+| B-11 | [#22](https://github.com/Benji-9/SmartElevate/issues/22) | 🟡 | **Tiempos de caminata entre núcleos** | El relevamiento está hecho ([#99](https://github.com/Benji-9/SmartElevate/pull/99)) y cargado en `V2`. Faltan medir los tiempos de caminata entre núcleos, que usa el edificio alternativo ([reglas](reglas/README.md)). |
 | B-12 | [#23](https://github.com/Benji-9/SmartElevate/issues/23) | 🟡 | **Dispositivo para el QR** | Sin QR no hay check-in, ni no-show, ni la mayoría de los KPIs. Para la demo alcanza con una página web. |
 | B-13 | [#24](https://github.com/Benji-9/SmartElevate/issues/24) | 🟡 | **Datos de salud (Ley 25.326)** | Hay que validar consentimiento, retención y alcance antes de aceptar certificados reales. |
 | B-07 | [#1](https://github.com/Benji-9/SmartElevate/issues/1) | 🟡 | **Deployment Protection en previews de Vercel** | Si sigue activa, quien no es miembro del equipo de Vercel no puede abrir las previews. Confirmar si se desactivó. |
@@ -22,6 +20,8 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 
 | ID | Issue | Tema | Resolución |
 | --- | --- | --- | --- |
+| B-05 | [#6](https://github.com/Benji-9/SmartElevate/issues/6) | Autenticación y prioridad | Aprobado: [ADR 0009](adr/0009-autenticacion-y-prioridad.md) y [usuarios y prioridad](reglas/usuarios-y-prioridad.md), con el tipo de usuario declarativo y el primer ADMIN por SQL ([#32](https://github.com/Benji-9/SmartElevate/issues/32)). |
+| B-10 | [#7](https://github.com/Benji-9/SmartElevate/issues/7) | Reglas de negocio de turnos | Aprobado: [ADR 0007](adr/0007-modelo-de-turnos-y-reservas.md) y [reglas](reglas/README.md); decisiones de [#113](https://github.com/Benji-9/SmartElevate/issues/113) aplicadas en `V3`. Quedan por calibrar X (tolerancia de cancelación) y N (envejecimiento), que no bloquean ([preguntas abiertas](reglas/turnos.md#preguntas-abiertas)). |
 | B-14 | [#25](https://github.com/Benji-9/SmartElevate/issues/25) | Proveedor de email | Brevo por SMTP. Sin dominio propio el remitente sale como `@brevosend.com`, y la prueba a @uade.edu.ar llegó a la bandeja de entrada ([ADR 0013](adr/0013-email-con-brevo-y-storage-en-r2.md), [infraestructura](infraestructura.md#email-con-brevo)). |
 | B-15 | [#26](https://github.com/Benji-9/SmartElevate/issues/26) | Storage privado para certificados | Bucket privado `smartelevate-certificados` en Cloudflare R2, con un token limitado al bucket ([ADR 0013](adr/0013-email-con-brevo-y-storage-en-r2.md), [infraestructura](infraestructura.md#storage-de-certificados-en-r2)). No se suben certificados reales hasta resolver B-13. |
 | B-01 | [#5](https://github.com/Benji-9/SmartElevate/issues/5) | Hosting del backend | Backend en Render y Postgres en Neon, conectados al front con `BACKEND_URL` ([ADR 0012](adr/0012-hosting-del-backend-render-y-neon.md), [infraestructura](infraestructura.md)). |
