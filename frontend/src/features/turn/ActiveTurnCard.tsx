@@ -13,6 +13,24 @@ type State =
   | { status: 'error'; message: string }
   | { status: 'ready'; reservation: Reservation | null };
 
+/**
+ * "Sale en 6 min": tiempo hasta la salida reservada, a partir del instante UTC de la API
+ * (no depende de la zona del dispositivo). Se actualiza cada 30 s mientras está montado.
+ */
+function DepartureCountdown({ departsAt }: { departsAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const minutes = Math.ceil((Date.parse(departsAt) - now) / 60_000);
+  return (
+    <p className="turn-card__countdown">{minutes > 0 ? `Sale en ${minutes} min` : 'Sale ahora'}</p>
+  );
+}
+
 /** Tarjeta "Tu turno" del inicio, o el CTA para reservar si no hay turno activo. */
 export function ActiveTurnCard() {
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -84,6 +102,7 @@ export function ActiveTurnCard() {
         </h2>
         <Chip>Confirmado</Chip>
       </div>
+      <DepartureCountdown departsAt={departure.departsAt} />
       <p className="turn-card__summary">
         {formatSlot(departure.departsAt, departure.durationMinutes)} · {core.name} · Piso{' '}
         {formatFloor(reservation.destinationFloor)}
