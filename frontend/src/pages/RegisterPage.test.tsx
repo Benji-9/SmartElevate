@@ -24,7 +24,7 @@ const valid = {
   'Nombre y apellido': 'Ana Pérez',
   'Email institucional': 'ana.perez',
   Legajo: '1099999',
-  Contraseña: 'secreta',
+  Contraseña: 'secreta-123',
 };
 
 const submit = () => userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
@@ -44,6 +44,41 @@ describe('RegisterPage', () => {
       'Está en tu credencial UADE. Ingresá tu legajo.',
     );
     expect(screen.getByLabelText('Contraseña')).toBeInvalid();
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
+  });
+
+  it('muestra los requisitos de la contraseña antes de escribir', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      'Entre 8 y 72 caracteres. No exigimos símbolos ni mayúsculas.',
+    );
+  });
+
+  it('rechaza una contraseña corta', async () => {
+    const fetchMock = stubApi(signedOut);
+    await renderRegister();
+
+    await fill({ ...valid, Contraseña: 'corta' });
+    await submit();
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      /La contraseña tiene que tener entre 8 y 72 caracteres\./,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
+  });
+
+  it('cuenta bytes y no caracteres: 40 ñ son 40 caracteres pero 80 bytes', async () => {
+    const fetchMock = stubApi(signedOut);
+    await renderRegister();
+
+    await fill({ ...valid, Contraseña: 'ñ'.repeat(40) });
+    await submit();
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      /el máximo son 72 bytes/,
+    );
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
   });
 
@@ -121,7 +156,7 @@ describe('RegisterPage', () => {
       fullName: 'Ana Pérez',
       email: 'ana.perez@uade.edu.ar',
       legajo: '1099999',
-      password: 'secreta',
+      password: 'secreta-123',
       declaredUserType: 'TEACHER',
     });
   });
