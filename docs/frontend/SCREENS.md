@@ -229,7 +229,7 @@ Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
 Escritorio **1440 × 900**. Layout en dos columnas.
 
-**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). Turnos, Núcleos y ascensores, Usuarios prioritarios (cola de docentes a validar, spec pendiente en [#140](https://github.com/Benji-9/SmartElevate/issues/140)) y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
+**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). **Usuarios prioritarios** (activo en `/admin/prioritarios`, ver [09b](#09b--usuarios-prioritarios--adminprioritarios)). Turnos, Núcleos y ascensores y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
 
 **Contenido** (pad 32, gap 24):
 
@@ -256,6 +256,23 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 | Indep. 2 | 177 | 66% | 3,0 min | Media |
 
 4. Nota al pie 12 px `--ink-muted`: "* Datos de ejemplo (ficticios) para el wireframe." (quitar al conectar datos reales).
+
+### 09b · Usuarios prioritarios — `/admin/prioritarios`
+
+Sin frame de Figma: se arma con los componentes del panel (tarjeta `.admin-card`, tabla de "Estado por núcleo", `Chip`, `Button`). Solo rol `ADMIN` (el servidor valida con 403). Reglas en [`usuarios-y-prioridad.md`](../reglas/usuarios-y-prioridad.md#tipo-de-usuario-declarado).
+
+**Contenido** (mismo pad 32 y gap 24 del Dashboard). `h1` `.text-title-lg` "Usuarios prioritarios" y debajo (14 px `--ink-muted`) "Validá a los docentes y gestioná quién tiene prioridad." Dos tarjetas apiladas, cada una con `h2` `.text-card-title` y tabla (misma tipografía y divisores `--line` que "Estado por núcleo"):
+
+1. **"Docentes a validar"**: columnas **Nombre · Email · Legajo · Registro · Acciones**. Registro = fecha en Buenos Aires ("29/9/2026"). Acciones: `Button` primary "Aprobar" y secondary "Rechazar" (ancho del contenido, 48 px de alto), con nombre accesible "Aprobar a {nombre}" / "Rechazar a {nombre}".
+   - **Rechazar pide confirmación** en la misma fila: el texto "¿Rechazar a {nombre}?" reemplaza los botones, con "Sí, rechazar" (primary) y "Cancelar" (secondary, con el foco). Aprobar es directo y reversible desde la otra lista (revocar).
+   - Al confirmar, la fila sale de la cola sin recargar la página. Aprobar la pasa a la lista de prioritarios con categoría Docente. Rechazar la deja como usuario común.
+   - Vacía: "No hay docentes para validar." (`.page-placeholder`).
+2. **"Usuarios con prioridad"**: columnas **Nombre · Email · Legajo · Categoría · Acciones**. Categoría = `Chip` (`docentes` "Docente" o `accent` "Movilidad reducida"), siempre con texto. Acción: secondary "Revocar" ("Revocar a {nombre}"), también con confirmación en la fila ("¿Revocar la prioridad de {nombre}?", "Sí, revocar" / "Cancelar").
+   - Vacía: "Todavía no hay usuarios con prioridad."
+
+**Estados**: cada tarjeta carga y falla por separado. Cargando: "Cargando…" (`role="status"`); error: mensaje del servidor con `role="alert"` y "Reintentar". Si falla una acción, el error aparece en un `role="alert"` dentro de la tarjeta y la fila queda como estaba.
+
+**Fuera de alcance por ahora**: asignar rol `REVIEWER`/`ADMIN` a otro usuario (esperando que #121 exponga el endpoint).
 
 ---
 
