@@ -13,11 +13,20 @@
 
 ### Contraseña
 
-Decidido en [#181](https://github.com/Benji-9/SmartElevate/issues/181) para el registro; la de "contraseña nueva" va con [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+Decidido en [#181](https://github.com/Benji-9/SmartElevate/issues/181) para el registro; la "contraseña nueva" del reset ([#138](https://github.com/Benji-9/SmartElevate/issues/138)) aplica **la misma política**.
 
 - **Mínimo 8 caracteres**, sin exigir mayúsculas, números ni símbolos, como recomienda la guía NIST SP 800-63B.
 - **Máximo 72 bytes**, el límite de BCrypt, que rechaza con error lo que lo pase. La "ñ" y las tildes ocupan 2 bytes, así que una contraseña con muchas letras acentuadas tiene un tope menor a 72 caracteres.
 - Se guarda como **hash BCrypt**. La contraseña nunca se guarda ni se loguea en texto plano, ni siquiera con el log en DEBUG.
+
+### Olvidé mi contraseña
+
+Implementado en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+
+- `POST /api/auth/password/forgot` responde **202 siempre**, exista o no la cuenta (y también si hubo un pedido reciente: la espera entre pedidos, 1 minuto, se aplica en silencio porque un 429 delataría qué cuentas existen).
+- El link vale **30 minutos**, se usa **una sola vez** y se guarda hasheado. Pedir otro invalida el anterior. Vencimiento y espera son configuración (`app.password-reset.*`).
+- **Cuenta sin verificar que pide reset**: no se manda link de reset; se le **reenvía el link de verificación** (con su propia espera). Primero tiene que verificar el email.
+- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
 
 ### Tipo de usuario declarado
 
