@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(DepartureController.class)
 @EnableConfigurationProperties(CorsProperties.class)
 @Import(ClockConfig.class)
+@com.smartelevate.common.security.WithAppSecurity
 class DepartureControllerTest {
 
     @Autowired
@@ -36,7 +37,7 @@ class DepartureControllerTest {
         given(service.findBookable("33", null)).willReturn(List.of(new DepartureResponse(7, "33", "INDEPENDENCIA",
                 Instant.parse("2026-10-13T15:58:00Z"), 10, 10, DepartureStatus.SCHEDULED)));
 
-        mockMvc.perform(get("/api/departures").param("elevator", "33"))
+        mockMvc.perform(get("/api/departures").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()).param("elevator", "33"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(7))
@@ -52,7 +53,7 @@ class DepartureControllerTest {
     void passesBuildingFilterAndReturnsEmptyList() throws Exception {
         given(service.findBookable(null, "LIMA")).willReturn(List.of());
 
-        mockMvc.perform(get("/api/departures").param("building", "LIMA"))
+        mockMvc.perform(get("/api/departures").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()).param("building", "LIMA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }

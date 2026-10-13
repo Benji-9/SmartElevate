@@ -42,6 +42,7 @@ import org.springframework.test.web.servlet.ResultActions;
 @WebMvcTest(AuthController.class)
 @EnableConfigurationProperties(CorsProperties.class)
 @Import(ClockConfig.class)
+@com.smartelevate.common.security.WithAppSecurity
 class AuthControllerTest {
 
     @Autowired
@@ -49,6 +50,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserService service;
+
+    @MockitoBean
+    private com.smartelevate.user.service.AuthService authService;
 
     @MockitoBean
     private EmailVerificationService emailVerification;
@@ -271,5 +275,56 @@ class AuthControllerTest {
                 "clave-secreta-123", DeclaredUserType.STUDENT);
 
         assertThat(request.toString()).contains("password=***").doesNotContain("clave-secreta-123");
+    }
+
+    // ---- sesión
+
+    @Test
+    void loginReturnsTheTokenPair() throws Exception {
+        org.mockito.BDDMockito.given(authService.login("ana@uade.edu.ar", "una-clave-larga"))
+                .willReturn(new com.smartelevate.user.dto.TokenResponse("acc", "ref", "Bearer", 900));
+
+        postJson("/api/auth/login", "{\"email\":\"ana@uade.edu.ar\",\"password\":\"una-clave-larga\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("acc"))
+                .andExpect(jsonPath("$.refreshToken").value("ref"))
+                .andExpect(jsonPath("$.expiresIn").value(900));
+    }
+
+    @Test
+    void badCredentialsAre401WithTheStandardErrorBody() throws Exception {
+        org.mockito.BDDMockito.given(authService.login(any(), any()))
+                .willThrow(new com.smartelevate.user.service.InvalidCredentialsException());
+
+        postJson("/api/auth/login", "{\"email\":\"a@uade.edu.ar\",\"password\":\"x\"}")
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.path").value("/api/auth/login"));
+    }
+
+    @Test
+    void unverifiedEmailIs403() throws Exception {
+        org.mockito.BDDMockito.given(authService.login(any(), any()))
+                .willThrow(new com.smartelevate.user.service.EmailNotVerifiedException());
+
+        postJson("/api/auth/login", "{\"email\":\"a@uade.edu.ar\",\"password\":\"x\"}")
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void loginAndRefreshValidateTheBody() throws Exception {
+        postJson("/api/auth/login", "{\"email\":\"\"}").andExpect(status().isBadRequest());
+        postJson("/api/auth/refresh", "{}").andExpect(status().isBadRequest());
+        postJson("/api/auth/logout", "{}").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void invalidRefreshIs401AndLogoutIs204() throws Exception {
+        org.mockito.BDDMockito.given(authService.refresh("viejo"))
+                .willThrow(new com.smartelevate.user.service.InvalidRefreshTokenException());
+
+        postJson("/api/auth/refresh", "{\"refreshToken\":\"viejo\"}").andExpect(status().isUnauthorized());
+        postJson("/api/auth/logout", "{\"refreshToken\":\"viejo\"}").andExpect(status().isNoContent());
+        verify(authService).logout("viejo");
     }
 }

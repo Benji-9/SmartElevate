@@ -1,6 +1,7 @@
 package com.smartelevate.user.repository;
 
 import com.smartelevate.user.model.User;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 

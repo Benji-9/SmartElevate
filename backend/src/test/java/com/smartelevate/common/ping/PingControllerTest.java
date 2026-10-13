@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(PingController.class)
 @EnableConfigurationProperties(CorsProperties.class)
 @Import(ClockConfig.class)
+@com.smartelevate.common.security.WithAppSecurity
 class PingControllerTest {
 
     @Autowired
@@ -34,7 +35,7 @@ class PingControllerTest {
 
     @Test
     void unknownRouteReturnsConsistentErrorBody() throws Exception {
-        mockMvc.perform(get("/api/no-existe"))
+        mockMvc.perform(get("/api/no-existe").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.path").value("/api/no-existe"))

@@ -1,6 +1,9 @@
 package com.smartelevate.common.error;
 
 import com.smartelevate.user.service.DuplicateUserException;
+import com.smartelevate.user.service.EmailNotVerifiedException;
+import com.smartelevate.user.service.InvalidCredentialsException;
+import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
 import com.smartelevate.user.service.ResendTooSoonException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -92,6 +97,29 @@ public class GlobalExceptionHandler {
                 .map(field -> new ApiError.FieldViolation(field, "Ya hay una cuenta con ese " + field + "."))
                 .toList();
         return build(HttpStatus.CONFLICT, "Ya existe una cuenta con esos datos", request, violations);
+    }
+
+    // Sin @ResponseStatus: se documentan en los endpoints de auth (401/403) y por la seguridad en el resto.
+    @ExceptionHandler({InvalidCredentialsException.class, InvalidRefreshTokenException.class})
+    public ResponseEntity<ApiError> handleBadSession(RuntimeException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ApiError> handleEmailNotVerified(EmailNotVerifiedException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, List.of());
+    }
+
+    /** Sin token, vencido o manipulado: lo lanza el filtro de seguridad (vía el entry point) o un @PreAuthorize. */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleUnauthenticated(AuthenticationException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, "Necesitás iniciar sesión", request, List.of());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "No tenés permisos para esta acción", request, List.of());
     }
 
     @ExceptionHandler(InvalidTokenException.class)
