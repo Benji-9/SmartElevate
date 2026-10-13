@@ -3,6 +3,8 @@ import type {
   AdminKpis,
   AdminKpisQuery,
   AdminShift,
+  PendingTeacher,
+  PriorityUser,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
@@ -233,3 +235,14 @@ export function getAdminKpis({ period, buildingId, shiftId }: AdminKpisQuery) {
 }
 /** Turnos de cursada para filtrar los KPIs. */
 export const getAdminShifts = () => api.get<AdminShift[]>('/admin/shifts');
+
+/** Docentes declarados pendientes de aprobación. Solo ADMIN. */
+export const getPendingTeachers = () => api.get<PendingTeacher[]>('/admin/teachers/pending');
+export const approveTeacher = (id: string) =>
+  api.post<void>(`/admin/teachers/${encodeURIComponent(id)}/approve`, {});
+export const rejectTeacher = (id: string) =>
+  api.post<void>(`/admin/teachers/${encodeURIComponent(id)}/reject`, {});
+/** Usuarios con prioridad vigente. */
+export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
+export const revokePriority = (id: string) =>
+  api.delete<void>(`/admin/priority-users/${encodeURIComponent(id)}`);

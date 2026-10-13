@@ -7,6 +7,7 @@ import { DeviceStage } from './features/view-mode/DeviceStage';
 import { ViewModeProvider } from './features/view-mode/ViewModeProvider';
 import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminPriorityPage } from './pages/AdminPriorityPage';
 import { CheckInPage } from './pages/CheckInPage';
 import { CheckInSuccessPage } from './pages/CheckInSuccessPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -59,6 +60,7 @@ export function App() {
             <Route element={<RequireSession role="ADMIN" />}>
               <Route path="admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboardPage />} />
+                <Route path="prioritarios" element={<AdminPriorityPage />} />
               </Route>
             </Route>
             <Route element={<ScreenLayout />}>
