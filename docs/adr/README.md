@@ -26,3 +26,4 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0011](0011-spring-boot-4-y-java-25.md) | Spring Boot 4.1 y Java 25 | Aceptado |
 | [0012](0012-hosting-del-backend-render-y-neon.md) | Hosting del backend en Render y Postgres en Neon | Aceptado |
 | [0013](0013-email-con-brevo-y-storage-en-r2.md) | Email con Brevo y storage de certificados en Cloudflare R2 | Aceptado |
+| [0014](0014-refresh-token-en-sessionstorage.md) | Refresh token del frontend en sessionStorage | Aceptado |
