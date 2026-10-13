@@ -69,4 +69,8 @@ public class User {
     public void verifyEmail() {
         this.emailVerified = true;
     }
+
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }
