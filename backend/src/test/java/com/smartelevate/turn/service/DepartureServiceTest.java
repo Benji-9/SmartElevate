@@ -3,6 +3,11 @@ package com.smartelevate.turn.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartelevate.turn.dto.DepartureResponse;
+import com.smartelevate.turn.model.Departure;
+import com.smartelevate.turn.model.Reservation;
+import com.smartelevate.user.model.DeclaredUserType;
+import com.smartelevate.user.model.User;
+import java.util.UUID;
 import com.smartelevate.turn.repository.DepartureRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -55,6 +60,12 @@ class DepartureServiceTest {
     @Autowired
     private DepartureRepository repository;
 
+    @Autowired
+    private com.smartelevate.turn.repository.ReservationRepository reservations;
+
+    @Autowired
+    private com.smartelevate.user.repository.UserRepository users;
+
     @Test
     void tuesdayAt1255ReturnsTheExpectedSlotsInUtc() {
         NOW.set(Instant.parse("2026-10-13T15:55:00Z")); // 12:55 BA
@@ -71,6 +82,26 @@ class DepartureServiceTest {
             assertThat(d.elevator()).isEqualTo("33");
             assertThat(d.building()).isEqualTo("INDEPENDENCIA");
         });
+    }
+
+    @Test
+    void remainingSeatsDiscountsActiveReservations() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+        Departure first = repositoryDeparture(service.findBookable("33", null).getFirst().id());
+        for (int seat = 1; seat <= 3; seat++) {
+            UUID id = users.save(new User("P" + seat, "p" + seat + "@uade.edu.ar", "20" + seat, "x",
+                    DeclaredUserType.STUDENT, NOW.get())).getId();
+            reservations.save(new Reservation(id, first, seat, 0, 8, NOW.get()));
+        }
+
+        List<DepartureResponse> result = service.findBookable("33", null);
+
+        assertThat(result.getFirst().remainingSeats()).isEqualTo(7);
+        assertThat(result.get(1).remainingSeats()).isEqualTo(10);
+    }
+
+    private Departure repositoryDeparture(long id) {
+        return repository.findById(id).orElseThrow();
     }
 
     @Test

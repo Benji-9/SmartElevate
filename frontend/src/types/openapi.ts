@@ -337,12 +337,37 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reservations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reserva un lugar en una salida
+     * @description El usuario sale del token. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND.
+     */
+    post: operations['reserve'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /** @description Error estándar de la API */
     ApiError: {
+      /**
+       * @description Código estable de los errores de dominio, para que el cliente decida qué mostrar
+       * @example TURN_FULL
+       */
+      code?: string;
       /** @example Not Found */
       error: string;
       /** @example Recurso no encontrado */
@@ -539,6 +564,68 @@ export interface components {
     ResendVerificationRequest: {
       /** @example jmartinez@uade.edu.ar */
       email: string;
+    };
+    /** @description Reserva de un lugar en una salida */
+    ReservationResponse: {
+      /**
+       * Format: date-time
+       * @example 2026-10-13T15:40:00Z
+       */
+      createdAt: string;
+      /**
+       * Format: date-time
+       * @description Hora estimada de salida, en UTC
+       * @example 2026-10-13T15:58:00Z
+       */
+      departureAt: string;
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      departureId: number;
+      /**
+       * Format: int32
+       * @example 8
+       */
+      destinationFloor: number;
+      /** @example 33 */
+      elevator: string;
+      /**
+       * Format: int64
+       * @example 55
+       */
+      id: number;
+      /**
+       * Format: int32
+       * @example 0
+       */
+      originFloor: number;
+      /**
+       * Format: int32
+       * @description Número de lugar, de 1 a la capacidad
+       * @example 3
+       */
+      seatNumber: number;
+      /** @enum {string} */
+      status: 'ACTIVE' | 'CANCELLED';
+    };
+    /** @description Pedido de reserva. El usuario sale del token, no del body. */
+    ReserveRequest: {
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      departureId: number;
+      /**
+       * Format: int32
+       * @example 8
+       */
+      destinationFloor: number;
+      /**
+       * Format: int32
+       * @example 0
+       */
+      originFloor: number;
     };
     /** @description Token del link del mail y la contraseña nueva */
     ResetPasswordRequest: {
@@ -1367,6 +1454,75 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  reserve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReserveRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La salida no existe (DEPARTURE_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Salida llena (TURN_FULL), fuera de ventana, o límite de reservas alcanzado */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Pisos o ascensor no válidos para la reserva */
+      422: {
         headers: {
           [name: string]: unknown;
         };
