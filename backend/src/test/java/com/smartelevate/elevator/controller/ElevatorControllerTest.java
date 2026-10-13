@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(ElevatorController.class)
 @EnableConfigurationProperties(CorsProperties.class)
 @Import(ClockConfig.class)
+@com.smartelevate.common.security.WithAppSecurity
 class ElevatorControllerTest {
 
     @Autowired
