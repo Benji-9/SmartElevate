@@ -76,6 +76,102 @@
         "tags" : [ "auth" ]
       }
     },
+    "/api/auth/resend-verification" : {
+      "post" : {
+        "description" : "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.",
+        "operationId" : "resendVerification",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResendVerificationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Ya se mandó un mail hace poco"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Reenvía el link de verificación",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/verify" : {
+      "post" : {
+        "description" : "El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.",
+        "operationId" : "verify",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Token inválido, usado o vencido"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Verifica el email con el token del link",
+        "tags" : [ "auth" ]
+      }
+    },
     "/api/buildings" : {
       "get" : {
         "operationId" : "buildings",
@@ -504,6 +600,30 @@
           }
         },
         "required" : [ "declaredUserType", "email", "fullName", "legajo", "password" ]
+      },
+      "ResendVerificationRequest" : {
+        "type" : "object",
+        "description" : "Cuenta a la que reenviar el link de verificación",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "jmartinez@uade.edu.ar",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email" ]
+      },
+      "VerifyEmailRequest" : {
+        "type" : "object",
+        "description" : "Token del link que llegó por mail",
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "example" : "Zk3pQ1x9...",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "token" ]
       }
     }
   }

@@ -1,6 +1,8 @@
 package com.smartelevate.common.error;
 
 import com.smartelevate.user.service.DuplicateUserException;
+import com.smartelevate.user.service.InvalidTokenException;
+import com.smartelevate.user.service.ResendTooSoonException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -90,6 +92,19 @@ public class GlobalExceptionHandler {
                 .map(field -> new ApiError.FieldViolation(field, "Ya hay una cuenta con ese " + field + "."))
                 .toList();
         return build(HttpStatus.CONFLICT, "Ya existe una cuenta con esos datos", request, violations);
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(ResendTooSoonException.class)
+    public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
+        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request, List.of());
+        return ResponseEntity.status(response.getStatusCode())
+                .header("Retry-After", String.valueOf(ex.getRetryAfter().toSeconds()))
+                .body(response.getBody());
     }
 
     @ExceptionHandler(Exception.class)

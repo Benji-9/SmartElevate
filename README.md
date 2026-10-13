@@ -86,6 +86,13 @@ export DATABASE_PASSWORD=smartelevate
 | `DATABASE_URL` | — | Solo `prod`. Formato JDBC: `jdbc:postgresql://host:5432/db` |
 | `DATABASE_USER` | — | Solo `prod` |
 | `DATABASE_PASSWORD` | — | Solo `prod` |
+| `APP_MAIL_ENABLED` | `false` en dev, `true` en `prod` | `true` manda los mails por SMTP; `false` solo los loguea (el link de verificación aparece en el log) |
+| `APP_MAIL_FROM` | `no-reply@localhost` | Remitente de los mails |
+| `SPRING_MAIL_HOST` | — | Solo con mail activo. Brevo: `smtp-relay.brevo.com` |
+| `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
+| `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
+| `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
+| `APP_FRONTEND_URL` | `http://localhost:5173` | Base del link del mail (`<url>/verificar-email?token=…`) |
 
 #### Migraciones de la base (Flyway)
 

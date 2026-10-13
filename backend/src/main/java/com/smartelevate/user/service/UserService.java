@@ -20,6 +20,7 @@ public class UserService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
+    private final EmailVerificationService emailVerification;
 
     /**
      * Crea una cuenta común y sin verificar.
@@ -44,6 +45,8 @@ public class UserService {
             failIfTaken(email, legajo);
             throw e;
         }
+        // Si el mail falla la cuenta queda creada y la persona pide el reenvío.
+        emailVerification.sendVerificationQuietly(user);
     }
 
     private void failIfTaken(String email, String legajo) {

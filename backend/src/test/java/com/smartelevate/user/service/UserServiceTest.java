@@ -30,7 +30,9 @@ class UserServiceTest {
     private final UserRepository users = mock(UserRepository.class);
     // Costo 4 (el mínimo de BCrypt): es el algoritmo real, pero los tests no pagan los ~140 ms de cada hash.
     private final PasswordEncoder encoder = spy(new BCryptPasswordEncoder(4));
-    private final UserService service = new UserService(users, encoder, Clock.fixed(NOW, ZoneOffset.UTC));
+    private final EmailVerificationService emailVerification = mock(EmailVerificationService.class);
+    private final UserService service =
+            new UserService(users, encoder, Clock.fixed(NOW, ZoneOffset.UTC), emailVerification);
 
     private static RegisterRequest request(String email, String legajo) {
         return new RegisterRequest("  Juana Martínez ", email, legajo, "una-clave-larga", DeclaredUserType.TEACHER);
@@ -53,6 +55,16 @@ class UserServiceTest {
         assertThat(user.isEmailVerified()).isFalse();
         assertThat(user.getPasswordHash()).isNotEqualTo("una-clave-larga").startsWith("$2");
         assertThat(encoder.matches("una-clave-larga", user.getPasswordHash())).isTrue();
+        verify(emailVerification).sendVerificationQuietly(user);
+    }
+
+    @Test
+    void doesNotSendTheVerificationMailIfTheAccountWasNotCreated() {
+        given(users.existsByEmail("jmartinez@uade.edu.ar")).willReturn(true);
+
+        assertThatThrownBy(() -> service.register(request("jmartinez@uade.edu.ar", "1234567")))
+                .isInstanceOf(DuplicateUserException.class);
+        verify(emailVerification, never()).sendVerificationQuietly(any());
     }
 
     @Test

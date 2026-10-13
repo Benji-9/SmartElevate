@@ -159,7 +159,7 @@ Variables en Render (Spring lee las `SPRING_MAIL_*` sin configuración extra):
 | `SPRING_MAIL_PASSWORD` | SMTP key de Brevo |
 | `APP_MAIL_FROM` | `smartelevate.uade@gmail.com` |
 
-Al implementar el envío, hay que activar STARTTLS en la config (`spring.mail.properties.mail.smtp.starttls.enable: true` y `...starttls.required: true`): JavaMail no lo usa por defecto.
+STARTTLS ya está activado en `application-prod.yml`. Además de las de arriba, Render necesita `APP_FRONTEND_URL` (`https://smart-elevate.vercel.app`) para armar el link del mail. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
 
 **Rotar la clave:** Brevo → **SMTP & API → SMTP → Generate a new SMTP key**, cargarla en Render y borrar la vieja.
 
