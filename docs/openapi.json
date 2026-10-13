@@ -10,16 +10,169 @@
     "description" : "Mismo origen"
   } ],
   "tags" : [ {
+    "description" : "Alta de cuentas y sesión (login, refresh, logout)",
+    "name" : "auth"
+  }, {
     "description" : "Verificación de conectividad",
     "name" : "ping"
-  }, {
-    "description" : "Alta de cuentas de usuario",
-    "name" : "auth"
   }, {
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   } ],
   "paths" : {
+    "/api/auth/login" : {
+      "post" : {
+        "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Email o contraseña incorrectos"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "El email institucional todavía no se verificó"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Inicia sesión y devuelve access y refresh token",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/logout" : {
+      "post" : {
+        "description" : "Idempotente: un token desconocido tampoco da error.",
+        "operationId" : "logout",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Cierra la sesión revocando el refresh token",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/refresh" : {
+      "post" : {
+        "description" : "El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, se revoca toda la sesión.",
+        "operationId" : "refresh",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Refresh token inválido, vencido, revocado o ya usado"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Canjea un refresh token por un par nuevo (rotación)",
+        "tags" : [ "auth" ]
+      }
+    },
     "/api/auth/register" : {
       "post" : {
         "description" : "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.",
@@ -352,6 +505,24 @@
         },
         "required" : [ "field", "message" ]
       },
+      "LoginRequest" : {
+        "type" : "object",
+        "description" : "Credenciales de inicio de sesión",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "jmartinez@uade.edu.ar",
+            "minLength" : 1
+          },
+          "password" : {
+            "type" : "string",
+            "format" : "password",
+            "example" : "una-clave-larga",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
       "PingResponse" : {
         "type" : "object",
         "properties" : {
@@ -361,6 +532,18 @@
           }
         },
         "required" : [ "status" ]
+      },
+      "RefreshRequest" : {
+        "type" : "object",
+        "description" : "Refresh token vigente de la sesión",
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string",
+            "example" : "b0Yq3k...",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "refreshToken" ]
       },
       "RegisterRequest" : {
         "type" : "object",
@@ -398,6 +581,14 @@
           }
         },
         "required" : [ "declaredUserType", "email", "fullName", "legajo", "password" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "bearerFormat" : "JWT",
+        "description" : "Access token del login: Authorization: Bearer <accessToken>",
+        "scheme" : "bearer",
+        "type" : "http"
       }
     }
   }

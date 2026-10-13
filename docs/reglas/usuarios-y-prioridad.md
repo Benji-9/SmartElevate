@@ -74,6 +74,7 @@ PENDIENTE ──► APROBADO (con vencimiento) ──► vence ──► usuario
 ## Sesión (JWT)
 
 - **Access token corto (~15 min) más refresh token.**
+- Implementado en [#120](https://github.com/Benji-9/SmartElevate/issues/120): el JWT lleva solo `sub` (id de usuario); el rol se lee de la base en cada request. El refresh es opaco, de un solo uso y se guarda hasheado; reusar uno ya rotado revoca toda la sesión. Credenciales erróneas dan 401 sin distinguir si el email existe, y una cuenta sin verificar no puede loguearse (403, solo tras acertar la clave).
 - La **prioridad se evalúa en el servidor al reservar**, consultando el estado actual. **No se usa un claim del token**: la prioridad puede vencer o revocarse mientras el token sigue vigente.
 
 ## Datos sensibles
