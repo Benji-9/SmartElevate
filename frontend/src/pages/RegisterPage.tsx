@@ -5,6 +5,7 @@ import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import {
   PASSWORD_HINT,
@@ -106,6 +107,7 @@ export function RegisterPage() {
             Te mandamos un link a <strong>{registeredEmail}</strong> para verificar tu cuenta.
             Después de verificarla vas a poder ingresar.
           </p>
+          <ResendVerification email={registeredEmail} />
           <Link to="/login">Ir a ingresar</Link>
         </div>
       </div>
