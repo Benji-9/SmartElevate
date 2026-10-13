@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
@@ -101,6 +102,12 @@ public class ConfigService {
         return get("priority_aging", Duration::parse);
     }
 
+    /** A definir: vacío = la prioridad de docente aprobada no vence. */
+    public Optional<Duration> priorityTeacherValidity() {
+        return isDefined("priority_teacher_validity")
+                ? Optional.of(get("priority_teacher_validity", Duration::parse)) : Optional.empty();
+    }
+
     public Duration qrRotation() {
         return get("qr_rotation", Duration::parse);
     }
@@ -151,6 +158,8 @@ public class ConfigService {
         if (isDefined("cancellation_wait_tolerance")) {
             check(cancellationWaitTolerance().isPositive(), "cancellation_wait_tolerance tiene que ser mayor a 0");
         }
+        check(priorityTeacherValidity().map(Duration::isPositive).orElse(true),
+                "priority_teacher_validity tiene que ser mayor a 0");
         if (isDefined("priority_aging")) {
             check(priorityAging().isPositive(), "priority_aging tiene que ser mayor a 0");
         }

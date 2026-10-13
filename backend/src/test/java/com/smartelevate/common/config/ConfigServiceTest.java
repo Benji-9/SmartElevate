@@ -37,6 +37,7 @@ class ConfigServiceTest {
         v.put("priority_seats_per_departure", "2");
         v.put("priority_seats_release_before", "PT3M");
         v.put("priority_aging", null);
+        v.put("priority_teacher_validity", null);
         v.put("qr_rotation", "PT60S");
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");

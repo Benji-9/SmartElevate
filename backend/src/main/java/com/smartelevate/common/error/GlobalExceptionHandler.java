@@ -1,5 +1,7 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.priority.service.InvalidPriorityOperationException;
+import com.smartelevate.priority.service.PriorityNotFoundException;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
@@ -120,6 +122,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "No tenés permisos para esta acción", request, List.of());
+    }
+
+    @ExceptionHandler(PriorityNotFoundException.class)
+    public ResponseEntity<ApiError> handlePriorityNotFound(PriorityNotFoundException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(InvalidPriorityOperationException.class)
+    public ResponseEntity<ApiError> handleInvalidPriorityOperation(InvalidPriorityOperationException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, List.of());
     }
 
     @ExceptionHandler(InvalidTokenException.class)
