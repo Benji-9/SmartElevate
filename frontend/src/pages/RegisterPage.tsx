@@ -5,8 +5,14 @@ import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
-import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
+import {
+  PASSWORD_HINT,
+  toUadeEmail,
+  validatePassword,
+  validateUadeUser,
+} from '../features/auth/validation';
 import { ApiError, register } from '../services/api';
 import type { DeclaredUserType, RegisterRequest } from '../types/pending';
 import './AuthPages.css';
@@ -33,7 +39,7 @@ function validate(form: RegisterRequest): Errors {
       : /^\d+$/.test(form.legajo.trim())
         ? undefined
         : 'El legajo tiene que ser numérico.',
-    password: form.password ? undefined : 'Elegí una contraseña.',
+    password: validatePassword(form.password),
   };
 }
 
@@ -101,6 +107,7 @@ export function RegisterPage() {
             Te mandamos un link a <strong>{registeredEmail}</strong> para verificar tu cuenta.
             Después de verificarla vas a poder ingresar.
           </p>
+          <ResendVerification email={registeredEmail} />
           <Link to="/login">Ir a ingresar</Link>
         </div>
       </div>
@@ -137,6 +144,7 @@ export function RegisterPage() {
           type="password"
           autoComplete="new-password"
           placeholder="••••••••"
+          hint={PASSWORD_HINT}
           {...bind('password')}
         />
 
