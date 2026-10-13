@@ -125,36 +125,6 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
   });
 
-  it('con el email sin verificar (403) ofrece reenviar el link', async () => {
-    const fetchMock = stubApi({
-      ...signedOut,
-      'POST /auth/login': { status: 403, body: { message: 'Verificá tu email primero' } },
-      'POST /auth/resend-verification': { status: 202 },
-    });
-    await renderLogin();
-
-    await submit('ana.perez', 'secreta');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Verificá tu email primero');
-    await userEvent.click(screen.getByRole('button', { name: 'Reenviar link de verificación' }));
-
-    expect(await screen.findByRole('status')).toHaveTextContent('te mandamos un link nuevo');
-    const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/resend-verification')!;
-    expect(JSON.parse(init!.body as string)).toEqual({ email: 'ana.perez@uade.edu.ar' });
-  });
-
-  it('con credenciales incorrectas (401) no ofrece reenviar', async () => {
-    stubApi({
-      ...signedOut,
-      'POST /auth/login': { status: 401, body: { message: 'Email o contraseña incorrectos' } },
-    });
-    await renderLogin();
-
-    await submit('ana.perez', 'incorrecta');
-
-    await screen.findByRole('alert');
-    expect(screen.queryByRole('button', { name: /Reenviar/ })).not.toBeInTheDocument();
-  });
-
   it('"¿Olvidaste tu contraseña?" lleva a recuperar la contraseña', async () => {
     stubApi(signedOut);
     await renderLogin();

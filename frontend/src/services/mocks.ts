@@ -413,6 +413,29 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ],
   [
     'POST',
+    /^\/auth\/verify$/,
+    (body) => {
+      // Tokens de prueba: "VENCIDO" y "USADO" dan el 400 con su motivo.
+      const token = ((body as { token?: string }).token ?? '').toUpperCase();
+      if (token.includes('VENCIDO')) throw new ApiError(400, 'El link venció. Pedí uno nuevo.');
+      if (token.includes('USADO')) throw new ApiError(400, 'Este link ya se usó.');
+      if (!token) throw new ApiError(400, 'El link no es válido.');
+      return undefined;
+    },
+  ],
+  [
+    'POST',
+    /^\/auth\/resend-verification$/,
+    (body) => {
+      // "limite@uade.edu.ar" simula el 429 con Retry-After de 30 s.
+      if ((body as { email: string }).email.startsWith('limite@')) {
+        throw new ApiError(429, 'Ya te mandamos un email hace poco.', [], 30);
+      }
+      return undefined; // 202 exista o no la cuenta
+    },
+  ],
+  [
+    'POST',
     /^\/auth\/password\/forgot$/,
     // 202 exista o no la cuenta, para no revelar qué emails están registrados.
     () => undefined,

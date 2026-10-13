@@ -6,6 +6,7 @@ import type {
   PingResponse,
   RefreshRequest,
   ResendVerificationRequest,
+  VerifyEmailRequest,
 } from '../types/api';
 import type {
   AdminKpis,
@@ -40,12 +41,20 @@ export class ApiError extends Error {
   readonly status: number;
   /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */
   readonly violations: FieldViolation[];
+  /** Segundos que pide esperar el header `Retry-After` (429). */
+  readonly retryAfter?: number;
 
-  constructor(status: number, message: string, violations: FieldViolation[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    violations: FieldViolation[] = [],
+    retryAfter?: number,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.violations = violations;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -100,7 +109,8 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // El cuerpo no es JSON: nos quedamos con statusText.
     }
-    throw new ApiError(response.status, message, violations);
+    const retry = Number(response.headers.get('Retry-After'));
+    throw new ApiError(response.status, message, violations, retry > 0 ? retry : undefined);
   }
 
   // 204, o 202 sin cuerpo (p. ej. /auth/password/forgot): no hay JSON que leer.
@@ -189,7 +199,9 @@ export const getMe = () => api.get<User>('/me');
 /** Crea la cuenta; queda pendiente de verificar por email. */
 export const register = (body: RegisterRequest) => api.post<void>('/auth/register', body);
 
-/** Reenvía el link de verificación. 202 siempre; 429 si ya se mandó uno hace poco. */
+/** Confirma el email con el token del link. 400 si no existe, ya se usó o venció. */
+export const verifyEmail = (body: VerifyEmailRequest) => api.post<void>('/auth/verify', body);
+/** Reenvía el link de verificación. 202 exista o no la cuenta; 429 trae `retryAfter`. */
 export const resendVerification = (body: ResendVerificationRequest) =>
   api.post<void>('/auth/resend-verification', body);
 

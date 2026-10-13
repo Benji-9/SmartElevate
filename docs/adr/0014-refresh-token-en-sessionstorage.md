@@ -23,5 +23,5 @@ Opción **2**. El access token (~15 min) vive solo en memoria; el refresh token 
 ## Consecuencias
 
 - Una sesión por pestaña: abrir otra pestaña pide login de nuevo (aceptable en el MVP).
-- Riesgo residual ante XSS; se mitiga sin `dangerouslySetInnerHTML` y con CSP. Pasar a cookie HttpOnly (opción 4) es un cambio de backend si el riesgo no se acepta.
+- Riesgo residual ante XSS (hallazgo MEDIUM de la revisión de seguridad). Mitigaciones en el front: sin `innerHTML`/`dangerouslySetInnerHTML`, sin loguear tokens, el access solo en memoria, y el refresh se borra al cerrar sesión y ante un refresh inválido. Falta una CSP en el hosting (Vercel). Pasar a cookie HttpOnly/Secure/SameSite (opción 4) requiere un cambio de backend (issue de seguimiento propuesto): se hará si el riesgo no se acepta.
 - El usuario (rol, prioridad) se pide al servidor; nunca se lee de claims del JWT (ADR 0009).
