@@ -1,6 +1,9 @@
 package com.smartelevate.user.controller;
 
 import com.smartelevate.common.error.ApiError;
+import com.smartelevate.user.dto.ForgotPasswordRequest;
+import com.smartelevate.user.dto.ResetPasswordRequest;
+import com.smartelevate.user.service.PasswordResetService;
 import com.smartelevate.user.dto.LoginRequest;
 import com.smartelevate.user.dto.RefreshRequest;
 import com.smartelevate.user.dto.RegisterRequest;
@@ -33,6 +36,7 @@ public class AuthController {
     private final UserService userService;
     private final AuthService authService;
     private final EmailVerificationService emailVerification;
+    private final PasswordResetService passwordReset;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -96,5 +100,25 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         emailVerification.resend(request.email());
+    }
+
+    @PostMapping("/password/forgot")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Pide el link para restablecer la contraseña",
+            description = "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar "
+                    + "qué emails están registrados. Un pedido nuevo invalida el link anterior.")
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordReset.request(request.email());
+    }
+
+    @PostMapping("/password/reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Elige una contraseña nueva con el token del link",
+            description = "El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh "
+                    + "tokens del usuario (se cierran todas sus sesiones).")
+    @ApiResponse(responseCode = "400", description = "Token inválido, usado o vencido, o contraseña fuera de política",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordReset.reset(request.token(), request.newPassword());
     }
 }

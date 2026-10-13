@@ -14,3 +14,7 @@ export type FieldViolation = Schemas['FieldViolation'];
 
 /** Edificio con su rango de pisos y sus núcleos (código y nombre visible, p. ej. "Lima 1"). */
 export type Building = Schemas['BuildingResponse'];
+
+/** Token del link de verificación de email. */
+export type VerifyEmailRequest = Schemas['VerifyEmailRequest'];
+export type ResendVerificationRequest = Schemas['ResendVerificationRequest'];

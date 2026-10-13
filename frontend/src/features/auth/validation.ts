@@ -22,3 +22,17 @@ export function validateUadeUser(value: string): string | undefined {
   if (/\s/.test(user)) return 'Escribilo sin espacios.';
   return undefined;
 }
+
+/** Política de contraseña: mismos límites y mensajes que `PasswordPolicy` del backend. */
+export const PASSWORD_HINT = 'Entre 8 y 72 caracteres. No exigimos símbolos ni mayúsculas.';
+
+export function validatePassword(value: string): string | undefined {
+  if (value.length < 8 || value.length > 72) {
+    return 'La contraseña tiene que tener entre 8 y 72 caracteres.';
+  }
+  // BCrypt corta en 72 bytes UTF-8: la ñ o las tildes ocupan 2.
+  if (new TextEncoder().encode(value).length > 72) {
+    return 'La contraseña es demasiado larga: el máximo son 72 bytes y la ñ o las tildes ocupan 2.';
+  }
+  return undefined;
+}

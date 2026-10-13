@@ -109,6 +109,8 @@ Públicos: `/api/ping`, `/api/auth/**`, `GET /api/elevators`, `GET /api/building
 - Público: sumarlo a `SecurityConfig.PUBLIC_ANY` / `PUBLIC_GET`, solo con motivo.
 - Tests `@WebMvcTest`: anotar con `@WithAppSecurity` (carga las reglas reales) y usar `jwt()` de `spring-security-test`.
 
+Roles y prioridad (#121): `GET/POST /api/admin/teachers/...`, `GET/DELETE /api/admin/priority-users/...` y `PUT /api/admin/users/{id}/role` son solo ADMIN. La prioridad vigente (aprobada y no vencida) la da `PriorityService.currentPriority(userId)`, el único punto que debe usar la reserva; cada cambio queda en la tabla `priority_audit`. Cómo crear el primer ADMIN: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
+
 #### Migraciones de la base (Flyway)
 
 El schema lo crean los scripts de `backend/src/main/resources/db/migration/`, igual en dev (H2), en los tests y en prod (Postgres). Hibernate solo valida que las entidades coincidan (`ddl-auto: validate`). Decisión en el [ADR 0004](docs/adr/0004-migraciones-de-base-de-datos.md).

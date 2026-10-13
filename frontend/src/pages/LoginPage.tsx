@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, type Location } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
+import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
@@ -23,6 +24,7 @@ export function LoginPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,6 +34,7 @@ export function LoginPage() {
     };
     setErrors(next);
     setServerError(null);
+    setUnverifiedEmail(null);
     if (next.email || next.password) return;
 
     setSubmitting(true);
@@ -39,6 +42,10 @@ export function LoginPage() {
       await login({ email: toUadeEmail(email), password });
       navigate(from ?? '/', { replace: true });
     } catch (error) {
+      // 403: la cuenta existe pero falta verificar el email.
+      if (error instanceof ApiError && error.status === 403) {
+        setUnverifiedEmail(toUadeEmail(email));
+      }
       setServerError(
         error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.',
       );
@@ -79,6 +86,7 @@ export function LoginPage() {
           Ingresar
         </Button>
       </form>
+      {unverifiedEmail && <ResendVerification email={unverifiedEmail} />}
 
       <p className="auth__footer">
         ¿No tenés cuenta? <Link to="/registro">Registrate</Link>
