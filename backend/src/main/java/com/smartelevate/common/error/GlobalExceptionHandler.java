@@ -1,5 +1,10 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.turn.service.ReservationRejectedException;
+import com.smartelevate.turn.service.TurnFullException;
+
+import com.smartelevate.priority.service.InvalidPriorityOperationException;
+import com.smartelevate.priority.service.PriorityNotFoundException;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
@@ -122,6 +127,18 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "No tenés permisos para esta acción", request, List.of());
     }
 
+    @ExceptionHandler(PriorityNotFoundException.class)
+    public ResponseEntity<ApiError> handlePriorityNotFound(PriorityNotFoundException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(InvalidPriorityOperationException.class)
+    public ResponseEntity<ApiError> handleInvalidPriorityOperation(InvalidPriorityOperationException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, List.of());
+    }
+
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
@@ -142,9 +159,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request, List.of());
     }
 
+    // Sin @ResponseStatus: se documentan en POST /api/reservations.
+    @ExceptionHandler(TurnFullException.class)
+    public ResponseEntity<ApiError> handleTurnFull(TurnFullException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), "TURN_FULL", request, List.of());
+    }
+
+    @ExceptionHandler(ReservationRejectedException.class)
+    public ResponseEntity<ApiError> handleReservationRejected(ReservationRejectedException ex,
+                                                              HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
+    }
+
     private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest request,
                                            List<ApiError.FieldViolation> violations) {
-        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message,
+        return build(status, message, null, request, violations);
+    }
+
+    private ResponseEntity<ApiError> build(HttpStatus status, String message, String code,
+                                           HttpServletRequest request, List<ApiError.FieldViolation> violations) {
+        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message, code,
                 request.getRequestURI(), violations);
         return ResponseEntity.status(status).body(body);
     }

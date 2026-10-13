@@ -19,10 +19,359 @@
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   }, {
+    "description" : "Roles y prioridad de usuarios (solo ADMIN)",
+    "name" : "admin-priority"
+  }, {
     "description" : "Salidas de ascensor y turnos",
     "name" : "turn"
   } ],
   "paths" : {
+    "/api/admin/priority-users" : {
+      "get" : {
+        "operationId" : "priorityUsers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PriorityUserResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Usuarios con prioridad vigente",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/priority-users/{id}" : {
+      "delete" : {
+        "operationId" : "revoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "El usuario no tiene una prioridad vigente"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Quita la prioridad vigente de un usuario",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/pending" : {
+      "get" : {
+        "operationId" : "pendingTeachers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PendingTeacherResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Docentes declarados que esperan aprobación",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/{id}/approve" : {
+      "post" : {
+        "operationId" : "approve",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se declaró docente o ya está aprobado"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Aprueba a un docente: pasa a tener prioridad TEACHER",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/{id}/reject" : {
+      "post" : {
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se declaró docente o ya tiene la prioridad aprobada"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Rechaza a un docente: sigue como usuario común",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/users/{id}/role" : {
+      "put" : {
+        "operationId" : "assignRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se puede cambiar el rol propio"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Asigna el rol de un usuario (USER, REVIEWER, ADMIN)",
+        "tags" : [ "admin-priority" ]
+      }
+    },
     "/api/auth/login" : {
       "post" : {
         "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.",
@@ -123,6 +472,92 @@
           }
         },
         "summary" : "Cierra la sesión revocando el refresh token",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/password/forgot" : {
+      "post" : {
+        "description" : "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.",
+        "operationId" : "forgotPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Pide el link para restablecer la contraseña",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/password/reset" : {
+      "post" : {
+        "description" : "El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh tokens del usuario (se cierran todas sus sesiones).",
+        "operationId" : "resetPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Token inválido, usado o vencido, o contraseña fuera de política"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Elige una contraseña nueva con el token del link",
         "tags" : [ "auth" ]
       }
     },
@@ -529,6 +964,89 @@
         "summary" : "Verifica que la API responde",
         "tags" : [ "ping" ]
       }
+    },
+    "/api/reservations" : {
+      "post" : {
+        "description" : "El usuario sale del token. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND.",
+        "operationId" : "reserve",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReserveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "La salida no existe (DEPARTURE_NOT_FOUND)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Salida llena (TURN_FULL), fuera de ventana, o límite de reservas alcanzado"
+          },
+          "422" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Pisos o ascensor no válidos para la reserva"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Reserva un lugar en una salida",
+        "tags" : [ "turn" ]
+      }
     }
   },
   "components" : {
@@ -537,6 +1055,11 @@
         "type" : "object",
         "description" : "Error estándar de la API",
         "properties" : {
+          "code" : {
+            "type" : "string",
+            "description" : "Código estable de los errores de dominio, para que el cliente decida qué mostrar",
+            "example" : "TURN_FULL"
+          },
           "error" : {
             "type" : "string",
             "example" : "Not Found"
@@ -567,6 +1090,17 @@
           }
         },
         "required" : [ "error", "message", "path", "status", "timestamp" ]
+      },
+      "AssignRoleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "role" : {
+            "type" : "string",
+            "enum" : [ "USER", "REVIEWER", "ADMIN" ],
+            "example" : "REVIEWER"
+          }
+        },
+        "required" : [ "role" ]
       },
       "BuildingResponse" : {
         "type" : "object",
@@ -707,6 +1241,18 @@
         },
         "required" : [ "field", "message" ]
       },
+      "ForgotPasswordRequest" : {
+        "type" : "object",
+        "description" : "Cuenta que olvidó su contraseña",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "jmartinez@uade.edu.ar",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email" ]
+      },
       "LoginRequest" : {
         "type" : "object",
         "description" : "Credenciales de inicio de sesión",
@@ -725,6 +1271,34 @@
         },
         "required" : [ "email", "password" ]
       },
+      "PendingTeacherResponse" : {
+        "type" : "object",
+        "description" : "Docente declarado que espera la aprobación de un ADMIN",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          },
+          "registeredAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Alta de la cuenta, en UTC"
+          }
+        },
+        "required" : [ "email", "fullName", "id", "legajo", "registeredAt" ]
+      },
       "PingResponse" : {
         "type" : "object",
         "properties" : {
@@ -734,6 +1308,34 @@
           }
         },
         "required" : [ "status" ]
+      },
+      "PriorityUserResponse" : {
+        "type" : "object",
+        "description" : "Usuario con prioridad vigente",
+        "properties" : {
+          "category" : {
+            "type" : "string",
+            "description" : "TEACHER o REDUCED_MOBILITY",
+            "enum" : [ "NONE", "TEACHER", "REDUCED_MOBILITY" ]
+          },
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          }
+        },
+        "required" : [ "category", "email", "fullName", "id", "legajo" ]
       },
       "RefreshRequest" : {
         "type" : "object",
@@ -795,6 +1397,100 @@
           }
         },
         "required" : [ "email" ]
+      },
+      "ReservationResponse" : {
+        "type" : "object",
+        "description" : "Reserva de un lugar en una salida",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-13T15:40:00Z"
+          },
+          "departureAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Hora estimada de salida, en UTC",
+            "example" : "2026-10-13T15:58:00Z"
+          },
+          "departureId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "destinationFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "elevator" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 55
+          },
+          "originFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 0
+          },
+          "seatNumber" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Número de lugar, de 1 a la capacidad",
+            "example" : 3
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "CANCELLED" ]
+          }
+        },
+        "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "seatNumber", "status" ]
+      },
+      "ReserveRequest" : {
+        "type" : "object",
+        "description" : "Pedido de reserva. El usuario sale del token, no del body.",
+        "properties" : {
+          "departureId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "destinationFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "originFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 0
+          }
+        },
+        "required" : [ "departureId", "destinationFloor", "originFloor" ]
+      },
+      "ResetPasswordRequest" : {
+        "type" : "object",
+        "description" : "Token del link del mail y la contraseña nueva",
+        "properties" : {
+          "newPassword" : {
+            "type" : "string",
+            "format" : "password",
+            "description" : "Misma política que el registro: entre 8 y 72 caracteres y hasta 72 bytes",
+            "example" : "una-clave-nueva",
+            "maxLength" : 72,
+            "minLength" : 8
+          },
+          "token" : {
+            "type" : "string",
+            "example" : "Zk3pQ1x9...",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "newPassword", "token" ]
       },
       "VerifyEmailRequest" : {
         "type" : "object",

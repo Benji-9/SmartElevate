@@ -4,6 +4,108 @@
  */
 
 export interface paths {
+  '/api/admin/priority-users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Usuarios con prioridad vigente */
+    get: operations['priorityUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/priority-users/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Quita la prioridad vigente de un usuario */
+    delete: operations['revoke'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/teachers/pending': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Docentes declarados que esperan aprobación */
+    get: operations['pendingTeachers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/teachers/{id}/approve': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Aprueba a un docente: pasa a tener prioridad TEACHER */
+    post: operations['approve'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/teachers/{id}/reject': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Rechaza a un docente: sigue como usuario común */
+    post: operations['reject'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/users/{id}/role': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Asigna el rol de un usuario (USER, REVIEWER, ADMIN) */
+    put: operations['assignRole'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/login': {
     parameters: {
       query?: never;
@@ -38,6 +140,46 @@ export interface paths {
      * @description Idempotente: un token desconocido tampoco da error.
      */
     post: operations['logout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/password/forgot': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Pide el link para restablecer la contraseña
+     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.
+     */
+    post: operations['forgotPassword'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/password/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Elige una contraseña nueva con el token del link
+     * @description El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh tokens del usuario (se cierran todas sus sesiones).
+     */
+    post: operations['resetPassword'];
     delete?: never;
     options?: never;
     head?: never;
@@ -195,12 +337,37 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reservations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reserva un lugar en una salida
+     * @description El usuario sale del token. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND.
+     */
+    post: operations['reserve'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /** @description Error estándar de la API */
     ApiError: {
+      /**
+       * @description Código estable de los errores de dominio, para que el cliente decida qué mostrar
+       * @example TURN_FULL
+       */
+      code?: string;
       /** @example Not Found */
       error: string;
       /** @example Recurso no encontrado */
@@ -216,6 +383,13 @@ export interface components {
       timestamp: string;
       /** @description Solo en errores de validación */
       violations?: components['schemas']['FieldViolation'][];
+    };
+    AssignRoleRequest: {
+      /**
+       * @example REVIEWER
+       * @enum {string}
+       */
+      role: 'USER' | 'REVIEWER' | 'ADMIN';
     };
     /** @description Edificio con su rango de pisos y sus núcleos */
     BuildingResponse: {
@@ -307,6 +481,11 @@ export interface components {
       field: string;
       message: string;
     };
+    /** @description Cuenta que olvidó su contraseña */
+    ForgotPasswordRequest: {
+      /** @example jmartinez@uade.edu.ar */
+      email: string;
+    };
     /** @description Credenciales de inicio de sesión */
     LoginRequest: {
       /** @example jmartinez@uade.edu.ar */
@@ -317,9 +496,41 @@ export interface components {
        */
       password: string;
     };
+    /** @description Docente declarado que espera la aprobación de un ADMIN */
+    PendingTeacherResponse: {
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * Format: date-time
+       * @description Alta de la cuenta, en UTC
+       */
+      registeredAt: string;
+    };
     PingResponse: {
       /** @example ok */
       status: string;
+    };
+    /** @description Usuario con prioridad vigente */
+    PriorityUserResponse: {
+      /**
+       * @description TEACHER o REDUCED_MOBILITY
+       * @enum {string}
+       */
+      category: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
     };
     /** @description Refresh token vigente de la sesión */
     RefreshRequest: {
@@ -354,6 +565,79 @@ export interface components {
       /** @example jmartinez@uade.edu.ar */
       email: string;
     };
+    /** @description Reserva de un lugar en una salida */
+    ReservationResponse: {
+      /**
+       * Format: date-time
+       * @example 2026-10-13T15:40:00Z
+       */
+      createdAt: string;
+      /**
+       * Format: date-time
+       * @description Hora estimada de salida, en UTC
+       * @example 2026-10-13T15:58:00Z
+       */
+      departureAt: string;
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      departureId: number;
+      /**
+       * Format: int32
+       * @example 8
+       */
+      destinationFloor: number;
+      /** @example 33 */
+      elevator: string;
+      /**
+       * Format: int64
+       * @example 55
+       */
+      id: number;
+      /**
+       * Format: int32
+       * @example 0
+       */
+      originFloor: number;
+      /**
+       * Format: int32
+       * @description Número de lugar, de 1 a la capacidad
+       * @example 3
+       */
+      seatNumber: number;
+      /** @enum {string} */
+      status: 'ACTIVE' | 'CANCELLED';
+    };
+    /** @description Pedido de reserva. El usuario sale del token, no del body. */
+    ReserveRequest: {
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      departureId: number;
+      /**
+       * Format: int32
+       * @example 8
+       */
+      destinationFloor: number;
+      /**
+       * Format: int32
+       * @example 0
+       */
+      originFloor: number;
+    };
+    /** @description Token del link del mail y la contraseña nueva */
+    ResetPasswordRequest: {
+      /**
+       * Format: password
+       * @description Misma política que el registro: entre 8 y 72 caracteres y hasta 72 bytes
+       * @example una-clave-nueva
+       */
+      newPassword: string;
+      /** @example Zk3pQ1x9... */
+      token: string;
+    };
     /** @description Token del link que llegó por mail */
     VerifyEmailRequest: {
       /** @example Zk3pQ1x9... */
@@ -368,6 +652,301 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  priorityUsers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PriorityUserResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  revoke: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description El usuario no tiene una prioridad vigente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  pendingTeachers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PendingTeacherResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  approve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se declaró docente o ya está aprobado */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  reject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se declaró docente o ya tiene la prioridad aprobada */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  assignRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssignRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se puede cambiar el rol propio */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   login: {
     parameters: {
       query?: never;
@@ -440,6 +1019,86 @@ export interface operations {
         content?: never;
       };
       /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  forgotPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ForgotPasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  resetPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResetPasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Token inválido, usado o vencido, o contraseña fuera de política */
       400: {
         headers: {
           [name: string]: unknown;
@@ -795,6 +1454,75 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  reserve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReserveRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La salida no existe (DEPARTURE_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Salida llena (TURN_FULL), fuera de ventana, o límite de reservas alcanzado */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Pisos o ascensor no válidos para la reserva */
+      422: {
         headers: {
           [name: string]: unknown;
         };

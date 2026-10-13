@@ -9,13 +9,16 @@ import com.smartelevate.turn.dto.DepartureResponse;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.DepartureStatus;
 import com.smartelevate.turn.repository.DepartureRepository;
+import com.smartelevate.turn.repository.ReservationRepository;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DepartureService {
 
     private final DepartureRepository departures;
+    private final ReservationRepository reservations;
     private final ElevatorRepository elevators;
     private final ConfigService config;
     private final CampusTime time;
@@ -54,14 +58,16 @@ public class DepartureService {
         Instant from = now.plus(config.bookingClosesBefore());
         Instant to = now.plus(config.bookingOpensBefore());
         generate(candidates, from, to);
-        return departures
+        List<Departure> found = departures
                 .findByElevatorInAndStatusAndDepartureAtBetweenOrderByDepartureAtAscElevatorCodeAsc(
-                        candidates, DepartureStatus.SCHEDULED, from, to)
-                .stream()
+                        candidates, DepartureStatus.SCHEDULED, from, to);
+        Map<Long, Long> booked = found.isEmpty() ? Map.of() : reservations
+                .countActiveByDeparture(found.stream().map(Departure::getId).toList()).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+        return found.stream()
                 .map(d -> new DepartureResponse(d.getId(), d.getElevator().getCode(),
                         d.getElevator().getCore().getBuilding().getCode(), d.getDepartureAt(), d.getCapacity(),
-                        // Sin reservas todavía (llegan con #7x): el cupo restante es la capacidad.
-                        d.getCapacity(), d.getStatus()))
+                        d.getCapacity() - booked.getOrDefault(d.getId(), 0L).intValue(), d.getStatus()))
                 .toList();
     }
 

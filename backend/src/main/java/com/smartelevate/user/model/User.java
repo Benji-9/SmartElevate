@@ -66,7 +66,16 @@ public class User {
         this.emailVerified = false;
     }
 
+    /** Solo lo llama el endpoint de ADMIN (#121). */
+    public void assignRole(Role role) {
+        this.role = role;
+    }
+
     public void verifyEmail() {
         this.emailVerified = true;
+    }
+
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }
