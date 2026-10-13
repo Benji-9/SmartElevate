@@ -29,3 +29,8 @@ export const formatPeriod = (from: string, to: string) =>
 /** `"Turno mañana (7:00–12:15)"` a partir de las horas `"HH:mm"` que manda el servidor. */
 export const formatShift = ({ name, startsAt, endsAt }: AdminShift) =>
   `${name} (${startsAt.replace(/^0/, '')}–${endsAt.replace(/^0/, '')})`;
+
+const dayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE });
+
+/** `"29/9/2026"` en hora de Buenos Aires. */
+export const formatRegisteredAt = (iso: string) => dayFormat.format(new Date(iso));
