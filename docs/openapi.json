@@ -529,6 +529,89 @@
         "summary" : "Verifica que la API responde",
         "tags" : [ "ping" ]
       }
+    },
+    "/api/reservations" : {
+      "post" : {
+        "description" : "El usuario sale del token. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND.",
+        "operationId" : "reserve",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReserveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "La salida no existe (DEPARTURE_NOT_FOUND)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Salida llena (TURN_FULL), fuera de ventana, o límite de reservas alcanzado"
+          },
+          "422" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Pisos o ascensor no válidos para la reserva"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Reserva un lugar en una salida",
+        "tags" : [ "turn" ]
+      }
     }
   },
   "components" : {
@@ -537,6 +620,11 @@
         "type" : "object",
         "description" : "Error estándar de la API",
         "properties" : {
+          "code" : {
+            "type" : "string",
+            "description" : "Código estable de los errores de dominio, para que el cliente decida qué mostrar",
+            "example" : "TURN_FULL"
+          },
           "error" : {
             "type" : "string",
             "example" : "Not Found"
@@ -795,6 +883,80 @@
           }
         },
         "required" : [ "email" ]
+      },
+      "ReservationResponse" : {
+        "type" : "object",
+        "description" : "Reserva de un lugar en una salida",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-13T15:40:00Z"
+          },
+          "departureAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Hora estimada de salida, en UTC",
+            "example" : "2026-10-13T15:58:00Z"
+          },
+          "departureId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "destinationFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "elevator" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 55
+          },
+          "originFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 0
+          },
+          "seatNumber" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Número de lugar, de 1 a la capacidad",
+            "example" : 3
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "CANCELLED" ]
+          }
+        },
+        "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "seatNumber", "status" ]
+      },
+      "ReserveRequest" : {
+        "type" : "object",
+        "description" : "Pedido de reserva. El usuario sale del token, no del body.",
+        "properties" : {
+          "departureId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "destinationFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "originFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 0
+          }
+        },
+        "required" : [ "departureId", "destinationFloor", "originFloor" ]
       },
       "VerifyEmailRequest" : {
         "type" : "object",
