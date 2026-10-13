@@ -20,7 +20,12 @@ export function AdminLayout() {
                   Dashboard
                 </NavLink>
               </li>
-              {/* Turnos, Núcleos, Usuarios prioritarios y Reportes se suman cuando existan (#158). */}
+              <li>
+                <NavLink to="/admin/prioritarios" className="admin__link">
+                  Usuarios prioritarios
+                </NavLink>
+              </li>
+              {/* Turnos, Núcleos y Reportes se suman cuando existan (#158). */}
             </ul>
           </nav>
         </aside>

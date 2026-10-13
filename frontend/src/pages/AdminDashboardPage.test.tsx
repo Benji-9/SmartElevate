@@ -109,7 +109,8 @@ describe('AdminDashboardPage', () => {
 
     const nav = await screen.findByRole('navigation', { name: 'Administración' });
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/admin');
-    expect(within(nav).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(nav).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(nav).getByRole('link', { name: 'Usuarios prioritarios' })).toBeInTheDocument();
     expect(within(nav).queryByText('Próximamente')).not.toBeInTheDocument();
   });
 

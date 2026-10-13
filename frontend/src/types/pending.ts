@@ -232,3 +232,23 @@ export type AdminKpis = {
   reservationsByHour: { hour: number; reservations: number }[];
   cores: CoreKpis[];
 };
+
+/**
+ * Panel admin de prioridad (#140, endpoints de #121 a confirmar). Docente declarado que
+ * espera aprobación; `registeredAt` en UTC.
+ */
+export type PendingTeacher = {
+  id: string;
+  fullName: string;
+  email: string;
+  legajo: string;
+  registeredAt: string;
+};
+/** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
+export type PriorityUser = {
+  id: string;
+  fullName: string;
+  email: string;
+  legajo: string;
+  category: Exclude<PriorityCategory, 'NONE'>;
+};
