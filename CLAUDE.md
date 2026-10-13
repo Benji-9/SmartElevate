@@ -72,7 +72,8 @@ Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo
 
 - Ramas: desde `develop` salen `feature/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/` y `ci/`; `hotfix/` sale de `main`. Nombre: `<prefijo>/<issue>-<kebab-case>` (p. ej. `feature/12-reservar-turno`). Lo valida `branch-policy.yml`. Nunca commitear en `main`/`develop` directamente.
 - Conventional Commits, chicos y atómicos: `feat(turn): ...`, `fix(frontend): ...`, `ci: ...`, `docs(adr): ...`.
-- **No hacer push** ni abrir PRs sin que lo pida quien está trabajando.
+- **PRs**: cuando la tarea está terminada (comandos del lado tocado pasando), pushear la rama y abrir el PR contra `develop` con `Closes #N`. No abrir PRs de trabajo a medias. Nunca pushear a `main`/`develop`.
+- **Automerge**: si el cambio no es crítico, activar `gh pr merge --auto --squash` para que mergee solo cuando pasen los CI requeridos. Es **crítico** (sin automerge, esperar revisión humana) si toca: cupo/prioridades/reglas de `docs/reglas/`, auth/seguridad/JWT, certificados o datos de salud, migraciones Flyway, workflows de `.github/` o deploy, o un ADR. Ante la duda, tratarlo como crítico.
 - El trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver README). Los PRs referencian su issue (`Closes #N`).
 - Decisiones de arquitectura → nuevo ADR en `docs/adr/` (usar `template.md`). Algo que bloquea → `docs/bloqueantes.md`.
 - Al fijar versiones de dependencias o actions, verificá la última versión real (Maven Central, npm, GitHub releases); no uses versiones de memoria.

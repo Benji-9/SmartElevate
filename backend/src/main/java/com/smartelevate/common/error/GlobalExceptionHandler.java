@@ -4,6 +4,8 @@ import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
+import com.smartelevate.user.service.InvalidTokenException;
+import com.smartelevate.user.service.ResendTooSoonException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -118,6 +120,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "No tenés permisos para esta acción", request, List.of());
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(ResendTooSoonException.class)
+    public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
+        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request, List.of());
+        return ResponseEntity.status(response.getStatusCode())
+                .header("Retry-After", String.valueOf(ex.getRetryAfter().toSeconds()))
+                .body(response.getBody());
     }
 
     @ExceptionHandler(Exception.class)

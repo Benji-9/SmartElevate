@@ -95,7 +95,7 @@ class SessionApiTest {
                  "declaredUserType":"STUDENT"}""".formatted(PASSWORD))).andExpect(status().isCreated());
         ana = users.findByEmail("ana@uade.edu.ar").orElseThrow();
         if (verified) {
-            ReflectionTestUtils.setField(ana, "emailVerified", true);
+            ana.verifyEmail();
             users.saveAndFlush(ana);
         }
     }

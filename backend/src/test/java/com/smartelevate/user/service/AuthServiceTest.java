@@ -63,7 +63,7 @@ class AuthServiceTest {
         user = new User("Ana Pérez", "ana@uade.edu.ar", "1111111", encoder.encode("una-clave-larga"),
                 DeclaredUserType.STUDENT, NOW);
         ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-        ReflectionTestUtils.setField(user, "emailVerified", true);
+        user.verifyEmail();
         given(users.findByEmail("ana@uade.edu.ar")).willReturn(Optional.of(user));
     }
 
@@ -110,7 +110,9 @@ class AuthServiceTest {
 
     @Test
     void unverifiedEmailCannotLogIn_butOnlyAfterTheCorrectPassword() {
-        ReflectionTestUtils.setField(user, "emailVerified", false);
+        User unverified = new User("Ana Pérez", "ana@uade.edu.ar", "1111111", encoder.encode("una-clave-larga"),
+                DeclaredUserType.STUDENT, NOW);
+        given(users.findByEmail("ana@uade.edu.ar")).willReturn(Optional.of(unverified));
 
         assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "una-clave-larga"))
                 .isInstanceOf(EmailNotVerifiedException.class);

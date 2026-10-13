@@ -65,4 +65,8 @@ public class User {
         this.role = Role.USER;
         this.emailVerified = false;
     }
+
+    public void verifyEmail() {
+        this.emailVerified = true;
+    }
 }
