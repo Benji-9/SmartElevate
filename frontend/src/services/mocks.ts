@@ -10,6 +10,8 @@ import type {
   AdminKpis,
   AdminPeriod,
   AdminShift,
+  PendingTeacher,
+  PriorityUser,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
@@ -50,6 +52,40 @@ const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 const DAY_MS = 86_400_000;
 const BA_OFFSET_MS = 3 * 3_600_000;
+// Cola de docentes y prioritarios del panel admin (#140).
+let pendingTeachers: PendingTeacher[] = [
+  {
+    id: 't-1',
+    fullName: 'Marta Gómez',
+    email: 'marta.gomez@uade.edu.ar',
+    legajo: '2001234',
+    registeredAt: '2026-10-08T14:20:00Z',
+  },
+  {
+    id: 't-2',
+    fullName: 'Julián Ruiz',
+    email: 'julian.ruiz@uade.edu.ar',
+    legajo: '2005678',
+    registeredAt: '2026-10-11T09:05:00Z',
+  },
+];
+let priorityUsers: PriorityUser[] = [
+  {
+    id: 'p-1',
+    fullName: 'Carla Díaz',
+    email: 'carla.diaz@uade.edu.ar',
+    legajo: '1088888',
+    category: 'REDUCED_MOBILITY',
+  },
+  {
+    id: 'p-2',
+    fullName: 'Rubén Sosa',
+    email: 'ruben.sosa@uade.edu.ar',
+    legajo: '2000456',
+    category: 'TEACHER',
+  },
+];
+
 const PERIOD_DAYS: Record<AdminPeriod, number> = { TODAY: 1, WEEK: 7, MONTH: 30 };
 // Turnos de cursada (kpis.md#filtros): el turno mañana cubre las cursadas 7:45–11:45 y 8:15–12:15.
 const SHIFTS: AdminShift[] = [
@@ -566,6 +602,33 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => (notificationPreferences = body as NotificationPreferences),
   ],
   ['GET', /^\/admin\/shifts$/, () => SHIFTS],
+  ['GET', /^\/admin\/teachers\/pending$/, () => pendingTeachers],
+  [
+    'POST',
+    /^\/admin\/teachers\/([^/]+)\/(approve|reject)$/,
+    (_, [id, action]) => {
+      const teacher = pendingTeachers.find((t) => t.id === id);
+      if (!teacher) throw new ApiError(404, 'Ese docente ya no está pendiente');
+      pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
+      if (action === 'approve') {
+        const { fullName, email, legajo } = teacher;
+        priorityUsers = [...priorityUsers, { id, fullName, email, legajo, category: 'TEACHER' }];
+      }
+      return undefined;
+    },
+  ],
+  ['GET', /^\/admin\/priority-users$/, () => priorityUsers],
+  [
+    'DELETE',
+    /^\/admin\/priority-users\/([^/]+)$/,
+    (_, [id]) => {
+      if (!priorityUsers.some((u) => u.id === id)) {
+        throw new ApiError(404, 'Ese usuario ya no tiene prioridad');
+      }
+      priorityUsers = priorityUsers.filter((u) => u.id !== id);
+      return undefined;
+    },
+  ],
   [
     'GET',
     /^\/admin\/kpis$/,

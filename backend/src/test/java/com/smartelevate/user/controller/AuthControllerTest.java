@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +20,10 @@ import com.smartelevate.common.time.ClockConfig;
 import com.smartelevate.user.dto.RegisterRequest;
 import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.service.DuplicateUserException;
+import com.smartelevate.user.service.EmailVerificationService;
+import com.smartelevate.user.service.InvalidTokenException;
+import com.smartelevate.user.service.ResendTooSoonException;
+import java.time.Duration;
 import com.smartelevate.user.service.UserService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -44,6 +49,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserService service;
+
+    @MockitoBean
+    private EmailVerificationService emailVerification;
 
     private ResultActions register(String json) throws Exception {
         return mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json));
@@ -195,6 +203,59 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.violations[0].message").value("Ya hay una cuenta con ese email."))
                 .andExpect(jsonPath("$.violations[1].field").value("legajo"))
                 .andExpect(jsonPath("$.violations[1].message").value("Ya hay una cuenta con ese legajo."));
+    }
+
+    private ResultActions postJson(String path, String json) throws Exception {
+        return mockMvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    @Test
+    void verifyRespondsNoContentAndPassesTheToken() throws Exception {
+        postJson("/api/auth/verify", "{\"token\":\"abc\"}").andExpect(status().isNoContent());
+
+        verify(emailVerification).verify("abc");
+    }
+
+    @Test
+    void verifyRequiresAToken() throws Exception {
+        postJson("/api/auth/verify", "{\"token\":\" \"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("token"));
+        verify(emailVerification, never()).verify(any());
+    }
+
+    @Test
+    void verifyWithAnUsedOrExpiredTokenIsABadRequestWithTheReason() throws Exception {
+        willThrow(new InvalidTokenException(InvalidTokenException.Reason.USED)).given(emailVerification).verify("abc");
+
+        postJson("/api/auth/verify", "{\"token\":\"abc\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Este link ya se usó."));
+
+        willThrow(new InvalidTokenException(InvalidTokenException.Reason.EXPIRED)).given(emailVerification)
+                .verify("old");
+        postJson("/api/auth/verify", "{\"token\":\"old\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El link venció. Pedí uno nuevo."));
+    }
+
+    @Test
+    void resendRespondsAccepted() throws Exception {
+        postJson("/api/auth/resend-verification", "{\"email\":\"jmartinez@uade.edu.ar\"}")
+                .andExpect(status().isAccepted());
+
+        verify(emailVerification).resend("jmartinez@uade.edu.ar");
+    }
+
+    @Test
+    void resendTooSoonIs429WithRetryAfter() throws Exception {
+        willThrow(new ResendTooSoonException(Duration.ofSeconds(42))).given(emailVerification).resend(any());
+
+        postJson("/api/auth/resend-verification", "{\"email\":\"jmartinez@uade.edu.ar\"}")
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "42"))
+                .andExpect(jsonPath("$.status").value(429));
     }
 
     @Test
