@@ -37,6 +37,9 @@ app:
     resend-cooldown: PT1M
     # Base del link del mail de verificación.
     frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+  password-reset:
+    token-ttl: PT30M
+    request-cooldown: PT1M
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app"
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
