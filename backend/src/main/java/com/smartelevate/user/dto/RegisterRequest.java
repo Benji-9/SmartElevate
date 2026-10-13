@@ -2,6 +2,7 @@ package com.smartelevate.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.smartelevate.common.validation.MaxUtf8Bytes;
+import com.smartelevate.common.validation.PasswordPolicy;
 import com.smartelevate.user.model.DeclaredUserType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -34,9 +35,8 @@ public record RegisterRequest(
                 description = "Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). "
                         + "Sin otras reglas")
         @NotNull(message = "Elegí una contraseña.")
-        @Size(min = 8, max = 72, message = "La contraseña tiene que tener entre 8 y 72 caracteres.")
-        @MaxUtf8Bytes(value = 72,
-                message = "La contraseña es demasiado larga: el máximo son 72 bytes y la ñ o las tildes ocupan 2.")
+        @Size(min = PasswordPolicy.MIN, max = PasswordPolicy.MAX, message = PasswordPolicy.SIZE_MESSAGE)
+        @MaxUtf8Bytes(value = PasswordPolicy.MAX, message = PasswordPolicy.BYTES_MESSAGE)
         String password,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
                 description = "Lo que la persona declara ser. Es informativo: no da rol ni prioridad")
