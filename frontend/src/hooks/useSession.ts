@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
-import type { LoginRequest, User } from '../types/pending';
+import type { LoginRequest } from '../types/api';
+import type { User } from '../types/pending';
 
 export type SessionState = {
   /** Usuario según `/me`; `null` sin sesión. */

@@ -4,7 +4,7 @@
 // lo que no matchea acá sigue de largo al backend.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
-import type { Building } from '../types/api';
+import type { Building, LoginRequest, RefreshRequest } from '../types/api';
 import { ApiError } from './api';
 import type {
   AdminKpis,
@@ -18,7 +18,6 @@ import type {
   Core,
   Departure,
   FloorOption,
-  LoginRequest,
   NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
@@ -27,7 +26,7 @@ import type {
   Reservation,
   ReserveRequest,
   ResetPasswordRequest,
-  Session,
+  TokenResponse,
   Trip,
   TripPage,
   TripResult,
@@ -143,8 +142,18 @@ const users: User[] = [
 // Cuentas que todavía no hicieron click en el link de verificación.
 const unverified = new Set(['sin.verificar@uade.edu.ar']);
 
-// Simula la cookie httpOnly de refresh: sobrevive a recargar la página, como la real.
+// Simula la sesión del servidor (refresh token vigente): sobrevive a recargar la página.
 const SESSION_KEY = 'smartelevate-mock-session';
+
+const REFRESH_KEY = 'smartelevate-mock-refresh';
+let tokenCounter = 0;
+
+function tokensFor(email: string): TokenResponse {
+  const refreshToken = `mock-refresh-${++tokenCounter}`;
+  sessionStorage.setItem(SESSION_KEY, email);
+  sessionStorage.setItem(REFRESH_KEY, refreshToken);
+  return { accessToken: `mock-${Date.now()}`, refreshToken, tokenType: 'Bearer', expiresIn: 900 };
+}
 
 function currentUser(): User {
   const email = sessionStorage.getItem(SESSION_KEY);
@@ -346,23 +355,30 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       if (unverified.has(found.email)) {
         throw new ApiError(403, 'Tu cuenta todavía no está verificada. Revisá tu email.');
       }
-      sessionStorage.setItem(SESSION_KEY, found.email);
-      return { accessToken: `mock-${Date.now()}` } satisfies Session;
+      return tokensFor(found.email);
     },
   ],
   [
     'POST',
     /^\/auth\/refresh$/,
-    () => {
-      currentUser();
-      return { accessToken: `mock-${Date.now()}` } satisfies Session;
+    (body) => {
+      const { refreshToken } = body as RefreshRequest;
+      const email = sessionStorage.getItem(SESSION_KEY);
+      // Un solo uso, como el real: el token viejo ya no sirve.
+      if (!email || refreshToken !== sessionStorage.getItem(REFRESH_KEY)) {
+        sessionStorage.removeItem(SESSION_KEY);
+        throw new ApiError(401, 'Sesión vencida');
+      }
+      return tokensFor(email);
     },
   ],
+  ['POST', /^\/auth\/resend-verification$/, () => undefined],
   [
     'POST',
     /^\/auth\/logout$/,
     () => {
       sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(REFRESH_KEY);
     },
   ],
   [

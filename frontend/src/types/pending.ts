@@ -23,8 +23,6 @@ export type User = {
   declaredUserType: DeclaredUserType;
 };
 
-export type LoginRequest = { email: string; password: string };
-
 /**
  * Tipo de usuario que la persona declara al registrarse (#32). No otorga rol ni prioridad:
  * un docente declarado queda pendiente hasta que un ADMIN lo aprueba desde el panel.
@@ -42,8 +40,19 @@ export type RegisterRequest = {
 export type ForgotPasswordRequest = { email: string };
 /** `token` viene en el link del mail; es de un solo uso y vence (#138). */
 export type ResetPasswordRequest = { token: string; newPassword: string };
-/** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
-export type Session = { accessToken: string };
+/**
+ * Respuesta de `POST /auth/login` y `/auth/refresh` (backend: `TokenResponse`). Falta en
+ * `docs/openapi.json` (los endpoints no declaran el 200); pasar a `types/api.ts` cuando el
+ * contrato lo exponga. El access token no lleva rol ni prioridad (ADR 0009).
+ */
+export type TokenResponse = {
+  accessToken: string;
+  /** Opaco y de un solo uso: cada refresh devuelve uno nuevo. */
+  refreshToken: string;
+  tokenType: string;
+  /** Segundos de vida del access token. */
+  expiresIn: number;
+};
 
 /** Núcleo de ascensores (L1, IND2…) con su congestión actual. */
 export type Core = {

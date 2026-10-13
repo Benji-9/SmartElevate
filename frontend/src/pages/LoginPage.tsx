@@ -6,7 +6,7 @@ import { LegalFooter } from '../components/LegalFooter';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
-import { ApiError } from '../services/api';
+import { ApiError, resendVerification } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
 import uadeLogo from '../assets/uade-logo.svg';
 import './AuthPages.css';
@@ -23,6 +23,9 @@ export function LoginPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // 403: la clave es correcta pero falta verificar el email; se puede pedir otro link.
+  const [unverified, setUnverified] = useState(false);
+  const [resend, setResend] = useState<{ sending: boolean; message?: string }>({ sending: false });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,6 +35,8 @@ export function LoginPage() {
     };
     setErrors(next);
     setServerError(null);
+    setUnverified(false);
+    setResend({ sending: false });
     if (next.email || next.password) return;
 
     setSubmitting(true);
@@ -39,10 +44,25 @@ export function LoginPage() {
       await login({ email: toUadeEmail(email), password });
       navigate(from ?? '/', { replace: true });
     } catch (error) {
+      setUnverified(error instanceof ApiError && error.status === 403);
       setServerError(
         error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.',
       );
       setSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    setResend({ sending: true });
+    try {
+      await resendVerification({ email: toUadeEmail(email) });
+      setResend({ sending: false, message: 'Listo, te mandamos un link nuevo. Revisá tu email.' });
+    } catch (error) {
+      setResend({
+        sending: false,
+        message:
+          error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.',
+      });
     }
   }
 
@@ -74,6 +94,20 @@ export function LoginPage() {
           <p role="alert" className="auth__alert">
             {serverError}
           </p>
+        )}
+        {unverified && (
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              loading={resend.sending}
+              loadingLabel="Enviando…"
+              onClick={handleResend}
+            >
+              Reenviar link de verificación
+            </Button>
+            {resend.message && <p role="status">{resend.message}</p>}
+          </>
         )}
         <Button type="submit" loading={submitting} loadingLabel="Ingresando…">
           Ingresar
