@@ -44,6 +44,39 @@ describe('ResetPasswordPage', () => {
     expect(first).toBeInTheDocument();
   });
 
+  it('muestra los requisitos de la contraseña antes de escribir', async () => {
+    stubApi(signedOut);
+    await renderReset();
+
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAccessibleDescription(
+      'Entre 8 y 72 caracteres. No exigimos símbolos ni mayúsculas.',
+    );
+  });
+
+  it('rechaza una contraseña corta sin llamar al servidor', async () => {
+    const fetchMock = stubApi(signedOut);
+    await renderReset();
+
+    await submit('corta', 'corta');
+
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAccessibleDescription(
+      /La contraseña tiene que tener entre 8 y 72 caracteres\./,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/password/reset', expect.anything());
+  });
+
+  it('cuenta bytes y no caracteres: 40 ñ son 40 caracteres pero 80 bytes', async () => {
+    const fetchMock = stubApi(signedOut);
+    await renderReset();
+
+    await submit('ñ'.repeat(40), 'ñ'.repeat(40));
+
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAccessibleDescription(
+      /el máximo son 72 bytes/,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/password/reset', expect.anything());
+  });
+
   it('las dos contraseñas tienen que coincidir', async () => {
     const fetchMock = stubApi(signedOut);
     await renderReset();
@@ -84,7 +117,7 @@ describe('ResetPasswordPage', () => {
     });
     await renderReset();
 
-    await submit('corta', 'corta');
+    await submit('nueva-123', 'nueva-123');
 
     expect(await screen.findByText('Usá al menos 8 caracteres.')).toBeInTheDocument();
   });
