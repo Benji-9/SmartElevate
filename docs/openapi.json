@@ -18,6 +18,9 @@
   }, {
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
+  }, {
+    "description" : "Salidas de ascensor y turnos",
+    "name" : "turn"
   } ],
   "paths" : {
     "/api/auth/register" : {
@@ -113,6 +116,68 @@
         },
         "summary" : "Lista los edificios con su rango de pisos y sus núcleos",
         "tags" : [ "elevator" ]
+      }
+    },
+    "/api/departures" : {
+      "get" : {
+        "description" : "Excluye los ascensores dedicados. Genera las salidas que falten de forma idempotente.",
+        "operationId" : "bookable",
+        "parameters" : [ {
+          "description" : "Código del ascensor",
+          "example" : 33,
+          "in" : "query",
+          "name" : "elevator",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Código del edificio, sin distinguir mayúsculas",
+          "example" : "INDEPENDENCIA",
+          "in" : "query",
+          "name" : "building",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DepartureResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Lista las salidas reservables ahora (ventana de reserva) con su cupo restante",
+        "tags" : [ "turn" ]
       }
     },
     "/api/elevators" : {
@@ -299,6 +364,47 @@
           }
         },
         "required" : [ "code", "name" ]
+      },
+      "DepartureResponse" : {
+        "type" : "object",
+        "description" : "Salida de un ascensor reservable ahora, con su cupo restante",
+        "properties" : {
+          "building" : {
+            "type" : "string",
+            "example" : "INDEPENDENCIA"
+          },
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 10
+          },
+          "departureAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Hora estimada de salida, en UTC",
+            "example" : "2026-10-13T15:56:00Z"
+          },
+          "elevator" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "remainingSeats" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Lugares libres",
+            "example" : 10
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "SCHEDULED", "CANCELLED" ]
+          }
+        },
+        "required" : [ "building", "capacity", "departureAt", "elevator", "id", "remainingSeats", "status" ]
       },
       "ElevatorResponse" : {
         "type" : "object",
