@@ -13,10 +13,66 @@
     "description" : "Verificación de conectividad",
     "name" : "ping"
   }, {
+    "description" : "Alta de cuentas de usuario",
+    "name" : "auth"
+  }, {
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   } ],
   "paths" : {
+    "/api/auth/register" : {
+      "post" : {
+        "description" : "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "El email o el legajo ya tienen cuenta"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Crea una cuenta común, sin verificar",
+        "tags" : [ "auth" ]
+      }
+    },
     "/api/buildings" : {
       "get" : {
         "operationId" : "buildings",
@@ -305,6 +361,43 @@
           }
         },
         "required" : [ "status" ]
+      },
+      "RegisterRequest" : {
+        "type" : "object",
+        "description" : "Datos para crear una cuenta. No lleva rol ni prioridad: todo usuario nace común",
+        "properties" : {
+          "declaredUserType" : {
+            "type" : "string",
+            "description" : "Lo que la persona declara ser. Es informativo: no da rol ni prioridad",
+            "enum" : [ "STUDENT", "TEACHER" ]
+          },
+          "email" : {
+            "type" : "string",
+            "description" : "Email institucional. Se guarda en minúsculas",
+            "example" : "jmartinez@uade.edu.ar",
+            "pattern" : "[A-Za-z0-9._%+-]{1,64}@uade\\.edu\\.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Juana Martínez",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567",
+            "pattern" : "\\d{1,10}"
+          },
+          "password" : {
+            "type" : "string",
+            "format" : "password",
+            "description" : "Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). Sin otras reglas",
+            "example" : "una-clave-larga",
+            "maxLength" : 72,
+            "minLength" : 8
+          }
+        },
+        "required" : [ "declaredUserType", "email", "fullName", "legajo", "password" ]
       }
     }
   }
