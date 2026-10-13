@@ -262,6 +262,64 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(429));
     }
 
+    // ---- reset de contraseña
+
+    @MockitoBean
+    private com.smartelevate.user.service.PasswordResetService passwordReset;
+
+    @Test
+    void forgotRespondsAcceptedWithNoBody() throws Exception {
+        postJson("/api/auth/password/forgot", "{\"email\":\"jmartinez@uade.edu.ar\"}")
+                .andExpect(status().isAccepted())
+                .andExpect(content().string(""));
+
+        verify(passwordReset).request("jmartinez@uade.edu.ar");
+    }
+
+    @Test
+    void forgotRequiresAnEmail() throws Exception {
+        postJson("/api/auth/password/forgot", "{\"email\":\" \"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("email"));
+    }
+
+    @Test
+    void resetRespondsNoContent() throws Exception {
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"una-clave-nueva\"}")
+                .andExpect(status().isNoContent());
+
+        verify(passwordReset).reset("tok", "una-clave-nueva");
+    }
+
+    @Test
+    void resetAppliesThePasswordPolicy() throws Exception {
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"corta\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("newPassword"))
+                .andExpect(content().string(not(containsString("corta\""))));
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"" + "ñ".repeat(40) + "\"}")
+                .andExpect(status().isBadRequest());
+
+        verify(passwordReset, never()).reset(any(), any());
+    }
+
+    @Test
+    void resetWithABadTokenIs400() throws Exception {
+        willThrow(new InvalidTokenException(InvalidTokenException.Reason.USED)).given(passwordReset)
+                .reset("tok", "una-clave-nueva");
+
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"una-clave-nueva\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Este link ya se usó."));
+    }
+
+    @Test
+    void theResetRequestToStringHidesTokenAndPassword() {
+        String text = new com.smartelevate.user.dto.ResetPasswordRequest("tok-secreto", "clave-secreta-123").toString();
+
+        assertThat(text).doesNotContain("tok-secreto").doesNotContain("clave-secreta-123");
+    }
+
     @Test
     void neverEchoesThePasswordBackInAnErrorResponse() throws Exception {
         register(json("Juana", "no-es-de-uade@gmail.com", "1234567", "pw-7ch"))

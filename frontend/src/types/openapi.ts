@@ -44,6 +44,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/auth/password/forgot': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Pide el link para restablecer la contraseña
+     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.
+     */
+    post: operations['forgotPassword'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/password/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Elige una contraseña nueva con el token del link
+     * @description El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh tokens del usuario (se cierran todas sus sesiones).
+     */
+    post: operations['resetPassword'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/refresh': {
     parameters: {
       query?: never;
@@ -307,6 +347,11 @@ export interface components {
       field: string;
       message: string;
     };
+    /** @description Cuenta que olvidó su contraseña */
+    ForgotPasswordRequest: {
+      /** @example jmartinez@uade.edu.ar */
+      email: string;
+    };
     /** @description Credenciales de inicio de sesión */
     LoginRequest: {
       /** @example jmartinez@uade.edu.ar */
@@ -353,6 +398,17 @@ export interface components {
     ResendVerificationRequest: {
       /** @example jmartinez@uade.edu.ar */
       email: string;
+    };
+    /** @description Token del link del mail y la contraseña nueva */
+    ResetPasswordRequest: {
+      /**
+       * Format: password
+       * @description Misma política que el registro: entre 8 y 72 caracteres y hasta 72 bytes
+       * @example una-clave-nueva
+       */
+      newPassword: string;
+      /** @example Zk3pQ1x9... */
+      token: string;
     };
     /** @description Token del link que llegó por mail */
     VerifyEmailRequest: {
@@ -440,6 +496,86 @@ export interface operations {
         content?: never;
       };
       /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  forgotPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ForgotPasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  resetPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResetPasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Token inválido, usado o vencido, o contraseña fuera de política */
       400: {
         headers: {
           [name: string]: unknown;
