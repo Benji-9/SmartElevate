@@ -41,6 +41,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/departures': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista las salidas reservables ahora (ventana de reserva) con su cupo restante
+     * @description Excluye los ascensores dedicados. Genera las salidas que falten de forma idempotente.
+     */
+    get: operations['bookable'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/elevators': {
     parameters: {
       query?: never;
@@ -121,6 +141,37 @@ export interface components {
       code: string;
       /** @example Lima 3 */
       name: string;
+    };
+    /** @description Salida de un ascensor reservable ahora, con su cupo restante */
+    DepartureResponse: {
+      /** @example INDEPENDENCIA */
+      building: string;
+      /**
+       * Format: int32
+       * @example 10
+       */
+      capacity: number;
+      /**
+       * Format: date-time
+       * @description Hora estimada de salida, en UTC
+       * @example 2026-10-13T15:56:00Z
+       */
+      departureAt: string;
+      /** @example 33 */
+      elevator: string;
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      id: number;
+      /**
+       * Format: int32
+       * @description Lugares libres
+       * @example 10
+       */
+      remainingSeats: number;
+      /** @enum {string} */
+      status: 'SCHEDULED' | 'CANCELLED';
     };
     /** @description Ascensor con los pisos donde para */
     ElevatorResponse: {
@@ -257,6 +308,55 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['BuildingResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  bookable: {
+    parameters: {
+      query?: {
+        /**
+         * @description Código del ascensor
+         * @example 33
+         */
+        elevator?: string;
+        /**
+         * @description Código del edificio, sin distinguir mayúsculas
+         * @example INDEPENDENCIA
+         */
+        building?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DepartureResponse'][];
         };
       };
       /** @description Bad Request */
