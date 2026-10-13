@@ -1,0 +1,63 @@
+package com.smartelevate.turn.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+/** Lugar de un usuario en una salida. El lugar (seatNumber) es único por salida mientras la reserva está activa. */
+@Entity
+@Table(name = "reservation")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Reservation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "departure_id")
+    private Departure departure;
+
+    @Column(name = "seat_number")
+    private Integer seatNumber;
+
+    @Column(name = "origin_floor")
+    private int originFloor;
+
+    @Column(name = "destination_floor")
+    private int destinationFloor;
+
+    @Enumerated(EnumType.STRING)
+    private ReservationStatus status;
+
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    public Reservation(UUID userId, Departure departure, int seatNumber, int originFloor, int destinationFloor,
+                       Instant createdAt) {
+        this.userId = userId;
+        this.departure = departure;
+        this.seatNumber = seatNumber;
+        this.originFloor = originFloor;
+        this.destinationFloor = destinationFloor;
+        this.status = ReservationStatus.ACTIVE;
+        this.createdAt = createdAt;
+    }
+}
