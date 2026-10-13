@@ -14,6 +14,7 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/registro` | 02 Registro | no | público |
 | `/recuperar` | 02b Recuperar contraseña | no | público |
 | `/recuperar/nueva?token=…` | 02c Contraseña nueva (link del mail) | no | público |
+| `/verificar-email?token=…` | 02d Verificar email (link del mail) | no | público |
 | `/privacidad` | Política de privacidad | no | público |
 | `/terminos` | Términos de uso | no | público |
 | `/` | 03 Inicio | sí (Inicio) | autenticado |
@@ -109,6 +110,26 @@ Es la pantalla a la que lleva el link del mail. Misma estructura que 02b, con t�
 2. `Button` primary "Guardar contraseña" → `POST /api/auth/password/reset` con `{ token, newPassword }`.
 
 Estados: OK → "Listo, cambiaste tu contraseña" + link "Ir a ingresar". Sin `token` en la URL, o token vencido / ya usado (400) → aviso `--danger-tint` con el motivo y link "Pedir otro link" a `/recuperar`.
+
+## 02d · Verificar email — `/verificar-email?token=…`
+
+No hay frame en Figma. Es la pantalla a la que lleva el link del mail de registro ([#193](https://github.com/Benji-9/SmartElevate/issues/193)). Misma estructura que 02c; `PageHeader` con volver (a `/login`) + "Verificar email".
+
+Al abrirla llama sola a `POST /api/auth/verify` con `{ token }` (es POST a propósito: los antivirus de los mails que abren links no gastan el token).
+
+Estados:
+- **Verificando** (`role="status"`): "Verificando tu email…".
+- **OK** (204): título "Listo, verificamos tu email", "Ya podés ingresar a SmartElevate." y link "Ir a ingresar".
+- **Error** (sin `token` en la URL, o 400 por token inexistente / usado / vencido): aviso `--danger-tint` con el mensaje del servidor (distinto por caso; sin token: "Este link no es válido. Pedí uno nuevo."), "Pedí un link nuevo a tu email institucional." y el bloque **Reenviar**.
+
+### Reenviar el email de verificación (`ResendVerification`)
+
+Bloque reutilizable en 02d, en 02 (pantalla "Revisá tu email" tras registrarse) y en 01 (login con 403 por email sin verificar). `POST /api/auth/resend-verification` con `{ email }`.
+
+- `Button` secondary "Reenviar email de verificación". Si el email no se conoce (02d) se pide antes con el campo "Email institucional" (ver abajo); en 01 y 02 se usa el ya tipeado.
+- **202** (exista o no la cuenta): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo." No confirma que la cuenta exista.
+- **429**: aviso `--danger-tint` "Ya te mandamos un email hace poco." y el botón queda deshabilitado con cuenta regresiva "Podés pedir otro en {n} s" según el header `Retry-After` (60 s si falta). Al llegar a 0 vuelve a "Reenviar email de verificación".
+- Otro error: aviso `--danger-tint` con `ApiError.message`.
 
 ## Email institucional
 

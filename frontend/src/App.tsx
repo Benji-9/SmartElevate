@@ -23,6 +23,7 @@ import { ReserveTurnPage } from './pages/ReserveTurnPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { TermsPage } from './pages/TermsPage';
 import { TurnPage } from './pages/TurnPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
 /**
  * Rutas de la app (una por frame del Figma). El router (Browser/Memory) lo provee quien la monta.
@@ -66,6 +67,7 @@ export function App() {
             <Route element={<ScreenLayout />}>
               <Route path="login" element={<LoginPage />} />
               <Route path="registro" element={<RegisterPage />} />
+              <Route path="verificar-email" element={<VerifyEmailPage />} />
               <Route path="recuperar" element={<ForgotPasswordPage />} />
               <Route path="recuperar/nueva" element={<ResetPasswordPage />} />
               <Route path="privacidad" element={<PrivacyPage />} />

@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { PASSWORD_HINT, validatePassword } from '../features/auth/validation';
 import { ApiError, resetPassword } from '../services/api';
 import './AuthPages.css';
 
@@ -22,7 +23,7 @@ export function ResetPasswordPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next: Errors = {
-      newPassword: newPassword ? undefined : 'Elegí una contraseña.',
+      newPassword: validatePassword(newPassword),
       repeat: repeat === newPassword ? undefined : 'Las contraseñas no coinciden.',
     };
     setErrors(next);
@@ -72,6 +73,7 @@ export function ResetPasswordPage() {
           autoComplete="new-password"
           placeholder="••••••••"
           value={newPassword}
+          hint={PASSWORD_HINT}
           onChange={(e) => setNewPassword(e.target.value)}
           error={errors.newPassword}
         />
