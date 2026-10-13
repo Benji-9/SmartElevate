@@ -85,6 +85,16 @@ Variables de entorno (en Render → **Environment**):
 1. Neon → **Branches → production → Roles → `neondb_owner` → Reset password**.
 2. Pegar la nueva en Render → Environment → `DATABASE_PASSWORD` → **Save, rebuild and deploy**.
 
+### Crear el primer ADMIN
+
+No hay endpoint ni seed que cree administradores ([ADR 0009](adr/0009-autenticacion-y-prioridad.md)). La persona se registra y verifica el email; después se la promueve en el **SQL Editor de Neon** (en dev, en `/h2-console`):
+
+```sql
+UPDATE app_user SET role = 'ADMIN' WHERE email = 'nombre@uade.edu.ar';
+```
+
+La tabla es `app_user` y el rol vive en su columna `role` (`USER`, `REVIEWER`, `ADMIN`). Desde ahí, los demás roles se asignan con `PUT /api/admin/users/{id}/role`, que deja registro en `priority_audit`. Este `UPDATE` manual no queda auditado: es la única excepción. El rol se lee de la base en cada request, así que no hace falta que la persona vuelva a loguearse.
+
 ## Frontend en Vercel
 
 Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ver [README](../README.md#cicd)). Lo que importa para el backend:
