@@ -6,3 +6,13 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_USER}
     password: ${DATABASE_PASSWORD}
+  # Host, puerto, usuario y clave SMTP llegan por SPRING_MAIL_HOST/PORT/USERNAME/PASSWORD (ADR 0013).
+  mail:
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+
+app:
+  mail:
+    enabled: ${APP_MAIL_ENABLED:true}
