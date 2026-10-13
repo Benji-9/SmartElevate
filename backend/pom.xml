@@ -43,6 +43,13 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
+        <!-- Solo el hasher de contraseñas (BCrypt) del registro. Spring Security completo (filtros, JWT) entra
+             con el login (#120): agregado ahora, protegería todos los endpoints por defecto. La versión
+             la fija el BOM de Boot. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.postgresql</groupId>

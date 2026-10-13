@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/api/auth/register': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Crea una cuenta común, sin verificar
+     * @description El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.
+     */
+    post: operations['register'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/buildings': {
     parameters: {
       query?: never;
@@ -140,6 +160,29 @@ export interface components {
       /** @example ok */
       status: string;
     };
+    /** @description Datos para crear una cuenta. No lleva rol ni prioridad: todo usuario nace común */
+    RegisterRequest: {
+      /**
+       * @description Lo que la persona declara ser. Es informativo: no da rol ni prioridad
+       * @enum {string}
+       */
+      declaredUserType: 'STUDENT' | 'TEACHER';
+      /**
+       * @description Email institucional. Se guarda en minúsculas
+       * @example jmartinez@uade.edu.ar
+       */
+      email: string;
+      /** @example Juana Martínez */
+      fullName: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * Format: password
+       * @description Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). Sin otras reglas
+       * @example una-clave-larga
+       */
+      password: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -149,6 +192,55 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  register: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RegisterRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description El email o el legajo ya tienen cuenta */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   buildings: {
     parameters: {
       query?: never;

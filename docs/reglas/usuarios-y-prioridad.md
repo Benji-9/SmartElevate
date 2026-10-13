@@ -7,6 +7,17 @@
 - Solo emails **@uade.edu.ar**, **verificados por link** antes del primer login (proveedor de email: [#25](https://github.com/Benji-9/SmartElevate/issues/25)).
 - **Email y legajo únicos.**
 - No hay acceso al sistema de UADE: el **legajo es autodeclarado**. La verificación real es la del email institucional.
+- El email se guarda en **minúsculas**: `Ana@UADE.edu.ar` y `ana@uade.edu.ar` son la misma cuenta. El legajo son solo dígitos, hasta 10.
+- La cuenta nace **común y sin verificar**. El pedido de registro (`POST /api/auth/register`) no tiene campo de rol ni de prioridad, y si el JSON trae alguno se ignora.
+- Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe.
+
+### Contraseña
+
+Decidido en [#181](https://github.com/Benji-9/SmartElevate/issues/181) para el registro; la de "contraseña nueva" va con [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+
+- **Mínimo 8 caracteres**, sin exigir mayúsculas, números ni símbolos, como recomienda la guía NIST SP 800-63B.
+- **Máximo 72 bytes**, el límite de BCrypt, que rechaza con error lo que lo pase. La "ñ" y las tildes ocupan 2 bytes, así que una contraseña con muchas letras acentuadas tiene un tope menor a 72 caracteres.
+- Se guarda como **hash BCrypt**. La contraseña nunca se guarda ni se loguea en texto plano, ni siquiera con el log en DEBUG.
 
 ### Tipo de usuario declarado
 

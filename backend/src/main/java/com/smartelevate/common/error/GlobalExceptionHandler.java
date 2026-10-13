@@ -1,5 +1,6 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.user.service.DuplicateUserException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -78,6 +79,17 @@ public class GlobalExceptionHandler {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
         return build(status, message, request, List.of());
+    }
+
+    // Sin @ResponseStatus a propósito: este 409 solo lo da el registro y se documenta en ese endpoint,
+    // no en todos como los de arriba.
+    @ExceptionHandler(DuplicateUserException.class)
+    public ResponseEntity<ApiError> handleDuplicateUser(DuplicateUserException ex, HttpServletRequest request) {
+        // "email" y "legajo" son masculinos: "Ya hay una cuenta con ese email."
+        List<ApiError.FieldViolation> violations = ex.getFields().stream()
+                .map(field -> new ApiError.FieldViolation(field, "Ya hay una cuenta con ese " + field + "."))
+                .toList();
+        return build(HttpStatus.CONFLICT, "Ya existe una cuenta con esos datos", request, violations);
     }
 
     @ExceptionHandler(Exception.class)
