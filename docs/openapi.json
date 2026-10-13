@@ -19,10 +19,359 @@
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   }, {
+    "description" : "Roles y prioridad de usuarios (solo ADMIN)",
+    "name" : "admin-priority"
+  }, {
     "description" : "Salidas de ascensor y turnos",
     "name" : "turn"
   } ],
   "paths" : {
+    "/api/admin/priority-users" : {
+      "get" : {
+        "operationId" : "priorityUsers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PriorityUserResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Usuarios con prioridad vigente",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/priority-users/{id}" : {
+      "delete" : {
+        "operationId" : "revoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "El usuario no tiene una prioridad vigente"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Quita la prioridad vigente de un usuario",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/pending" : {
+      "get" : {
+        "operationId" : "pendingTeachers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PendingTeacherResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Docentes declarados que esperan aprobación",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/{id}/approve" : {
+      "post" : {
+        "operationId" : "approve",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se declaró docente o ya está aprobado"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Aprueba a un docente: pasa a tener prioridad TEACHER",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/{id}/reject" : {
+      "post" : {
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se declaró docente o ya tiene la prioridad aprobada"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Rechaza a un docente: sigue como usuario común",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/users/{id}/role" : {
+      "put" : {
+        "operationId" : "assignRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se puede cambiar el rol propio"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Asigna el rol de un usuario (USER, REVIEWER, ADMIN)",
+        "tags" : [ "admin-priority" ]
+      }
+    },
     "/api/auth/login" : {
       "post" : {
         "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.",
@@ -568,6 +917,17 @@
         },
         "required" : [ "error", "message", "path", "status", "timestamp" ]
       },
+      "AssignRoleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "role" : {
+            "type" : "string",
+            "enum" : [ "USER", "REVIEWER", "ADMIN" ],
+            "example" : "REVIEWER"
+          }
+        },
+        "required" : [ "role" ]
+      },
       "BuildingResponse" : {
         "type" : "object",
         "description" : "Edificio con su rango de pisos y sus núcleos",
@@ -725,6 +1085,34 @@
         },
         "required" : [ "email", "password" ]
       },
+      "PendingTeacherResponse" : {
+        "type" : "object",
+        "description" : "Docente declarado que espera la aprobación de un ADMIN",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          },
+          "registeredAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Alta de la cuenta, en UTC"
+          }
+        },
+        "required" : [ "email", "fullName", "id", "legajo", "registeredAt" ]
+      },
       "PingResponse" : {
         "type" : "object",
         "properties" : {
@@ -734,6 +1122,34 @@
           }
         },
         "required" : [ "status" ]
+      },
+      "PriorityUserResponse" : {
+        "type" : "object",
+        "description" : "Usuario con prioridad vigente",
+        "properties" : {
+          "category" : {
+            "type" : "string",
+            "description" : "TEACHER o REDUCED_MOBILITY",
+            "enum" : [ "NONE", "TEACHER", "REDUCED_MOBILITY" ]
+          },
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          }
+        },
+        "required" : [ "category", "email", "fullName", "id", "legajo" ]
       },
       "RefreshRequest" : {
         "type" : "object",
