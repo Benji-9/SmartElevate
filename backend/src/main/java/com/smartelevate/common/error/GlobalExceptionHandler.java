@@ -1,5 +1,7 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.turn.service.ReservationRejectedException;
+import com.smartelevate.turn.service.TurnFullException;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
@@ -142,9 +144,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request, List.of());
     }
 
+    // Sin @ResponseStatus: se documentan en POST /api/reservations.
+    @ExceptionHandler(TurnFullException.class)
+    public ResponseEntity<ApiError> handleTurnFull(TurnFullException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), "TURN_FULL", request, List.of());
+    }
+
+    @ExceptionHandler(ReservationRejectedException.class)
+    public ResponseEntity<ApiError> handleReservationRejected(ReservationRejectedException ex,
+                                                              HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
+    }
+
     private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest request,
                                            List<ApiError.FieldViolation> violations) {
-        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message,
+        return build(status, message, null, request, violations);
+    }
+
+    private ResponseEntity<ApiError> build(HttpStatus status, String message, String code,
+                                           HttpServletRequest request, List<ApiError.FieldViolation> violations) {
+        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message, code,
                 request.getRequestURI(), violations);
         return ResponseEntity.status(status).body(body);
     }
