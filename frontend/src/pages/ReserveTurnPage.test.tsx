@@ -92,7 +92,9 @@ describe('ReserveTurnPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar turno · 14:32' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Tu turno' })).toBeInTheDocument();
-    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST' && init.body);
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => url === '/api/reservations' && init?.method === 'POST',
+    );
     expect(JSON.parse(post![1]!.body as string)).toEqual({
       departureId: 'd-1',
       originFloor: 0,

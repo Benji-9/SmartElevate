@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { SessionContext, type SessionState } from '../../hooks/useSession';
 import * as api from '../../services/api';
-import type { LoginRequest, User } from '../../types/pending';
+import type { LoginRequest } from '../../types/api';
+import type { User } from '../../types/pending';
 
 /** Sesión del usuario: la recupera al abrir la app y la limpia si vence o al cerrar sesión. */
 export function SessionProvider({ children }: { children: ReactNode }) {

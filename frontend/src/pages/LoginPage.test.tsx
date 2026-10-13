@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
-import { signedOut, stubApi, testUser } from '../test/stubApi';
+import { signedOut, stubApi, testUser, tokens } from '../test/stubApi';
 
 const loginOk = {
   ...signedOut,
-  'POST /auth/login': { body: { accessToken: 'token-1' } },
+  'POST /auth/login': { body: tokens() },
   'GET /me': { body: testUser },
 };
 
