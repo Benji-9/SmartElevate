@@ -23,6 +23,7 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/check-in/ok` | 07 Viaje registrado | no | autenticado |
 | `/perfil` | 08 Perfil y acceso prioritario | sí (Perfil) | autenticado |
 | `/admin` | 09 Panel de administración | — (escritorio) | rol administrador |
+| `/admin/prioritarios` | 09b Usuarios prioritarios | — (escritorio) | rol administrador |
 
 Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-in → Viaje registrado → Inicio`. La tab "Reservar" lleva a `/reservar`, "Check-in" a `/check-in` y "Perfil" a `/perfil`.
 
