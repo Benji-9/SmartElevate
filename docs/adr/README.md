@@ -33,3 +33,4 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0018](0018-alcance-del-mvp-en-reglas-de-turnos.md) | Alcance del MVP en las reglas de turnos | Propuesto |
 | [0019](0019-refresh-token-en-cookie-httponly.md) | Refresh token en cookie HttpOnly con proxy del mismo origen | Propuesto |
 | [0020](0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md) | Autenticación de kioscos por credencial de dispositivo | Propuesto |
+| [0021](0021-check-in-sin-ingreso-manual.md) | Check-in sin ingreso manual del código en el MVP | Propuesto |

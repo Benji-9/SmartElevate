@@ -21,7 +21,6 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/reservar` | 04 Reservar turno | no (tiene header con volver) | autenticado |
 | `/turno/:id` | 05 Turno confirmado | no | autenticado |
 | `/check-in` | 06 Check-in (QR) | no | autenticado |
-| `/check-in/codigo` | 06 Check-in, ingreso manual del código | no | autenticado |
 | `/check-in/ok` | 07 Viaje registrado | no | autenticado |
 | `/perfil` | 08 Perfil y acceso prioritario | sí (Perfil) | autenticado |
 | `/perfil/viajes` | Mis viajes (desde la lista de ajustes del perfil) | no (tiene header con volver) | autenticado |
@@ -224,19 +223,35 @@ Sin header ni tabs. `main`: pad 32/20/24/20, gap 16.
 Pantalla **oscura**: fondo `--surface-dark`; barra de estado, título y textos en `--on-dark`. Header con volver (círculo con fondo blanco al 15 %) + "Check-in" en `.text-heading` blanco.
 
 1. **Vista de cámara** (columna centrada, pad 40/20/24/20, gap 20): visor de **250 × 250**, `--radius-2xl`, borde 3 px `--on-dark`, con la imagen de la cámara adentro (en el mockup, un cuadrado de 160 px translúcido); texto 16 px / 600 `--on-dark` centrado "Apuntá la cámara al QR de la pantalla del ascensor"; texto 13 px `--on-dark-muted` "El código rota: escanealo desde dentro de la cabina."
-2. **Hoja inferior** (`--surface`, esquinas superiores `--radius-2xl`, pad 20/20/32/20, gap 12): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "7:25 – 7:30"; 14 px `--ink-muted` "Lima 3 · Ascensores 1–3 · Piso 7"; `Button` secondary "Ingresar código manualmente".
+2. **Hoja inferior** (`--surface`, esquinas superiores `--radius-2xl`, pad 20/20/32/20, gap 12): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "7:25 – 7:30"; 14 px `--ink-muted` "Lima 3 · Ascensores 1–3 · Piso 7".
 
-Al leer un QR válido → `/check-in/ok`.
+Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y con la respuesta va a `/check-in/ok`. **No hay ingreso manual del código** ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)): el token tiene ~80 caracteres opacos.
 
-**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error.
+**Rechazos** (aviso `role="alert"` sobre la cámara con el `message` del servidor; se decide por `code`):
+
+| `code` | Qué agrega la app | ¿Sigue escaneando? |
+| --- | --- | --- |
+| `INVALID_QR_TOKEN` (400) | nada: el mensaje ya pide escanear el QR en pantalla | sí, con el QR siguiente (el mismo token no se reenvía) |
+| `OUTSIDE_CHECK_IN_WINDOW` (409) | "Escaneá el QR cerca de la hora de salida de tu turno." (sin números: la ventana sale de `app_config`) | sí, con el QR siguiente |
+| `NO_ACTIVE_RESERVATION` (409) | link "Reservá un turno" → `/reservar` | no |
+| `ALREADY_CHECKED_IN` (409) | link "Volver al inicio" → `/` | no |
+
+Sin red u otro error: "No pudimos conectarnos. Probá de nuevo."
+
+**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error. Permiso negado: "No tenemos permiso para usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador." Sin cámara: "No pudimos usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular."
 
 ## 07 · Viaje registrado — `/check-in/ok`
 
 Sin header ni tabs. `main`: pad 48/20/24/20, gap 16.
 
-1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 2 · Lima 3 · 7:27 hs". Cambia según el resultado ([check-in](../reglas/check-in-qr.md#resultados)): con *otro ascensor*, título "Viaje registrado en otro ascensor"; con *fuera de hora* (cuenta como falta), sin tilde: signo de advertencia sobre `--Status-Alta-tint` en `--Status-Alta` y título "Llegaste fuera de tu franja: cuenta como falta".
-2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Check-in a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado del check-in ("Subiste dentro de tu franja. ¡Gracias por usar tu turno!") y la franja del turno. La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
-3. **Encuesta de espera** (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
+Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegación; sin ella, redirige a `/`).
+
+1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 33 · 7:27 hs" (`elevator` escaneado y `checkedInAt`; la respuesta no trae el núcleo). Cambia según el resultado ([check-in](../reglas/check-in-qr.md#resultados)): con *otro ascensor*, título "Viaje registrado en otro ascensor"; con *fuera de hora* (cuenta como falta), sin tilde: signo de advertencia sobre `--Status-Alta-tint` en `--Status-Alta` y título "Llegaste fuera de tu franja: cuenta como falta".
+2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Check-in a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado y "Salida de tu turno: **7:26 hs**" (`departureAt`; la respuesta no trae la duración de la franja). Según `outcome`:
+   - `ON_TIME`: "Check-in a tiempo" · "Subiste dentro de tu franja. ¡Gracias por usar tu turno!"
+   - `OTHER_ELEVATOR` (fondo neutro): "Check-in en otro ascensor" · "Reservaste el ascensor 33 y escaneaste el 34. Quedó registrado y no cuenta como falta." (`reservedElevator` y `elevator`).
+   - `LATE` (`--danger-tint`; la reserva queda `NO_SHOW`): "Check-in fuera de hora" · "El check-in fue después de la hora de tu salida, así que cuenta como falta. Igual queda registrado que viniste." La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
+3. **Encuesta de espera** — **no se muestra**: el backend no tiene dónde guardarla ni expone la espera real (`waitDeltaSeconds`), y no se inventa contrato. Cuando exista el endpoint, se recupera de la historia de git (`features/check-in/WaitFeedback.tsx`, #238). Spec para entonces: (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
 4. Espacio flexible; `Button` primary "Volver al inicio" → `/`.
 
 > La encuesta de espera es una propuesta del wireframe, sin decisión confirmada del equipo: implementarla como opcional.
@@ -346,7 +361,9 @@ Sin frame de Figma. Pantalla de una tablet o monitor del hall que muestra el QR 
 - **Sin red / error del servidor**: "No pudimos conectarnos. Reintentamos en 10 s." (`role="status"`) y reintenta solo.
 - Al pie, `Button` secondary "Borrar credencial" (`block={false}`), con confirmación en el lugar ("¿Borrar la credencial de este dispositivo?" · "Sí, borrar" / "Cancelar" con el foco), porque la tablet está en un lugar público.
 
-El ascensor de la URL es solo para mostrar: el que vale es el de la credencial. El texto del token es opaco y largo, así que no se muestra; el ingreso manual de `/check-in/codigo` lo resuelve el check-in ([#230](https://github.com/Benji-9/SmartElevate/issues/230)).
+- **Credencial de otro ascensor:** la respuesta trae el `elevatorId` de la credencial. Si no coincide con `:ascensor`, deja de pedir y **no muestra el QR** (registraría los check-ins en el otro ascensor). Aviso `--danger-tint` (`role="alert"`): título "Esta credencial es de otro ascensor" y "La credencial es del ascensor 34 y esta pantalla es del ascensor 33. Para no registrar viajes en otro ascensor, no mostramos el QR. Cargá la credencial del ascensor 33." Con la misma acción que el 401 ("Borrar credencial" en `/qr`, "Crear otro kiosco simulado" en 09d).
+
+El ascensor que vale es el de la credencial; el de la URL es el que la pantalla espera. El texto del token es opaco y largo, así que no se muestra, y no hay ingreso manual ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)).
 
 
 ---
