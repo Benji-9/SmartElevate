@@ -53,6 +53,8 @@ public class AuthController {
     @Operation(summary = "Inicia sesión y devuelve access y refresh token",
             description = "Las credenciales incorrectas dan 401 sin distinguir si el email existe. "
                     + "Con la clave correcta pero el email sin verificar responde 403.")
+    @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
+            content = @Content(schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "Email o contraseña incorrectos",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     @ApiResponse(responseCode = "403", description = "El email institucional todavía no se verificó",
@@ -65,6 +67,8 @@ public class AuthController {
     @Operation(summary = "Canjea un refresh token por un par nuevo (rotación)",
             description = "El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, "
                     + "se revoca toda la sesión.")
+    @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
+            content = @Content(schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "Refresh token inválido, vencido, revocado o ya usado",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
