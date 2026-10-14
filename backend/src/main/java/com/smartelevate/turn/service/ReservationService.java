@@ -7,6 +7,7 @@ import static com.smartelevate.turn.service.ReservationRejectedException.Reason.
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.FLOOR_NOT_SERVED;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.FLOOR_OUT_OF_RANGE;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.LOW_FLOOR_DESTINATION;
+import static com.smartelevate.turn.service.ReservationRejectedException.Reason.NO_SHOW_SUSPENDED;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.OUTSIDE_BOOKING_WINDOW;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.RESERVATION_NOT_FOUND;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.SAME_FLOOR;
@@ -28,6 +29,7 @@ import com.smartelevate.user.repository.UserRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,8 +61,13 @@ public class ReservationService {
     private final ConfigService config;
     private final CampusTime time;
     private final PriorityService priorities;
+    private final NoShowService noShows;
 
-    @Transactional
+    private static final DateTimeFormatter SUSPENSION_END = DateTimeFormatter.ofPattern("dd/MM 'a las' HH:mm");
+
+    // Un rechazo no deshace la suspensión que acaba de guardar NoShowService: antes de los rechazos no se escribe
+    // nada más (la reserva se guarda al final). Otro error, como el constraint de lugar, sí hace rollback.
+    @Transactional(noRollbackFor = ReservationRejectedException.class)
     public ReservationResponse reserve(UUID userId, ReserveRequest request) {
         users.lockById(userId).orElseThrow(() -> new IllegalStateException("Usuario inexistente: " + userId));
         Departure departure = departures.findByIdForUpdate(request.departureId())
@@ -69,6 +76,14 @@ public class ReservationService {
         PriorityCategory priority = priorities.currentPriority(userId);
         boolean priorityUser = priority != PriorityCategory.NONE;
 
+        // Los prioritarios no se suspenden: se evalúa con la prioridad vigente al reservar (NoShowService).
+        if (!priorityUser) {
+            noShows.suspendedUntil(userId, now).ifPresent(until -> {
+                throw new ReservationRejectedException(NO_SHOW_SUSPENDED,
+                        "Por tus faltas de los últimos días no podés reservar hasta el %s."
+                                .formatted(SUSPENSION_END.format(time.toCampus(until))));
+            });
+        }
         checkDeparture(departure, now, priority);
         checkFloors(departure.getElevator(), request.originFloor(), request.destinationFloor(), priority);
         checkUserLimits(userId, now);
@@ -96,8 +111,8 @@ public class ReservationService {
      * reservas de esa salida y con otro pedido del mismo usuario, sin riesgo de deadlock.
      * Una reserva ajena responde igual que una inexistente (404), para no filtrar que existe.
      *
-     * <p>Pendiente: la excepción de espera real mayor a la estimada + X (necesita el check-in) y el registro de la
-     * falta y la suspensión (épica de check-in). Cancelar no devuelve el cupo diario (ver {@link #checkUserLimits}).
+     * <p>Una cancelación tardía cuenta como falta para la suspensión ({@link NoShowService}). Cancelar no devuelve el
+     * cupo diario (ver {@link #checkUserLimits}).
      */
     @Transactional
     public void cancel(UUID userId, long reservationId) {

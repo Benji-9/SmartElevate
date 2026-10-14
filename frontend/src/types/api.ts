@@ -53,3 +53,6 @@ export type CreateKioskRequest = Schemas['CreateKioskRequest'];
 export type CreatedKiosk = Schemas['CreatedKioskResponse'];
 /** Token que el kiosco muestra como QR; a `expiresAt` pide el siguiente. */
 export type QrToken = Schemas['QrTokenResponse'];
+
+/** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
+export type NoShowStatus = Schemas['NoShowStatusResponse'];
