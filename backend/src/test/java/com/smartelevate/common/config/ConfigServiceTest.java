@@ -38,7 +38,6 @@ class ConfigServiceTest {
         v.put("priority_seats_release_before", "PT3M");
         v.put("priority_aging", null);
         v.put("priority_teacher_validity", null);
-        v.put("qr_rotation", "PT60S");
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");
         v.put("low_floors_threshold", "4");
@@ -82,7 +81,6 @@ class ConfigServiceTest {
             "priority_seats_per_departure, 11",
             "priority_seats_per_departure, -1",
             "no_show_suspension_threshold, 0",
-            "qr_rotation, PT0S",
             "priority_seats_release_before, PT2M",
             "priority_seats_release_before, PT1M",
             "low_floors_threshold, -1",

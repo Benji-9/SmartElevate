@@ -108,10 +108,6 @@ public class ConfigService {
                 ? Optional.of(get("priority_teacher_validity", Duration::parse)) : Optional.empty();
     }
 
-    public Duration qrRotation() {
-        return get("qr_rotation", Duration::parse);
-    }
-
     public Duration boardingTime() {
         return get("boarding_time", Duration::parse);
     }
@@ -150,7 +146,6 @@ public class ConfigService {
         // Liberados después del cierre de la ventana, nadie podría reservarlos (#113).
         check(prioritySeatsReleaseBefore().compareTo(bookingClosesBefore()) > 0,
                 "priority_seats_release_before tiene que ser mayor que booking_closes_before");
-        check(qrRotation().isPositive(), "qr_rotation tiene que ser mayor a 0");
         check(boardingTime().isPositive(), "boarding_time tiene que ser mayor a 0");
         check(timePerFloor().isPositive(), "time_per_floor tiene que ser mayor a 0");
         check(lowFloorsThreshold() >= 0, "low_floors_threshold no puede ser negativo");

@@ -12,7 +12,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** Registro de un cambio de rol o prioridad: quién, a quién, qué y cuándo. Sin datos sensibles. */
+/**
+ * Registro de una acción de administración: quién, sobre qué, qué y cuándo. Sin datos sensibles. El destino es un
+ * usuario (cambios de rol o prioridad) o un kiosco (alta y revocación, V15), nunca los dos.
+ */
 @Entity
 @Table(name = "priority_audit")
 @Getter
@@ -29,6 +32,9 @@ public class PriorityAudit {
     @Column(name = "target_user_id")
     private UUID targetUserId;
 
+    @Column(name = "target_kiosk_id")
+    private UUID targetKioskId;
+
     private String action;
 
     private String detail;
@@ -42,5 +48,11 @@ public class PriorityAudit {
         this.action = action;
         this.detail = detail;
         this.createdAt = createdAt;
+    }
+
+    public static PriorityAudit forKiosk(UUID actorId, UUID kioskId, String action, String detail, Instant createdAt) {
+        PriorityAudit audit = new PriorityAudit(actorId, null, action, detail, createdAt);
+        audit.targetKioskId = kioskId;
+        return audit;
     }
 }

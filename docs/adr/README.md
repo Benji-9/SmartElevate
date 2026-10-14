@@ -32,3 +32,4 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0017](0017-donde-viven-los-parametros.md) | Dónde viven los parámetros | Propuesto |
 | [0018](0018-alcance-del-mvp-en-reglas-de-turnos.md) | Alcance del MVP en las reglas de turnos | Propuesto |
 | [0019](0019-refresh-token-en-cookie-httponly.md) | Refresh token en cookie HttpOnly con proxy del mismo origen | Propuesto |
+| [0020](0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md) | Autenticación de kioscos por credencial de dispositivo | Propuesto |

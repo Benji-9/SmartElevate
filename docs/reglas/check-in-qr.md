@@ -6,7 +6,7 @@ El check-in confirma que el usuario usó su reserva. Alimenta el no-show y los K
 
 ## Cómo funciona
 
-1. Cada ascensor muestra un **QR con un token firmado** que **rota cada ~30 s** y está **atado a ese ascensor**. Se muestra en un **kiosco web** (`/qr/:ascensor`) abierto en una tablet o pantalla del hall, sin hardware propio ([#23](https://github.com/Benji-9/SmartElevate/issues/23)). `qr_rotation` vale hoy 60 s (`V3`); el cambio a 30 s va con #219.
+1. Cada ascensor muestra un **QR con un token firmado** que **rota cada ~30 s** y está **atado a ese ascensor**. Se muestra en un **kiosco web** (`/qr/:ascensor`) abierto en una tablet o pantalla del hall, sin hardware propio ([#23](https://github.com/Benji-9/SmartElevate/issues/23)). La rotación es un parámetro técnico, `app.kiosk.qr-ttl` en `application.yml` (30 s, override por `APP_KIOSK_QR_TTL`); dejó de estar en `app_config` (`V15`, [#229](https://github.com/Benji-9/SmartElevate/issues/229)).
 2. El usuario lo escanea desde la app. El **JWT de su sesión identifica quién escanea**; el QR solo identifica el ascensor y el momento.
 3. El backend valida la firma, que el token no esté vencido y que corresponda a una reserva activa del usuario.
 

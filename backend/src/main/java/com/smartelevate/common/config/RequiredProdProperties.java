@@ -23,7 +23,15 @@ import org.springframework.validation.annotation.Validated;
 public record RequiredProdProperties(
         @Valid @NotNull Verification verification,
         @Valid @NotNull Cors cors,
-        @Valid @NotNull Security security) {
+        @Valid @NotNull Security security,
+        @Valid @NotNull Kiosk kiosk) {
+
+    /**
+     * {@code APP_KIOSK_QR_SECRET}: clave HMAC del QR (#229). El largo mínimo (32 bytes) lo controla
+     * {@code QrTokenService} en todos los perfiles.
+     */
+    public record Kiosk(@NotBlank String qrSecret) {
+    }
 
     /** {@code APP_FRONTEND_URL}: base de los links de los mails. */
     public record Verification(@NotBlank String frontendUrl) {

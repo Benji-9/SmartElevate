@@ -25,10 +25,184 @@
     "description" : "Roles y prioridad de usuarios (solo ADMIN)",
     "name" : "admin-priority"
   }, {
+    "description" : "Kioscos del QR (solo ADMIN)",
+    "name" : "admin-kiosk"
+  }, {
+    "description" : "Kiosco del QR del ascensor (credencial de dispositivo)",
+    "name" : "kiosk"
+  }, {
     "description" : "Salidas de ascensor y turnos",
     "name" : "turn"
   } ],
   "paths" : {
+    "/api/admin/kiosks" : {
+      "get" : {
+        "operationId" : "listKiosks",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KioskListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Kioscos dados de alta (sin secretos) y si el simulador está habilitado",
+        "tags" : [ "admin-kiosk" ]
+      },
+      "post" : {
+        "description" : "Devuelve la credencial del kiosco una sola vez: en la base queda solo su hash.",
+        "operationId" : "createKiosk",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateKioskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreatedKioskResponse"
+                }
+              }
+            },
+            "description" : "Kiosco creado, con su secreto"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Ascensor inexistente (code ELEVATOR_NOT_FOUND)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Kiosco simulado con APP_KIOSK_SIMULATOR_ENABLED apagado (code SIMULATOR_DISABLED)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Da de alta un kiosco para un ascensor",
+        "tags" : [ "admin-kiosk" ]
+      }
+    },
+    "/api/admin/kiosks/{id}/revoke" : {
+      "post" : {
+        "description" : "Revocar uno ya revocado no hace nada.",
+        "operationId" : "revokeKiosk",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Kiosco inexistente (code KIOSK_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Revoca un kiosco: deja de funcionar en el acto y sus QR dejan de validar",
+        "tags" : [ "admin-kiosk" ]
+      }
+    },
     "/api/admin/priority-users" : {
       "get" : {
         "operationId" : "priorityUsers",
@@ -962,6 +1136,77 @@
         "tags" : [ "elevator" ]
       }
     },
+    "/api/kiosks/me/qr-token" : {
+      "get" : {
+        "description" : "El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.",
+        "operationId" : "qrToken",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QrTokenResponse"
+                }
+              }
+            },
+            "description" : "Token vigente"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Sin credencial de kiosco, inválida o revocada"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados pedidos; Retry-After dice cuántos segundos esperar",
+            "headers" : {
+              "Retry-After" : {
+                "schema" : {
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "kioskAuth" : [ ]
+        } ],
+        "summary" : "Token del QR del ascensor del kiosco",
+        "tags" : [ "kiosk" ]
+      }
+    },
     "/api/ping" : {
       "get" : {
         "operationId" : "ping",
@@ -1328,6 +1573,51 @@
         },
         "required" : [ "code", "name" ]
       },
+      "CreateKioskRequest" : {
+        "type" : "object",
+        "description" : "Alta de un kiosco del QR para un ascensor",
+        "properties" : {
+          "elevatorId" : {
+            "type" : "string",
+            "description" : "Código del ascensor",
+            "example" : "33",
+            "maxLength" : 8,
+            "minLength" : 0
+          },
+          "simulated" : {
+            "type" : "boolean",
+            "description" : "Kiosco del simulador de admin. Solo con APP_KIOSK_SIMULATOR_ENABLED; default false"
+          }
+        },
+        "required" : [ "elevatorId" ]
+      },
+      "CreatedKioskResponse" : {
+        "type" : "object",
+        "description" : "Kiosco recién creado. Es la única vez que la API devuelve el secreto",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "elevatorId" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "secret" : {
+            "type" : "string",
+            "description" : "Credencial del kiosco (Authorization: Bearer <secret>). No se puede volver a consultar",
+            "example" : "q3Jx0b5yT9mV2cK8pL4wZ7nR1sA6dF0hG3jE5uI8oYk"
+          },
+          "simulated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "elevatorId", "id", "secret", "simulated" ]
+      },
       "DepartureResponse" : {
         "type" : "object",
         "description" : "Salida de un ascensor reservable ahora, con su cupo restante",
@@ -1433,6 +1723,55 @@
         },
         "required" : [ "email" ]
       },
+      "KioskListResponse" : {
+        "type" : "object",
+        "description" : "Kioscos dados de alta y si el simulador está habilitado",
+        "properties" : {
+          "kiosks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KioskResponse"
+            }
+          },
+          "simulatorEnabled" : {
+            "type" : "boolean",
+            "description" : "APP_KIOSK_SIMULATOR_ENABLED: si es false no se pueden crear kioscos simulados"
+          }
+        },
+        "required" : [ "kiosks", "simulatorEnabled" ]
+      },
+      "KioskResponse" : {
+        "type" : "object",
+        "description" : "Kiosco del QR, sin su secreto",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "elevatorId" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastSeenAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Último pedido de token. Null si nunca se conectó"
+          },
+          "revokedAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Null mientras está activo"
+          },
+          "simulated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "elevatorId", "id", "simulated" ]
+      },
       "LoginRequest" : {
         "type" : "object",
         "description" : "Credenciales de inicio de sesión",
@@ -1516,6 +1855,24 @@
           }
         },
         "required" : [ "category", "email", "fullName", "id", "legajo" ]
+      },
+      "QrTokenResponse" : {
+        "type" : "object",
+        "description" : "Token firmado que el kiosco muestra como QR",
+        "properties" : {
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Vencimiento en UTC: a esta hora el kiosco pide el siguiente",
+            "example" : "2026-10-14T15:40:30Z"
+          },
+          "token" : {
+            "type" : "string",
+            "description" : "Contenido del QR (opaco para el kiosco)",
+            "example" : "MzN8NmY5ZTRkM2EtM2I0Ny00YTVmLWI5ZjEtM2Q1ZTZmN2E4YjljfDE3NjA0NTYwMzA.c2lnbmF0dXJl"
+          }
+        },
+        "required" : [ "expiresAt", "token" ]
       },
       "RefreshRequest" : {
         "type" : "object",
@@ -1751,6 +2108,11 @@
       "bearerAuth" : {
         "bearerFormat" : "JWT",
         "description" : "Access token del login: Authorization: Bearer <accessToken>",
+        "scheme" : "bearer",
+        "type" : "http"
+      },
+      "kioskAuth" : {
+        "description" : "Credencial del kiosco (ADR 0020): Authorization: Bearer <secret>, el secreto que devolvió el alta del kiosco",
         "scheme" : "bearer",
         "type" : "http"
       }

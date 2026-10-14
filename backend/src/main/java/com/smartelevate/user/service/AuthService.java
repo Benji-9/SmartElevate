@@ -130,8 +130,11 @@ public class AuthService {
         return new TokenResponse(access, refresh, TOKEN_TYPE, props.accessTtl().toSeconds());
     }
 
-    /** SHA-256 en hex. También lo usa {@link LoginThrottle} para no guardar emails ni IPs. */
-    static String hash(String token) {
+    /**
+     * SHA-256 en hex. También lo usan {@link LoginThrottle}, para no guardar emails ni IPs, y los kioscos, para no
+     * guardar su secreto.
+     */
+    public static String hash(String token) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);

@@ -4,6 +4,47 @@
  */
 
 export interface paths {
+  '/api/admin/kiosks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Kioscos dados de alta (sin secretos) y si el simulador está habilitado */
+    get: operations['listKiosks'];
+    put?: never;
+    /**
+     * Da de alta un kiosco para un ascensor
+     * @description Devuelve la credencial del kiosco una sola vez: en la base queda solo su hash.
+     */
+    post: operations['createKiosk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/kiosks/{id}/revoke': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Revoca un kiosco: deja de funcionar en el acto y sus QR dejan de validar
+     * @description Revocar uno ya revocado no hace nada.
+     */
+    post: operations['revokeKiosk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/priority-users': {
     parameters: {
       query?: never;
@@ -320,6 +361,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/kiosks/me/qr-token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Token del QR del ascensor del kiosco
+     * @description El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.
+     */
+    get: operations['qrToken'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ping': {
     parameters: {
       query?: never;
@@ -476,6 +537,31 @@ export interface components {
       /** @example Lima 3 */
       name: string;
     };
+    /** @description Alta de un kiosco del QR para un ascensor */
+    CreateKioskRequest: {
+      /**
+       * @description Código del ascensor
+       * @example 33
+       */
+      elevatorId: string;
+      /** @description Kiosco del simulador de admin. Solo con APP_KIOSK_SIMULATOR_ENABLED; default false */
+      simulated?: boolean;
+    };
+    /** @description Kiosco recién creado. Es la única vez que la API devuelve el secreto */
+    CreatedKioskResponse: {
+      /** Format: date-time */
+      createdAt: string;
+      /** @example 33 */
+      elevatorId: string;
+      /** Format: uuid */
+      id: string;
+      /**
+       * @description Credencial del kiosco (Authorization: Bearer <secret>). No se puede volver a consultar
+       * @example q3Jx0b5yT9mV2cK8pL4wZ7nR1sA6dF0hG3jE5uI8oYk
+       */
+      secret: string;
+      simulated: boolean;
+    };
     /** @description Salida de un ascensor reservable ahora, con su cupo restante */
     DepartureResponse: {
       /** @example INDEPENDENCIA */
@@ -546,6 +632,32 @@ export interface components {
       /** @example jmartinez@uade.edu.ar */
       email: string;
     };
+    /** @description Kioscos dados de alta y si el simulador está habilitado */
+    KioskListResponse: {
+      kiosks: components['schemas']['KioskResponse'][];
+      /** @description APP_KIOSK_SIMULATOR_ENABLED: si es false no se pueden crear kioscos simulados */
+      simulatorEnabled: boolean;
+    };
+    /** @description Kiosco del QR, sin su secreto */
+    KioskResponse: {
+      /** Format: date-time */
+      createdAt: string;
+      /** @example 33 */
+      elevatorId: string;
+      /** Format: uuid */
+      id: string;
+      /**
+       * Format: date-time
+       * @description Último pedido de token. Null si nunca se conectó
+       */
+      lastSeenAt?: string | null;
+      /**
+       * Format: date-time
+       * @description Null mientras está activo
+       */
+      revokedAt?: string | null;
+      simulated: boolean;
+    };
     /** @description Credenciales de inicio de sesión */
     LoginRequest: {
       /** @example jmartinez@uade.edu.ar */
@@ -591,6 +703,20 @@ export interface components {
       id: string;
       /** @example 1234567 */
       legajo: string;
+    };
+    /** @description Token firmado que el kiosco muestra como QR */
+    QrTokenResponse: {
+      /**
+       * Format: date-time
+       * @description Vencimiento en UTC: a esta hora el kiosco pide el siguiente
+       * @example 2026-10-14T15:40:30Z
+       */
+      expiresAt: string;
+      /**
+       * @description Contenido del QR (opaco para el kiosco)
+       * @example MzN8NmY5ZTRkM2EtM2I0Ny00YTVmLWI5ZjEtM2Q1ZTZmN2E4YjljfDE3NjA0NTYwMzA.c2lnbmF0dXJl
+       */
+      token: string;
     };
     /** @description Refresh token vigente de la sesión */
     RefreshRequest: {
@@ -750,6 +876,151 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  listKiosks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KioskListResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  createKiosk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateKioskRequest'];
+      };
+    };
+    responses: {
+      /** @description Kiosco creado, con su secreto */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreatedKioskResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Ascensor inexistente (code ELEVATOR_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Kiosco simulado con APP_KIOSK_SIMULATOR_ENABLED apagado (code SIMULATOR_DISABLED) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  revokeKiosk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Kiosco inexistente (code KIOSK_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   priorityUsers: {
     parameters: {
       query?: never;
@@ -1542,6 +1813,63 @@ export interface operations {
       /** @description Bad Request */
       400: {
         headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  qrToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Token vigente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QrTokenResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Sin credencial de kiosco, inválida o revocada */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Demasiados pedidos; Retry-After dice cuántos segundos esperar */
+      429: {
+        headers: {
+          'Retry-After'?: number;
           [name: string]: unknown;
         };
         content: {

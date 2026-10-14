@@ -26,6 +26,7 @@ class RequiredProdPropertiesTest {
     private static final String SECRET = "app.security.jwt.secret=0123456789abcdef0123456789abcdef";
     private static final String FRONTEND_URL = "app.verification.frontend-url=https://smart-elevate.vercel.app";
     private static final String CORS = "app.cors.allowed-origins=https://smart-elevate.vercel.app";
+    private static final String QR_SECRET = "app.kiosk.qr-secret=fedcba9876543210fedcba9876543210";
 
     @Configuration
     @ConfigurationPropertiesScan(basePackageClasses = {RequiredProdProperties.class, VerificationProperties.class})
@@ -43,7 +44,7 @@ class RequiredProdPropertiesTest {
 
     @Test
     void prodStartsWithAllRequiredVariables() {
-        prod(SECRET, FRONTEND_URL, CORS).run(ctx -> {
+        prod(SECRET, FRONTEND_URL, CORS, QR_SECRET).run(ctx -> {
             assertThat(ctx).hasNotFailed();
             assertThat(ctx.getBean(CorsProperties.class).allowedOrigins())
                     .containsExactly("https://smart-elevate.vercel.app");
@@ -53,20 +54,27 @@ class RequiredProdPropertiesTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "   "})
     void prodFailsWithoutJwtSecret(String value) {
-        prod("app.security.jwt.secret=" + value, FRONTEND_URL, CORS).run(failsOn("security.jwt.secret"));
+        prod("app.security.jwt.secret=" + value, FRONTEND_URL, CORS, QR_SECRET)
+                .run(failsOn("security.jwt.secret"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void prodFailsWithoutKioskQrSecret(String value) {
+        prod(SECRET, FRONTEND_URL, CORS, "app.kiosk.qr-secret=" + value).run(failsOn("kiosk.qrSecret"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "   "})
     void prodFailsWithoutFrontendUrl(String value) {
-        prod(SECRET, "app.verification.frontend-url=" + value, CORS)
+        prod(SECRET, "app.verification.frontend-url=" + value, CORS, QR_SECRET)
                 .run(failsOn("verification.frontendUrl"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "   ", " , "})
     void prodFailsWithoutCorsOrigins(String value) {
-        prod(SECRET, FRONTEND_URL, "app.cors.allowed-origins=" + value)
+        prod(SECRET, FRONTEND_URL, "app.cors.allowed-origins=" + value, QR_SECRET)
                 .run(failsOn("cors.allowedOrigins"));
     }
 
