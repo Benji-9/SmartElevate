@@ -82,7 +82,8 @@ export DATABASE_PASSWORD=smartelevate
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE` | `dev` | `dev` (H2) o `prod` (Postgres) |
 | `PORT` | `8080` | Puerto HTTP |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` solo en dev | Orígenes permitidos, separados por coma. **Obligatorio en `prod`** (sin default: la app no arranca sin él) |
+| `APP_TIME_ZONE` | `America/Argentina/Buenos_Aires` | Zona del campus para franjas y horario. No depende de la zona del servidor (Render corre en UTC) |
 | `JWT_SECRET` | — | Secreto de firma de los access tokens (HS256), mínimo 32 caracteres. **Obligatorio en `prod`** (la app no arranca sin él); en dev, si falta, se usa una clave efímera. Generalo con `openssl rand -base64 48`. Nunca en el repo |
 | `JWT_ACCESS_TTL` | `PT15M` | Vida del access token (duración ISO-8601) |
 | `JWT_REFRESH_TTL` | `P7D` | Vida del refresh token (duración ISO-8601) |
@@ -102,7 +103,16 @@ export DATABASE_PASSWORD=smartelevate
 | `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
 | `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
-| `APP_FRONTEND_URL` | `http://localhost:5173` | Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
+| `APP_FRONTEND_URL` | `http://localhost:5173` solo en dev | **Obligatorio en `prod`** (sin default: la app no arranca sin él). Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
+
+**Checklist de `prod`.** Sin estas variables (o con alguna en blanco) la app no arranca:
+
+- [ ] `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
+- [ ] `JWT_SECRET` (mínimo 32 caracteres)
+- [ ] `APP_FRONTEND_URL` (p. ej. `https://smart-elevate.vercel.app`)
+- [ ] `CORS_ALLOWED_ORIGINS` (al menos el dominio del front)
+
+Con el mail activo (default en `prod`) también hacen falta las `SPRING_MAIL_*`. `JWT_SECRET`, `APP_FRONTEND_URL` y `CORS_ALLOWED_ORIGINS` se validan al arrancar en `RequiredProdProperties` (#222).
 
 #### Autenticación y endpoints protegidos
 

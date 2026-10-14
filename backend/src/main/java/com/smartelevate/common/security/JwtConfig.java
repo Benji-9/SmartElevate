@@ -8,8 +8,6 @@ import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.Profiles;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -24,12 +22,10 @@ public class JwtConfig {
     static final int MIN_SECRET_BYTES = 32;
 
     @Bean
-    SecretKey jwtSecretKey(JwtProperties props, Environment env) {
+    SecretKey jwtSecretKey(JwtProperties props) {
         byte[] bytes;
         if (props.secret() == null || props.secret().isBlank()) {
-            if (env.acceptsProfiles(Profiles.of("prod"))) {
-                throw new IllegalStateException("Falta la variable de entorno JWT_SECRET (mínimo 32 caracteres)");
-            }
+            // En prod la app no arranca sin JWT_SECRET: lo valida RequiredProdProperties (#222).
             // ponytail: clave efímera en dev/tests; los tokens no sobreviven a un reinicio.
             log.warn("JWT_SECRET no está definido: se usa una clave efímera (solo dev/tests)");
             bytes = new byte[MIN_SECRET_BYTES];
