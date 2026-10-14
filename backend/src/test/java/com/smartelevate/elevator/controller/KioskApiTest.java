@@ -110,6 +110,7 @@ class KioskApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isString())
                 .andExpect(jsonPath("$.expiresAt").isString())
+                .andExpect(jsonPath("$.elevatorId").value("33"))
                 .andReturn().getResponse().getContentAsString();
 
         var claims = qrTokens.validate(JsonPath.read(body, "$.token"));
