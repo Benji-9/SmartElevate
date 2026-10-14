@@ -125,6 +125,21 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
   });
 
+  it('con demasiados intentos fallidos muestra cuánto esperar', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': {
+        status: 429,
+        body: { message: 'Hubo demasiados intentos fallidos. Probá de nuevo en 15 minutos.' },
+      },
+    });
+    await renderLogin();
+
+    await submit('ana.perez', 'incorrecta');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Probá de nuevo en 15 minutos.');
+  });
+
   it('"¿Olvidaste tu contraseña?" lleva a recuperar la contraseña', async () => {
     stubApi(signedOut);
     await renderLogin();
