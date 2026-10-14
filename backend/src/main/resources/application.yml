@@ -47,6 +47,17 @@ app:
   password-reset:
     token-ttl: ${APP_PASSWORD_RESET_TOKEN_TTL:PT30M}
     request-cooldown: ${APP_PASSWORD_RESET_REQUEST_COOLDOWN:PT1M}
+  kiosk:
+    # Clave HMAC-SHA256 del token del QR (ADR 0016, 0020): secreto, solo por variable de entorno y distinto de
+    # JWT_SECRET; mínimo 32 bytes. Sin valor en el repo: en prod la app no arranca sin ella; en dev se usa una efímera.
+    qr-secret: ${APP_KIOSK_QR_SECRET:}
+    # Vida de cada token del QR (segundos enteros); se acepta además el del ciclo anterior. Reemplaza a qr_rotation.
+    qr-ttl: ${APP_KIOSK_QR_TTL:PT30S}
+    # false (default): no se pueden crear kioscos simulados (simulador de admin, #232).
+    simulator-enabled: ${APP_KIOSK_SIMULATOR_ENABLED:false}
+    # Tope de pedidos de token por kiosco (se espera ~1 cada 30 s): 10 por minuto deja margen para recargas.
+    rate-limit-max-requests: ${APP_KIOSK_RATE_LIMIT_MAX_REQUESTS:10}
+    rate-limit-window: ${APP_KIOSK_RATE_LIMIT_WINDOW:PT1M}
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app"
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
