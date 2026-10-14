@@ -32,14 +32,21 @@ app:
     # false (default): el mail solo se loguea. En prod se activa con APP_MAIL_ENABLED=true (SMTP, ADR 0013).
     enabled: ${APP_MAIL_ENABLED:false}
     from: ${APP_MAIL_FROM:no-reply@localhost}
+  # Parámetros técnicos y de seguridad: acá, con override por variable de entorno. En app_config van solo las
+  # reglas de negocio ajustables sin redeploy; los secretos, solo en variables de entorno (#225).
+  login-throttle:
+    # Límite de logins fallidos (ADR 0015): ventana deslizante y topes. Por cuenta, entre 1 y 100 (NIST).
+    window: ${APP_LOGIN_THROTTLE_WINDOW:PT15M}
+    max-failures-per-account: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT:10}
+    max-failures-per-ip: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP:100}
   verification:
-    token-ttl: PT24H
-    resend-cooldown: PT1M
+    token-ttl: ${APP_VERIFICATION_TOKEN_TTL:PT24H}
+    resend-cooldown: ${APP_VERIFICATION_RESEND_COOLDOWN:PT1M}
     # Base del link del mail de verificación.
     frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
   password-reset:
-    token-ttl: PT30M
-    request-cooldown: PT1M
+    token-ttl: ${APP_PASSWORD_RESET_TOKEN_TTL:PT30M}
+    request-cooldown: ${APP_PASSWORD_RESET_REQUEST_COOLDOWN:PT1M}
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app"
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

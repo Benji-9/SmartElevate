@@ -1,6 +1,5 @@
 package com.smartelevate.user.service;
 
-import com.smartelevate.common.config.ConfigService;
 import com.smartelevate.user.model.LoginFailure;
 import com.smartelevate.user.repository.LoginFailureRepository;
 import java.time.Clock;
@@ -13,7 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Límite de logins fallidos (ADR 0015), por cuenta y por IP, en una ventana deslizante de {@code app_config}.
+ * Límite de logins fallidos (ADR 0015), por cuenta y por IP, en una ventana deslizante
+ * ({@link LoginThrottleProperties}, en {@code application.yml}).
  * Con el tope alcanzado se responde 429 sin mirar la contraseña, hasta que el fallo más viejo sale de la ventana:
  * el bloqueo siempre es temporal, así que un tercero no puede dejar una cuenta bloqueada para siempre, y el
  * tope por cuenta no pasa de 100 (NIST SP 800-63B). Un login correcto o un reset de contraseña borran los fallos
@@ -27,15 +27,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class LoginThrottle {
 
     private final LoginFailureRepository failures;
-    private final ConfigService config;
+    private final LoginThrottleProperties props;
     private final Clock clock;
 
     /** @throws TooManyLoginAttemptsException si la cuenta o la IP llegaron al tope de fallos de la ventana */
     public void check(String account, String ip) {
         Instant now = clock.instant();
-        Instant since = now.minus(config.loginFailureWindow());
-        Stream.of(wait(accountKey(account), config.loginMaxFailuresPerAccount(), since, now),
-                        wait(ipKey(ip), config.loginMaxFailuresPerIp(), since, now))
+        Instant since = now.minus(props.window());
+        Stream.of(wait(accountKey(account), props.maxFailuresPerAccount(), since, now),
+                        wait(ipKey(ip), props.maxFailuresPerIp(), since, now))
                 .flatMap(Optional::stream)
                 .max(Duration::compareTo)
                 .ifPresent(retryAfter -> {
@@ -48,7 +48,7 @@ public class LoginThrottle {
     @Transactional
     public void recordFailure(String account, String ip) {
         Instant now = clock.instant();
-        failures.deleteOlderThan(now.minus(config.loginFailureWindow()));
+        failures.deleteOlderThan(now.minus(props.window()));
         failures.save(new LoginFailure(accountKey(account), now));
         failures.save(new LoginFailure(ipKey(ip), now));
     }

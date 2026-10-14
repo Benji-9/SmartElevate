@@ -3,10 +3,7 @@ package com.smartelevate.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 
-import com.smartelevate.common.config.ConfigService;
 import com.smartelevate.user.model.LoginFailure;
 import com.smartelevate.user.repository.LoginFailureRepository;
 import java.time.Clock;
@@ -34,19 +31,16 @@ class LoginThrottleTest {
     @Autowired
     private LoginFailureRepository failures;
 
-    private final ConfigService config = mock(ConfigService.class);
+    private final LoginThrottleProperties props = new LoginThrottleProperties(WINDOW, PER_ACCOUNT, PER_IP);
 
     @BeforeEach
     void setUp() {
         // Los tests de integración comparten la base en memoria y pueden dejar fallos suyos (se revierte al final).
         failures.deleteAll();
-        given(config.loginFailureWindow()).willReturn(WINDOW);
-        given(config.loginMaxFailuresPerAccount()).willReturn(PER_ACCOUNT);
-        given(config.loginMaxFailuresPerIp()).willReturn(PER_IP);
     }
 
     private LoginThrottle at(Instant now) {
-        return new LoginThrottle(failures, config, Clock.fixed(now, ZoneOffset.UTC));
+        return new LoginThrottle(failures, props, Clock.fixed(now, ZoneOffset.UTC));
     }
 
     private void fail(int times, String account, String ip, Instant at) {

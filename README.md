@@ -86,6 +86,13 @@ export DATABASE_PASSWORD=smartelevate
 | `JWT_SECRET` | — | Secreto de firma de los access tokens (HS256), mínimo 32 caracteres. **Obligatorio en `prod`** (la app no arranca sin él); en dev, si falta, se usa una clave efímera. Generalo con `openssl rand -base64 48`. Nunca en el repo |
 | `JWT_ACCESS_TTL` | `PT15M` | Vida del access token (duración ISO-8601) |
 | `JWT_REFRESH_TTL` | `P7D` | Vida del refresh token (duración ISO-8601) |
+| `APP_LOGIN_THROTTLE_WINDOW` | `PT15M` | Ventana deslizante del límite de logins fallidos (duración ISO-8601) |
+| `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` | `10` | Logins fallidos por cuenta dentro de la ventana; entre 1 y 100 (NIST), si no la app no arranca |
+| `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` | `100` | Logins fallidos por IP dentro de la ventana |
+| `APP_VERIFICATION_TOKEN_TTL` | `PT24H` | Vida del link de verificación de email |
+| `APP_VERIFICATION_RESEND_COOLDOWN` | `PT1M` | Espera mínima entre reenvíos del mail de verificación |
+| `APP_PASSWORD_RESET_TOKEN_TTL` | `PT30M` | Vida del link de reset de contraseña |
+| `APP_PASSWORD_RESET_REQUEST_COOLDOWN` | `PT1M` | Espera mínima entre pedidos de reset de contraseña |
 | `DATABASE_URL` | — | Solo `prod`. Formato JDBC: `jdbc:postgresql://host:5432/db` |
 | `DATABASE_USER` | — | Solo `prod` |
 | `DATABASE_PASSWORD` | — | Solo `prod` |
