@@ -19,8 +19,8 @@ smartelevate.onrender.com         Render: imagen Docker de backend/ (Spring Boot
 Neon Postgres (AWS us-east-2)     Flyway crea y migra el schema al arrancar
 
 El backend además usa:
-  Brevo (SMTP)                    mails de verificación de cuenta
-  Cloudflare R2 (bucket privado)  certificados de prioridad
+  Brevo (SMTP)                    mails de verificación de cuenta y de reset de contraseña
+  Cloudflare R2 (bucket privado)  certificados de prioridad (todavía sin código que lo use, #123)
 ```
 
 El navegador solo habla con Vercel: `/api/*` lo reenvía Vercel al backend. Por eso no hace falta configurar CORS en producción.
@@ -169,7 +169,7 @@ Variables en Render (Spring lee las `SPRING_MAIL_*` sin configuración extra):
 | `SPRING_MAIL_PASSWORD` | SMTP key de Brevo |
 | `APP_MAIL_FROM` | `smartelevate.uade@gmail.com` |
 
-STARTTLS ya está activado en `application-prod.yml`. Además de las de arriba, Render necesita `APP_FRONTEND_URL` (`https://smart-elevate.vercel.app`) para armar el link del mail. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
+STARTTLS ya está activado en `application-prod.yml`. Además de las de arriba, Render necesita `APP_FRONTEND_URL` (`https://smart-elevate.vercel.app`) para armar los links de verificación y de reset de contraseña. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
 
 **Rotar la clave:** Brevo → **SMTP & API → SMTP → Generate a new SMTP key**, cargarla en Render y borrar la vieja.
 
@@ -185,7 +185,7 @@ Los certificados de prioridad son **datos de salud** ([ADR 0009](adr/0009-autent
 | Acceso público | **Desactivado**: sin Public Development URL ni dominio propio. Sin credenciales responde `400` |
 | Token de API | *Object Read & Write*, **solo** sobre este bucket |
 
-Variables en Render:
+Variables en Render, para la implementación futura de los certificados ([#123](https://github.com/Benji-9/SmartElevate/issues/123)). Hoy el backend no las lee:
 
 | Variable | Valor |
 | --- | --- |
@@ -208,4 +208,4 @@ Para usar las mismas credenciales en local, ponelas en un `.env` en la raíz del
 - Claude Code no lo puede leer: hay una regla `deny` en `.claude/settings.json`.
 - **Spring no lo carga solo:** para correr el backend con esas variables, exportalas antes (`set -a; . ./.env; set +a`).
 
-El código que usa email y storage llega con la implementación de la autenticación ([B-05](bloqueantes.md)). Hasta entonces, estas variables están cargadas en Render pero nadie las lee.
+El email ya está en uso (verificación y reset). Las `APP_STORAGE_*` están cargadas en Render pero nadie las lee hasta que lleguen los certificados ([#123](https://github.com/Benji-9/SmartElevate/issues/123)).
