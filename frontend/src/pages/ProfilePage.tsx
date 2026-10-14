@@ -6,7 +6,7 @@ import { LegalFooter } from '../components/LegalFooter';
 import { PriorityAccessCard } from '../features/priority/PriorityAccessCard';
 import '../features/priority/priority.css';
 import { useSession } from '../hooks/useSession';
-import type { DeclaredUserType } from '../types/pending';
+import type { DeclaredUserType } from '../types/api';
 
 const userTypes: Record<DeclaredUserType, { label: string; tone: ChipTone }> = {
   STUDENT: { label: 'Estudiante', tone: 'alumnos' },

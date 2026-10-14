@@ -2,36 +2,36 @@ import type {
   ApiErrorBody,
   Building,
   FieldViolation,
+  ForgotPasswordRequest,
   LoginRequest,
+  PendingTeacher,
   PingResponse,
+  PriorityUser,
   RefreshRequest,
+  RegisterRequest,
   ResendVerificationRequest,
+  ResetPasswordRequest,
+  TokenResponse,
+  User,
   VerifyEmailRequest,
 } from '../types/api';
 import type {
   AdminKpis,
   AdminKpisQuery,
   AdminShift,
-  PendingTeacher,
-  PriorityUser,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
   Core,
   Departure,
   FloorOption,
-  ForgotPasswordRequest,
   NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  RegisterRequest,
   Reservation,
   ReserveRequest,
-  ResetPasswordRequest,
-  TokenResponse,
   TripPage,
-  User,
   WaitFeedbackRequest,
 } from '../types/pending';
 
@@ -193,8 +193,8 @@ export const api = {
 
 export const ping = (signal?: AbortSignal) => api.get<PingResponse>('/ping', { signal });
 
-// Endpoints todavía sin backend: por ahora los responde services/mocks.ts.
-export const getMe = () => api.get<User>('/me');
+/** Usuario de la sesión. Rol y prioridad salen de la base, nunca del JWT (ADR 0009). */
+export const getMe = () => api.get<User>('/users/me');
 
 /** Crea la cuenta; queda pendiente de verificar por email. */
 export const register = (body: RegisterRequest) => api.post<void>('/auth/register', body);
@@ -205,7 +205,7 @@ export const verifyEmail = (body: VerifyEmailRequest) => api.post<void>('/auth/v
 export const resendVerification = (body: ResendVerificationRequest) =>
   api.post<void>('/auth/resend-verification', body);
 
-/** Inicia sesión y devuelve el usuario según `/me` (rol y prioridad los decide el servidor). */
+/** Inicia sesión y devuelve el usuario según `/users/me` (rol y prioridad los decide el servidor). */
 export async function login(body: LoginRequest): Promise<User> {
   saveTokens(await api.post<TokenResponse>('/auth/login', body));
   return getMe();

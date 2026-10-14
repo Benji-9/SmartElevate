@@ -19,6 +19,9 @@
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   }, {
+    "description" : "Datos del usuario autenticado",
+    "name" : "users"
+  }, {
     "description" : "Roles y prioridad de usuarios (solo ADMIN)",
     "name" : "admin-priority"
   }, {
@@ -387,6 +390,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "Par de tokens nuevo"
+          },
           "400" : {
             "content" : {
               "application/json" : {
@@ -576,6 +589,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "Par de tokens nuevo"
+          },
           "400" : {
             "content" : {
               "application/json" : {
@@ -1148,6 +1171,49 @@
         "summary" : "Cancela una reserva mía y libera el lugar",
         "tags" : [ "turn" ]
       }
+    },
+    "/api/users/me" : {
+      "get" : {
+        "description" : "El rol se lee de la base y la prioridad es la vigente ahora (ADR 0009): ninguno sale de un claim del JWT. Sin token o con uno inválido responde 401.",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Devuelve el usuario de la sesión",
+        "tags" : [ "users" ]
+      }
     }
   },
   "components" : {
@@ -1592,6 +1658,68 @@
           }
         },
         "required" : [ "newPassword", "token" ]
+      },
+      "TokenResponse" : {
+        "type" : "object",
+        "description" : "Par de tokens de la sesión. El access token no lleva rol ni prioridad",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string",
+            "description" : "JWT corto, va en Authorization: Bearer"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Segundos de vida del access token",
+            "example" : 900
+          },
+          "refreshToken" : {
+            "type" : "string",
+            "description" : "Opaco y de un solo uso: cada refresh devuelve uno nuevo"
+          },
+          "tokenType" : {
+            "type" : "string",
+            "example" : "Bearer"
+          }
+        },
+        "required" : [ "accessToken", "expiresIn", "refreshToken", "tokenType" ]
+      },
+      "UserResponse" : {
+        "type" : "object",
+        "description" : "Usuario de la sesión. Rol y prioridad salen del servidor, nunca del token",
+        "properties" : {
+          "declaredUserType" : {
+            "type" : "string",
+            "description" : "Lo que declaró al registrarse. Informativo: no da rol ni prioridad",
+            "enum" : [ "STUDENT", "TEACHER" ]
+          },
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          },
+          "priority" : {
+            "type" : "string",
+            "description" : "Prioridad vigente, solo para mostrar: se vuelve a evaluar al reservar",
+            "enum" : [ "NONE", "TEACHER", "REDUCED_MOBILITY" ]
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "USER", "REVIEWER", "ADMIN" ]
+          }
+        },
+        "required" : [ "declaredUserType", "email", "fullName", "id", "legajo", "priority", "role" ]
       },
       "VerifyEmailRequest" : {
         "type" : "object",

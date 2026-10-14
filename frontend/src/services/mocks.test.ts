@@ -126,12 +126,12 @@ describe('mocks', () => {
     expect([floorsOf('L1')[0], floorsOf('L1').at(-1)]).toEqual([-3, 7]);
   });
 
-  it('login, /me y logout simulan la sesión con cookie', async () => {
+  it('login, /users/me y logout simulan la sesión con cookie', async () => {
     await call('POST', '/auth/login', { email: 'admin@uade.edu.ar', password: 'x' });
-    expect(await call('GET', '/me')).toMatchObject({ role: 'ADMIN' });
+    expect(await call('GET', '/users/me')).toMatchObject({ role: 'ADMIN' });
 
     await call('POST', '/auth/logout');
-    await expect(call('GET', '/me')).rejects.toMatchObject({ status: 401 });
+    await expect(call('GET', '/users/me')).rejects.toMatchObject({ status: 401 });
   });
 
   it('login con cuenta sin verificar da 403 y con contraseña incorrecta 401', async () => {

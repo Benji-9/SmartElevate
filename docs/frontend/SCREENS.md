@@ -292,9 +292,11 @@ Sin frame de Figma: se arma con los componentes del panel (tarjeta `.admin-card`
 2. **"Usuarios con prioridad"**: columnas **Nombre · Email · Legajo · Categoría · Acciones**. Categoría = `Chip` (`docentes` "Docente" o `accent` "Movilidad reducida"), siempre con texto. Acción: secondary "Revocar" ("Revocar a {nombre}"), también con confirmación en la fila ("¿Revocar la prioridad de {nombre}?", "Sí, revocar" / "Cancelar").
    - Vacía: "Todavía no hay usuarios con prioridad."
 
-**Estados**: cada tarjeta carga y falla por separado. Cargando: "Cargando…" (`role="status"`); error: mensaje del servidor con `role="alert"` y "Reintentar". Si falla una acción, el error aparece en un `role="alert"` dentro de la tarjeta y la fila queda como estaba.
+**Estados**: cada tarjeta carga y falla por separado. Cargando: "Cargando…" (`role="status"`); error: mensaje del servidor con `role="alert"` y "Reintentar". Si falla una acción, el error aparece en un `role="alert"` dentro de la tarjeta y la fila queda como estaba. Si el servidor responde **404** (usuario inexistente o sin prioridad vigente) o **409** (ya aprobado, no se declaró docente), la fila quedó vieja —otro admin ya la resolvió—: se muestra el mensaje del servidor seguido de "Actualizamos la lista." y la tarjeta vuelve a pedir su lista.
 
-**Fuera de alcance por ahora**: asignar rol `REVIEWER`/`ADMIN` a otro usuario (esperando que #121 exponga el endpoint).
+**Endpoints** (tag `admin-priority` de `docs/openapi.json`): `GET /api/admin/teachers/pending`, `POST /api/admin/teachers/{id}/approve` y `/reject`, `GET /api/admin/priority-users`, `DELETE /api/admin/priority-users/{id}`.
+
+**Fuera de alcance por ahora**: asignar rol `REVIEWER`/`ADMIN` a otro usuario. El contrato ya tiene `PUT /api/admin/users/{id}/role`, pero no hay endpoint para buscar o listar usuarios ni para leer su rol actual: sin eso la UI solo podría ofrecerlo a quien ya está en estas listas o pedir un UUID a mano. Se agrega cuando el backend exponga la búsqueda de usuarios.
 
 ---
 
