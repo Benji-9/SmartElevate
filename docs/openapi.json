@@ -1047,6 +1047,107 @@
         "summary" : "Reserva un lugar en una salida",
         "tags" : [ "turn" ]
       }
+    },
+    "/api/reservations/me" : {
+      "get" : {
+        "description" : "Ordenadas por salida, la más tardía primero.",
+        "operationId" : "mine",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReservationResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Lista mis reservas de hoy en adelante (activas y canceladas)",
+        "tags" : [ "turn" ]
+      }
+    },
+    "/api/reservations/{id}" : {
+      "delete" : {
+        "description" : "Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda CANCELLED; después, CANCELLED_LATE (cuenta como falta).",
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cancela una reserva mía y libera el lugar",
+        "tags" : [ "turn" ]
+      }
     }
   },
   "components" : {
@@ -1438,17 +1539,17 @@
             "example" : 0
           },
           "seatNumber" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32",
-            "description" : "Número de lugar, de 1 a la capacidad",
+            "description" : "Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.",
             "example" : 3
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "ACTIVE", "CANCELLED" ]
+            "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE" ]
           }
         },
-        "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "seatNumber", "status" ]
+        "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]
       },
       "ReserveRequest" : {
         "type" : "object",

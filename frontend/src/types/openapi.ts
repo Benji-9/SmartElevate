@@ -357,6 +357,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reservations/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista mis reservas de hoy en adelante (activas y canceladas)
+     * @description Ordenadas por salida, la más tardía primero.
+     */
+    get: operations['mine'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reservations/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Cancela una reserva mía y libera el lugar
+     * @description Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda CANCELLED; después, CANCELLED_LATE (cuenta como falta).
+     */
+    delete: operations['cancel'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -602,12 +642,12 @@ export interface components {
       originFloor: number;
       /**
        * Format: int32
-       * @description Número de lugar, de 1 a la capacidad
+       * @description Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.
        * @example 3
        */
-      seatNumber: number;
+      seatNumber?: number | null;
       /** @enum {string} */
-      status: 'ACTIVE' | 'CANCELLED';
+      status: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE';
     };
     /** @description Pedido de reserva. El usuario sale del token, no del body. */
     ReserveRequest: {
@@ -1523,6 +1563,91 @@ export interface operations {
       };
       /** @description Pisos o ascensor no válidos para la reserva */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  mine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  cancel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND) */
+      404: {
         headers: {
           [name: string]: unknown;
         };
