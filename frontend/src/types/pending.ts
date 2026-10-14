@@ -130,17 +130,6 @@ export type Trip = {
 /** Página del historial, del más reciente al más viejo. `nextCursor` null = no hay más. */
 export type TripPage = { items: Trip[]; nextCursor: string | null };
 
-/** Faltas recientes (turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
-export type NoShowStatus = {
-  recentNoShows: number;
-  /** Parámetros de la regla: N faltas en `windowDays` días suspenden. */
-  threshold: number;
-  windowDays: number;
-  suspensionHours: number;
-  suspendedUntil: string | null;
-  exempt: boolean;
-};
-
 /** Qué avisos quiere recibir el usuario. */
 export type NotificationPreferences = {
   departureReminder: boolean;

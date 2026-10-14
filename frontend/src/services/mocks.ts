@@ -7,6 +7,7 @@
 import type {
   Building,
   LoginRequest,
+  NoShowStatus,
   PendingTeacher,
   PriorityUser,
   RefreshRequest,
@@ -26,7 +27,6 @@ import type {
   Core,
   Departure,
   FloorOption,
-  NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,

@@ -7,13 +7,12 @@ import type {
   Core,
   Departure,
   FloorOption,
-  NoShowStatus,
   NotificationPreferences,
   PriorityUploadRules,
   Reservation,
   TripPage,
 } from '../types/pending';
-import type { Building } from '../types/api';
+import type { Building, NoShowStatus } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 

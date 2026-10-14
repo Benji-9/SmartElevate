@@ -41,3 +41,6 @@ export type ResetPasswordRequest = Schemas['ResetPasswordRequest'];
 export type PendingTeacher = Schemas['PendingTeacherResponse'];
 /** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
 export type PriorityUser = Schemas['PriorityUserResponse'];
+
+/** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
+export type NoShowStatus = Schemas['NoShowStatusResponse'];
