@@ -1,6 +1,7 @@
 package com.smartelevate.common.error;
 
 import com.smartelevate.common.security.KioskAuthenticationException;
+import com.smartelevate.elevator.service.InvalidQrTokenException;
 import com.smartelevate.elevator.service.KioskException;
 import com.smartelevate.elevator.service.KioskRateLimitedException;
 import com.smartelevate.turn.service.ReservationRejectedException;
@@ -137,6 +138,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleKioskRateLimited(KioskRateLimitedException ex,
                                                            HttpServletRequest request) {
         return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    // Sin @ResponseStatus: se documenta en POST /api/check-ins. El mensaje es fijo: no dice por qué falló.
+    @ExceptionHandler(InvalidQrTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidQrToken(InvalidQrTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), "INVALID_QR_TOKEN", request, List.of());
     }
 
     @ExceptionHandler(KioskException.class)

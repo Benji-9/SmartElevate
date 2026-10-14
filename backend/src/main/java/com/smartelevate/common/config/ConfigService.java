@@ -135,6 +135,9 @@ public class ConfigService {
                 "max_daily_bookings_per_user no puede ser menor que max_active_bookings_per_user");
         check(!cancellationDeadlineBefore().isNegative(), "cancellation_deadline_before no puede ser negativo");
         check(!checkInOpensBefore().isNegative(), "check_in_opens_before no puede ser negativo");
+        // El check-in conserva el lugar (V16): si abriera antes del cierre de la reserva, otro podría pedirlo.
+        check(checkInOpensBefore().compareTo(bookingClosesBefore()) <= 0,
+                "check_in_opens_before no puede superar booking_closes_before");
         check(checkInClosesAfter().isPositive(), "check_in_closes_after tiene que ser mayor a 0");
         check(noShowAfter().isPositive() && noShowAfter().compareTo(checkInClosesAfter()) <= 0,
                 "no_show_after tiene que ser mayor a 0 y no superar check_in_closes_after");

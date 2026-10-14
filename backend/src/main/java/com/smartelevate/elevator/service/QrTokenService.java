@@ -109,7 +109,7 @@ public class QrTokenService {
 
     private static byte[] secret(String configured) {
         if (configured == null || configured.isBlank()) {
-            // ponytail: clave efímera en dev/tests (en prod la exige KioskProdProperties); los QR no sobreviven a un
+            // ponytail: clave efímera en dev/tests (en prod la exige RequiredProdProperties); los QR no sobreviven a un
             // reinicio, pero rotan cada ~30 s igual.
             log.warn("APP_KIOSK_QR_SECRET no está definido: se usa una clave efímera (solo dev/tests)");
             byte[] bytes = new byte[MIN_SECRET_BYTES];

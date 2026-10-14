@@ -17,7 +17,11 @@ public class ReservationRejectedException extends RuntimeException {
         SAME_FLOOR(HttpStatus.UNPROCESSABLE_ENTITY),
         FLOOR_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
         FLOOR_NOT_SERVED(HttpStatus.UNPROCESSABLE_ENTITY),
-        LOW_FLOOR_DESTINATION(HttpStatus.UNPROCESSABLE_ENTITY);
+        LOW_FLOOR_DESTINATION(HttpStatus.UNPROCESSABLE_ENTITY),
+        // Check-in (#230)
+        NO_ACTIVE_RESERVATION(HttpStatus.CONFLICT),
+        OUTSIDE_CHECK_IN_WINDOW(HttpStatus.CONFLICT),
+        ALREADY_CHECKED_IN(HttpStatus.CONFLICT);
 
         private final HttpStatus status;
 

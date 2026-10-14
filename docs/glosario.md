@@ -5,13 +5,14 @@ Términos del dominio, para que backend, frontend y docs hablen igual. Entre par
 | Término | Significado |
 | --- | --- |
 | **Salida** / **franja** (`Departure`) | Viaje programado de un ascensor, cada ~2 min. Es la unidad que se reserva. Capacidad: 10. |
-| **Reserva** / **turno** (`Reservation`) | Lugar de un usuario en una salida. Estados hoy: activa (`ACTIVE`), cancelada sin falta (`CANCELLED`) y cancelación tardía (`CANCELLED_LATE`). Con el check-in ([#219](https://github.com/Benji-9/SmartElevate/issues/219)) se suman usada y no-show. |
+| **Reserva** / **turno** (`Reservation`) | Lugar de un usuario en una salida. Estados: activa (`ACTIVE`), cancelada sin falta (`CANCELLED`), cancelación tardía (`CANCELLED_LATE`), usada (`USED`, check-in a tiempo) y no-show (`NO_SHOW`). |
+| **Usada** (`USED`) | Reserva con check-in a tiempo, en su ascensor o en otro. |
+| **No-show** (`NO_SHOW`) | Estado de la reserva sin check-in a tiempo (a los 60 s de la salida) o con check-in fuera de hora. Cuenta como falta. |
 | **Cancelación tardía** (`CANCELLED_LATE`) | Cancelar pasado el límite sin falta (10 min antes de la salida) y antes de la salida. Libera el lugar, pero cuenta como falta y no devuelve el cupo diario. Después de la salida no se puede cancelar. |
 | **Ventana de reserva** | Período en el que se puede reservar una salida: de 30 a 2 min antes. |
 | **Lista de espera** (`Waitlist`) | Solicitudes que no entraron en una salida llena, ordenadas por prioridad. **Fuera del MVP** ([alcance](alcance-mvp.md)). |
-| **Check-in** | Escaneo del QR del ascensor que confirma el uso de la reserva. |
+| **Check-in** (`CheckIn`) | Escaneo del QR del ascensor que confirma el uso de la reserva. Uno por reserva. Resultados: cumplida (`ON_TIME`), otro ascensor (`OTHER_ELEVATOR`) y fuera de hora (`LATE`, cuenta como no-show). Origen (`source`): kiosco real (`REAL`) o simulador de admin (`SIMULATED`). |
 | **Kiosco QR** | Página web `/qr/:ascensor`, abierta en una tablet o pantalla del hall, que muestra el QR rotativo de un ascensor ([ADR 0016](adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)). |
-| **No-show** | Reserva sin check-in válido a tiempo. |
 | **Prioritario** | Usuario con prioridad aprobada y vigente: movilidad reducida (`REDUCED_MOBILITY`) o docente (`TEACHER`). |
 | **Tipo de usuario declarado** (`declaredUserType`) | Lo que la persona elige al registrarse: Estudiante (`STUDENT`) o Docente (`TEACHER`). No otorga nada; un docente declarado espera la aprobación de un ADMIN. |
 | **Lugares reservados** | Hasta 2 de 10 lugares por salida en ascensores comunes, guardados para prioritarios. |
