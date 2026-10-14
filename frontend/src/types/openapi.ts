@@ -324,6 +324,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/check-ins': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Hace check-in con el QR del ascensor
+     * @description El usuario sale de la sesión; el ascensor y el kiosco, del token firmado. Se acepta desde check_in_opens_before antes hasta check_in_closes_after después de la salida (hoy −1 min a +2 min), una sola vez por reserva. Pasado no_show_after (+60 s) el resultado es LATE y la reserva queda NO_SHOW. Los rechazos traen un code estable: INVALID_QR_TOKEN, NO_ACTIVE_RESERVATION, OUTSIDE_CHECK_IN_WINDOW, ALREADY_CHECKED_IN.
+     */
+    post: operations['checkIn'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/departures': {
     parameters: {
       query?: never;
@@ -530,6 +550,55 @@ export interface components {
       minFloor: number;
       /** @example Lima */
       name: string;
+    };
+    /** @description Check-in: el token leído del QR del ascensor. El usuario sale de la sesión, no del body. */
+    CheckInRequest: {
+      /** @description Contenido del QR, tal cual se leyó */
+      token: string;
+    };
+    /** @description Check-in registrado */
+    CheckInResponse: {
+      /**
+       * Format: date-time
+       * @example 2026-10-13T15:57:40Z
+       */
+      checkedInAt: string;
+      /**
+       * Format: date-time
+       * @description Hora estimada de salida, en UTC
+       * @example 2026-10-13T15:58:00Z
+       */
+      departureAt: string;
+      /**
+       * @description Ascensor escaneado
+       * @example 34
+       */
+      elevator: string;
+      /**
+       * @description ON_TIME (cumplida), OTHER_ELEVATOR o LATE (fuera de hora: cuenta como falta)
+       * @enum {string}
+       */
+      outcome: 'ON_TIME' | 'OTHER_ELEVATOR' | 'LATE';
+      /**
+       * Format: int64
+       * @example 55
+       */
+      reservationId: number;
+      /**
+       * @description Estado de la reserva después del check-in: USED, o NO_SHOW si fue LATE
+       * @enum {string}
+       */
+      reservationStatus: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE' | 'USED' | 'NO_SHOW';
+      /**
+       * @description Ascensor de la reserva
+       * @example 33
+       */
+      reservedElevator: string;
+      /**
+       * @description SIMULATED si el QR vino del simulador de admin
+       * @enum {string}
+       */
+      source: 'REAL' | 'SIMULATED';
     };
     CoreResponse: {
       /** @example L3 */
@@ -793,7 +862,7 @@ export interface components {
        */
       seatNumber?: number | null;
       /** @enum {string} */
-      status: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE';
+      status: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE' | 'USED' | 'NO_SHOW';
     };
     /** @description Pedido de reserva. El usuario sale del token, no del body. */
     ReserveRequest: {
@@ -1714,6 +1783,57 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  checkIn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckInRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckInResponse'];
+        };
+      };
+      /** @description Body inválido, o QR inválido, vencido o de un kiosco revocado (INVALID_QR_TOKEN, sin decir cuál) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Sin turno (NO_ACTIVE_RESERVATION), fuera de la ventana (OUTSIDE_CHECK_IN_WINDOW) o check-in ya registrado (ALREADY_CHECKED_IN) */
+      409: {
         headers: {
           [name: string]: unknown;
         };
