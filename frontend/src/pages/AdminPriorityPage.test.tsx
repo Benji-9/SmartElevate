@@ -114,13 +114,56 @@ describe('AdminPriorityPage', () => {
   it('muestra el error del servidor si falla una acción y deja la fila', async () => {
     renderPage(
       {},
-      { 'POST /admin/teachers/t-1/approve': { status: 409, body: { message: 'Ya fue resuelto' } } },
+      { 'POST /admin/teachers/t-1/approve': { status: 500, body: { message: 'Algo salió mal' } } },
     );
 
     await userEvent.click(await screen.findByRole('button', { name: 'Aprobar a Marta Gómez' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ya fue resuelto');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Algo salió mal');
     expect(screen.getByRole('button', { name: 'Aprobar a Marta Gómez' })).toBeInTheDocument();
+  });
+
+  it('con 409 (ya resuelto por otro admin) avisa y actualiza la cola', async () => {
+    let pendingList = [marta];
+    renderPage(
+      {},
+      {
+        'GET /admin/teachers/pending': () => ({ body: pendingList }),
+        'POST /admin/teachers/t-1/approve': () => {
+          pendingList = [];
+          return { status: 409, body: { message: 'El docente ya tiene la prioridad aprobada' } };
+        },
+      },
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Aprobar a Marta Gómez' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El docente ya tiene la prioridad aprobada. Actualizamos la lista.',
+    );
+    expect(await screen.findByText('No hay docentes para validar.')).toBeInTheDocument();
+  });
+
+  it('con 404 al revocar (ya no tenía prioridad) avisa y actualiza la lista', async () => {
+    let priorityList = [carla];
+    renderPage(
+      {},
+      {
+        'GET /admin/priority-users': () => ({ body: priorityList }),
+        'DELETE /admin/priority-users/p-1': () => {
+          priorityList = [];
+          return { status: 404, body: { message: 'El usuario no tiene una prioridad vigente' } };
+        },
+      },
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Revocar a Carla Díaz' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, revocar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El usuario no tiene una prioridad vigente. Actualizamos la lista.',
+    );
+    expect(await screen.findByText('Todavía no hay usuarios con prioridad.')).toBeInTheDocument();
   });
 
   it('muestra el error de carga con Reintentar', async () => {
