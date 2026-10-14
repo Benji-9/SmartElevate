@@ -16,8 +16,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class ConfigService {
 
-    private static final int MAX_LOGIN_FAILURES_PER_ACCOUNT = 100;
-
     private final Map<String, String> values = new HashMap<>();
 
     public ConfigService(ConfigEntryRepository repository) {
@@ -127,19 +125,6 @@ public class ConfigService {
         return get("low_floors_threshold", Integer::parseInt);
     }
 
-    /** Ventana deslizante del límite de logins fallidos (ADR 0015). */
-    public Duration loginFailureWindow() {
-        return get("login_failure_window", Duration::parse);
-    }
-
-    public int loginMaxFailuresPerAccount() {
-        return get("login_max_failures_per_account", Integer::parseInt);
-    }
-
-    public int loginMaxFailuresPerIp() {
-        return get("login_max_failures_per_ip", Integer::parseInt);
-    }
-
     // Cada accessor parsea su valor, así que llamarlos acá también detecta claves faltantes y formatos inválidos.
     private void validate() {
         check(operatingHoursStart().isBefore(operatingHoursEnd()),
@@ -169,11 +154,6 @@ public class ConfigService {
         check(boardingTime().isPositive(), "boarding_time tiene que ser mayor a 0");
         check(timePerFloor().isPositive(), "time_per_floor tiene que ser mayor a 0");
         check(lowFloorsThreshold() >= 0, "low_floors_threshold no puede ser negativo");
-        check(loginFailureWindow().isPositive(), "login_failure_window tiene que ser mayor a 0");
-        // NIST SP 800-63B: como mucho 100 fallos seguidos por cuenta.
-        check(loginMaxFailuresPerAccount() > 0 && loginMaxFailuresPerAccount() <= MAX_LOGIN_FAILURES_PER_ACCOUNT,
-                "login_max_failures_per_account tiene que estar entre 1 y " + MAX_LOGIN_FAILURES_PER_ACCOUNT);
-        check(loginMaxFailuresPerIp() > 0, "login_max_failures_per_ip tiene que ser mayor a 0");
         // Los parámetros a definir solo tienen que existir; si ya tienen valor, se valida.
         if (isDefined("cancellation_wait_tolerance")) {
             check(cancellationWaitTolerance().isPositive(), "cancellation_wait_tolerance tiene que ser mayor a 0");
