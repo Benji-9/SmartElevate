@@ -29,5 +29,15 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 ## Seguridad
 
 - La rotación corta evita que se comparta una foto del QR.
-- La firma **HMAC-SHA256** de `elevatorId + exp`, con una clave del servidor en variable de entorno, evita fabricar tokens.
+- La firma **HMAC-SHA256** de `elevatorId + kioskId + exp`, con una clave del servidor en variable de entorno (`APP_KIOSK_QR_SECRET`), evita fabricar tokens. El `kioskId` firmado dice si el check-in vino de un kiosco real o del simulador de admin (`source` `REAL`/`SIMULATED`), sin confiar en el cliente; revocar el kiosco invalida sus QR en el acto ([ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)).
 - La unicidad por reserva evita que un mismo escaneo cuente dos veces.
+- Un QR inválido, vencido o de un kiosco revocado se rechaza igual, sin decir por qué (`INVALID_QR_TOKEN`).
+
+## Implementación
+
+`POST /api/check-ins` ([#230](https://github.com/Benji-9/SmartElevate/issues/230)), con la sesión del usuario y el token leído. La ventana y el umbral salen de `app_config` (`check_in_opens_before`, `check_in_closes_after`, `no_show_after`).
+
+- *Cumplida* (`ON_TIME`) y *otro ascensor* (`OTHER_ELEVATOR`): la reserva pasa a usada (`USED`). Hasta +60 s inclusive cuenta como a tiempo.
+- *Fuera de hora* (`LATE`): queda el check-in y la reserva pasa a no-show (`NO_SHOW`), la haya marcado ya el job de no-shows ([#231](https://github.com/Benji-9/SmartElevate/issues/231)) o no. Si además fue en otro ascensor, gana `LATE`; el ascensor escaneado queda guardado igual.
+- Rechazos con `code`: `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW`, `ALREADY_CHECKED_IN`.
+- `USED` y `NO_SHOW` conservan el lugar de la reserva; solo cancelar lo libera.
