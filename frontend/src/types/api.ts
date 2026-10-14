@@ -51,5 +51,11 @@ export type Kiosk = Schemas['KioskResponse'];
 export type CreateKioskRequest = Schemas['CreateKioskRequest'];
 /** Respuesta del alta: única vez que la API devuelve `secret`. */
 export type CreatedKiosk = Schemas['CreatedKioskResponse'];
-/** Token que el kiosco muestra como QR; a `expiresAt` pide el siguiente. */
+/** Token que el kiosco muestra como QR; a `expiresAt` pide el siguiente. `elevatorId` es el de la credencial. */
 export type QrToken = Schemas['QrTokenResponse'];
+
+/** Check-in (#230): el token del QR tal cual se leyó; el usuario sale de la sesión. */
+export type CheckInRequest = Schemas['CheckInRequest'];
+/** Resultado del check-in con el ascensor escaneado y el reservado (docs/reglas/check-in-qr.md). */
+export type CheckIn = Schemas['CheckInResponse'];
+export type CheckInOutcome = CheckIn['outcome'];

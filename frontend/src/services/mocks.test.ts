@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type {
   AdminKpis,
   AdminShift,
-  CheckInResult,
   CongestionSnapshot,
   Core,
   Departure,
@@ -13,13 +12,20 @@ import type {
   Reservation,
   TripPage,
 } from '../types/pending';
-import type { Building, CreatedKiosk, KioskList, QrToken } from '../types/api';
+import type { Building, CheckIn, CreatedKiosk, KioskList, QrToken } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 
-const call = async <T>(method: string, path: string, body?: unknown) =>
-  (await mockRequest(method, path, body === undefined ? undefined : JSON.stringify(body), 0))
-    ?.data as T;
+const call = async <T>(method: string, path: string, body?: unknown, headers?: HeadersInit) =>
+  (
+    await mockRequest(
+      method,
+      path,
+      body === undefined ? undefined : JSON.stringify(body),
+      0,
+      headers,
+    )
+  )?.data as T;
 
 describe('mocks', () => {
   it('deja pasar al backend lo que no tiene mock', async () => {
@@ -165,7 +171,7 @@ describe('mocks', () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 
-  it('check-in: código vencido da 400, después cumplido, ya escaneado y encuesta única', async () => {
+  it('check-in: token vencido da 400, después otro ascensor y ya escaneado, con su code', async () => {
     const active = await call<Reservation>('GET', '/reservations/active');
     if (active) await call('DELETE', `/reservations/${active.id}`);
     const [departure] = await call<Departure[]>('GET', '/cores/IND2/departures');
@@ -175,25 +181,22 @@ describe('mocks', () => {
       destinationFloor: 8,
     });
 
-    await expect(call('POST', '/check-ins', { code: 'VENCIDO-1' })).rejects.toMatchObject({
+    await expect(call('POST', '/check-ins', { token: 'VENCIDO-1' })).rejects.toMatchObject({
       status: 400,
+      code: 'INVALID_QR_TOKEN',
     });
-    const result = await call<CheckInResult>('POST', '/check-ins', { code: 'OTRO-42' });
+    const result = await call<CheckIn>('POST', '/check-ins', { token: 'mock-qr-34-1' });
     expect(result).toMatchObject({
-      reservationId: turn.id,
       outcome: 'OTHER_ELEVATOR',
-      coreName: 'Independencia 2',
-      departsAt: departure.departsAt,
+      reservationStatus: 'USED',
+      elevator: '34',
+      reservedElevator: '33',
+      departureAt: turn.departure.departsAt,
     });
-    await expect(call('POST', '/check-ins', { code: 'X' })).rejects.toMatchObject({
+    expect(departure.departsAt).toBe(turn.departure.departsAt);
+    await expect(call('POST', '/check-ins', { token: 'X' })).rejects.toMatchObject({
       status: 409,
-      message: expect.stringContaining('Ya registraste'),
-    });
-
-    const feedback = `/check-ins/${turn.id}/wait-feedback`;
-    await call('POST', feedback, { range: 'FROM_5_TO_10' });
-    await expect(call('POST', feedback, { range: 'UNDER_2' })).rejects.toMatchObject({
-      status: 409,
+      code: 'ALREADY_CHECKED_IN',
     });
   });
 
@@ -296,8 +299,14 @@ describe('mocks', () => {
     expect(list.simulatorEnabled).toBe(true);
     expect(list.kiosks.find((k) => k.id === created.id)).not.toHaveProperty('secret');
 
-    const qr = await call<QrToken>('GET', '/kiosks/me/qr-token');
+    const qr = await call<QrToken>('GET', '/kiosks/me/qr-token', undefined, {
+      Authorization: `Bearer ${created.secret}`,
+    });
     expect(Date.parse(qr.expiresAt) % 30_000).toBe(0);
+    expect(qr.elevatorId).toBe('33');
+    await expect(
+      call('GET', '/kiosks/me/qr-token', undefined, { Authorization: 'Bearer cualquiera' }),
+    ).rejects.toMatchObject({ status: 401 });
     await expect(call('POST', '/admin/kiosks', { elevatorId: '99' })).rejects.toMatchObject({
       status: 404,
     });
