@@ -18,6 +18,7 @@ import com.smartelevate.turn.model.Reservation;
 import com.smartelevate.turn.model.ReservationStatus;
 import com.smartelevate.turn.repository.CheckInRepository;
 import com.smartelevate.turn.repository.DepartureRepository;
+import com.smartelevate.turn.repository.NoShowSuspensionRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.turn.service.KpiEvents;
 import com.smartelevate.turn.service.NoShowService;
@@ -48,6 +49,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /** Job de no-shows, faltas, suspensión y KPIs sin simulados, contra H2 con las migraciones (#231). */
@@ -91,11 +93,14 @@ class NoShowApiTest {
     private ReservationRepository reservations;
     @Autowired
     private CheckInRepository checkIns;
+    @Autowired
+    private NoShowSuspensionRepository suspensions;
 
     private User user;
 
     @AfterEach
     void clean() {
+        suspensions.deleteAll();
         checkIns.deleteAll();
         kiosks.deleteAll();
         reservations.deleteAll();
@@ -185,11 +190,35 @@ class NoShowApiTest {
                 .andExpect(jsonPath("$.exempt").value(false));
 
         Departure next = departure(Duration.ofMinutes(10));
-        mockMvc.perform(authed(post("/api/reservations")).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"departureId\":%d,\"originFloor\":0,\"destinationFloor\":8}"
-                                .formatted(next.getId())))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NO_SHOW_SUSPENDED"));
+        for (int attempt = 0; attempt < 2; attempt++) {
+            reserve(next).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NO_SHOW_SUSPENDED"));
+        }
+        // La suspensión se guarda una sola vez (V17), desde la falta que completó las 3.
+        assertThat(suspensions.findAll()).singleElement().satisfies(s -> {
+            assertThat(s.getTriggerFaultAt()).isEqualTo(NOW.minus(Duration.ofMinutes(5)));
+            assertThat(s.getEndsAt()).isEqualTo(until);
+        });
+    }
+
+    private ResultActions reserve(Departure departure) throws Exception {
+        return mockMvc.perform(authed(post("/api/reservations")).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"departureId\":%d,\"originFloor\":0,\"destinationFloor\":8}".formatted(departure.getId())));
+    }
+
+    @Test
+    void aSimulatedLateCheckInIsNotAFaultAndDoesNotSuspend() throws Exception {
+        Kiosk simulator = kiosks.save(new Kiosk("33", UUID.randomUUID().toString().replace("-", ""), true, NOW));
+        noShow(Duration.ofDays(-2));
+        noShow(Duration.ofDays(-1));
+        Reservation simulatedLate = noShow(Duration.ofMinutes(-5));
+        checkIns.save(new CheckIn(simulatedLate.getId(), CheckInOutcome.LATE, "33", CheckInSource.SIMULATED,
+                simulator.getId(), NOW.minus(Duration.ofMinutes(3))));
+
+        mockMvc.perform(authed(get("/api/me/no-shows")))
+                .andExpect(jsonPath("$.recentNoShows").value(2))
+                .andExpect(jsonPath("$.suspendedUntil").doesNotExist());
+        reserve(departure(Duration.ofMinutes(10))).andExpect(status().isCreated());
+        assertThat(suspensions.count()).isZero();
     }
 
     @Test
@@ -218,6 +247,7 @@ class NoShowApiTest {
                 simulator.getId(), NOW.minusSeconds(240)));
         Instant from = NOW.minus(Duration.ofHours(1));
 
+        // El ON_TIME simulado no cuenta como asistencia real.
         assertThat(kpis.checkIns(from, NOW)).singleElement()
                 .satisfies(c -> assertThat(c.getReservationId()).isEqualTo(realLate.getId()));
         assertThat(kpis.noShows(from, NOW)).extracting(Reservation::getId)

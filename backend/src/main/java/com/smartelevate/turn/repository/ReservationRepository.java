@@ -14,6 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    /**
+     * Criterio único (#231): una reserva con check-in {@code SIMULATED} (simulador de admin) queda fuera del conteo
+     * de faltas y de los KPIs. Lo usan {@link #faultTimes} y {@link #findRealNoShowsBetween}; alias {@code r}.
+     */
+    String NOT_SIMULATED = "not exists (select c.id from CheckIn c where c.reservationId = r.id "
+            + "and c.source = 'SIMULATED')";
+
     @Query("select r.seatNumber from Reservation r where r.departure.id = :departureId and r.status = 'ACTIVE'")
     List<Integer> activeSeats(@Param("departureId") long departureId);
 
@@ -52,15 +59,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             + "and r.departure.id in (select d.id from Departure d where d.departureAt < :cutoff)")
     int markNoShows(@Param("cutoff") Instant cutoff);
 
-    /** Horas de salida de las faltas del usuario con salida después de {@code from}, la más vieja primero. */
+    /**
+     * Horas de salida de las faltas del usuario con salida desde {@code from} inclusive, la más vieja primero.
+     * Sin las reservas con check-in simulado ({@link #NOT_SIMULATED}).
+     */
     @Query("select d.departureAt from Reservation r join r.departure d where r.userId = :userId "
-            + "and r.status in :faults and d.departureAt > :from order by d.departureAt")
+            + "and r.status in :faults and d.departureAt >= :from and " + NOT_SIMULATED + " order by d.departureAt")
     List<Instant> faultTimes(@Param("userId") UUID userId, @Param("faults") Collection<ReservationStatus> faults,
                              @Param("from") Instant from);
 
     /** Para {@code KpiEvents}: NO_SHOW con salida en [from, to), sin las que tienen un check-in simulado. */
     @Query("select r from Reservation r join fetch r.departure d where r.status = 'NO_SHOW' "
-            + "and d.departureAt >= :from and d.departureAt < :to and not exists (select c.id from CheckIn c "
-            + "where c.reservationId = r.id and c.source = 'SIMULATED')")
+            + "and d.departureAt >= :from and d.departureAt < :to and " + NOT_SIMULATED)
     List<Reservation> findRealNoShowsBetween(@Param("from") Instant from, @Param("to") Instant to);
 }

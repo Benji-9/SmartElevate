@@ -5,7 +5,9 @@ import java.time.Instant;
 
 @Schema(description = "Faltas recientes y suspensión (turnos.md §5). Falta = NO_SHOW o CANCELLED_LATE")
 public record NoShowStatusResponse(
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Faltas en los últimos windowDays días",
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Faltas de los últimos windowDays días, sin las de check-in "
+                + "simulado. Si no está suspendido ni exento, solo las que cuentan para la próxima suspensión (desde "
+                + "el fin de la última)",
                 example = "2") int recentNoShows,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Faltas que suspenden",
                 example = "3") int threshold,

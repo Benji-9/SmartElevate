@@ -65,7 +65,9 @@ public class ReservationService {
 
     private static final DateTimeFormatter SUSPENSION_END = DateTimeFormatter.ofPattern("dd/MM 'a las' HH:mm");
 
-    @Transactional
+    // Un rechazo no deshace la suspensión que acaba de guardar NoShowService: antes de los rechazos no se escribe
+    // nada más (la reserva se guarda al final). Otro error, como el constraint de lugar, sí hace rollback.
+    @Transactional(noRollbackFor = ReservationRejectedException.class)
     public ReservationResponse reserve(UUID userId, ReserveRequest request) {
         users.lockById(userId).orElseThrow(() -> new IllegalStateException("Usuario inexistente: " + userId));
         Departure departure = departures.findByIdForUpdate(request.departureId())

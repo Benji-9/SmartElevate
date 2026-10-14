@@ -763,7 +763,7 @@ export interface components {
       exempt: boolean;
       /**
        * Format: int32
-       * @description Faltas en los últimos windowDays días
+       * @description Faltas de los últimos windowDays días, sin las de check-in simulado. Si no está suspendido ni exento, solo las que cuentan para la próxima suspensión (desde el fin de la última)
        * @example 2
        */
       recentNoShows: number;
