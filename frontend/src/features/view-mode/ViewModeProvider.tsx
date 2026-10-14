@@ -37,7 +37,8 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
   const { pathname, search } = useLocation();
   const [mode, setMode] = useState(() => initialMode(search));
   const wide = useSyncExternalStore(subscribeResize, isWide);
-  const canToggle = wide && !/^\/admin(\/|$)/.test(pathname);
+  // El panel admin y el kiosco del hall (`/qr/:ascensor`) no son pantallas de la app de usuario.
+  const canToggle = wide && !/^\/(admin|qr)(\/|$)/.test(pathname);
 
   // También guarda el `?vista=` de la URL: el link de la demo queda aplicado al recargar.
   useEffect(() => {
