@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -84,7 +84,7 @@ describe('CheckInPage', () => {
     expect(
       await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
     ).toBeInTheDocument();
-    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
     expect(
       screen.getByText('El código rota: escanealo desde dentro de la cabina'),
     ).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('CheckInPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
     expect(await screen.findByText(/Apuntá la cámara/)).toBeInTheDocument();
-    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
   });
 
   it('al leer un QR registra el check-in y va al resultado', async () => {
@@ -269,6 +269,6 @@ describe('CheckInPage', () => {
 
     unmount();
 
-    expect(track.stop).toHaveBeenCalled();
+    await waitFor(() => expect(track.stop).toHaveBeenCalled());
   });
 });
