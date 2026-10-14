@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class PasswordEncoderConfig {
 
+    // Constantes a propósito (ADR 0015, ADR 0017): cambiarlas cambia el costo de cada hash nuevo, así que pasan
+    // por un PR revisado y no por una variable o un UPDATE en app_config.
     private static final int SALT_BYTES = 16;
     private static final int HASH_BYTES = 32;
     private static final int PARALLELISM = 1;

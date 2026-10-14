@@ -70,6 +70,9 @@ Variables de entorno (en Render → **Environment**):
 | `DATABASE_URL` | `jdbc:postgresql://<host de Neon>/neondb?sslmode=require` |
 | `DATABASE_USER` | `neondb_owner` |
 | `DATABASE_PASSWORD` | La clave del rol en Neon |
+| `JWT_SECRET` | `openssl rand -base64 48` (mínimo 32 caracteres) |
+| `APP_FRONTEND_URL` | `https://smart-elevate.vercel.app` |
+| `CORS_ALLOWED_ORIGINS` | `https://smart-elevate.vercel.app` |
 
 `PORT` lo define Render y `SPRING_PROFILES_ACTIVE=prod` ya viene en la imagen. Si aparecen reinicios por falta de memoria, agregar `JAVA_OPTS=-XX:MaxRAMPercentage=60`. La lista completa de variables está en el [README](../README.md#variables-de-entorno-del-backend).
 
@@ -108,6 +111,14 @@ Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ve
 2. Release `develop` → `main`:
    - **Front:** `CI Frontend` termina OK y `deploy-frontend.yml` deploya a producción.
    - **Back:** `backend-verify` termina OK y Render buildea la imagen nueva (la primera vez tarda ~5–10 min) y la publica cuando `/api/ping` responde.
+
+### Smoke test del deploy
+
+Después de cada deploy del backend:
+
+1. **Variables:** en Render → **Environment** están `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `APP_FRONTEND_URL` y `CORS_ALLOWED_ORIGINS`, ninguna en blanco. Si falta una, el deploy queda en *failed* y el log dice cuál (`Binding validation errors on app`, #222).
+2. `GET /api/ping` responde 200 y `GET /actuator/health` da `UP` (despierta a Neon).
+3. Desde el front de producción, el login funciona (CORS bien configurado) y el mail de verificación trae un link a `APP_FRONTEND_URL`.
 
 ### Redeployar sin cambios de código
 
@@ -169,7 +180,7 @@ Variables en Render (Spring lee las `SPRING_MAIL_*` sin configuración extra):
 | `SPRING_MAIL_PASSWORD` | SMTP key de Brevo |
 | `APP_MAIL_FROM` | `smartelevate.uade@gmail.com` |
 
-STARTTLS ya está activado en `application-prod.yml`. Además de las de arriba, Render necesita `APP_FRONTEND_URL` (`https://smart-elevate.vercel.app`) para armar los links de verificación y de reset de contraseña. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
+STARTTLS ya está activado en `application-prod.yml`. `APP_FRONTEND_URL` (obligatoria, ver [Backend en Render](#backend-en-render)) arma los links de verificación y de reset de contraseña. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
 
 **Rotar la clave:** Brevo → **SMTP & API → SMTP → Generate a new SMTP key**, cargarla en Render y borrar la vieja.
 
