@@ -8,6 +8,8 @@ Términos del dominio, para que backend, frontend y docs hablen igual. Entre par
 | **Reserva** / **turno** (`Reservation`) | Lugar de un usuario en una salida. Estados: activa (`ACTIVE`), cancelada sin falta (`CANCELLED`), cancelación tardía (`CANCELLED_LATE`), usada (`USED`, check-in a tiempo) y no-show (`NO_SHOW`). |
 | **Usada** (`USED`) | Reserva con check-in a tiempo, en su ascensor o en otro. |
 | **No-show** (`NO_SHOW`) | Estado de la reserva sin check-in a tiempo (a los 60 s de la salida) o con check-in fuera de hora. Cuenta como falta. |
+| **Falta** | No-show (`NO_SHOW`) o cancelación tardía (`CANCELLED_LATE`). Se fecha a la hora de salida de la reserva. 3 faltas en 7 días suspenden 24 h, salvo a los prioritarios. |
+| **Suspensión** (`NO_SHOW_SUSPENDED`) | 24 h sin poder reservar desde la falta que completa 3 en 7 días. Reservar responde con ese `code`; el estado se consulta en `GET /api/me/no-shows`. |
 | **Cancelación tardía** (`CANCELLED_LATE`) | Cancelar pasado el límite sin falta (10 min antes de la salida) y antes de la salida. Libera el lugar, pero cuenta como falta y no devuelve el cupo diario. Después de la salida no se puede cancelar. |
 | **Ventana de reserva** | Período en el que se puede reservar una salida: de 30 a 2 min antes. |
 | **Lista de espera** (`Waitlist`) | Solicitudes que no entraron en una salida llena, ordenadas por prioridad. **Fuera del MVP** ([alcance](alcance-mvp.md)). |
