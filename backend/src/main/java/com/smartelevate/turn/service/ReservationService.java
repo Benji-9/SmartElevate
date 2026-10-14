@@ -8,6 +8,7 @@ import static com.smartelevate.turn.service.ReservationRejectedException.Reason.
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.FLOOR_OUT_OF_RANGE;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.LOW_FLOOR_DESTINATION;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.OUTSIDE_BOOKING_WINDOW;
+import static com.smartelevate.turn.service.ReservationRejectedException.Reason.RESERVATION_NOT_FOUND;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.SAME_FLOOR;
 
 import com.smartelevate.common.config.ConfigService;
@@ -27,6 +28,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -75,11 +77,41 @@ public class ReservationService {
         if (seat > departure.getCapacity()) {
             throw new TurnFullException();
         }
-        Reservation saved = reservations.saveAndFlush(
-                new Reservation(userId, departure, seat, request.originFloor(), request.destinationFloor(), now));
-        return new ReservationResponse(saved.getId(), departure.getId(), departure.getElevator().getCode(),
-                departure.getDepartureAt(), seat, saved.getOriginFloor(), saved.getDestinationFloor(),
-                saved.getStatus(), saved.getCreatedAt());
+        return toResponse(reservations.saveAndFlush(
+                new Reservation(userId, departure, seat, request.originFloor(), request.destinationFloor(), now)));
+    }
+
+    /**
+     * Cancela una reserva del usuario y libera su lugar (ver {@link Reservation#cancel}). Idempotente.
+     * Toma los mismos locks que {@link #reserve}, en el mismo orden (usuario, después salida): serializa con las
+     * reservas de esa salida y con otro pedido del mismo usuario, sin riesgo de deadlock.
+     * Una reserva ajena responde igual que una inexistente (404), para no filtrar que existe.
+     *
+     * <p>Pendiente: la excepción de espera real mayor a la estimada + X (necesita el check-in) y el registro de la
+     * falta y la suspensión (épica de check-in). Cancelar no devuelve el cupo diario (ver {@link #checkUserLimits}).
+     */
+    @Transactional
+    public void cancel(UUID userId, long reservationId) {
+        users.lockById(userId).orElseThrow(() -> new IllegalStateException("Usuario inexistente: " + userId));
+        Reservation reservation = reservations.findById(reservationId)
+                .filter(r -> r.getUserId().equals(userId))
+                .orElseThrow(() -> new ReservationRejectedException(RESERVATION_NOT_FOUND, "La reserva no existe."));
+        departures.findByIdForUpdate(reservation.getDeparture().getId());
+        reservation.cancel(time.now(), config.cancellationDeadlineBefore());
+    }
+
+    /** Reservas del usuario (activas y canceladas) con salida desde el inicio de hoy, la más tardía primero. */
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> mine(UUID userId) {
+        return reservations.findMine(userId, time.toInstant(time.today(), LocalTime.MIDNIGHT)).stream()
+                .map(ReservationService::toResponse)
+                .toList();
+    }
+
+    private static ReservationResponse toResponse(Reservation r) {
+        Departure d = r.getDeparture();
+        return new ReservationResponse(r.getId(), d.getId(), d.getElevator().getCode(), d.getDepartureAt(),
+                r.getSeatNumber(), r.getOriginFloor(), r.getDestinationFloor(), r.getStatus(), r.getCreatedAt());
     }
 
     private void checkDeparture(Departure departure, Instant now) {

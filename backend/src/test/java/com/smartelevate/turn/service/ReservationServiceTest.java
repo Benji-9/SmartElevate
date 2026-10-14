@@ -20,6 +20,7 @@ import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.Reservation;
+import com.smartelevate.turn.model.ReservationStatus;
 import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.model.User;
@@ -250,5 +251,66 @@ class ReservationServiceTest {
                                        ReservationRejectedException.Reason reason) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ReservationRejectedException.class,
                 e -> assertThat(e.getReason()).isEqualTo(reason));
+    }
+
+    // --- Cancelar (#116) ---
+
+    private Reservation reservationOf(UUID owner, Instant departureAt) {
+        Departure d = new Departure(elevator, departureAt, 10);
+        ReflectionTestUtils.setField(d, "id", DEPARTURE_ID);
+        Reservation r = new Reservation(owner, d, 3, 0, 8, NOW.minus(Duration.ofMinutes(10)));
+        ReflectionTestUtils.setField(r, "id", 55L);
+        lenient().when(reservations.findById(55L)).thenReturn(Optional.of(r));
+        lenient().when(config.cancellationDeadlineBefore()).thenReturn(Duration.ofMinutes(1));
+        return r;
+    }
+
+    @ParameterizedTest
+    @CsvSource({"61, CANCELLED", "60, CANCELLED", "59, CANCELLED_LATE", "-30, CANCELLED_LATE"})
+    void cancelBeforeTheDeadlineIsFreeAndAfterItIsLate(long secondsBefore, ReservationStatus expected) {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(secondsBefore));
+
+        service.cancel(USER, 55L);
+
+        assertThat(r.getStatus()).isEqualTo(expected);
+        assertThat(r.getSeatNumber()).isNull();
+        verify(users).lockById(USER);
+        verify(departures).findByIdForUpdate(DEPARTURE_ID);
+    }
+
+    @Test
+    void cancellingTwiceKeepsTheFirstOutcome() {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(61));
+        service.cancel(USER, 55L);
+        given(config.cancellationDeadlineBefore()).willReturn(Duration.ofHours(1));
+
+        assertThatCode(() -> service.cancel(USER, 55L)).doesNotThrowAnyException();
+
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
+    }
+
+    @Test
+    void someoneElsesReservationLooksLikeItDoesNotExist() {
+        Reservation r = reservationOf(UUID.randomUUID(), NOW.plusSeconds(600));
+        assertRejected(() -> service.cancel(USER, 55L), ReservationRejectedException.Reason.RESERVATION_NOT_FOUND);
+        assertRejected(() -> service.cancel(USER, 99L), ReservationRejectedException.Reason.RESERVATION_NOT_FOUND);
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.ACTIVE);
+        assertThat(r.getSeatNumber()).isEqualTo(3);
+    }
+
+    @Test
+    void mineListsFromTheStartOfTheCampusDay() {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(600));
+        // 00:00 de Buenos Aires = 03:00 UTC.
+        given(reservations.findMine(USER, Instant.parse("2026-10-13T03:00:00Z"))).willReturn(List.of(r));
+
+        List<ReservationResponse> mine = service.mine(USER);
+
+        assertThat(mine).singleElement().satisfies(res -> {
+            assertThat(res.id()).isEqualTo(55L);
+            assertThat(res.elevator()).isEqualTo("33");
+            assertThat(res.seatNumber()).isEqualTo(3);
+            assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+        });
     }
 }
