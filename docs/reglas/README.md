@@ -21,9 +21,9 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Tipo | Dónde vive | Ejemplos |
 | --- | --- | --- |
 | Regla de negocio | `app_config` | Cupo por salida, ventanas de reserva y check-in, `boarding_time` (tiempo de carga), `time_per_floor` (tiempo por piso) |
-| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), rotación del QR (`qr_rotation` sale de `app_config` con [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
+| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), rotación del QR (`app.kiosk.qr-ttl`, movido de `app_config` en [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
 | Dato del despliegue | Variable de entorno, **obligatoria en `prod`** (sin default); el default `localhost` vive solo en `application-dev.yml` | `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` |
-| Secreto | Solo variable de entorno, **obligatoria en `prod`** | `JWT_SECRET`, clave HMAC del QR ([#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
+| Secreto | Solo variable de entorno, **obligatoria en `prod`** | `JWT_SECRET`, `APP_KIOSK_QR_SECRET` (clave HMAC del QR, [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
 | Constante en el código | El código: cambia solo por PR | Parámetros de Argon2id ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)), `maxAge` de CORS (1 h) |
 
 Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`RequiredProdProperties`: `@Validated` + `@NotBlank`): si falta una o está en blanco, la app no levanta.
@@ -61,13 +61,12 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Parámetro | Valor | Dónde vive |
 | --- | --- | --- |
 | Zona horaria | America/Argentina/Buenos_Aires | `app.time.zone`, override por `APP_TIME_ZONE` (Render corre en UTC). Los instantes se guardan en UTC |
-| Rotación del QR | ~30 s | [ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md). Hoy `qr_rotation` en `app_config` vale 60 s (`V3`); [#229](https://github.com/Benji-9/SmartElevate/issues/229) la pasa a `application.yml` |
+| Rotación del QR | 30 s, y se acepta el del ciclo anterior | `app.kiosk.qr-ttl`, override por `APP_KIOSK_QR_TTL` ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)). Movido en [#229](https://github.com/Benji-9/SmartElevate/issues/229): era `qr_rotation` de `app_config` y `V15` borró la fila |
 | Access token | 15 min | `JWT_ACCESS_TTL` (`app.security.jwt.access-ttl`) |
 | Refresh token | 7 días | `JWT_REFRESH_TTL` (`app.security.jwt.refresh-ttl`) |
 | Link de verificación de email | Vale 24 h · reenvío cada 1 min | `app.verification.*` |
 | Link de reset de contraseña | Vale 30 min · un pedido por minuto | `app.password-reset.*` |
 | Límite de logins fallidos | 10 por cuenta y 100 por IP en 15 min | Ventana deslizante; por cuenta, como mucho 100 ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). `app.login-throttle.*`, override por `APP_LOGIN_THROTTLE_*`. Se movió de `app_config` en [#225](https://github.com/Benji-9/SmartElevate/issues/225) (`V14` borró las filas de `V13`) |
-| Rotación del QR | 30 s, y se acepta el del ciclo anterior | `app.kiosk.qr-ttl`, override por `APP_KIOSK_QR_TTL` ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)). Era `qr_rotation` de `app_config`; `V15` borró la fila ([#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
 | Pedidos de token por kiosco | 10 por minuto | `app.kiosk.rate-limit-*`, override por `APP_KIOSK_RATE_LIMIT_*`. Se espera ~1 cada 30 s |
 | Simulador de kioscos | Apagado | `APP_KIOSK_SIMULATOR_ENABLED` (`app.kiosk.simulator-enabled`): sin él no se crean kioscos simulados |
 | Certificado | Hasta 5 MB · PDF, JPG o PNG | Tipo validado por contenido (magic bytes), no por extensión. Llega con [#123](https://github.com/Benji-9/SmartElevate/issues/123) |

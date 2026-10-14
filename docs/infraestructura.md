@@ -73,6 +73,7 @@ Variables de entorno (en Render → **Environment**):
 | `JWT_SECRET` | `openssl rand -base64 48` (mínimo 32 caracteres) |
 | `APP_FRONTEND_URL` | `https://smart-elevate.vercel.app` |
 | `CORS_ALLOWED_ORIGINS` | `https://smart-elevate.vercel.app` |
+| `APP_KIOSK_QR_SECRET` | `openssl rand -base64 48` (mínimo 32 caracteres, distinta de `JWT_SECRET`; clave HMAC del QR, [ADR 0020](adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)) |
 
 `PORT` lo define Render y `SPRING_PROFILES_ACTIVE=prod` ya viene en la imagen. Si aparecen reinicios por falta de memoria, agregar `JAVA_OPTS=-XX:MaxRAMPercentage=60`. La lista completa de variables está en el [README](../README.md#variables-de-entorno-del-backend).
 
@@ -116,7 +117,7 @@ Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ve
 
 Después de cada deploy del backend:
 
-1. **Variables:** en Render → **Environment** están `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `APP_FRONTEND_URL` y `CORS_ALLOWED_ORIGINS`, ninguna en blanco. Si falta una, el deploy queda en *failed* y el log dice cuál (`Binding validation errors on app`, #222).
+1. **Variables:** en Render → **Environment** están `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` y `APP_KIOSK_QR_SECRET`, ninguna en blanco. Si falta una, el deploy queda en *failed* y el log dice cuál (`Binding validation errors on app`, #222).
 2. `GET /api/ping` responde 200 y `GET /actuator/health` da `UP` (despierta a Neon).
 3. Desde el front de producción, el login funciona (CORS bien configurado) y el mail de verificación trae un link a `APP_FRONTEND_URL`.
 
