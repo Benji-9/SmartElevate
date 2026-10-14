@@ -1,12 +1,12 @@
 # Check-in con QR
 
-> Estado: **aprobado**. Decisión de diseño en [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md).
+> Estado: **aprobado**. Decisión de diseño en los ADR [0008](../adr/0008-check-in-con-qr-rotativo.md) y [0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) (firma y kiosco). Se implementa en [#219](https://github.com/Benji-9/SmartElevate/issues/219).
 
 El check-in confirma que el usuario usó su reserva. Alimenta el no-show y los KPIs.
 
 ## Cómo funciona
 
-1. Cada ascensor muestra un **QR con un token firmado** que **rota cada 60 s** y está **atado a ese ascensor**. Dónde se muestra (pantalla o tablet en cada ascensor) está pendiente: [#23](https://github.com/Benji-9/SmartElevate/issues/23).
+1. Cada ascensor muestra un **QR con un token firmado** que **rota cada ~30 s** y está **atado a ese ascensor**. Se muestra en un **kiosco web** (`/qr/:ascensor`) abierto en una tablet o pantalla del hall, sin hardware propio ([#23](https://github.com/Benji-9/SmartElevate/issues/23)). `qr_rotation` vale hoy 60 s (`V3`); el cambio a 30 s va con #219.
 2. El usuario lo escanea desde la app. El **JWT de su sesión identifica quién escanea**; el QR solo identifica el ascensor y el momento.
 3. El backend valida la firma, que el token no esté vencido y que corresponda a una reserva activa del usuario.
 
@@ -29,5 +29,5 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 ## Seguridad
 
 - La rotación corta evita que se comparta una foto del QR.
-- La firma (HMAC o similar con secreto del servidor) evita fabricar tokens.
+- La firma **HMAC-SHA256** de `elevatorId + exp`, con una clave del servidor en variable de entorno, evita fabricar tokens.
 - La unicidad por reserva evita que un mismo escaneo cuente dos veces.

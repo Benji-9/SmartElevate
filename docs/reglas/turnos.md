@@ -1,6 +1,6 @@
 # Reglas de turnos
 
-> Estado: **aprobado** ([#7](https://github.com/Benji-9/SmartElevate/issues/7)). Decisión de diseño en [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md). Los valores concretos viven en la [tabla de parámetros](README.md#parámetros-configurables): no hardcodearlos.
+> Estado: **aprobado** ([#7](https://github.com/Benji-9/SmartElevate/issues/7), con los cambios del 14/10 de [#218](https://github.com/Benji-9/SmartElevate/issues/218)). Decisión de diseño en los ADR [0007](../adr/0007-modelo-de-turnos-y-reservas.md) y [0018](../adr/0018-alcance-del-mvp-en-reglas-de-turnos.md); qué entra y qué no, en [alcance del MVP](../alcance-mvp.md). Los valores concretos viven en la [tabla de parámetros](README.md#parámetros-configurables): no hardcodearlos.
 
 ## 1. Franja y horario de operación
 
@@ -25,13 +25,15 @@ La app es para movilidad inmediata; abrir con más anticipación facilita acapar
 ## 3. Límites por usuario
 
 - **1 reserva activa** a la vez.
-- **Tope diario**: 8 reservas por día.
+- **Tope diario**: 8 reservas por día. Una cancelación **sin falta devuelve** el lugar en el tope; una **tardía no** (decidido el 14/10, lo implementa [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
 
 ## 4. Cancelación
 
-- El usuario puede cancelar y **liberar el cupo hasta 1 min antes** de la salida.
-- Una cancelación después de ese límite, o no presentarse, **cuenta como falta** ([no-show](#5-no-show)).
-- **Excepción**: si la espera real supera la estimada por más de **X min** (a calibrar), cancelar **no cuenta como falta**. Cubre el caso del documento del proyecto: "cancelar si el tiempo no es el esperado".
+- El usuario puede cancelar **sin falta hasta 10 min antes** de la salida, y el lugar se libera. El valor se calibra en el piloto (`cancellation_deadline_before`; hoy vale 1 min y lo pasa a 10 [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
+- Entre ese límite y la salida, cancelar libera el lugar pero es una **cancelación tardía** (`CANCELLED_LATE`) y **cuenta como falta** ([no-show](#5-no-show)).
+- **Después de la salida no se puede cancelar**: el turno pasa a no-show, o a usado si hubo check-in.
+- **Compromiso aceptado:** la reserva abre 30 min y cierra 2 min antes, así que quien reserva en los últimos 10 min no puede cancelar sin falta. A cambio, un lugar cancelado a tiempo queda al menos 8 min en la ventana para que otro lo tome.
+- **Fuera del MVP:** la excepción por demora (si la espera real supera la estimada por más de X min, cancelar no cuenta como falta). Necesita el check-in y medir la espera real ([alcance](../alcance-mvp.md)).
 
 ## 5. No-show
 
@@ -49,9 +51,19 @@ Penalización leve y reversible: el objetivo es desalentar el acaparamiento, no 
 
 Así el cupo queda garantizado sin viajar con lugares vacíos. Se descartó una cola prioritaria pura, que es más difícil de explicar a los usuarios y de probar.
 
-## 7. Lista de espera (propuesta)
+## 7. Lista de espera (fuera del MVP)
+
+**No entra en el MVP** (14/10, [alcance](../alcance-mvp.md)): el cupo que libera una cancelación a tiempo, más la notificación, cubre parte del caso. Queda la idea para la Fase 2:
 
 Cuando una salida está llena, la solicitud entra en una **lista de espera** para las siguientes salidas, ordenada según las [reglas de prioridad](asignacion.md#orden-de-prioridad). Los lugares que se liberan después del cierre de la ventana (cancelaciones, prioritarios no usados) se asignan **automáticamente** al primero de la lista, en lugar de quedar vacíos.
+
+## 8. Ascensor fuera de servicio
+
+Si un ADMIN marca un ascensor fuera de servicio y tiene reservas activas ([#134](https://github.com/Benji-9/SmartElevate/issues/134)):
+
+- Las reservas se **cancelan solas, sin falta**, y se devuelve el cupo diario.
+- Se **avisa** a cada persona.
+- Si otro ascensor tiene lugar, se le **ofrece** reubicarse. No se la mueve automáticamente.
 
 ## Decisiones tomadas
 
@@ -61,8 +73,22 @@ Resueltas en [#113](https://github.com/Benji-9/SmartElevate/issues/113):
 2. **Umbral de no-show vs. ventana de check-in.** Un escaneo entre **+60 s y +2 min** se registra como *fuera de hora* y **cuenta como no-show** (ver [check-in](check-in-qr.md#resultados)).
 3. **Tope diario:** 8 reservas por día.
 4. **Pisos bajos:** no se puede reservar con destino en los pisos 1 a 4, salvo movilidad reducida (ver [asignación](asignacion.md#elegibilidad)).
-5. **Rotación del QR:** cada 60 s.
+5. **Rotación del QR:** cada 60 s. El 14/10 se bajó a ~30 s ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)).
+
+Resueltas el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), [ADR 0018](../adr/0018-alcance-del-mvp-en-reglas-de-turnos.md)):
+
+6. **Plazo para cancelar sin falta:** 10 min antes de la salida, calibrable en el piloto ([sección 4](#4-cancelación)).
+7. **Cupo diario:** cancelar sin falta lo devuelve; la cancelación tardía no.
+8. **Cancelar después de la salida:** no se puede.
+9. **Tolerancia X:** fuera del MVP.
+10. **Envejecimiento N** ([#212](https://github.com/Benji-9/SmartElevate/issues/212)): fuera del MVP. Si se retoma: +1 nivel por ciclo sin atender, con tope, y un común nunca pasa a un prioritario.
+11. **Lista de espera:** fuera del MVP ([sección 7](#7-lista-de-espera-fuera-del-mvp)).
+12. **Ascensor fuera de servicio:** cancelación automática sin falta ([sección 8](#8-ascensor-fuera-de-servicio)).
 
 ## Preguntas abiertas
 
-1. **Valores a calibrar**: tolerancia **X** de la cancelación ([sección 4](#4-cancelación)) y envejecimiento **N** de la prioridad ([asignación](asignacion.md#orden-de-prioridad)). Quedan sin valor en la tabla de configuración hasta que se definan.
+No quedan reglas de turnos sin decidir. X y N quedaron fuera del MVP (`cancellation_wait_tolerance` y `priority_aging` siguen en NULL y no se usan). Lo que falta:
+
+1. **Calibrar en el piloto** el plazo de cancelación (10 min) y los tiempos de salida estimados.
+2. **Accesibilidad de las conexiones** en silla de ruedas ([#22](https://github.com/Benji-9/SmartElevate/issues/22), [asignación](asignacion.md#ascensor-accesible)).
+3. Lo que no es de turnos está en [bloqueantes](../bloqueantes.md).
