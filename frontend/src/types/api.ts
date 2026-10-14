@@ -41,3 +41,15 @@ export type ResetPasswordRequest = Schemas['ResetPasswordRequest'];
 export type PendingTeacher = Schemas['PendingTeacherResponse'];
 /** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
 export type PriorityUser = Schemas['PriorityUserResponse'];
+
+/** Ascensor con sus pisos (`GET /elevators`). */
+export type Elevator = Schemas['ElevatorResponse'];
+
+/** Kioscos del QR (#229, ADR 0020). La lista nunca trae secretos. */
+export type KioskList = Schemas['KioskListResponse'];
+export type Kiosk = Schemas['KioskResponse'];
+export type CreateKioskRequest = Schemas['CreateKioskRequest'];
+/** Respuesta del alta: única vez que la API devuelve `secret`. */
+export type CreatedKiosk = Schemas['CreatedKioskResponse'];
+/** Token que el kiosco muestra como QR; a `expiresAt` pide el siguiente. */
+export type QrToken = Schemas['QrTokenResponse'];

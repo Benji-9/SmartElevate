@@ -6,6 +6,11 @@
 // halls y ocupación siguen siendo de ejemplo.
 import type {
   Building,
+  CreatedKiosk,
+  CreateKioskRequest,
+  Elevator,
+  Kiosk,
+  KioskList,
   LoginRequest,
   PendingTeacher,
   PriorityUser,
@@ -55,6 +60,39 @@ const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 const DAY_MS = 86_400_000;
 const BA_OFFSET_MS = 3 * 3_600_000;
+/** `app.kiosk.qr-ttl` del backend (ADR 0020). */
+const QR_TTL_MS = 30_000;
+// Kioscos del QR (#229): ascensores de ejemplo de Independencia 2 y Lima 3.
+const ELEVATORS: Elevator[] = [
+  {
+    code: '33',
+    building: 'INDEPENDENCIA',
+    core: 'IND2',
+    coreName: 'Independencia 2',
+    floors: [0, 5, 6, 7, 8, 9, 10, 11],
+    usage: 'COMMON',
+    active: true,
+  },
+  {
+    code: '34',
+    building: 'INDEPENDENCIA',
+    core: 'IND2',
+    coreName: 'Independencia 2',
+    floors: [0, 5, 6, 7, 8, 9, 10, 11],
+    usage: 'COMMON',
+    active: true,
+  },
+  {
+    code: '12',
+    building: 'LIMA',
+    core: 'L3',
+    coreName: 'Lima 3',
+    floors: [0, 7, 8, 9, 10],
+    usage: 'COMMON',
+    active: true,
+  },
+];
+let kiosks: Kiosk[] = [];
 // Cola de docentes y prioritarios del panel admin (#140). Ids UUID y mensajes de error como los
 // del backend (PriorityService): 404 PriorityNotFoundException, 409 InvalidPriorityOperation.
 let pendingTeachers: PendingTeacher[] = [
@@ -659,6 +697,40 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         priorityUsers = [...priorityUsers, { id, fullName, email, legajo, category: 'TEACHER' }];
       }
       return undefined;
+    },
+  ],
+  ['GET', /^\/elevators$/, () => ELEVATORS],
+  ['GET', /^\/admin\/kiosks$/, () => ({ simulatorEnabled: true, kiosks }) satisfies KioskList],
+  [
+    'POST',
+    /^\/admin\/kiosks$/,
+    (body) => {
+      const { elevatorId, simulated = false } = body as CreateKioskRequest;
+      if (!ELEVATORS.some((e) => e.code === elevatorId)) {
+        throw new ApiError(404, 'El ascensor no existe');
+      }
+      const kiosk = { id: crypto.randomUUID(), elevatorId, simulated };
+      const created = { ...kiosk, createdAt: new Date().toISOString(), secret: `mock-${kiosk.id}` };
+      kiosks = [...kiosks, { ...kiosk, createdAt: created.createdAt, lastSeenAt: null }];
+      return created satisfies CreatedKiosk;
+    },
+  ],
+  [
+    'POST',
+    /^\/admin\/kiosks\/([^/]+)\/revoke$/,
+    (_, [id]) => {
+      if (!kiosks.some((k) => k.id === id)) throw new ApiError(404, 'El kiosco no existe');
+      kiosks = kiosks.map((k) => (k.id === id ? { ...k, revokedAt: new Date().toISOString() } : k));
+      return undefined;
+    },
+  ],
+  // Los mocks no ven headers: cualquier credencial sirve. Ciclos de 30 s alineados al reloj.
+  [
+    'GET',
+    /^\/kiosks\/me\/qr-token$/,
+    () => {
+      const expiresAt = Math.floor(Date.now() / QR_TTL_MS + 1) * QR_TTL_MS;
+      return { token: `mock-qr-${expiresAt}`, expiresAt: new Date(expiresAt).toISOString() };
     },
   ],
   ['GET', /^\/admin\/priority-users$/, () => priorityUsers],
