@@ -1009,6 +1009,69 @@
         "tags" : [ "elevator" ]
       }
     },
+    "/api/check-ins" : {
+      "post" : {
+        "description" : "El usuario sale de la sesión; el ascensor y el kiosco, del token firmado. Se acepta desde check_in_opens_before antes hasta check_in_closes_after después de la salida (hoy −1 min a +2 min), una sola vez por reserva. Pasado no_show_after (+60 s) el resultado es LATE y la reserva queda NO_SHOW. Los rechazos traen un code estable: INVALID_QR_TOKEN, NO_ACTIVE_RESERVATION, OUTSIDE_CHECK_IN_WINDOW, ALREADY_CHECKED_IN.",
+        "operationId" : "checkIn",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CheckInRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckInResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Body inválido, o QR inválido, vencido o de un kiosco revocado (INVALID_QR_TOKEN, sin decir cuál)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Sin turno (NO_ACTIVE_RESERVATION), fuera de la ventana (OUTSIDE_CHECK_IN_WINDOW) o check-in ya registrado (ALREADY_CHECKED_IN)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Hace check-in con el QR del ascensor",
+        "tags" : [ "turn" ]
+      }
+    },
     "/api/departures" : {
       "get" : {
         "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.",
@@ -1559,6 +1622,67 @@
         },
         "required" : [ "code", "cores", "maxFloor", "minFloor", "name" ]
       },
+      "CheckInRequest" : {
+        "type" : "object",
+        "description" : "Check-in: el token leído del QR del ascensor. El usuario sale de la sesión, no del body.",
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "description" : "Contenido del QR, tal cual se leyó",
+            "maxLength" : 512,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "token" ]
+      },
+      "CheckInResponse" : {
+        "type" : "object",
+        "description" : "Check-in registrado",
+        "properties" : {
+          "checkedInAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-13T15:57:40Z"
+          },
+          "departureAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Hora estimada de salida, en UTC",
+            "example" : "2026-10-13T15:58:00Z"
+          },
+          "elevator" : {
+            "type" : "string",
+            "description" : "Ascensor escaneado",
+            "example" : "34"
+          },
+          "outcome" : {
+            "type" : "string",
+            "description" : "ON_TIME (cumplida), OTHER_ELEVATOR o LATE (fuera de hora: cuenta como falta)",
+            "enum" : [ "ON_TIME", "OTHER_ELEVATOR", "LATE" ]
+          },
+          "reservationId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 55
+          },
+          "reservationStatus" : {
+            "type" : "string",
+            "description" : "Estado de la reserva después del check-in: USED, o NO_SHOW si fue LATE",
+            "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE", "USED", "NO_SHOW" ]
+          },
+          "reservedElevator" : {
+            "type" : "string",
+            "description" : "Ascensor de la reserva",
+            "example" : "33"
+          },
+          "source" : {
+            "type" : "string",
+            "description" : "SIMULATED si el QR vino del simulador de admin",
+            "enum" : [ "REAL", "SIMULATED" ]
+          }
+        },
+        "required" : [ "checkedInAt", "departureAt", "elevator", "outcome", "reservationId", "reservationStatus", "reservedElevator", "source" ]
+      },
       "CoreResponse" : {
         "type" : "object",
         "properties" : {
@@ -1982,7 +2106,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE" ]
+            "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE", "USED", "NO_SHOW" ]
           }
         },
         "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]

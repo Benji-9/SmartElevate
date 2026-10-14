@@ -78,6 +78,7 @@ class ConfigServiceTest {
             "no_show_after, PT121S",
             "no_show_after, PT0S",
             "check_in_closes_after, PT0S",
+            "check_in_opens_before, PT3M",
             "priority_seats_per_departure, 11",
             "priority_seats_per_departure, -1",
             "no_show_suspension_threshold, 0",

@@ -84,4 +84,14 @@ public class Reservation {
                 ? ReservationStatus.CANCELLED_LATE : ReservationStatus.CANCELLED;
         seatNumber = null;
     }
+
+    /** Check-in a tiempo (#230). Conserva el lugar. */
+    public void markUsed() {
+        status = ReservationStatus.USED;
+    }
+
+    /** Falta por no hacer check-in a tiempo (#230 fuera de hora, #231 el job). Conserva el lugar. */
+    public void markNoShow() {
+        status = ReservationStatus.NO_SHOW;
+    }
 }
