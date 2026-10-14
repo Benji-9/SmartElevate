@@ -1,0 +1,118 @@
+/* Kiosco del QR (SCREENS.md §10) y simulador del admin (§09d). */
+.kiosk {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 24px;
+  min-height: 100dvh;
+  padding: 32px;
+  text-align: center;
+}
+
+.kiosk__form {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 440px);
+  text-align: start;
+}
+
+.kiosk__intro,
+.kiosk-qr__hint {
+  max-width: 48ch;
+  font-size: var(--text-15);
+  color: var(--color-text-muted);
+}
+
+.kiosk-qr {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.kiosk-qr__image,
+.kiosk-qr__placeholder {
+  width: min(70vh, 480px, 100%);
+  aspect-ratio: 1;
+  border-radius: var(--radius-sheet);
+}
+
+/* Módulos oscuros sobre blanco también en modo oscuro: los lectores necesitan ese contraste. */
+.kiosk-qr__image {
+  background: var(--White);
+  fill: var(--BlackPearl);
+}
+
+.kiosk-qr__placeholder {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.kiosk-alert {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  max-width: 560px;
+  padding: 20px;
+  border-radius: var(--radius-card);
+  background: var(--color-danger-tint);
+  text-align: start;
+}
+
+/* Cartel del simulador: texto y color, nunca solo color. */
+.simulator-banner {
+  padding: 12px 16px;
+  border: 2px solid var(--Status-Media);
+  border-radius: var(--radius-button);
+  background: var(--Status-Media-tint);
+  font-size: var(--text-16);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.kiosk-secret {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-button);
+  background: var(--color-primary-tint);
+}
+
+.kiosk-secret code {
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.kiosk-secret__actions,
+.kiosk-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.kiosk-create .input {
+  min-width: 260px;
+}
+
+.kiosk-error {
+  margin-top: 12px;
+  color: var(--color-danger);
+  font-size: var(--text-14);
+  font-weight: var(--font-semibold);
+}
+
+.kiosk-card > h2 + * {
+  margin-top: 16px;
+}

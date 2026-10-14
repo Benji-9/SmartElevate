@@ -13,7 +13,7 @@ import type {
   Reservation,
   TripPage,
 } from '../types/pending';
-import type { Building } from '../types/api';
+import type { Building, CreatedKiosk, KioskList, QrToken } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 
@@ -277,6 +277,28 @@ describe('mocks', () => {
     );
     expect(morning.reservations).toBeLessThan(allDay.reservations);
     await expect(call('GET', '/admin/kpis?period=TODAY&shiftId=NIGHT')).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it('kioscos: el alta da el secreto una vez y el QR vence en ciclos de 30 s', async () => {
+    const created = await call<CreatedKiosk>('POST', '/admin/kiosks', {
+      elevatorId: '33',
+      simulated: true,
+    });
+    expect(created).toMatchObject({
+      elevatorId: '33',
+      simulated: true,
+      secret: expect.any(String),
+    });
+
+    const list = await call<KioskList>('GET', '/admin/kiosks');
+    expect(list.simulatorEnabled).toBe(true);
+    expect(list.kiosks.find((k) => k.id === created.id)).not.toHaveProperty('secret');
+
+    const qr = await call<QrToken>('GET', '/kiosks/me/qr-token');
+    expect(Date.parse(qr.expiresAt) % 30_000).toBe(0);
+    await expect(call('POST', '/admin/kiosks', { elevatorId: '99' })).rejects.toMatchObject({
       status: 404,
     });
   });

@@ -32,5 +32,17 @@ export const formatShift = ({ name, startsAt, endsAt }: AdminShift) =>
 
 const dayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE });
 
+const dateTimeFormat = new Intl.DateTimeFormat('es-AR', {
+  timeZone: TIME_ZONE,
+  day: 'numeric',
+  month: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** `"14/10/2026, 15:40"` en hora de Buenos Aires. */
+export const formatDateTime = (iso: string) => dateTimeFormat.format(new Date(iso));
+
 /** `"29/9/2026"` en hora de Buenos Aires. */
 export const formatRegisteredAt = (iso: string) => dayFormat.format(new Date(iso));

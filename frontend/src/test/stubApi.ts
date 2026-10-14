@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import type { User } from '../types/api';
 
-type Reply = { status?: number; body?: unknown };
+type Reply = { status?: number; body?: unknown; headers?: Record<string, string> };
 type Routes = Record<string, Reply | ((init?: RequestInit) => Reply)>;
 
 /**
@@ -19,13 +19,17 @@ export function stubApi(routes: Routes) {
   }
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const route = routes[`${init?.method ?? 'GET'} ${url.replace(/^\/api/, '')}`];
-    const { status = 200, body } = (typeof route === 'function' ? route(init) : route) ?? {
+    const {
+      status = 200,
+      body,
+      headers,
+    } = (typeof route === 'function' ? route(init) : route) ?? {
       status: 404,
       body: { message: 'Not Found' },
     };
     return new Response(body === undefined ? null : JSON.stringify(body), {
       status,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...headers },
     });
   });
   vi.stubGlobal('fetch', fetchMock);
