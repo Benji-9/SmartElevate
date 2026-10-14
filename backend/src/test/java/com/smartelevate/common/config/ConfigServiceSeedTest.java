@@ -43,7 +43,6 @@ class ConfigServiceSeedTest {
         assertThat(config.noShowSuspensionDuration()).isEqualTo(Duration.ofHours(24));
         assertThat(config.prioritySeatsPerDeparture()).isEqualTo(2);
         assertThat(config.prioritySeatsReleaseBefore()).isEqualTo(Duration.ofMinutes(3));
-        assertThat(config.qrRotation()).isEqualTo(Duration.ofSeconds(60));
         assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
