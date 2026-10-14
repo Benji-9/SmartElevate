@@ -14,7 +14,8 @@ import com.smartelevate.common.config.ConfigService;
 import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.elevator.model.Building;
 import com.smartelevate.elevator.model.Elevator;
-import com.smartelevate.elevator.model.ElevatorUsage;
+import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.service.PriorityService;
 import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
 import com.smartelevate.turn.model.Departure;
@@ -42,9 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
  * un error de constraint que habría que reintentar. Los límites por usuario se protegen bloqueando la fila del
  * usuario, así dos requests simultáneos del mismo usuario no pasan los dos. Orden de locks: usuario, después salida.
  *
- * <p>Pendiente de #117: los lugares reservados para prioritarios y el ascensor dedicado. Hoy una salida admite
- * hasta {@code turn_capacity} reservas comunes y los dedicados no se pueden reservar. La exención de movilidad
- * reducida a la regla de pisos bajos también llega con #117: por ahora rige para todos.
+ * <p><b>Prioridad (#117):</b> se consulta a {@link PriorityService#currentPriority} dentro de la misma transacción,
+ * nunca a un claim del JWT (ADR 0009). Decide el ascensor dedicado, la exención de pisos bajos para movilidad
+ * reducida y los lugares reservados a prioritarios ({@link PrioritySeats}), que se cuentan bajo el mismo lock.
  */
 @Service
 @RequiredArgsConstructor
@@ -55,6 +56,7 @@ public class ReservationService {
     private final UserRepository users;
     private final ConfigService config;
     private final CampusTime time;
+    private final PriorityService priorities;
 
     @Transactional
     public ReservationResponse reserve(UUID userId, ReserveRequest request) {
@@ -62,31 +64,44 @@ public class ReservationService {
         Departure departure = departures.findByIdForUpdate(request.departureId())
                 .orElseThrow(() -> new ReservationRejectedException(DEPARTURE_NOT_FOUND, "La salida no existe."));
         Instant now = time.now();
+        PriorityCategory priority = priorities.currentPriority(userId);
+        boolean priorityUser = priority != PriorityCategory.NONE;
 
-        checkDeparture(departure, now);
-        checkFloors(departure.getElevator(), request.originFloor(), request.destinationFloor());
+        checkDeparture(departure, now, priority);
+        checkFloors(departure.getElevator(), request.originFloor(), request.destinationFloor(), priority);
         checkUserLimits(userId, now);
 
         Set<Integer> taken = new HashSet<>(reservations.activeSeats(departure.getId()));
+        if (taken.size() >= departure.getCapacity()) {
+            throw new TurnFullException();
+        }
+        int held = PrioritySeats.held(departure, now, config);
+        if (!priorityUser && held > 0 && PrioritySeats.remaining(departure.getCapacity(), taken.size(),
+                reservations.countActivePriority(departure.getId()), held, false) == 0) {
+            throw new TurnFullException("Los lugares que quedan están reservados para prioritarios. Elegí otra salida.");
+        }
         int seat = 1;
         while (taken.contains(seat)) {
             seat++;
         }
-        if (seat > departure.getCapacity()) {
-            throw new TurnFullException();
-        }
-        Reservation saved = reservations.saveAndFlush(
-                new Reservation(userId, departure, seat, request.originFloor(), request.destinationFloor(), now));
+        Reservation saved = reservations.saveAndFlush(new Reservation(userId, departure, seat, request.originFloor(),
+                request.destinationFloor(), now, priorityUser));
         return new ReservationResponse(saved.getId(), departure.getId(), departure.getElevator().getCode(),
                 departure.getDepartureAt(), seat, saved.getOriginFloor(), saved.getDestinationFloor(),
                 saved.getStatus(), saved.getCreatedAt());
     }
 
-    private void checkDeparture(Departure departure, Instant now) {
+    private void checkDeparture(Departure departure, Instant now, PriorityCategory priority) {
         Elevator elevator = departure.getElevator();
-        if (departure.getStatus() != DepartureStatus.SCHEDULED || !elevator.isActive()
-                || elevator.getUsage() != ElevatorUsage.COMMON) {
+        if (departure.getStatus() != DepartureStatus.SCHEDULED || !elevator.isActive()) {
             throw new ReservationRejectedException(ELEVATOR_NOT_BOOKABLE, "Esa salida no se puede reservar.");
+        }
+        if (!elevator.getUsage().allows(priority)) {
+            throw new ReservationRejectedException(ELEVATOR_NOT_BOOKABLE, switch (elevator.getUsage()) {
+                case TEACHERS -> "Ese ascensor es exclusivo para docentes.";
+                case REDUCED_MOBILITY -> "Ese ascensor es exclusivo para personas con movilidad reducida.";
+                case COMMON -> throw new IllegalStateException("Un ascensor común admite a todos");
+            });
         }
         Instant at = departure.getDepartureAt();
         boolean sameDay = time.toCampus(at).toLocalDate().equals(time.today());
@@ -98,7 +113,7 @@ public class ReservationService {
         }
     }
 
-    private void checkFloors(Elevator elevator, int origin, int destination) {
+    private void checkFloors(Elevator elevator, int origin, int destination, PriorityCategory priority) {
         if (origin == destination) {
             throw new ReservationRejectedException(SAME_FLOOR, "El piso de origen y el de destino son el mismo.");
         }
@@ -109,8 +124,9 @@ public class ReservationService {
         if (!elevator.getFloors().contains(origin) || !elevator.getFloors().contains(destination)) {
             throw new ReservationRejectedException(FLOOR_NOT_SERVED, "Ese ascensor no para en alguno de los pisos.");
         }
+        // Movilidad reducida queda exenta: no puede usar la escalera (asignacion.md#elegibilidad).
         int lowFloors = config.lowFloorsThreshold();
-        if (destination >= 1 && destination <= lowFloors) {
+        if (priority != PriorityCategory.REDUCED_MOBILITY && destination >= 1 && destination <= lowFloors) {
             throw new ReservationRejectedException(LOW_FLOOR_DESTINATION,
                     "Para ir a los pisos 1 a %d usá la escalera.".formatted(lowFloors));
         }

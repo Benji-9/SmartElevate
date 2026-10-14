@@ -3,8 +3,9 @@ package com.smartelevate.turn.service;
 import com.smartelevate.common.config.ConfigService;
 import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.elevator.model.Elevator;
-import com.smartelevate.elevator.model.ElevatorUsage;
 import com.smartelevate.elevator.repository.ElevatorRepository;
+import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.service.PriorityService;
 import com.smartelevate.turn.dto.DepartureResponse;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.DepartureStatus;
@@ -18,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,17 +38,21 @@ public class DepartureService {
     private final ElevatorRepository elevators;
     private final ConfigService config;
     private final CampusTime time;
+    private final PriorityService priorities;
 
     /**
-     * Salidas reservables ahora (entre apertura y cierre de la ventana, del día de hoy) de los ascensores comunes
-     * activos, filtrando por ascensor y/o edificio (null = sin filtro). Los dedicados quedan fuera (#117).
+     * Salidas reservables ahora por este usuario (entre apertura y cierre de la ventana, del día de hoy) de los
+     * ascensores activos que puede usar según su prioridad vigente, filtrando por ascensor y/o edificio
+     * (null = sin filtro). Los lugares libres descuentan los reservados a prioritarios si el usuario es común (#117).
      */
     // ponytail: dos consultas concurrentes pueden chocar con el constraint único (una falla con 500);
     // reintentar o insertar con ON CONFLICT si llega a pasar en producción.
     @Transactional
-    public List<DepartureResponse> findBookable(String elevatorCode, String buildingCode) {
+    public List<DepartureResponse> findBookable(UUID userId, String elevatorCode, String buildingCode) {
+        PriorityCategory priority = priorities.currentPriority(userId);
+        boolean priorityUser = priority != PriorityCategory.NONE;
         List<Elevator> candidates = elevators.findAll().stream()
-                .filter(e -> e.isActive() && e.getUsage() == ElevatorUsage.COMMON)
+                .filter(e -> e.isActive() && e.getUsage().allows(priority))
                 .filter(e -> elevatorCode == null || e.getCode().equals(elevatorCode))
                 .filter(e -> buildingCode == null
                         || e.getCore().getBuilding().getCode().equalsIgnoreCase(buildingCode))
@@ -61,13 +67,19 @@ public class DepartureService {
         List<Departure> found = departures
                 .findByElevatorInAndStatusAndDepartureAtBetweenOrderByDepartureAtAscElevatorCodeAsc(
                         candidates, DepartureStatus.SCHEDULED, from, to);
-        Map<Long, Long> booked = found.isEmpty() ? Map.of() : reservations
+        Map<Long, long[]> booked = found.isEmpty() ? Map.of() : reservations
                 .countActiveByDeparture(found.stream().map(Departure::getId).toList()).stream()
-                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+                .collect(Collectors.toMap(row -> (Long) row[0],
+                        row -> new long[] {((Number) row[1]).longValue(), ((Number) row[2]).longValue()}));
         return found.stream()
-                .map(d -> new DepartureResponse(d.getId(), d.getElevator().getCode(),
-                        d.getElevator().getCore().getBuilding().getCode(), d.getDepartureAt(), d.getCapacity(),
-                        d.getCapacity() - booked.getOrDefault(d.getId(), 0L).intValue(), d.getStatus()))
+                .map(d -> {
+                    long[] counts = booked.getOrDefault(d.getId(), new long[2]);
+                    int remaining = PrioritySeats.remaining(d.getCapacity(), counts[0], counts[1],
+                            PrioritySeats.held(d, now, config), priorityUser);
+                    return new DepartureResponse(d.getId(), d.getElevator().getCode(),
+                            d.getElevator().getCore().getBuilding().getCode(), d.getDepartureAt(), d.getCapacity(),
+                            remaining, d.getStatus());
+                })
                 .toList();
     }
 

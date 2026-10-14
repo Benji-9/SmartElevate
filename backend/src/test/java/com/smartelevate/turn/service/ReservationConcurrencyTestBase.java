@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartelevate.elevator.model.Elevator;
 import com.smartelevate.elevator.repository.ElevatorRepository;
+import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.model.PriorityStatus;
+import com.smartelevate.priority.model.UserPriority;
+import com.smartelevate.priority.repository.UserPriorityRepository;
 import com.smartelevate.turn.dto.ReserveRequest;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.repository.DepartureRepository;
@@ -62,17 +66,61 @@ abstract class ReservationConcurrencyTestBase {
     private ElevatorRepository elevators;
     @Autowired
     private UserRepository users;
+    @Autowired
+    private UserPriorityRepository priorities;
 
     @AfterEach
     void clean() {
         reservations.deleteAll();
         departures.deleteAll();
+        priorities.deleteAll();
         users.deleteAll();
     }
 
     @Test
-    void manyUsersOnTheSameDepartureExactlyTenGetASeatAndNoSeatIsRepeated() throws Exception {
+    void priorityAndCommonUsersCompetingNeverExceedCapacityNorTakeTheReservedSeats() throws Exception {
         Departure departure = departure(10);
+        List<UUID> common = newUsers(20);
+        List<UUID> priority = newUsers(20, 5).stream()
+                .peek(id -> approve(id, PriorityCategory.TEACHER, null)).toList();
+        List<Callable<Object>> tasks = new ArrayList<>();
+        common.forEach(id -> tasks.add(() -> attempt(id, departure.getId())));
+        priority.forEach(id -> tasks.add(() -> attempt(id, departure.getId())));
+        java.util.Collections.shuffle(tasks);
+
+        List<Object> results = runAtOnce(tasks);
+
+        assertThat(results.stream().filter(r -> r instanceof Integer)).hasSize(CAPACITY);
+        List<Integer> seats = reservations.activeSeats(departure.getId());
+        assertThat(seats).hasSize(CAPACITY).doesNotHaveDuplicates()
+                .allSatisfy(seat -> assertThat(seat).isBetween(1, CAPACITY));
+        // Los comunes nunca ocupan los 2 reservados (como mucho 8): siempre entran al menos 2 prioritarios.
+        assertThat(reservations.countActivePriority(departure.getId())).isBetween(2L, 5L);
+    }
+
+    @Test
+    void anExpiredPriorityIsTreatedAsACommonUser() {
+        Departure dedicated = departures.save(new Departure(elevators.findById("06").orElseThrow(),
+                NOW.plus(Duration.ofMinutes(10)), CAPACITY));
+        UUID expired = newUsers(1).getFirst();
+        approve(expired, PriorityCategory.REDUCED_MOBILITY, NOW.minusSeconds(1));
+        UUID current = newUsers(1, 1).getFirst();
+        approve(current, PriorityCategory.REDUCED_MOBILITY, NOW.plusSeconds(60));
+
+        assertThat(attempt(expired, dedicated.getId())).isInstanceOfSatisfying(ReservationRejectedException.class,
+                e -> assertThat(e.getReason()).isEqualTo(ReservationRejectedException.Reason.ELEVATOR_NOT_BOOKABLE));
+        assertThat(attempt(current, dedicated.getId())).isEqualTo(1);
+    }
+
+    private void approve(UUID userId, PriorityCategory category, Instant expiresAt) {
+        UserPriority p = new UserPriority(userId, category);
+        p.decide(PriorityStatus.APPROVED, expiresAt, NOW.minus(Duration.ofDays(1)), userId);
+        priorities.save(p);
+    }
+
+    @Test
+    void manyUsersOnTheSameDepartureExactlyTenGetASeatAndNoSeatIsRepeated() throws Exception {
+        Departure departure = departure(3); // a 3 min ya se liberaron los lugares de prioritarios
         List<UUID> people = newUsers(REQUESTS);
 
         List<Object> results = runAtOnce(people.stream()
@@ -114,7 +162,11 @@ abstract class ReservationConcurrencyTestBase {
     }
 
     private List<UUID> newUsers(int count) {
-        return IntStream.range(0, count)
+        return newUsers(0, count);
+    }
+
+    private List<UUID> newUsers(int from, int count) {
+        return IntStream.range(from, from + count)
                 .mapToObj(i -> users.save(new User("Persona " + i, "p" + i + "@uade.edu.ar", "100" + i, "x",
                         DeclaredUserType.STUDENT, NOW)).getId())
                 .toList();
