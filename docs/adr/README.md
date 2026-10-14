@@ -19,7 +19,7 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0004](0004-migraciones-de-base-de-datos.md) | Migraciones de base de datos con Flyway | Aceptado |
 | [0005](0005-spring-boot-3-5.md) | Spring Boot 3.5 en lugar de 4.x | Reemplazado por 0011 |
 | [0006](0006-contrato-api-openapi-code-first.md) | Contrato de la API con OpenAPI (code-first) | Aceptado |
-| [0007](0007-modelo-de-turnos-y-reservas.md) | Modelo de turnos: la franja es una salida de ascensor | Aceptado |
+| [0007](0007-modelo-de-turnos-y-reservas.md) | Modelo de turnos: la franja es una salida de ascensor | Aceptado, en parte reemplazado por 0018 |
 | [0008](0008-check-in-con-qr-rotativo.md) | Check-in con QR rotativo firmado | Aceptado |
 | [0009](0009-autenticacion-y-prioridad.md) | Autenticación con email institucional y prioridad validada en el servidor | Aceptado |
 | [0010](0010-integridad-de-reservas-tiempo-y-configuracion.md) | Integridad de reservas, manejo del tiempo y configuración | Aceptado |
@@ -27,4 +27,8 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0012](0012-hosting-del-backend-render-y-neon.md) | Hosting del backend en Render y Postgres en Neon | Aceptado |
 | [0013](0013-email-con-brevo-y-storage-en-r2.md) | Email con Brevo y storage de certificados en Cloudflare R2 | Aceptado |
 | [0014](0014-refresh-token-en-sessionstorage.md) | Refresh token del frontend en sessionStorage | Aceptado |
-| [0015](0015-politica-de-contrasenas-nist-800-63b.md) | Adecuación de la política de contraseñas a NIST SP 800-63B | Propuesto |
+| [0015](0015-politica-de-contrasenas-nist-800-63b.md) | Adecuación de la política de contraseñas a NIST SP 800-63B | Aceptado |
+| [0016](0016-qr-firmado-con-hmac-y-kiosco-web.md) | QR firmado con HMAC-SHA256 y kiosco web en el hall | Propuesto |
+| [0017](0017-donde-viven-los-parametros.md) | Dónde viven los parámetros | Propuesto |
+| [0018](0018-alcance-del-mvp-en-reglas-de-turnos.md) | Alcance del MVP en las reglas de turnos | Propuesto |
+| [0019](0019-refresh-token-en-cookie-httponly.md) | Refresh token en cookie HttpOnly con proxy del mismo origen | Propuesto |
