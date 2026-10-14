@@ -1,13 +1,16 @@
 package com.smartelevate.turn.repository;
 
 import com.smartelevate.turn.model.Reservation;
+import com.smartelevate.turn.model.ReservationStatus;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
@@ -38,4 +41,26 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     /** Reservas hechas en [from, to), de cualquier estado: cancelar no devuelve el cupo diario. */
     long countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(UUID userId, Instant from, Instant to);
+
+    /**
+     * Job de no-shows (#231): ACTIVE con salida estrictamente antes de {@code cutoff} pasan a NO_SHOW. Condicional
+     * sobre ACTIVE: no pisa un USED ni un cancelado, y correrlo de nuevo no cambia nada.
+     */
+    @Transactional
+    @Modifying
+    @Query("update Reservation r set r.status = 'NO_SHOW' where r.status = 'ACTIVE' "
+            + "and r.departure.id in (select d.id from Departure d where d.departureAt < :cutoff)")
+    int markNoShows(@Param("cutoff") Instant cutoff);
+
+    /** Horas de salida de las faltas del usuario con salida después de {@code from}, la más vieja primero. */
+    @Query("select d.departureAt from Reservation r join r.departure d where r.userId = :userId "
+            + "and r.status in :faults and d.departureAt > :from order by d.departureAt")
+    List<Instant> faultTimes(@Param("userId") UUID userId, @Param("faults") Collection<ReservationStatus> faults,
+                             @Param("from") Instant from);
+
+    /** Para {@code KpiEvents}: NO_SHOW con salida en [from, to), sin las que tienen un check-in simulado. */
+    @Query("select r from Reservation r join fetch r.departure d where r.status = 'NO_SHOW' "
+            + "and d.departureAt >= :from and d.departureAt < :to and not exists (select c.id from CheckIn c "
+            + "where c.reservationId = r.id and c.source = 'SIMULATED')")
+    List<Reservation> findRealNoShowsBetween(@Param("from") Instant from, @Param("to") Instant to);
 }

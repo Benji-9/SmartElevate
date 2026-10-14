@@ -401,6 +401,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/no-shows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Mis faltas recientes y si estoy suspendido
+     * @description Falta = NO_SHOW o CANCELLED_LATE. threshold faltas en windowDays días suspenden suspensionHours horas: mientras tanto, reservar responde NO_SHOW_SUSPENDED. Con prioridad vigente, exempt = true y nunca hay suspensión.
+     */
+    get: operations['mine_1'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ping': {
     parameters: {
       query?: never;
@@ -429,7 +449,7 @@ export interface paths {
     put?: never;
     /**
      * Reserva un lugar en una salida
-     * @description El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría.
+     * @description El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND, NO_SHOW_SUSPENDED. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría. NO_SHOW_SUSPENDED mientras dura la suspensión por faltas (GET /api/me/no-shows); a los prioritarios no se aplica.
      */
     post: operations['reserve'];
     delete?: never;
@@ -736,6 +756,39 @@ export interface components {
        * @example una-clave-larga
        */
       password: string;
+    };
+    /** @description Faltas recientes y suspensión (turnos.md §5). Falta = NO_SHOW o CANCELLED_LATE */
+    NoShowStatusResponse: {
+      /** @description Prioridad vigente: las faltas se registran pero no suspenden */
+      exempt: boolean;
+      /**
+       * Format: int32
+       * @description Faltas en los últimos windowDays días
+       * @example 2
+       */
+      recentNoShows: number;
+      /**
+       * Format: date-time
+       * @description Hasta cuándo no puede reservar, en UTC. Null si no está suspendido
+       * @example 2026-10-14T15:58:00Z
+       */
+      suspendedUntil: string | null;
+      /**
+       * Format: int64
+       * @example 24
+       */
+      suspensionHours: number;
+      /**
+       * Format: int32
+       * @description Faltas que suspenden
+       * @example 3
+       */
+      threshold: number;
+      /**
+       * Format: int64
+       * @example 7
+       */
+      windowDays: number;
     };
     /** @description Docente declarado que espera la aprobación de un ADMIN */
     PendingTeacherResponse: {
@@ -2007,6 +2060,44 @@ export interface operations {
       };
     };
   };
+  mine_1: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NoShowStatusResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   ping: {
     parameters: {
       query?: never;
@@ -2085,7 +2176,7 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
-      /** @description Salida llena (TURN_FULL), fuera de ventana, o límite de reservas alcanzado */
+      /** @description Salida llena (TURN_FULL), fuera de ventana, límite de reservas alcanzado o suspensión por faltas (NO_SHOW_SUSPENDED) */
       409: {
         headers: {
           [name: string]: unknown;
