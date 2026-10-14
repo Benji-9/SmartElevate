@@ -32,14 +32,16 @@ Los carteles listan los pisos donde para cada batería; conviene validarlos cont
 
 ### Conexiones
 
-Según el plano, los núcleos forman una cadena: **IND2 – IND1 – L3 – L2 – L1**. Están conectados en **todos los pisos que comparten**, salvo el **piso 11 de IND2**, que queda aislado. Los rangos de abajo se toman de los pisos servidos de cada núcleo.
+Según el plano, los núcleos forman una cadena: **IND2 – IND1 – L3 – L2 – L1**. Están conectados en **todos los pisos que comparten**, sin paredes divisorias, salvo el **piso 11 de IND2**, que queda aislado. Los rangos de abajo se toman de los pisos servidos de cada núcleo.
 
-| Conexión | Pisos | Tiempo de caminata | Accesible |
+Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22): cruzar de **punta a punta** (Independencia 2 a Lima 1) tarda **~45–70 s** caminando. No se midió cada tramo por separado, y **falta confirmar** si se puede hacer en silla de ruedas.
+
+| Conexión | Pisos | Tiempo de caminata (tramo) | Accesible |
 | --- | --- | --- | --- |
-| IND2 ↔ IND1 | −4 a 0 y 2 a 10 (IND2 no para en el 1) | **A medir** | **A confirmar** |
-| IND1 ↔ L3 | −3 a 10 | **A medir** | **A confirmar** |
-| L3 ↔ L2 | −3 a 10 | **A medir** | **A confirmar** |
-| L2 ↔ L1 | −3 a 7 | **A medir** | **A confirmar** |
+| IND2 ↔ IND1 | −4 a 0 y 2 a 10 (IND2 no para en el 1) | Sin medir (punta a punta ~45–70 s) | **A confirmar** |
+| IND1 ↔ L3 | −3 a 10 | Sin medir (punta a punta ~45–70 s) | **A confirmar** |
+| L3 ↔ L2 | −3 a 10 | Sin medir (punta a punta ~45–70 s) | **A confirmar** |
+| L2 ↔ L1 | −3 a 7 | Sin medir (punta a punta ~45–70 s) | **A confirmar** |
 
 ## Elegibilidad
 
@@ -59,11 +61,13 @@ Cuando hay más solicitudes que lugares (lista de espera o lugares liberados), s
 3. **Piso de destino más alto**
 4. **Orden de llegada**
 
-**Envejecimiento (aging):** después de **N min** de espera (a calibrar), una solicitud sube de prioridad. Sin esto, en hora pico alguien que va al piso 5 podría esperar indefinidamente detrás de quienes van a pisos más altos.
+**Envejecimiento (aging): fuera del MVP** (14/10, [#212](https://github.com/Benji-9/SmartElevate/issues/212), [alcance](../alcance-mvp.md)). Solo tiene sentido con una cola de espera, que tampoco entra. Si se retoma en la Fase 2, la versión mínima es: **+1 nivel por ciclo sin atender, con tope**, y un común **nunca** pasa a un prioritario. Sin esto, en hora pico alguien que va al piso 5 podría esperar detrás de quienes van a pisos más altos.
 
 La prioridad del usuario se evalúa **en el servidor al momento de reservar**, nunca desde un claim del token (ver [usuarios y prioridad](usuarios-y-prioridad.md#sesión-jwt)).
 
 ## Edificio alternativo
+
+**Fuera del MVP** (14/10, [#213](https://github.com/Benji-9/SmartElevate/issues/213), [alcance](../alcance-mvp.md)): a lo sumo, un aviso informativo. Faltan los tiempos por tramo y la accesibilidad de las conexiones. Queda el diseño para la Fase 2.
 
 Si el edificio de origen está congestionado, se puede ofrecer otro:
 
@@ -79,7 +83,7 @@ Los dos ascensores de IND1 no se usan como ascensores comunes:
 | Ascensor | Uso | Estado |
 | --- | --- | --- |
 | IND1 05 | Exclusivo para **docentes** | Así funciona hoy |
-| IND1 06 | Exclusivo para **movilidad reducida** (ascensor accesible) | **Propuesta** del proyecto |
+| IND1 06 | Exclusivo para **movilidad reducida** (ascensor accesible) | Decidido el 14/10 |
 
 - En un ascensor dedicado solo puede reservar quien tenga esa prioridad aprobada y vigente. Se evalúa en el servidor al reservar, como el resto de las prioridades.
 - Los **lugares reservados para prioritarios** (2 de 10) siguen aplicando a los ascensores **comunes**.

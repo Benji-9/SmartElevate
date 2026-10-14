@@ -1,6 +1,6 @@
 # 0015. Adecuación de la política de contraseñas a NIST SP 800-63B
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (2026-10-14)
 - **Fecha:** 2026-10-14
 - **Issues:** [#211](https://github.com/Benji-9/SmartElevate/issues/211). Reemplaza el criterio de bytes de [#181](https://github.com/Benji-9/SmartElevate/issues/181).
 - **Autores:** @Benji-9
@@ -54,8 +54,8 @@ Opción **3**, junto con el resto de los controles de NIST, con los matices de a
 
 - **Mínimo 8 y no 15.** El público son estudiantes que entran desde el celular varias veces por día, para reservar un ascensor. 15 caracteres es una barrera fuerte para un MVP sin datos de alto valor (lo más sensible, los certificados, lo ve solo un REVIEWER). Lo compensamos con la lista de comunes (que saca justamente las de 8 a 10 caracteres más probadas), con Argon2id y con el límite de intentos, que vuelven impráctica la fuerza bruta en línea. Si se suma MFA, el mínimo de 8 pasa a cumplir.
 - **Sin MFA.** Fuera del alcance del MVP. Queda como pendiente; con un segundo factor, el mínimo de 8 cumple NIST tal cual.
-- **Límite por ventana, no "100 seguidos".** NIST pide que no haya más de 100 fallos seguidos por cuenta. Con una ventana deslizante el tope es por ventana (10 cada 15 minutos): nunca hay más de 10 intentos juntos, pero a lo largo de días un atacante paciente podría sumar más de 100 sin un login correcto en el medio. Un bloqueo definitivo a los 100 cumpliría la letra, pero dejaría que cualquiera bloquee una cuenta ajena, que es lo que NIST también pide evitar. Elegimos el bloqueo temporal; el tope por cuenta no se puede configurar por encima de 100.
-- **Límite por IP con NAT.** En el campus muchas personas salen a internet por pocas IPs. El tope por IP (100 fallos en 15 minutos) es alto para no bloquear a todo el campus por errores de tipeo; se calibra con datos del piloto. En producción la IP sale de `X-Forwarded-For` (`server.forward-headers-strategy: native`), porque Render atiende detrás de un proxy.
+- **Límite por ventana, no "100 seguidos".** NIST pide que no haya más de 100 fallos seguidos por cuenta. Con una ventana deslizante el tope es por ventana (10 cada 15 minutos): nunca hay más de 10 intentos juntos, pero a lo largo de días un atacante paciente podría sumar más de 100 sin un login correcto en el medio. Un bloqueo definitivo a los 100 cumpliría la letra, pero dejaría que cualquiera bloquee una cuenta ajena, que es lo que NIST también pide evitar. Elegimos el bloqueo temporal; el tope por cuenta no se puede configurar por encima de 100. El equipo lo confirmó el 14/10: el límite queda **por ventana más un tope por IP**, y no se adopta la lectura literal de "100 seguidos".
+- **Límite por IP con NAT.** En el campus muchas personas salen a internet por pocas IPs (NAT de la red de la universidad): un tope por IP bajo bloquearía a todo el campus por unos pocos errores de tipeo. Por eso el tope por IP es **conservador** (100 fallos en 15 minutos, holgado a propósito) y se calibra con datos del piloto. En producción la IP sale de `X-Forwarded-For` (`server.forward-headers-strategy: native`), porque Render atiende detrás de un proxy.
 - **Lista de 2500, no millones.** NIST no fija un tamaño. Una lista local y chica no necesita servicios externos ni manda datos de nadie afuera, y cubre las contraseñas que más se prueban. Una lista de filtraciones completa (p. ej. Have I Been Pwned con k-anonymity) queda como mejora.
 - **No es atómico.** El conteo y el registro de un fallo son dos consultas: dos intentos simultáneos pueden pasar el tope por uno o dos. Alcanza para frenar la fuerza bruta.
 
@@ -66,4 +66,4 @@ Opción **3**, junto con el resto de los controles de NIST, con los matices de a
 - Los hashes BCrypt viejos siguen validando hasta que cada persona entra de nuevo. Una cuenta que nunca vuelve queda con BCrypt: se puede forzar un reset más adelante si hace falta.
 - Si alguien eligió su contraseña antes de #211 con caracteres que NFKC transforma (letras de ancho completo, ligaduras), su BCrypt viejo no coincide con la versión normalizada y tiene que usar "Olvidé mi contraseña". Con teclados comunes no pasa.
 - Una contraseña vieja que ahora está en la lista común o tiene más de 64 caracteres sigue sirviendo para entrar: la política se aplica al elegirla, no al loguearse.
-- La tabla `login_failure` y los tres parámetros nuevos de `app_config` vienen en V13. Cambiar los valores se hace con un `UPDATE` y reiniciando la app, como el resto de la configuración (ADR 0010).
+- La tabla `login_failure` y los tres parámetros nuevos de `app_config` vienen en V13. Cambiar los valores se hace con un `UPDATE` y reiniciando la app, como el resto de la configuración (ADR 0010). Por el [ADR 0017](0017-donde-viven-los-parametros.md) son parámetros de seguridad y pasan a `application.yml` en [#225](https://github.com/Benji-9/SmartElevate/issues/225).

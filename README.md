@@ -2,7 +2,7 @@
 
 App para reducir la congestión de los ascensores del campus de UADE. Los alumnos reservan **turnos por franja horaria** con capacidad limitada (10 personas por turno), hay **usuarios prioritarios** (movilidad reducida, docentes) y una capa de **estadísticas / KPIs de congestión**.
 
-> Estado: **esqueleto del MVP**. Compila, testea y deploya de punta a punta, pero todavía no tiene lógica de negocio.
+> Estado: **MVP en desarrollo**. Ya hay cuentas, reservas, cancelación y cupo prioritario; falta el check-in con QR, entre otras cosas. Qué entra y qué queda para la Fase 2: [alcance del MVP](docs/alcance-mvp.md).
 
 ## Stack
 
@@ -19,7 +19,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 .
 ├── backend/                  API REST (Spring Boot)
 │   ├── src/main/java/com/smartelevate/
-│   │   ├── common/           config (CORS, OpenAPI), manejo de errores, /api/ping
+│   │   ├── common/           config, errores, mail, security, time, validation, /api/ping
 │   │   ├── user/             ┐
 │   │   ├── elevator/         │ un paquete por módulo del API contract,
 │   │   ├── turn/             │ con capas: controller / service / repository / dto / model
@@ -102,7 +102,7 @@ export DATABASE_PASSWORD=smartelevate
 | `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
 | `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
-| `APP_FRONTEND_URL` | `http://localhost:5173` | Base del link del mail (`<url>/verificar-email?token=…`) |
+| `APP_FRONTEND_URL` | `http://localhost:5173` | Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
 
 #### Autenticación y endpoints protegidos
 
@@ -146,7 +146,12 @@ npm install
 npm run dev                   # http://localhost:5173
 ```
 
-En dev, Vite hace proxy de `/api` a `http://localhost:8080`, así que con el backend levantado la home muestra **"API conectada"**.
+En dev, Vite hace proxy de `/api` a `http://localhost:8080`.
+
+| Variable | Default | Descripción |
+| --- | --- | --- |
+| `VITE_API_URL` | `/api` | Base del cliente HTTP (`services/api.ts`) |
+| `VITE_USE_MOCKS` | `true` en `npm run dev`, `false` en tests | `true` usa datos simulados en lugar del backend (`services/mocks.ts`); con `false`, `npm run dev` le pega al backend real. Nunca aplica al build de producción |
 
 ## Contrato de la API (OpenAPI / Swagger)
 
@@ -252,7 +257,7 @@ Commits chicos y atómicos. El título del PR también sigue la convención.
 
 | Workflow | Cuándo | Qué hace |
 | --- | --- | --- |
-| [`ci-backend.yml`](.github/workflows/ci-backend.yml) | PR y push a `main`/`develop` | Temurin 17 + cache Maven, `./mvnw -B verify`, sube los reportes de tests como artifact |
+| [`ci-backend.yml`](.github/workflows/ci-backend.yml) | PR y push a `main`/`develop` | Temurin 25 + cache Maven, `./mvnw -B verify`, sube los reportes de tests como artifact |
 | [`ci-frontend.yml`](.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, lint, tests, build |
 | [`branch-policy.yml`](.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
@@ -271,9 +276,16 @@ Detalles:
 
 `frontend/vercel.json` tiene un rewrite de `/api/(.*)` hacia `${BACKEND_URL}/api/$1`. Vercel **no** interpola variables en `vercel.json`, así que el workflow reemplaza el placeholder `${BACKEND_URL}` con la variable de GitHub `BACKEND_URL` antes de `vercel build`. Si la variable no está definida, el workflow emite un warning y quita ese rewrite (el front deploya igual, pero sin backend).
 
-## Setup manual pendiente (una sola vez)
+## Setup manual pendiente
 
-Cada bloque tiene su issue con checklist: Vercel [#1](https://github.com/Benji-9/SmartElevate/issues/1) · secrets [#2](https://github.com/Benji-9/SmartElevate/issues/2) · protección de ramas [#3](https://github.com/Benji-9/SmartElevate/issues/3) · primer release [#4](https://github.com/Benji-9/SmartElevate/issues/4).
+- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)): cargarla en Render cuando se implemente el check-in ([#219](https://github.com/Benji-9/SmartElevate/issues/219)); el nombre de la variable lo fija esa implementación.
+- **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)).
+
+Las previews de Vercel no tienen Deployment Protection: cualquiera con la URL las puede abrir ([bloqueantes](docs/bloqueantes.md), B-07).
+
+## Setup inicial de Vercel y GitHub (ya hecho)
+
+Quedó hecho en B-02, B-03 y B-09 ([bloqueantes](docs/bloqueantes.md)). Se deja como referencia para rearmarlo. Issues con checklist: Vercel [#1](https://github.com/Benji-9/SmartElevate/issues/1) · secrets [#2](https://github.com/Benji-9/SmartElevate/issues/2) · protección de ramas [#3](https://github.com/Benji-9/SmartElevate/issues/3) · primer release [#4](https://github.com/Benji-9/SmartElevate/issues/4).
 
 ### 1. Vercel: crear el proyecto y linkearlo
 
@@ -351,6 +363,7 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 
 - [docs/reglas/](docs/reglas/) — **reglas de negocio**: turnos, asignación, check-in QR, usuarios y prioridad, KPIs y parámetros configurables
 - [docs/frontend/](docs/frontend/README.md) — **specs de UI**: design system (tokens y componentes), pantallas y modos de vista Pantalla/Teléfono; reemplazan consultar Figma
+- [docs/alcance-mvp.md](docs/alcance-mvp.md) — **alcance del MVP**: qué entra y qué queda para la Fase 2, con el porqué
 - [docs/glosario.md](docs/glosario.md) — términos del dominio
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/) — Architecture Decision Records
