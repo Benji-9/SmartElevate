@@ -16,6 +16,18 @@ Decisiones de diseño: [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md) y 
 
 Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-parametros.md): las **reglas de negocio** en la tabla `app_config` (validada al arrancar, [ADR 0010](../adr/0010-integridad-de-reservas-tiempo-y-configuracion.md)), **nunca hardcodeadas**, para que QA pruebe variantes y el equipo calibre sin redeployar; los **técnicos y de seguridad** en `application.yml` con override por variable de entorno; los **secretos**, solo en variables de entorno ([README](../../README.md#variables-de-entorno-del-backend)).
 
+**Regla práctica:** si alguien necesita cambiarlo en caliente sin que un deploy lo deje registrado → `app_config`; si no → `application.yml`. Casos decididos ([#222](https://github.com/Benji-9/SmartElevate/issues/222), [#226](https://github.com/Benji-9/SmartElevate/issues/226)):
+
+| Tipo | Dónde vive | Ejemplos |
+| --- | --- | --- |
+| Regla de negocio | `app_config` | Cupo por salida, ventanas de reserva y check-in, `boarding_time` (tiempo de carga), `time_per_floor` (tiempo por piso) |
+| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), rotación del QR (`qr_rotation` sale de `app_config` con [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
+| Dato del despliegue | Variable de entorno, **obligatoria en `prod`** (sin default); el default `localhost` vive solo en `application-dev.yml` | `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` |
+| Secreto | Solo variable de entorno, **obligatoria en `prod`** | `JWT_SECRET`, clave HMAC del QR ([#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
+| Constante en el código | El código: cambia solo por PR | Parámetros de Argon2id ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)), `maxAge` de CORS (1 h) |
+
+Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`RequiredProdProperties`: `@Validated` + `@NotBlank`): si falta una o está en blanco, la app no levanta.
+
 ### Reglas de negocio (`app_config`)
 
 | Parámetro | Valor | Notas |
@@ -36,7 +48,6 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Liberación de lugares prioritarios | 3 min antes | Antes del cierre de la ventana (2 min) |
 | Envejecimiento de prioridad (N) | — | **Fuera del MVP** ([#212](https://github.com/Benji-9/SmartElevate/issues/212)). `priority_aging` queda en NULL y no se usa |
 | Vigencia de la prioridad de docente | Hasta el fin del cuatrimestre en curso | Renovable. `priority_teacher_validity` está hoy en NULL (no vence); la fecha de cierre del cuatrimestre la agrega [#218](https://github.com/Benji-9/SmartElevate/issues/218) |
-| Rotación del QR | ~30 s | [ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md). `qr_rotation` vale hoy 60 s (`V3`); el cambio va con [#219](https://github.com/Benji-9/SmartElevate/issues/219) |
 | Tiempo de carga (10 personas) | 14 s | Medido por el equipo |
 | Tiempo por piso | 3 s | Medido por el equipo |
 | Umbral de pisos bajos | 4 | Sin reserva con destino en los pisos 1 a 4; movilidad reducida exenta |
@@ -47,9 +58,10 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 
 ### Técnicos y de seguridad (`application.yml`)
 
-| Parámetro | Valor | Dónde |
+| Parámetro | Valor | Dónde vive |
 | --- | --- | --- |
-| Zona horaria | America/Argentina/Buenos_Aires | `app.time.zone`. Los instantes se guardan en UTC |
+| Zona horaria | America/Argentina/Buenos_Aires | `app.time.zone`, override por `APP_TIME_ZONE` (Render corre en UTC). Los instantes se guardan en UTC |
+| Rotación del QR | ~30 s | [ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md). Hoy `qr_rotation` en `app_config` vale 60 s (`V3`); [#229](https://github.com/Benji-9/SmartElevate/issues/229) la pasa a `application.yml` |
 | Access token | 15 min | `JWT_ACCESS_TTL` (`app.security.jwt.access-ttl`) |
 | Refresh token | 7 días | `JWT_REFRESH_TTL` (`app.security.jwt.refresh-ttl`) |
 | Link de verificación de email | Vale 24 h · reenvío cada 1 min | `app.verification.*` |
