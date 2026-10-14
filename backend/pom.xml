@@ -19,6 +19,7 @@
     <properties>
         <java.version>25</java.version>
         <springdoc.version>3.1.1</springdoc.version>
+        <bouncycastle.version>1.86</bouncycastle.version>
     </properties>
 
     <dependencies>
@@ -43,7 +44,7 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
-        <!-- Spring Security (#120): filtros, BCrypt y JWT (Nimbus) como resource server. Firma HS256 con secreto
+        <!-- Spring Security (#120): filtros, hash de contraseñas y JWT (Nimbus) como resource server. Firma HS256 con secreto
              por variable de entorno; el emisor de tokens es la propia app. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -52,6 +53,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <!-- Argon2id para las contraseñas (#211, ADR 0015): Argon2PasswordEncoder usa la implementación de
+             BouncyCastle. Spring Boot no maneja su versión. -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
         </dependency>
 
         <!-- Envío de mails por SMTP (ADR 0013). Sin spring.mail.host no crea el JavaMailSender. -->

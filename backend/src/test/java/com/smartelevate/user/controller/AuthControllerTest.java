@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -140,49 +141,46 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.violations[0].field").value("legajo"));
     }
 
+    /** {@code length} caracteres que no están en la lista de contraseñas comunes. */
+    private static String password(int length) {
+        return "zq".repeat(length).substring(0, length);
+    }
+
     @ParameterizedTest
-    @ValueSource(ints = {8, 72})
-    void acceptsPasswordsOfBetween8And72Characters(int length) throws Exception {
-        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "a".repeat(length)))
+    @ValueSource(ints = {8, 64})
+    void acceptsPasswordsOfBetween8And64Characters(int length) throws Exception {
+        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", password(length)))
                 .andExpect(status().isCreated());
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 7})
-    void rejectsAPasswordShorterThan8Characters(int length) throws Exception {
-        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "a".repeat(length)))
+    @ValueSource(ints = {0, 1, 7, 65})
+    void rejectsAPasswordOutsideTheLimitsWithASingleError(int length) throws Exception {
+        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", password(length)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations.length()").value(1))
                 .andExpect(jsonPath("$.violations[0].field").value("password"))
                 .andExpect(jsonPath("$.violations[0].message")
-                        .value("La contraseña tiene que tener entre 8 y 72 caracteres."));
+                        .value("La contraseña tiene que tener entre 8 y 64 caracteres."));
     }
 
     @Test
-    void rejectsAPasswordLongerThan72CharactersWithASingleError() throws Exception {
-        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "a".repeat(73)))
+    void countsCharactersNotBytes() throws Exception {
+        // 64 ñ son 128 bytes en UTF-8, y 16 emojis son 32 unidades UTF-16: los dos son caracteres válidos.
+        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "ñ".repeat(64))).andExpect(status().isCreated());
+        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "🛗".repeat(16))).andExpect(status().isCreated());
+        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "ñ".repeat(65)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("password"));
+    }
+
+    @Test
+    void rejectsACommonPasswordWhateverTheCase() throws Exception {
+        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "Contraseña123"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations.length()").value(1))
                 .andExpect(jsonPath("$.violations[0].field").value("password"))
-                .andExpect(jsonPath("$.violations[0].message")
-                        .value("La contraseña tiene que tener entre 8 y 72 caracteres."));
-    }
-
-    @Test
-    void acceptsAPasswordThatFillsExactlyTheLimitOf72Bytes() throws Exception {
-        // 36 ñ = 36 caracteres pero 72 bytes en UTF-8.
-        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "ñ".repeat(36)))
-                .andExpect(status().isCreated());
-    }
-
-    @Test
-    void rejectsAPasswordWithFewCharactersButMoreThan72Bytes() throws Exception {
-        // 37 ñ = 37 caracteres (entra en @Size) pero 74 bytes: BCrypt tiraría error si llegara a hashearla.
-        register(json("Juana", "jmartinez@uade.edu.ar", "1234567", "ñ".repeat(37)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.violations.length()").value(1))
-                .andExpect(jsonPath("$.violations[0].field").value("password"))
-                .andExpect(jsonPath("$.violations[0].message").value(startsWith("La contraseña es demasiado larga")));
+                .andExpect(jsonPath("$.violations[0].message").value(startsWith("Esa contraseña es muy común")));
         verify(service, never()).register(any());
     }
 
@@ -297,10 +295,17 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations[0].field").value("newPassword"))
                 .andExpect(content().string(not(containsString("corta\""))));
-        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"" + "ñ".repeat(40) + "\"}")
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"" + password(65) + "\"}")
                 .andExpect(status().isBadRequest());
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"qwertyuiop\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].message").value(startsWith("Esa contraseña es muy común")));
+        postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"" + "ñ".repeat(64) + "\"}")
+                .andExpect(status().isNoContent());
 
-        verify(passwordReset, never()).reset(any(), any());
+        // Solo llegó al servicio la que cumple la política.
+        verify(passwordReset).reset(any(), any());
+        verify(passwordReset).reset("tok", "ñ".repeat(64));
     }
 
     @Test
@@ -339,7 +344,7 @@ class AuthControllerTest {
 
     @Test
     void loginReturnsTheTokenPair() throws Exception {
-        org.mockito.BDDMockito.given(authService.login("ana@uade.edu.ar", "una-clave-larga"))
+        org.mockito.BDDMockito.given(authService.login(eq("ana@uade.edu.ar"), eq("una-clave-larga"), any()))
                 .willReturn(new com.smartelevate.user.dto.TokenResponse("acc", "ref", "Bearer", 900));
 
         postJson("/api/auth/login", "{\"email\":\"ana@uade.edu.ar\",\"password\":\"una-clave-larga\"}")
@@ -351,7 +356,7 @@ class AuthControllerTest {
 
     @Test
     void badCredentialsAre401WithTheStandardErrorBody() throws Exception {
-        org.mockito.BDDMockito.given(authService.login(any(), any()))
+        org.mockito.BDDMockito.given(authService.login(any(), any(), any()))
                 .willThrow(new com.smartelevate.user.service.InvalidCredentialsException());
 
         postJson("/api/auth/login", "{\"email\":\"a@uade.edu.ar\",\"password\":\"x\"}")
@@ -362,11 +367,28 @@ class AuthControllerTest {
 
     @Test
     void unverifiedEmailIs403() throws Exception {
-        org.mockito.BDDMockito.given(authService.login(any(), any()))
+        org.mockito.BDDMockito.given(authService.login(any(), any(), any()))
                 .willThrow(new com.smartelevate.user.service.EmailNotVerifiedException());
 
         postJson("/api/auth/login", "{\"email\":\"a@uade.edu.ar\",\"password\":\"x\"}")
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void tooManyFailedLoginsIs429WithRetryAfterAndTheClientIp() throws Exception {
+        org.mockito.BDDMockito.given(authService.login(any(), any(), eq("198.51.100.4")))
+                .willThrow(new com.smartelevate.user.service.TooManyLoginAttemptsException(Duration.ofMillis(89_001)));
+
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"a@uade.edu.ar\",\"password\":\"x\"}")
+                        .with(request -> {
+                            request.setRemoteAddr("198.51.100.4");
+                            return request;
+                        }))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "90"))
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.message").value("Hubo demasiados intentos fallidos. Probá de nuevo en 2 minutos."));
     }
 
     @Test

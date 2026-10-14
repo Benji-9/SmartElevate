@@ -13,6 +13,11 @@ spring:
       mail.smtp.starttls.enable: true
       mail.smtp.starttls.required: true
 
+# Render atiende detrás de un proxy: sin esto getRemoteAddr() es la IP del proxy y el límite de logins por IP
+# (ADR 0015) sería uno solo para todos. "native" usa X-Forwarded-For solo si viene de un proxy interno.
+server:
+  forward-headers-strategy: native
+
 app:
   mail:
     enabled: ${APP_MAIL_ENABLED:true}

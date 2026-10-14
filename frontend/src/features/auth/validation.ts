@@ -23,16 +23,17 @@ export function validateUadeUser(value: string): string | undefined {
   return undefined;
 }
 
-/** Política de contraseña: mismos límites y mensajes que `PasswordPolicy` del backend. */
-export const PASSWORD_HINT = 'Entre 8 y 72 caracteres. No exigimos símbolos ni mayúsculas.';
+/**
+ * Política de contraseña: mismos límites y mensajes que `PasswordPolicy` del backend (ADR 0015).
+ * Se cuentan caracteres (code points) tras normalizar con NFKC, no bytes: una ñ o un emoji valen 1.
+ * La lista de contraseñas comunes la revisa solo el servidor; su error llega como violación del campo.
+ */
+export const PASSWORD_HINT = 'Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas.';
 
 export function validatePassword(value: string): string | undefined {
-  if (value.length < 8 || value.length > 72) {
-    return 'La contraseña tiene que tener entre 8 y 72 caracteres.';
-  }
-  // BCrypt corta en 72 bytes UTF-8: la ñ o las tildes ocupan 2.
-  if (new TextEncoder().encode(value).length > 72) {
-    return 'La contraseña es demasiado larga: el máximo son 72 bytes y la ñ o las tildes ocupan 2.';
+  const length = [...value.normalize('NFKC')].length;
+  if (length < 8 || length > 64) {
+    return 'La contraseña tiene que tener entre 8 y 64 caracteres.';
   }
   return undefined;
 }

@@ -1,6 +1,7 @@
 package com.smartelevate.user.service;
 
 import com.smartelevate.common.mail.EmailSender;
+import com.smartelevate.common.validation.PasswordPolicy;
 import com.smartelevate.user.model.TokenPurpose;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.RefreshTokenRepository;
@@ -30,6 +31,7 @@ public class PasswordResetService {
     private final PasswordResetProperties properties;
     private final VerificationProperties verificationProperties;
     private final Clock clock;
+    private final LoginThrottle loginThrottle;
 
     /**
      * Manda el link de reset. Si el email no existe, o ya se pidió hace menos de la espera mínima, no hace nada:
@@ -78,7 +80,9 @@ public class PasswordResetService {
     public void reset(String token, String newPassword) {
         User user = users.findById(tokens.consume(token, TokenPurpose.PASSWORD_RESET))
                 .orElseThrow(() -> new InvalidTokenException(InvalidTokenException.Reason.INVALID));
-        user.changePasswordHash(passwordEncoder.encode(newPassword));
+        user.changePasswordHash(passwordEncoder.encode(PasswordPolicy.normalize(newPassword)));
+        // Quien recupera la cuenta por mail no tiene que esperar a que venza el límite de intentos.
+        loginThrottle.clearAccount(user.getEmail());
         refreshTokens.revokeAllByUser(user.getId(), clock.instant());
     }
 }

@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -52,15 +53,18 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Inicia sesión y devuelve access y refresh token",
             description = "Las credenciales incorrectas dan 401 sin distinguir si el email existe. "
-                    + "Con la clave correcta pero el email sin verificar responde 403.")
+                    + "Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos "
+                    + "para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).")
     @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
             content = @Content(schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "Email o contraseña incorrectos",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     @ApiResponse(responseCode = "403", description = "El email institucional todavía no se verificó",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request.email(), request.password());
+    @ApiResponse(responseCode = "429", description = "Demasiados intentos fallidos; Retry-After dice cuántos segundos "
+            + "esperar", content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return authService.login(request.email(), request.password(), http.getRemoteAddr());
     }
 
     @PostMapping("/refresh")

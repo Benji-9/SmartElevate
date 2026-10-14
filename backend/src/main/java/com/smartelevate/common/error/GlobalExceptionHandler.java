@@ -11,6 +11,7 @@ import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
 import com.smartelevate.user.service.ResendTooSoonException;
+import com.smartelevate.user.service.TooManyLoginAttemptsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -146,9 +147,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResendTooSoonException.class)
     public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
-        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request, List.of());
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfter().toSeconds(), request);
+    }
+
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    public ResponseEntity<ApiError> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
+                                                               HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    private ResponseEntity<ApiError> tooManyRequests(String message, long retryAfterSeconds,
+                                                     HttpServletRequest request) {
+        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, message, request, List.of());
         return ResponseEntity.status(response.getStatusCode())
-                .header("Retry-After", String.valueOf(ex.getRetryAfter().toSeconds()))
+                .header("Retry-After", String.valueOf(retryAfterSeconds))
                 .body(response.getBody());
     }
 

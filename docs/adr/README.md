@@ -27,3 +27,4 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0012](0012-hosting-del-backend-render-y-neon.md) | Hosting del backend en Render y Postgres en Neon | Aceptado |
 | [0013](0013-email-con-brevo-y-storage-en-r2.md) | Email con Brevo y storage de certificados en Cloudflare R2 | Aceptado |
 | [0014](0014-refresh-token-en-sessionstorage.md) | Refresh token del frontend en sessionStorage | Aceptado |
+| [0015](0015-politica-de-contrasenas-nist-800-63b.md) | Adecuación de la política de contraseñas a NIST SP 800-63B | Propuesto |

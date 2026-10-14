@@ -1,5 +1,6 @@
 package com.smartelevate.user.service;
 
+import com.smartelevate.common.validation.PasswordPolicy;
 import com.smartelevate.priority.service.PriorityService;
 import com.smartelevate.user.dto.RegisterRequest;
 import com.smartelevate.user.dto.UserResponse;
@@ -55,8 +56,9 @@ public class UserService {
         String legajo = request.legajo();
         failIfTaken(email, legajo);
 
-        User user = new User(request.fullName().trim(), email, legajo, passwordEncoder.encode(request.password()),
-                request.declaredUserType(), clock.instant());
+        User user = new User(request.fullName().trim(), email, legajo,
+                passwordEncoder.encode(PasswordPolicy.normalize(request.password())), request.declaredUserType(),
+                clock.instant());
         try {
             users.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {

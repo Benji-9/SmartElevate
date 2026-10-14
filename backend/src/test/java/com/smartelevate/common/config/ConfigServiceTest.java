@@ -42,6 +42,9 @@ class ConfigServiceTest {
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");
         v.put("low_floors_threshold", "4");
+        v.put("login_failure_window", "PT15M");
+        v.put("login_max_failures_per_account", "10");
+        v.put("login_max_failures_per_ip", "100");
         return v;
     }
 
@@ -89,6 +92,10 @@ class ConfigServiceTest {
             "time_per_floor, PT0S",
             "cancellation_wait_tolerance, PT0S",
             "priority_aging, PT-1M",
+            "login_failure_window, PT0S",
+            "login_max_failures_per_account, 0",
+            "login_max_failures_per_account, 101",
+            "login_max_failures_per_ip, 0",
     })
     void outOfRangeValuesPreventStartup(String key, String value) {
         assertThatThrownBy(() -> load(with(key, value)))
@@ -100,6 +107,12 @@ class ConfigServiceTest {
     @Test
     void prioritySeatsCanUseTheWholeCapacity() {
         assertThat(load(with("priority_seats_per_departure", "10")).prioritySeatsPerDeparture()).isEqualTo(10);
+    }
+
+    @Test
+    void theAccountLimitCanBeTheNistMaximumOf100() {
+        assertThat(load(with("login_max_failures_per_account", "100")).loginMaxFailuresPerAccount()).isEqualTo(100);
+        assertThat(load(with("login_max_failures_per_account", "1")).loginMaxFailuresPerAccount()).isEqualTo(1);
     }
 
     @Test

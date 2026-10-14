@@ -37,7 +37,7 @@ public class User {
 
     private String legajo;
 
-    /** Hash BCrypt de la contraseña. */
+    /** Hash con prefijo de algoritmo: {@code {argon2}...}, o {@code {bcrypt}...} si es de antes de #211. */
     @Column(name = "password_hash")
     private String passwordHash;
 

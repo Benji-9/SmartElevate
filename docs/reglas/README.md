@@ -35,6 +35,7 @@ Van en una **tabla de configuración validada** ([ADR 0010](../adr/0010-integrid
 | Envejecimiento de prioridad | **N min** | **A definir** |
 | Rotación del QR | 60 s | |
 | Access token / refresh token | 15 min / a definir | |
+| Límite de logins fallidos | 10 por cuenta y 100 por IP en 15 min | Ventana deslizante; por cuenta, como mucho 100 ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)) |
 | Tamaño máximo de certificado | 5 MB | PDF, JPG, PNG |
 | Tiempo de carga (10 personas) | 14 s | Medido por el equipo |
 | Tiempo por piso | 3 s | Medido por el equipo |

@@ -13,11 +13,19 @@
 
 ### Contraseña
 
-Decidido en [#181](https://github.com/Benji-9/SmartElevate/issues/181) para el registro; la "contraseña nueva" del reset ([#138](https://github.com/Benji-9/SmartElevate/issues/138)) aplica **la misma política**.
+Alineada a NIST SP 800-63B en [#211](https://github.com/Benji-9/SmartElevate/issues/211) ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md), con la tabla de qué cumple y qué no). Reemplaza el tope en bytes de [#181](https://github.com/Benji-9/SmartElevate/issues/181). El registro y la "contraseña nueva" del reset ([#138](https://github.com/Benji-9/SmartElevate/issues/138)) aplican **la misma política**.
 
-- **Mínimo 8 caracteres**, sin exigir mayúsculas, números ni símbolos, como recomienda la guía NIST SP 800-63B.
-- **Máximo 72 bytes**, el límite de BCrypt, que rechaza con error lo que lo pase. La "ñ" y las tildes ocupan 2 bytes, así que una contraseña con muchas letras acentuadas tiene un tope menor a 72 caracteres.
-- Se guarda como **hash BCrypt**. La contraseña nunca se guarda ni se loguea en texto plano, ni siquiera con el log en DEBUG.
+- **Entre 8 y 64 caracteres.** Se cuentan **caracteres** (code points), no bytes: una "ñ", una tilde o un emoji valen 1. NIST pide 15 de mínimo cuando la contraseña es el único factor; elegimos 8 por usabilidad y lo compensamos con la lista de comunes, Argon2id y el límite de intentos.
+- Antes de validar y de hashear (registro, reset y login) se **normaliza con NFKC**: la "ñ" compuesta y la descompuesta son la misma contraseña.
+- **Sin reglas de composición** (no se exigen mayúsculas, números ni símbolos), **sin cambio periódico obligatorio**, y se puede **pegar** y usar **gestores de contraseñas**.
+- Se rechazan las **2500 contraseñas más comunes** (lista embebida de SecLists más variantes locales como "contraseña", "uade2026" o "ascensor"), sin distinguir mayúsculas: "Esa contraseña es muy común y fácil de adivinar. Elegí otra."
+- Se guarda como **hash Argon2id**. Los hashes BCrypt de antes de #211 siguen sirviendo y se pasan a Argon2id la próxima vez que la persona entra. La contraseña nunca se guarda ni se loguea en texto plano, ni siquiera con el log en DEBUG.
+
+### Límite de intentos de login
+
+- Por **cuenta** y por **IP**, en una **ventana deslizante**: con **10 fallos de la cuenta** o **100 de la IP** en los últimos **15 minutos**, el login responde **429** con `Retry-After` (sin mirar la contraseña) hasta que el fallo más viejo sale de la ventana. Los tres valores están en `app_config`; el tope por cuenta no puede pasar de 100 (NIST).
+- El bloqueo siempre es **temporal**: un tercero no puede dejar bloqueada una cuenta para siempre. Un **login correcto** o un **reset de contraseña** borran los fallos de la cuenta.
+- Cuenta igual un email que no existe: el 429 no revela qué cuentas hay. Se guarda el hash de la cuenta y de la IP, nunca el email ni la IP.
 
 ### Olvidé mi contraseña
 

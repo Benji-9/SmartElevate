@@ -43,6 +43,9 @@ class ConfigServiceSeedTest {
         assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
+        assertThat(config.loginFailureWindow()).isEqualTo(Duration.ofMinutes(15));
+        assertThat(config.loginMaxFailuresPerAccount()).isEqualTo(10);
+        assertThat(config.loginMaxFailuresPerIp()).isEqualTo(100);
     }
 
     @Test

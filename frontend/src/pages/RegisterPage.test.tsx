@@ -52,7 +52,7 @@ describe('RegisterPage', () => {
     await renderRegister();
 
     expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
-      'Entre 8 y 72 caracteres. No exigimos símbolos ni mayúsculas.',
+      'Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas.',
     );
   });
 
@@ -64,22 +64,75 @@ describe('RegisterPage', () => {
     await submit();
 
     expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
-      /La contraseña tiene que tener entre 8 y 72 caracteres\./,
+      /La contraseña tiene que tener entre 8 y 64 caracteres\./,
     );
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
   });
 
-  it('cuenta bytes y no caracteres: 40 ñ son 40 caracteres pero 80 bytes', async () => {
-    const fetchMock = stubApi(signedOut);
+  // Se pega en vez de tipear: 65 teclas con userEvent.type hacían lento (y a veces timeout) el test.
+  async function pastePassword(value: string) {
+    await userEvent.click(screen.getByLabelText('Contraseña'));
+    await userEvent.paste(value);
+  }
+
+  it('cuenta caracteres y no bytes: 64 ñ entran, 65 no', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/register': { status: 204 } });
     await renderRegister();
 
-    await fill({ ...valid, Contraseña: 'ñ'.repeat(40) });
+    await fill({ ...valid, Contraseña: '' });
+    await pastePassword('ñ'.repeat(65));
     await submit();
 
     expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
-      /el máximo son 72 bytes/,
+      /La contraseña tiene que tener entre 8 y 64 caracteres\./,
     );
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
+
+    await userEvent.clear(screen.getByLabelText('Contraseña'));
+    await pastePassword('ñ'.repeat(64));
+    await submit();
+
+    await screen.findByRole('heading', { name: 'Revisá tu email' });
+  });
+
+  it('cuenta tras normalizar con NFKC: la ñ descompuesta vale un carácter', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/register': { status: 204 } });
+    await renderRegister();
+
+    // n + tilde combinable (U+0303): 128 code points sin normalizar, 64 con NFKC. Los emojis valen 1.
+    await fill({ ...valid, Contraseña: '' });
+    await pastePassword('ñ'.repeat(56) + '🛗'.repeat(8));
+    await submit();
+
+    await screen.findByRole('heading', { name: 'Revisá tu email' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/register', expect.anything());
+  });
+
+  it('muestra en el campo el aviso de contraseña común que manda el servidor', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/register': {
+        status: 400,
+        body: {
+          message: 'La solicitud tiene campos inválidos',
+          violations: [
+            {
+              field: 'password',
+              message: 'Esa contraseña es muy común y fácil de adivinar. Elegí otra.',
+            },
+          ],
+        },
+      },
+    });
+    await renderRegister();
+
+    await fill({ ...valid, Contraseña: 'contraseña123' });
+    await submit();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esa contraseña es muy común');
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      'Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas. Esa contraseña es muy común y fácil de adivinar. Elegí otra.',
+    );
   });
 
   it('valida el dominio del email y que el legajo sea numérico', async () => {

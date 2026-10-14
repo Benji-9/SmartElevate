@@ -377,7 +377,7 @@
     },
     "/api/auth/login" : {
       "post" : {
-        "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.",
+        "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).",
         "operationId" : "login",
         "requestBody" : {
           "content" : {
@@ -429,6 +429,16 @@
               }
             },
             "description" : "El email institucional todavía no se verificó"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados intentos fallidos; Retry-After dice cuántos segundos esperar"
           },
           "500" : {
             "content" : {
@@ -1548,9 +1558,9 @@
           "password" : {
             "type" : "string",
             "format" : "password",
-            "description" : "Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). Sin otras reglas",
+            "description" : "Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes",
             "example" : "una-clave-larga",
-            "maxLength" : 72,
+            "maxLength" : 64,
             "minLength" : 8
           }
         },
@@ -1649,9 +1659,9 @@
           "newPassword" : {
             "type" : "string",
             "format" : "password",
-            "description" : "Misma política que el registro: entre 8 y 72 caracteres y hasta 72 bytes",
+            "description" : "Misma política que el registro. Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes",
             "example" : "una-clave-nueva",
-            "maxLength" : 72,
+            "maxLength" : 64,
             "minLength" : 8
           },
           "token" : {

@@ -117,7 +117,7 @@ export interface paths {
     put?: never;
     /**
      * Inicia sesión y devuelve access y refresh token
-     * @description Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.
+     * @description Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).
      */
     post: operations['login'];
     delete?: never;
@@ -615,7 +615,7 @@ export interface components {
       legajo: string;
       /**
        * Format: password
-       * @description Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). Sin otras reglas
+       * @description Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes
        * @example una-clave-larga
        */
       password: string;
@@ -691,7 +691,7 @@ export interface components {
     ResetPasswordRequest: {
       /**
        * Format: password
-       * @description Misma política que el registro: entre 8 y 72 caracteres y hasta 72 bytes
+       * @description Misma política que el registro. Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes
        * @example una-clave-nueva
        */
       newPassword: string;
@@ -1087,6 +1087,15 @@ export interface operations {
       };
       /** @description El email institucional todavía no se verificó */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Demasiados intentos fallidos; Retry-After dice cuántos segundos esperar */
+      429: {
         headers: {
           [name: string]: unknown;
         };

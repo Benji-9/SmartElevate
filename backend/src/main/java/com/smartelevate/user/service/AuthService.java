@@ -1,6 +1,7 @@
 package com.smartelevate.user.service;
 
 import com.smartelevate.common.security.JwtProperties;
+import com.smartelevate.common.validation.PasswordPolicy;
 import com.smartelevate.user.dto.TokenResponse;
 import com.smartelevate.user.model.RefreshToken;
 import com.smartelevate.user.model.User;
@@ -45,15 +46,31 @@ public class AuthService {
     private final JwtEncoder jwtEncoder;
     private final JwtProperties props;
     private final Clock clock;
+    private final LoginThrottle loginThrottle;
     private final SecureRandom random = new SecureRandom();
-    /** Hash de una clave cualquiera: se compara cuando el email no existe para que tarde lo mismo. */
+    /** Hash Argon2id de una clave cualquiera: se compara cuando el email no existe para que tarde lo mismo. */
     private volatile String dummyHash;
 
-    public TokenResponse login(String email, String password) {
-        User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
-        boolean matches = passwordEncoder.matches(password, user != null ? user.getPasswordHash() : dummyHash());
+    /**
+     * @param ip dirección del cliente, para el límite de intentos por IP
+     * @throws TooManyLoginAttemptsException si la cuenta o la IP agotaron los intentos (no se mira la clave)
+     */
+    public TokenResponse login(String email, String password, String ip) {
+        String account = email.trim().toLowerCase(Locale.ROOT);
+        loginThrottle.check(account, ip);
+        // La misma normalización que al hashear en el registro y el reset (ADR 0015).
+        String normalized = PasswordPolicy.normalize(password);
+        User user = users.findByEmail(account).orElse(null);
+        boolean matches = passwordEncoder.matches(normalized, user != null ? user.getPasswordHash() : dummyHash());
         if (user == null || !matches) {
+            loginThrottle.recordFailure(account, ip);
             throw new InvalidCredentialsException();
+        }
+        loginThrottle.clearAccount(account);
+        // Hash viejo (BCrypt) o con parámetros desactualizados: se aprovecha que tenemos la clave para re-hashearla.
+        if (passwordEncoder.upgradeEncoding(user.getPasswordHash())) {
+            user.changePasswordHash(passwordEncoder.encode(normalized));
+            users.save(user);
         }
         // Recién con la clave correcta se avisa que falta verificar: antes revelaría que el email existe.
         if (!user.isEmailVerified()) {
@@ -113,7 +130,8 @@ public class AuthService {
         return new TokenResponse(access, refresh, TOKEN_TYPE, props.accessTtl().toSeconds());
     }
 
-    private static String hash(String token) {
+    /** SHA-256 en hex. También lo usa {@link LoginThrottle} para no guardar emails ni IPs. */
+    static String hash(String token) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
