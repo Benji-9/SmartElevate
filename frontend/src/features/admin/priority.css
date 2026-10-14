@@ -4,23 +4,13 @@
   overflow-wrap: anywhere;
 }
 
-.priority-actions,
-.priority-confirm {
+.priority-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-}
-
-.priority-actions {
   /* Sin esto el ancho de la columna cambia al pedir confirmación. */
   min-width: max-content;
-}
-
-.priority-confirm p {
-  margin-right: 4px;
-  font-weight: var(--font-semibold);
-  white-space: normal;
 }
 
 .priority-error {
