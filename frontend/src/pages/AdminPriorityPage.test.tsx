@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
-import type { PendingTeacher, PriorityUser } from '../types/pending';
+import type { PendingTeacher, PriorityUser } from '../types/api';
 
 const marta: PendingTeacher = {
   id: 't-1',

@@ -14,7 +14,7 @@ import {
   validateUadeUser,
 } from '../features/auth/validation';
 import { ApiError, register } from '../services/api';
-import type { DeclaredUserType, RegisterRequest } from '../types/pending';
+import type { DeclaredUserType, RegisterRequest } from '../types/api';
 import './AuthPages.css';
 
 const FIELDS = ['fullName', 'email', 'legajo', 'password'] as const;
