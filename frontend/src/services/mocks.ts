@@ -55,17 +55,18 @@ const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 const DAY_MS = 86_400_000;
 const BA_OFFSET_MS = 3 * 3_600_000;
-// Cola de docentes y prioritarios del panel admin (#140).
+// Cola de docentes y prioritarios del panel admin (#140). Ids UUID y mensajes de error como los
+// del backend (PriorityService): 404 PriorityNotFoundException, 409 InvalidPriorityOperation.
 let pendingTeachers: PendingTeacher[] = [
   {
-    id: 't-1',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b01',
     fullName: 'Marta Gómez',
     email: 'marta.gomez@uade.edu.ar',
     legajo: '2001234',
     registeredAt: '2026-10-08T14:20:00Z',
   },
   {
-    id: 't-2',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b02',
     fullName: 'Julián Ruiz',
     email: 'julian.ruiz@uade.edu.ar',
     legajo: '2005678',
@@ -74,14 +75,14 @@ let pendingTeachers: PendingTeacher[] = [
 ];
 let priorityUsers: PriorityUser[] = [
   {
-    id: 'p-1',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b03',
     fullName: 'Carla Díaz',
     email: 'carla.diaz@uade.edu.ar',
     legajo: '1088888',
     category: 'REDUCED_MOBILITY',
   },
   {
-    id: 'p-2',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b04',
     fullName: 'Rubén Sosa',
     email: 'ruben.sosa@uade.edu.ar',
     legajo: '2000456',
@@ -651,7 +652,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/admin\/teachers\/([^/]+)\/(approve|reject)$/,
     (_, [id, action]) => {
       const teacher = pendingTeachers.find((t) => t.id === id);
-      if (!teacher) throw new ApiError(404, 'Ese docente ya no está pendiente');
+      if (!teacher) throw new ApiError(404, 'Usuario inexistente');
       pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
       if (action === 'approve') {
         const { fullName, email, legajo } = teacher;
@@ -666,7 +667,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/admin\/priority-users\/([^/]+)$/,
     (_, [id]) => {
       if (!priorityUsers.some((u) => u.id === id)) {
-        throw new ApiError(404, 'Ese usuario ya no tiene prioridad');
+        throw new ApiError(404, 'El usuario no tiene una prioridad vigente');
       }
       priorityUsers = priorityUsers.filter((u) => u.id !== id);
       return undefined;
