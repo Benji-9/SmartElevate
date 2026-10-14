@@ -38,11 +38,12 @@ class PasswordResetServiceTest {
     private final PasswordEncoder encoder = mock(PasswordEncoder.class);
     private final EmailSender sender = mock(EmailSender.class);
     private final EmailVerificationService verification = mock(EmailVerificationService.class);
+    private final LoginThrottle loginThrottle = mock(LoginThrottle.class);
     private final PasswordResetService service = new PasswordResetService(tokens, users, refreshTokens, encoder,
             sender, verification,
             new PasswordResetProperties(Duration.ofMinutes(30), Duration.ofMinutes(1)),
             new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test"),
-            Clock.fixed(NOW, ZoneOffset.UTC));
+            Clock.fixed(NOW, ZoneOffset.UTC), loginThrottle);
 
     private final User user = new User("Juana", "jmartinez@uade.edu.ar", "1234567", "viejo", DeclaredUserType.STUDENT, NOW);
 
@@ -136,6 +137,21 @@ class PasswordResetServiceTest {
 
         assertThat(user.getPasswordHash()).isEqualTo("hash-nuevo");
         verify(refreshTokens).revokeAllByUser(user.getId(), NOW);
+        // Recuperó la cuenta por mail: el límite de intentos no la deja esperando.
+        verify(loginThrottle).clearAccount("jmartinez@uade.edu.ar");
+    }
+
+    @Test
+    void resetHashesTheNfkcFormOfThePassword() {
+        UUID id = UUID.randomUUID();
+        given(tokens.consume("tok", TokenPurpose.PASSWORD_RESET)).willReturn(id);
+        given(users.findById(id)).willReturn(Optional.of(user));
+        given(encoder.encode("contraseña-nueva")).willReturn("hash-nfkc");
+
+        // "ñ" descompuesta: n + tilde combinable (U+0303).
+        service.reset("tok", "contraseña-nueva");
+
+        assertThat(user.getPasswordHash()).isEqualTo("hash-nfkc");
     }
 
     @Test
@@ -146,5 +162,6 @@ class PasswordResetServiceTest {
         assertThatThrownBy(() -> service.reset("tok", "nueva-clave-1")).isInstanceOf(InvalidTokenException.class);
         assertThat(user.getPasswordHash()).isEqualTo("viejo");
         verify(refreshTokens, never()).revokeAllByUser(any(), any());
+        verify(loginThrottle, never()).clearAccount(any());
     }
 }
