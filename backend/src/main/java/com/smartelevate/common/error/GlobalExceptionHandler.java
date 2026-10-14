@@ -1,5 +1,8 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.common.security.KioskAuthenticationException;
+import com.smartelevate.elevator.service.KioskException;
+import com.smartelevate.elevator.service.KioskRateLimitedException;
 import com.smartelevate.turn.service.ReservationRejectedException;
 import com.smartelevate.turn.service.TurnFullException;
 
@@ -121,6 +124,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiError> handleUnauthenticated(AuthenticationException ex, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, "Necesitás iniciar sesión", request, List.of());
+    }
+
+    // Sin @ResponseStatus: se documenta en GET /api/kiosks/me/qr-token.
+    @ExceptionHandler(KioskAuthenticationException.class)
+    public ResponseEntity<ApiError> handleKioskUnauthenticated(KioskAuthenticationException ex,
+                                                               HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), "KIOSK_UNAUTHORIZED", request, List.of());
+    }
+
+    @ExceptionHandler(KioskRateLimitedException.class)
+    public ResponseEntity<ApiError> handleKioskRateLimited(KioskRateLimitedException ex,
+                                                           HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    @ExceptionHandler(KioskException.class)
+    public ResponseEntity<ApiError> handleKiosk(KioskException ex, HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
