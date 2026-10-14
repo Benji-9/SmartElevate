@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -50,8 +51,17 @@ public class Reservation {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    /** El usuario tenía una prioridad vigente al reservar: cuenta para los lugares reservados a prioritarios. */
+    @Column(name = "priority_user")
+    private boolean priorityUser;
+
     public Reservation(UUID userId, Departure departure, int seatNumber, int originFloor, int destinationFloor,
                        Instant createdAt) {
+        this(userId, departure, seatNumber, originFloor, destinationFloor, createdAt, false);
+    }
+
+    public Reservation(UUID userId, Departure departure, int seatNumber, int originFloor, int destinationFloor,
+                       Instant createdAt, boolean priorityUser) {
         this.userId = userId;
         this.departure = departure;
         this.seatNumber = seatNumber;
@@ -59,5 +69,19 @@ public class Reservation {
         this.destinationFloor = destinationFloor;
         this.status = ReservationStatus.ACTIVE;
         this.createdAt = createdAt;
+        this.priorityUser = priorityUser;
+    }
+
+    /**
+     * Cancela y libera el lugar (seatNumber NULL, ver V7 y V11). Sin falta hasta {@code deadline} antes de la salida
+     * inclusive; después, CANCELLED_LATE. Idempotente: si ya no está activa, no cambia nada.
+     */
+    public void cancel(Instant now, Duration deadline) {
+        if (status != ReservationStatus.ACTIVE) {
+            return;
+        }
+        status = now.isAfter(departure.getDepartureAt().minus(deadline))
+                ? ReservationStatus.CANCELLED_LATE : ReservationStatus.CANCELLED;
+        seatNumber = null;
     }
 }

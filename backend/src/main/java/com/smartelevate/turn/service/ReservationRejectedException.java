@@ -9,6 +9,7 @@ public class ReservationRejectedException extends RuntimeException {
 
     public enum Reason {
         DEPARTURE_NOT_FOUND(HttpStatus.NOT_FOUND),
+        RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND),
         OUTSIDE_BOOKING_WINDOW(HttpStatus.CONFLICT),
         ACTIVE_LIMIT_REACHED(HttpStatus.CONFLICT),
         DAILY_LIMIT_REACHED(HttpStatus.CONFLICT),

@@ -32,12 +32,26 @@ class DepartureControllerTest {
     @MockitoBean
     private DepartureService service;
 
+    private static final java.util.UUID USER = java.util.UUID.randomUUID();
+
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor asUser() {
+        return org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                .authentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        new com.smartelevate.common.security.CurrentUser(USER, com.smartelevate.user.model.Role.USER),
+                        null, List.of()));
+    }
+
+    @Test
+    void requiresAToken() throws Exception {
+        mockMvc.perform(get("/api/departures")).andExpect(status().isUnauthorized());
+    }
+
     @Test
     void listsBookableDeparturesWithRemainingSeats() throws Exception {
-        given(service.findBookable("33", null)).willReturn(List.of(new DepartureResponse(7, "33", "INDEPENDENCIA",
+        given(service.findBookable(USER, "33", null)).willReturn(List.of(new DepartureResponse(7, "33", "INDEPENDENCIA",
                 Instant.parse("2026-10-13T15:58:00Z"), 10, 10, DepartureStatus.SCHEDULED)));
 
-        mockMvc.perform(get("/api/departures").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()).param("elevator", "33"))
+        mockMvc.perform(get("/api/departures").with(asUser()).param("elevator", "33"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(7))
@@ -51,9 +65,9 @@ class DepartureControllerTest {
 
     @Test
     void passesBuildingFilterAndReturnsEmptyList() throws Exception {
-        given(service.findBookable(null, "LIMA")).willReturn(List.of());
+        given(service.findBookable(USER, null, "LIMA")).willReturn(List.of());
 
-        mockMvc.perform(get("/api/departures").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()).param("building", "LIMA"))
+        mockMvc.perform(get("/api/departures").with(asUser()).param("building", "LIMA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }

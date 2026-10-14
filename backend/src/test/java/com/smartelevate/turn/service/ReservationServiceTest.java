@@ -16,10 +16,13 @@ import com.smartelevate.elevator.model.Building;
 import com.smartelevate.elevator.model.Core;
 import com.smartelevate.elevator.model.Elevator;
 import com.smartelevate.elevator.model.ElevatorUsage;
+import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.service.PriorityService;
 import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.Reservation;
+import com.smartelevate.turn.model.ReservationStatus;
 import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.model.User;
@@ -59,6 +62,8 @@ class ReservationServiceTest {
     private UserRepository users;
     @Mock
     private ConfigService config;
+    @Mock
+    private PriorityService priorities;
 
     private ReservationService service;
     private Elevator elevator;
@@ -66,7 +71,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         CampusTime time = new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, time);
+        service = new ReservationService(reservations, departures, users, config, time, priorities);
         // Ascensor 33 de Independencia: -4 a 11 sin el 1.
         Building building = new Building("INDEPENDENCIA", "Independencia", -4, 11);
         Core core = new Core("IND2", building, "Independencia 2");
@@ -80,6 +85,9 @@ class ReservationServiceTest {
         lenient().when(config.maxActiveBookingsPerUser()).thenReturn(1);
         lenient().when(config.maxDailyBookingsPerUser()).thenReturn(8);
         lenient().when(config.lowFloorsThreshold()).thenReturn(4);
+        lenient().when(config.prioritySeatsPerDeparture()).thenReturn(2);
+        lenient().when(config.prioritySeatsReleaseBefore()).thenReturn(Duration.ofMinutes(3));
+        lenient().when(priorities.currentPriority(USER)).thenReturn(PriorityCategory.NONE);
         lenient().when(reservations.saveAndFlush(any(Reservation.class))).thenAnswer(i -> {
             Reservation r = i.getArgument(0);
             ReflectionTestUtils.setField(r, "id", 55L);
@@ -127,6 +135,7 @@ class ReservationServiceTest {
     void departureWithNineBookingsStillHasTheTenthSeat() {
         departureAt(NOW.plus(Duration.ofMinutes(10)));
         seatsTaken(9);
+        given(priorities.currentPriority(USER)).willReturn(PriorityCategory.TEACHER);
 
         assertThat(reserve(0, 8).seatNumber()).isEqualTo(10);
     }
@@ -176,18 +185,132 @@ class ReservationServiceTest {
         // 23:50 en Buenos Aires: faltan 20 min para la salida de las 00:10 del día siguiente.
         CampusTime late = new CampusTime(Clock.fixed(Instant.parse("2026-10-14T02:50:00Z"), ZoneOffset.UTC),
                 ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, late);
+        service = new ReservationService(reservations, departures, users, config, late, priorities);
         departureAt(Instant.parse("2026-10-14T03:10:00Z"));
 
         assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.OUTSIDE_BOOKING_WINDOW);
     }
 
+    // --- ascensores dedicados: 05 docentes, 06 movilidad reducida ---
+
+    @ParameterizedTest
+    @CsvSource({
+            "TEACHERS, NONE, false", "TEACHERS, TEACHER, true", "TEACHERS, REDUCED_MOBILITY, false",
+            "REDUCED_MOBILITY, NONE, false", "REDUCED_MOBILITY, TEACHER, false",
+            "REDUCED_MOBILITY, REDUCED_MOBILITY, true",
+            "COMMON, NONE, true", "COMMON, TEACHER, true", "COMMON, REDUCED_MOBILITY, true"})
+    void dedicatedElevatorsOnlyAdmitTheirCategory(ElevatorUsage usage, PriorityCategory priority, boolean allowed) {
+        elevator = new Elevator("05", elevator.getCore(), usage, true, elevator.getFloors());
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        given(priorities.currentPriority(USER)).willReturn(priority);
+
+        if (allowed) {
+            assertThat(reserve(0, 8).seatNumber()).isEqualTo(1);
+        } else {
+            assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.ELEVATOR_NOT_BOOKABLE);
+        }
+    }
+
     @Test
-    void dedicatedElevatorIsNotBookableYet() {
+    void dedicatedElevatorDoesNotHoldPrioritySeatsAndMarksTheReservation() {
         elevator = new Elevator("05", elevator.getCore(), ElevatorUsage.TEACHERS, true, elevator.getFloors());
         departureAt(NOW.plus(Duration.ofMinutes(10)));
+        given(priorities.currentPriority(USER)).willReturn(PriorityCategory.TEACHER);
+        seatsTaken(9);
 
-        assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.ELEVATOR_NOT_BOOKABLE);
+        assertThat(reserve(0, 8).seatNumber()).isEqualTo(10);
+        verify(reservations).saveAndFlush(org.mockito.ArgumentMatchers.argThat(Reservation::isPriorityUser));
+    }
+
+    // --- lugares reservados para prioritarios: 2 de 10, liberados 3 min antes ---
+
+    private void prioritySeatsTaken(long count) {
+        lenient().when(reservations.countActivePriority(DEPARTURE_ID)).thenReturn(count);
+    }
+
+    @Test
+    void withEightCommonBookedACommonUserCannotTakeTheNinthSeat() {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(8);
+        prioritySeatsTaken(0);
+
+        assertThatThrownBy(() -> reserve(0, 8)).isInstanceOf(TurnFullException.class)
+                .hasMessageContaining("prioritarios");
+        verify(reservations, never()).saveAndFlush(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"TEACHER, 9", "REDUCED_MOBILITY, 9"})
+    void withEightCommonBookedAPriorityUserTakesTheNinthSeat(PriorityCategory priority, int seat) {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(8);
+        prioritySeatsTaken(0);
+        given(priorities.currentPriority(USER)).willReturn(priority);
+
+        assertThat(reserve(0, 8).seatNumber()).isEqualTo(seat);
+        verify(reservations).saveAndFlush(org.mockito.ArgumentMatchers.argThat(Reservation::isPriorityUser));
+    }
+
+    @Test
+    void sevenCommonPlusOnePriorityStillLeaveOneSeatForACommonUser() {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(8);
+        prioritySeatsTaken(1);
+
+        assertThat(reserve(0, 8).seatNumber()).isEqualTo(9);
+        verify(reservations).saveAndFlush(org.mockito.ArgumentMatchers.argThat(r -> !r.isPriorityUser()));
+    }
+
+    @Test
+    void eightCommonPlusOnePriorityKeepTheLastSeatForAPriorityUser() {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(9);
+        prioritySeatsTaken(1);
+
+        assertThatThrownBy(() -> reserve(0, 8)).isInstanceOf(TurnFullException.class);
+    }
+
+    @Test
+    void priorityUsersBeyondTheReservedSeatsCountAgainstTheCommonOnes() {
+        // 3 prioritarios + 6 comunes: los reservados ya están cubiertos, queda 1 para cualquiera.
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(9);
+        prioritySeatsTaken(3);
+
+        assertThat(reserve(0, 8).seatNumber()).isEqualTo(10);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"PT3M1S, false", "PT3M, true", "PT2M30S, true"})
+    void reservedSeatsAreReleasedThreeMinutesBefore(String untilDeparture, boolean released) {
+        departureAt(NOW.plus(Duration.parse(untilDeparture)));
+        seatsTaken(8);
+        prioritySeatsTaken(0);
+
+        if (released) {
+            assertThat(reserve(0, 8).seatNumber()).isEqualTo(9);
+        } else {
+            assertThatThrownBy(() -> reserve(0, 8)).isInstanceOf(TurnFullException.class);
+        }
+    }
+
+    @Test
+    void zeroPrioritySeatsDisablesTheRule() {
+        given(config.prioritySeatsPerDeparture()).willReturn(0);
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(9);
+
+        assertThat(reserve(0, 8).seatNumber()).isEqualTo(10);
+    }
+
+    @Test
+    void fullDepartureIsFullForPriorityUsersToo() {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        seatsTaken(10);
+        given(priorities.currentPriority(USER)).willReturn(PriorityCategory.REDUCED_MOBILITY);
+
+        assertThatThrownBy(() -> reserve(0, 8)).isInstanceOf(TurnFullException.class)
+                .hasMessageNotContaining("prioritarios");
     }
 
     // --- límites por usuario ---
@@ -238,6 +361,19 @@ class ReservationServiceTest {
         assertThatCode(() -> reserve(origin, destination)).doesNotThrowAnyException();
     }
 
+    @ParameterizedTest
+    @CsvSource({"REDUCED_MOBILITY, true", "TEACHER, false", "NONE, false"})
+    void onlyReducedMobilityIsExemptFromTheLowFloorsRule(PriorityCategory priority, boolean allowed) {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        given(priorities.currentPriority(USER)).willReturn(priority);
+
+        if (allowed) {
+            assertThatCode(() -> reserve(0, 2)).doesNotThrowAnyException();
+        } else {
+            assertRejected(() -> reserve(0, 2), ReservationRejectedException.Reason.LOW_FLOOR_DESTINATION);
+        }
+    }
+
     @Test
     void lowFloorsThresholdZeroDisablesTheRule() {
         given(config.lowFloorsThreshold()).willReturn(0);
@@ -250,5 +386,66 @@ class ReservationServiceTest {
                                        ReservationRejectedException.Reason reason) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ReservationRejectedException.class,
                 e -> assertThat(e.getReason()).isEqualTo(reason));
+    }
+
+    // --- Cancelar (#116) ---
+
+    private Reservation reservationOf(UUID owner, Instant departureAt) {
+        Departure d = new Departure(elevator, departureAt, 10);
+        ReflectionTestUtils.setField(d, "id", DEPARTURE_ID);
+        Reservation r = new Reservation(owner, d, 3, 0, 8, NOW.minus(Duration.ofMinutes(10)));
+        ReflectionTestUtils.setField(r, "id", 55L);
+        lenient().when(reservations.findById(55L)).thenReturn(Optional.of(r));
+        lenient().when(config.cancellationDeadlineBefore()).thenReturn(Duration.ofMinutes(1));
+        return r;
+    }
+
+    @ParameterizedTest
+    @CsvSource({"61, CANCELLED", "60, CANCELLED", "59, CANCELLED_LATE", "-30, CANCELLED_LATE"})
+    void cancelBeforeTheDeadlineIsFreeAndAfterItIsLate(long secondsBefore, ReservationStatus expected) {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(secondsBefore));
+
+        service.cancel(USER, 55L);
+
+        assertThat(r.getStatus()).isEqualTo(expected);
+        assertThat(r.getSeatNumber()).isNull();
+        verify(users).lockById(USER);
+        verify(departures).findByIdForUpdate(DEPARTURE_ID);
+    }
+
+    @Test
+    void cancellingTwiceKeepsTheFirstOutcome() {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(61));
+        service.cancel(USER, 55L);
+        given(config.cancellationDeadlineBefore()).willReturn(Duration.ofHours(1));
+
+        assertThatCode(() -> service.cancel(USER, 55L)).doesNotThrowAnyException();
+
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
+    }
+
+    @Test
+    void someoneElsesReservationLooksLikeItDoesNotExist() {
+        Reservation r = reservationOf(UUID.randomUUID(), NOW.plusSeconds(600));
+        assertRejected(() -> service.cancel(USER, 55L), ReservationRejectedException.Reason.RESERVATION_NOT_FOUND);
+        assertRejected(() -> service.cancel(USER, 99L), ReservationRejectedException.Reason.RESERVATION_NOT_FOUND);
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.ACTIVE);
+        assertThat(r.getSeatNumber()).isEqualTo(3);
+    }
+
+    @Test
+    void mineListsFromTheStartOfTheCampusDay() {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(600));
+        // 00:00 de Buenos Aires = 03:00 UTC.
+        given(reservations.findMine(USER, Instant.parse("2026-10-13T03:00:00Z"))).willReturn(List.of(r));
+
+        List<ReservationResponse> mine = service.mine(USER);
+
+        assertThat(mine).singleElement().satisfies(res -> {
+            assertThat(res.id()).isEqualTo(55L);
+            assertThat(res.elevator()).isEqualTo("33");
+            assertThat(res.seatNumber()).isEqualTo(3);
+            assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+        });
     }
 }
