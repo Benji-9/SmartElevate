@@ -103,6 +103,11 @@ export DATABASE_PASSWORD=smartelevate
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
 | `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
 | `APP_FRONTEND_URL` | `http://localhost:5173` | Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
+| `APP_KIOSK_QR_SECRET` | — | Clave HMAC-SHA256 del token del QR ([ADR 0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)), mínimo 32 caracteres y distinta de `JWT_SECRET`. **Obligatoria en `prod`** (la app no arranca sin ella); en dev, si falta, se usa una efímera. Generala con `openssl rand -base64 48`. Rotarla invalida los QR en pantalla, que se renuevan solos en el ciclo siguiente. Nunca en el repo |
+| `APP_KIOSK_QR_TTL` | `PT30S` | Vida de cada token del QR (segundos enteros); se acepta también el del ciclo anterior. Reemplaza a `qr_rotation` de `app_config` |
+| `APP_KIOSK_SIMULATOR_ENABLED` | `false` | `true` permite crear kioscos simulados (simulador de admin); sus check-ins cuentan como simulados |
+| `APP_KIOSK_RATE_LIMIT_MAX_REQUESTS` | `10` | Pedidos de token por kiosco dentro de la ventana (se espera ~1 cada 30 s); al pasarse, 429 con `Retry-After` |
+| `APP_KIOSK_RATE_LIMIT_WINDOW` | `PT1M` | Ventana del límite de pedidos por kiosco |
 
 #### Autenticación y endpoints protegidos
 
@@ -117,6 +122,8 @@ Públicos: `/api/ping`, `/api/auth/**`, `GET /api/elevators`, `GET /api/building
 - Tests `@WebMvcTest`: anotar con `@WithAppSecurity` (carga las reglas reales) y usar `jwt()` de `spring-security-test`.
 
 Roles y prioridad (#121): `GET/POST /api/admin/teachers/...`, `GET/DELETE /api/admin/priority-users/...` y `PUT /api/admin/users/{id}/role` son solo ADMIN. La prioridad vigente (aprobada y no vencida) la da `PriorityService.currentPriority(userId)`, el único punto que debe usar la reserva; cada cambio queda en la tabla `priority_audit`. Cómo crear el primer ADMIN: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
+
+Kioscos del QR (#229, [ADR 0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): `GET/POST /api/admin/kiosks` y `POST /api/admin/kiosks/{id}/revoke` son solo ADMIN; el alta devuelve el secreto del kiosco **una sola vez**. `/api/kiosks/**` tiene su propia cadena de seguridad (`KioskSecurityConfig`): se autentica con `Authorization: Bearer <secreto del kiosco>`, no con un JWT. Las altas y revocaciones quedan en `priority_audit`.
 
 #### Migraciones de la base (Flyway)
 
@@ -278,7 +285,7 @@ Detalles:
 
 ## Setup manual pendiente
 
-- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)): cargarla en Render cuando se implemente el check-in ([#219](https://github.com/Benji-9/SmartElevate/issues/219)); el nombre de la variable lo fija esa implementación.
+- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): cargar `APP_KIOSK_QR_SECRET` en Render **antes** de deployar [#229](https://github.com/Benji-9/SmartElevate/issues/229): sin ella el backend no arranca en `prod`.
 - **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)).
 
 Las previews de Vercel no tienen Deployment Protection: cualquiera con la URL las puede abrir ([bloqueantes](docs/bloqueantes.md), B-07).

@@ -36,7 +36,6 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Liberación de lugares prioritarios | 3 min antes | Antes del cierre de la ventana (2 min) |
 | Envejecimiento de prioridad (N) | — | **Fuera del MVP** ([#212](https://github.com/Benji-9/SmartElevate/issues/212)). `priority_aging` queda en NULL y no se usa |
 | Vigencia de la prioridad de docente | Hasta el fin del cuatrimestre en curso | Renovable. `priority_teacher_validity` está hoy en NULL (no vence); la fecha de cierre del cuatrimestre la agrega [#218](https://github.com/Benji-9/SmartElevate/issues/218) |
-| Rotación del QR | ~30 s | [ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md). `qr_rotation` vale hoy 60 s (`V3`); el cambio va con [#219](https://github.com/Benji-9/SmartElevate/issues/219) |
 | Tiempo de carga (10 personas) | 14 s | Medido por el equipo |
 | Tiempo por piso | 3 s | Medido por el equipo |
 | Umbral de pisos bajos | 4 | Sin reserva con destino en los pisos 1 a 4; movilidad reducida exenta |
@@ -55,11 +54,14 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Link de verificación de email | Vale 24 h · reenvío cada 1 min | `app.verification.*` |
 | Link de reset de contraseña | Vale 30 min · un pedido por minuto | `app.password-reset.*` |
 | Límite de logins fallidos | 10 por cuenta y 100 por IP en 15 min | Ventana deslizante; por cuenta, como mucho 100 ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). `app.login-throttle.*`, override por `APP_LOGIN_THROTTLE_*`. Se movió de `app_config` en [#225](https://github.com/Benji-9/SmartElevate/issues/225) (`V14` borró las filas de `V13`) |
+| Rotación del QR | 30 s, y se acepta el del ciclo anterior | `app.kiosk.qr-ttl`, override por `APP_KIOSK_QR_TTL` ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)). Era `qr_rotation` de `app_config`; `V15` borró la fila ([#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
+| Pedidos de token por kiosco | 10 por minuto | `app.kiosk.rate-limit-*`, override por `APP_KIOSK_RATE_LIMIT_*`. Se espera ~1 cada 30 s |
+| Simulador de kioscos | Apagado | `APP_KIOSK_SIMULATOR_ENABLED` (`app.kiosk.simulator-enabled`): sin él no se crean kioscos simulados |
 | Certificado | Hasta 5 MB · PDF, JPG o PNG | Tipo validado por contenido (magic bytes), no por extensión. Llega con [#123](https://github.com/Benji-9/SmartElevate/issues/123) |
 
 ### Secretos (solo variables de entorno)
 
-`JWT_SECRET`, `DATABASE_PASSWORD`, `SPRING_MAIL_PASSWORD`, `APP_STORAGE_SECRET_KEY` y, cuando llegue el check-in, la clave HMAC del QR ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)).
+`JWT_SECRET`, `DATABASE_PASSWORD`, `SPRING_MAIL_PASSWORD`, `APP_STORAGE_SECRET_KEY` y la clave HMAC del QR, `APP_KIOSK_QR_SECRET` ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)). Las credenciales de los kioscos no son variables: las genera el alta y en la base queda solo su hash ([ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)).
 
 ## Pendientes fuera del código
 
