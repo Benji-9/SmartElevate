@@ -54,7 +54,7 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Refresh token | 7 días | `JWT_REFRESH_TTL` (`app.security.jwt.refresh-ttl`) |
 | Link de verificación de email | Vale 24 h · reenvío cada 1 min | `app.verification.*` |
 | Link de reset de contraseña | Vale 30 min · un pedido por minuto | `app.password-reset.*` |
-| Límite de logins fallidos | 10 por cuenta y 100 por IP en 15 min | Ventana deslizante; por cuenta, como mucho 100 ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). **Pendiente:** hoy está en `app_config` (`login_failure_window`, `login_max_failures_per_account`, `login_max_failures_per_ip`, de `V13`); se pasa a `application.yml` en [#225](https://github.com/Benji-9/SmartElevate/issues/225) |
+| Límite de logins fallidos | 10 por cuenta y 100 por IP en 15 min | Ventana deslizante; por cuenta, como mucho 100 ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). `app.login-throttle.*`, override por `APP_LOGIN_THROTTLE_*`. Se movió de `app_config` en [#225](https://github.com/Benji-9/SmartElevate/issues/225) (`V14` borró las filas de `V13`) |
 | Certificado | Hasta 5 MB · PDF, JPG o PNG | Tipo validado por contenido (magic bytes), no por extensión. Llega con [#123](https://github.com/Benji-9/SmartElevate/issues/123) |
 
 ### Secretos (solo variables de entorno)

@@ -35,7 +35,7 @@ Antes de implementar algo de `turn`, `elevator`, `user` o `priority` (backend o 
 - La prioridad se evalúa **en el servidor al reservar**, nunca desde un claim del JWT. El rol y la prioridad no vienen del registro (ADR 0009).
 - Los certificados son **datos de salud**: bucket privado, URLs firmadas cortas, borrado al resolver.
 
-Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` y `docs/bloqueantes.md` (hoy: accesibilidad de las conexiones, #22; datos de salud, #24; mover los límites de login de `app_config` a `application.yml`, #225). X y N quedaron fuera del MVP (`docs/alcance-mvp.md`): no los implementes.
+Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` y `docs/bloqueantes.md` (hoy: accesibilidad de las conexiones, #22; datos de salud, #24). X y N quedaron fuera del MVP (`docs/alcance-mvp.md`): no los implementes.
 
 ## Arquitectura
 

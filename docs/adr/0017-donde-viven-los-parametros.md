@@ -29,4 +29,4 @@ Opción **3**:
 
 - Un cambio de seguridad pasa por un PR o por una variable del servicio, no por un `UPDATE` suelto.
 - QA y el equipo siguen calibrando las reglas de negocio en la base, reiniciando la app (ADR 0010).
-- **Pendiente:** los tres límites de intentos de login (`login_failure_window`, `login_max_failures_per_account`, `login_max_failures_per_ip`) están hoy en `app_config` (`V13`). Moverlos a `application.yml` es un cambio de código y de migración que va en [#225](https://github.com/Benji-9/SmartElevate/issues/225).
+- Los tres límites de intentos de login (`login_failure_window`, `login_max_failures_per_account`, `login_max_failures_per_ip`) se movieron de `app_config` a `application.yml` (`app.login-throttle.*`) en [#225](https://github.com/Benji-9/SmartElevate/issues/225): `V14` borró las filas que había agregado `V13`.
