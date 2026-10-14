@@ -292,7 +292,7 @@ export interface paths {
     };
     /**
      * Lista las salidas reservables ahora (ventana de reserva) con su cupo restante
-     * @description Excluye los ascensores dedicados. Genera las salidas que falten de forma idempotente.
+     * @description Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.
      */
     get: operations['bookable'];
     put?: never;
@@ -348,7 +348,7 @@ export interface paths {
     put?: never;
     /**
      * Reserva un lugar en una salida
-     * @description El usuario sale del token. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND.
+     * @description El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría.
      */
     post: operations['reserve'];
     delete?: never;
@@ -500,8 +500,8 @@ export interface components {
       id: number;
       /**
        * Format: int32
-       * @description Lugares libres
-       * @example 10
+       * @description Lugares que puede tomar el usuario: a uno común no se le cuentan los reservados a prioritarios
+       * @example 8
        */
       remainingSeats: number;
       /** @enum {string} */

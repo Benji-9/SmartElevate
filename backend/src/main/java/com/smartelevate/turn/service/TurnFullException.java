@@ -4,6 +4,10 @@ package com.smartelevate.turn.service;
 public class TurnFullException extends RuntimeException {
 
     public TurnFullException() {
-        super("La salida está llena. Elegí otra.");
+        this("La salida está llena. Elegí otra.");
+    }
+
+    public TurnFullException(String message) {
+        super(message);
     }
 }

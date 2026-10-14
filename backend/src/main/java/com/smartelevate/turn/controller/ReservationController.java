@@ -38,10 +38,13 @@ public class ReservationController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Reserva un lugar en una salida",
-            description = "El usuario sale del token. Los errores de regla traen un code estable: "
+            description = "El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla "
+                    + "traen un code estable: "
                     + "TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, "
                     + "ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, "
-                    + "LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND.")
+                    + "LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND. TURN_FULL también cuando los lugares libres están "
+                    + "reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra "
+                    + "categoría.")
     @ApiResponse(responseCode = "404", description = "La salida no existe (DEPARTURE_NOT_FOUND)",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     @ApiResponse(responseCode = "409",
