@@ -8,7 +8,7 @@ import { signedOut, stubApi, testUser, tokens } from '../test/stubApi';
 const loginOk = {
   ...signedOut,
   'POST /auth/login': { body: tokens() },
-  'GET /me': { body: testUser },
+  'GET /users/me': { body: testUser },
 };
 
 async function renderLogin(path = '/login') {

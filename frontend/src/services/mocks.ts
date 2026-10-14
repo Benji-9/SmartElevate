@@ -4,14 +4,22 @@
 // lo que no matchea acá sigue de largo al backend.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
-import type { Building, LoginRequest, RefreshRequest } from '../types/api';
+import type {
+  Building,
+  LoginRequest,
+  PendingTeacher,
+  PriorityUser,
+  RefreshRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  TokenResponse,
+  User,
+} from '../types/api';
 import { ApiError } from './api';
 import type {
   AdminKpis,
   AdminPeriod,
   AdminShift,
-  PendingTeacher,
-  PriorityUser,
   CheckInRequest,
   CheckInResult,
   CongestionSnapshot,
@@ -22,15 +30,11 @@ import type {
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  RegisterRequest,
   Reservation,
   ReserveRequest,
-  ResetPasswordRequest,
-  TokenResponse,
   Trip,
   TripPage,
   TripResult,
-  User,
   WaitFeedbackRequest,
 } from '../types/pending';
 
@@ -456,7 +460,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       }
     },
   ],
-  ['GET', /^\/me$/, () => currentUser()],
+  ['GET', /^\/users\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
   ['GET', /^\/cores$/, () => cores],
   ['GET', /^\/cores\/([^/]+)\/departures$/, (_, [coreId]) => departuresFor(coreId)],

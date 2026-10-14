@@ -5,7 +5,7 @@ import { ApiError, getMe, login, logout, onSessionExpired, restoreSession } from
 const auth = (init?: RequestInit) => (init?.headers as Record<string, string>)?.Authorization;
 const body = (init?: RequestInit) => JSON.parse(init!.body as string);
 
-/** `/me` solo acepta el token indicado. */
+/** `/users/me` solo acepta el token indicado. */
 const meAccepting = (token: string) => (init?: RequestInit) =>
   auth(init) === `Bearer ${token}`
     ? { body: testUser }
@@ -14,7 +14,7 @@ const meAccepting = (token: string) => (init?: RequestInit) =>
 async function signIn() {
   stubApi({
     'POST /auth/login': { body: tokens(1) },
-    'GET /me': meAccepting('token-1'),
+    'GET /users/me': meAccepting('token-1'),
   });
   await login({ email: testUser.email, password: 'secreta' });
 }
@@ -35,13 +35,13 @@ describe('sesión en services/api', () => {
     await signIn();
     const fetchMock = stubApi({
       'POST /auth/refresh': { body: tokens(2) },
-      'GET /me': meAccepting('token-2'),
+      'GET /users/me': meAccepting('token-2'),
     });
 
     await expect(getMe()).resolves.toEqual(testUser);
 
     const calls = fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${url}`);
-    expect(calls).toEqual(['GET /api/me', 'POST /api/auth/refresh', 'GET /api/me']);
+    expect(calls).toEqual(['GET /api/users/me', 'POST /api/auth/refresh', 'GET /api/users/me']);
     expect(body(fetchMock.mock.calls[1][1])).toEqual({ refreshToken: 'refresh-1' });
     expect(sessionStorage.getItem('smartelevate.refresh')).toBe('refresh-2');
   });
@@ -50,7 +50,7 @@ describe('sesión en services/api', () => {
     await signIn();
     const fetchMock = stubApi({
       'POST /auth/refresh': { body: tokens(2) },
-      'GET /me': meAccepting('token-2'),
+      'GET /users/me': meAccepting('token-2'),
     });
 
     await Promise.all([getMe(), getMe(), getMe()]);
@@ -63,7 +63,7 @@ describe('sesión en services/api', () => {
     await signIn();
     stubApi({
       'POST /auth/refresh': { status: 401, body: { message: 'Refresh vencido' } },
-      'GET /me': meAccepting('token-2'),
+      'GET /users/me': meAccepting('token-2'),
     });
     const expired = vi.fn();
     const unsubscribe = onSessionExpired(expired);
@@ -78,7 +78,9 @@ describe('sesión en services/api', () => {
   });
 
   it('sin sesión un 401 no intenta renovar', async () => {
-    const fetchMock = stubApi({ 'GET /me': { status: 401, body: { message: 'Sin sesión' } } });
+    const fetchMock = stubApi({
+      'GET /users/me': { status: 401, body: { message: 'Sin sesión' } },
+    });
 
     await expect(getMe()).rejects.toBeInstanceOf(ApiError);
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -88,7 +90,7 @@ describe('sesión en services/api', () => {
     await signIn();
     const fetchMock = stubApi({
       'POST /auth/refresh': { body: tokens(2) },
-      'GET /me': meAccepting('token-2'),
+      'GET /users/me': meAccepting('token-2'),
     });
 
     await expect(restoreSession()).resolves.toEqual(testUser);

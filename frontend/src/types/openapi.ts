@@ -357,6 +357,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/users/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Devuelve el usuario de la sesión
+     * @description El rol se lee de la base y la prioridad es la vigente ahora (ADR 0009): ninguno sale de un claim del JWT. Sin token o con uno inválido responde 401.
+     */
+    get: operations['me'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -637,6 +657,44 @@ export interface components {
       newPassword: string;
       /** @example Zk3pQ1x9... */
       token: string;
+    };
+    /** @description Par de tokens de la sesión. El access token no lleva rol ni prioridad */
+    TokenResponse: {
+      /** @description JWT corto, va en Authorization: Bearer */
+      accessToken: string;
+      /**
+       * Format: int64
+       * @description Segundos de vida del access token
+       * @example 900
+       */
+      expiresIn: number;
+      /** @description Opaco y de un solo uso: cada refresh devuelve uno nuevo */
+      refreshToken: string;
+      /** @example Bearer */
+      tokenType: string;
+    };
+    /** @description Usuario de la sesión. Rol y prioridad salen del servidor, nunca del token */
+    UserResponse: {
+      /**
+       * @description Lo que declaró al registrarse. Informativo: no da rol ni prioridad
+       * @enum {string}
+       */
+      declaredUserType: 'STUDENT' | 'TEACHER';
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * @description Prioridad vigente, solo para mostrar: se vuelve a evaluar al reservar
+       * @enum {string}
+       */
+      priority: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /** @enum {string} */
+      role: 'USER' | 'REVIEWER' | 'ADMIN';
     };
     /** @description Token del link que llegó por mail */
     VerifyEmailRequest: {
@@ -960,6 +1018,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Par de tokens nuevo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -1131,6 +1198,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Par de tokens nuevo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -1523,6 +1599,44 @@ export interface operations {
       };
       /** @description Pisos o ascensor no válidos para la reserva */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
         headers: {
           [name: string]: unknown;
         };

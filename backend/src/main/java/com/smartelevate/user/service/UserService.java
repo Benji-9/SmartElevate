@@ -1,18 +1,24 @@
 package com.smartelevate.user.service;
 
+import com.smartelevate.priority.service.PriorityService;
 import com.smartelevate.user.dto.RegisterRequest;
+import com.smartelevate.user.dto.UserResponse;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.UserRepository;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-/** Cuentas de usuario. Por ahora, solo el registro. */
+/** Cuentas de usuario: registro y datos del usuario de la sesión. */
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -21,6 +27,19 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
     private final EmailVerificationService emailVerification;
+    private final PriorityService priorityService;
+
+    /**
+     * Usuario de la sesión. El rol sale de la base y la prioridad de {@link PriorityService#currentPriority}, nunca
+     * de un claim del JWT (ADR 0009). Si la cuenta se borró después de autenticar, se trata como sesión inválida.
+     */
+    @Transactional(readOnly = true)
+    public UserResponse me(UUID userId) {
+        User user = users.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido"));
+        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getLegajo(), user.getRole(),
+                priorityService.currentPriority(userId), user.getDeclaredUserType());
+    }
 
     /**
      * Crea una cuenta común y sin verificar.
