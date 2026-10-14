@@ -1,6 +1,7 @@
 package com.smartelevate.turn.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartelevate.elevator.model.Elevator;
 import com.smartelevate.elevator.repository.ElevatorRepository;
@@ -8,8 +9,10 @@ import com.smartelevate.priority.model.PriorityCategory;
 import com.smartelevate.priority.model.PriorityStatus;
 import com.smartelevate.priority.model.UserPriority;
 import com.smartelevate.priority.repository.UserPriorityRepository;
+import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
 import com.smartelevate.turn.model.Departure;
+import com.smartelevate.turn.model.ReservationStatus;
 import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.model.DeclaredUserType;
@@ -112,6 +115,32 @@ abstract class ReservationConcurrencyTestBase {
         assertThat(attempt(current, dedicated.getId())).isEqualTo(1);
     }
 
+    @Test
+    void aCancelledPrioritySeatGoesBackToPriorityUsersUntilTheReleaseAndToAnyoneAfter() {
+        // A 10 min los 2 lugares siguen reservados; a 3 min ya se liberaron.
+        for (int minutes : new int[] {10, 3}) {
+            Departure departure = departure(minutes);
+            int offset = minutes * 100; // usuarios distintos en cada salida (1 reserva activa por usuario)
+            List<UUID> common = newUsers(offset, 9);
+            List<UUID> priority = newUsers(offset + 9, 3);
+            priority.forEach(id -> approve(id, PriorityCategory.TEACHER, null));
+            common.subList(0, 8).forEach(id -> service.reserve(id, new ReserveRequest(departure.getId(), 0, 8)));
+            ReservationResponse first = service.reserve(priority.get(0), new ReserveRequest(departure.getId(), 0, 8));
+            service.reserve(priority.get(1), new ReserveRequest(departure.getId(), 0, 8));
+
+            service.cancel(priority.get(0), first.id());
+
+            assertThat(reservations.countActivePriority(departure.getId())).isEqualTo(1);
+            if (minutes == 10) {
+                assertThat(attempt(common.getLast(), departure.getId())).isInstanceOf(TurnFullException.class);
+                assertThat(attempt(priority.get(2), departure.getId())).isEqualTo(first.seatNumber());
+            } else {
+                assertThat(attempt(common.getLast(), departure.getId())).isEqualTo(first.seatNumber());
+            }
+            assertThat(reservations.activeSeats(departure.getId())).hasSize(CAPACITY).doesNotHaveDuplicates();
+        }
+    }
+
     private void approve(UUID userId, PriorityCategory category, Instant expiresAt) {
         UserPriority p = new UserPriority(userId, category);
         p.decide(PriorityStatus.APPROVED, expiresAt, NOW.minus(Duration.ofDays(1)), userId);
@@ -146,6 +175,54 @@ abstract class ReservationConcurrencyTestBase {
                 .allSatisfy(r -> assertThat(((ReservationRejectedException) r).getReason())
                         .isEqualTo(ReservationRejectedException.Reason.ACTIVE_LIMIT_REACHED));
         assertThat(reservations.count()).isEqualTo(1);
+    }
+
+    @Test
+    void cancellingFreesTheSeatForSomeoneElseRightAwayAndStrangersCannotTouchIt() {
+        Departure departure = departure(3); // lugares de prioritarios ya liberados: entran 10 comunes
+        List<UUID> people = newUsers(CAPACITY + 1);
+        List<ReservationResponse> booked = people.subList(0, CAPACITY).stream()
+                .map(id -> service.reserve(id, new ReserveRequest(departure.getId(), 0, 8))).toList();
+        UUID late = people.getLast();
+        assertThat(attempt(late, departure.getId())).isInstanceOf(TurnFullException.class);
+
+        ReservationResponse third = booked.get(2);
+        UUID owner = people.get(2);
+        assertThat(service.mine(late)).isEmpty();
+        assertThatThrownBy(() -> service.cancel(late, third.id()))
+                .isInstanceOfSatisfying(ReservationRejectedException.class, e -> assertThat(e.getReason())
+                        .isEqualTo(ReservationRejectedException.Reason.RESERVATION_NOT_FOUND));
+
+        service.cancel(owner, third.id());
+        service.cancel(owner, third.id());
+
+        assertThat(service.mine(owner)).singleElement().satisfies(r -> {
+            assertThat(r.status()).isEqualTo(ReservationStatus.CANCELLED);
+            assertThat(r.seatNumber()).isNull();
+        });
+        assertThat(attempt(late, departure.getId())).isEqualTo(third.seatNumber());
+    }
+
+    @Test
+    void aCancelRacingWithManyReservesLetsExactlyOneIn() throws Exception {
+        Departure departure = departure(3); // lugares de prioritarios ya liberados: entran 10 comunes
+        List<UUID> people = newUsers(CAPACITY + 6);
+        List<ReservationResponse> booked = people.subList(0, CAPACITY).stream()
+                .map(id -> service.reserve(id, new ReserveRequest(departure.getId(), 0, 8))).toList();
+        List<Callable<Object>> tasks = new ArrayList<>(people.subList(CAPACITY, people.size()).stream()
+                .<Callable<Object>>map(id -> () -> attempt(id, departure.getId())).toList());
+        tasks.add(() -> {
+            service.cancel(people.getFirst(), booked.getFirst().id());
+            return "cancelled";
+        });
+
+        List<Object> results = runAtOnce(tasks);
+
+        // Según quién gane el lock, entra uno solo (si el cancel llega antes) o ninguno.
+        long winners = results.stream().filter(r -> r instanceof Integer).count();
+        assertThat(winners).isLessThanOrEqualTo(1);
+        assertThat(reservations.activeSeats(departure.getId())).doesNotHaveDuplicates()
+                .hasSize(CAPACITY - 1 + (int) winners);
     }
 
     private Object attempt(UUID userId, long departureId) {

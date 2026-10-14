@@ -3,6 +3,7 @@ import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
 import { errorMessage, useResource } from '../../hooks/useResource';
 import {
+  ApiError,
   approveTeacher,
   getPendingTeachers,
   getPriorityUsers,
@@ -84,7 +85,15 @@ function Section<T extends { id: string }>({
         list.reload();
         onDone?.();
       },
-      (error: unknown) => setActionError(errorMessage(error)),
+      (error: unknown) => {
+        // 404 / 409: la fila quedó vieja (otro admin ya la resolvió). Se vuelve a pedir la lista.
+        if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+          setActionError(`${error.message}. Actualizamos la lista.`);
+          list.reload();
+        } else {
+          setActionError(errorMessage(error));
+        }
+      },
     );
   };
 
@@ -191,11 +200,9 @@ export function PriorityUsers() {
           <td>{u.email}</td>
           <td>{u.legajo}</td>
           <td>
-            {u.category === 'TEACHER' ? (
-              <Chip tone="docentes">Docente</Chip>
-            ) : (
-              <Chip>Movilidad reducida</Chip>
-            )}
+            {/* El contrato admite NONE, pero esta lista solo trae prioridades vigentes. */}
+            {u.category === 'TEACHER' && <Chip tone="docentes">Docente</Chip>}
+            {u.category === 'REDUCED_MOBILITY' && <Chip>Movilidad reducida</Chip>}
           </td>
           <td>
             <ConfirmAction

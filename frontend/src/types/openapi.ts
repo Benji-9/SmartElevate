@@ -357,6 +357,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reservations/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista mis reservas de hoy en adelante (activas y canceladas)
+     * @description Ordenadas por salida, la más tardía primero.
+     */
+    get: operations['mine'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reservations/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Cancela una reserva mía y libera el lugar
+     * @description Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda CANCELLED; después, CANCELLED_LATE (cuenta como falta).
+     */
+    delete: operations['cancel'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Devuelve el usuario de la sesión
+     * @description El rol se lee de la base y la prioridad es la vigente ahora (ADR 0009): ninguno sale de un claim del JWT. Sin token o con uno inválido responde 401.
+     */
+    get: operations['me'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -602,12 +662,12 @@ export interface components {
       originFloor: number;
       /**
        * Format: int32
-       * @description Número de lugar, de 1 a la capacidad
+       * @description Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.
        * @example 3
        */
-      seatNumber: number;
+      seatNumber?: number | null;
       /** @enum {string} */
-      status: 'ACTIVE' | 'CANCELLED';
+      status: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE';
     };
     /** @description Pedido de reserva. El usuario sale del token, no del body. */
     ReserveRequest: {
@@ -637,6 +697,44 @@ export interface components {
       newPassword: string;
       /** @example Zk3pQ1x9... */
       token: string;
+    };
+    /** @description Par de tokens de la sesión. El access token no lleva rol ni prioridad */
+    TokenResponse: {
+      /** @description JWT corto, va en Authorization: Bearer */
+      accessToken: string;
+      /**
+       * Format: int64
+       * @description Segundos de vida del access token
+       * @example 900
+       */
+      expiresIn: number;
+      /** @description Opaco y de un solo uso: cada refresh devuelve uno nuevo */
+      refreshToken: string;
+      /** @example Bearer */
+      tokenType: string;
+    };
+    /** @description Usuario de la sesión. Rol y prioridad salen del servidor, nunca del token */
+    UserResponse: {
+      /**
+       * @description Lo que declaró al registrarse. Informativo: no da rol ni prioridad
+       * @enum {string}
+       */
+      declaredUserType: 'STUDENT' | 'TEACHER';
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * @description Prioridad vigente, solo para mostrar: se vuelve a evaluar al reservar
+       * @enum {string}
+       */
+      priority: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /** @enum {string} */
+      role: 'USER' | 'REVIEWER' | 'ADMIN';
     };
     /** @description Token del link que llegó por mail */
     VerifyEmailRequest: {
@@ -960,6 +1058,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Par de tokens nuevo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -1131,6 +1238,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Par de tokens nuevo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -1523,6 +1639,129 @@ export interface operations {
       };
       /** @description Pisos o ascensor no válidos para la reserva */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  mine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  cancel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
         headers: {
           [name: string]: unknown;
         };

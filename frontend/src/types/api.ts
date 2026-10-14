@@ -20,3 +20,24 @@ export type RefreshRequest = Schemas['RefreshRequest'];
 /** Token del link de verificación de email. */
 export type VerifyEmailRequest = Schemas['VerifyEmailRequest'];
 export type ResendVerificationRequest = Schemas['ResendVerificationRequest'];
+
+/** Usuario de la sesión (`GET /users/me`). Rol y prioridad los decide el servidor, nunca el JWT (ADR 0009). */
+export type User = Schemas['UserResponse'];
+export type Role = User['role'];
+/** Prioridad vigente, solo para mostrar: el servidor la evalúa al reservar. */
+export type PriorityCategory = User['priority'];
+/** Lo que la persona declara al registrarse (#32). No otorga rol ni prioridad. */
+export type DeclaredUserType = User['declaredUserType'];
+
+export type RegisterRequest = Schemas['RegisterRequest'];
+/** Respuesta de `POST /auth/login` y `/auth/refresh`. El access token no lleva rol ni prioridad. */
+export type TokenResponse = Schemas['TokenResponse'];
+/** Pide el link para elegir otra contraseña (#138). El servidor responde 202 siempre. */
+export type ForgotPasswordRequest = Schemas['ForgotPasswordRequest'];
+/** `token` viene en el link del mail; es de un solo uso y vence (#138). */
+export type ResetPasswordRequest = Schemas['ResetPasswordRequest'];
+
+/** Panel admin de prioridad (#140): docente declarado que espera aprobación; `registeredAt` en UTC. */
+export type PendingTeacher = Schemas['PendingTeacherResponse'];
+/** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
+export type PriorityUser = Schemas['PriorityUserResponse'];

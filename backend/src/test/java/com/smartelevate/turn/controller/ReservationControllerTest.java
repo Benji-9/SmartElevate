@@ -2,8 +2,11 @@ package com.smartelevate.turn.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -126,5 +129,42 @@ class ReservationControllerTest {
         mockMvc.perform(post("/api/reservations").with(asUser()).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DAILY_LIMIT_REACHED"));
+    }
+
+    @Test
+    void listsMyReservationsIncludingCancelledOnesWithoutSeat() throws Exception {
+        given(service.mine(USER)).willReturn(List.of(new ReservationResponse(55, 7, "33",
+                Instant.parse("2026-10-13T15:58:00Z"), null, 0, 8, ReservationStatus.CANCELLED_LATE, Instant.EPOCH)));
+
+        mockMvc.perform(get("/api/reservations/me").with(asUser()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(55))
+                .andExpect(jsonPath("$[0].departureAt").value("2026-10-13T15:58:00Z"))
+                .andExpect(jsonPath("$[0].seatNumber").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$[0].status").value("CANCELLED_LATE"));
+    }
+
+    @Test
+    void cancelReturns204ForTheAuthenticatedUser() throws Exception {
+        mockMvc.perform(delete("/api/reservations/55").with(asUser()))
+                .andExpect(status().isNoContent());
+
+        verify(service).cancel(USER, 55L);
+    }
+
+    @Test
+    void cancellingSomeoneElsesReservationReturns404() throws Exception {
+        willThrow(new ReservationRejectedException(ReservationRejectedException.Reason.RESERVATION_NOT_FOUND,
+                "La reserva no existe.")).given(service).cancel(USER, 56L);
+
+        mockMvc.perform(delete("/api/reservations/56").with(asUser()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESERVATION_NOT_FOUND"));
+    }
+
+    @Test
+    void listAndCancelRequireAToken() throws Exception {
+        mockMvc.perform(get("/api/reservations/me")).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/reservations/55")).andExpect(status().isUnauthorized());
     }
 }

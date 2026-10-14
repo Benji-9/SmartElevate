@@ -9,7 +9,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.service.PriorityService;
 import com.smartelevate.user.dto.RegisterRequest;
+import com.smartelevate.user.dto.UserResponse;
 import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.Role;
 import com.smartelevate.user.model.User;
@@ -17,11 +20,16 @@ import com.smartelevate.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 class UserServiceTest {
 
@@ -31,8 +39,32 @@ class UserServiceTest {
     // Costo 4 (el mínimo de BCrypt): es el algoritmo real, pero los tests no pagan los ~140 ms de cada hash.
     private final PasswordEncoder encoder = spy(new BCryptPasswordEncoder(4));
     private final EmailVerificationService emailVerification = mock(EmailVerificationService.class);
-    private final UserService service =
-            new UserService(users, encoder, Clock.fixed(NOW, ZoneOffset.UTC), emailVerification);
+    private final PriorityService priorityService = mock(PriorityService.class);
+    private final UserService service = new UserService(users, encoder, Clock.fixed(NOW, ZoneOffset.UTC),
+            emailVerification, priorityService);
+
+    @Test
+    void meReadsRoleFromTheDatabaseAndPriorityFromThePriorityService() {
+        UUID id = UUID.randomUUID();
+        User user = new User("Ana Pérez", "ana@uade.edu.ar", "1234567", "hash", DeclaredUserType.TEACHER, NOW);
+        ReflectionTestUtils.setField(user, "id", id);
+        user.assignRole(Role.REVIEWER);
+        given(users.findById(id)).willReturn(Optional.of(user));
+        given(priorityService.currentPriority(id)).willReturn(PriorityCategory.REDUCED_MOBILITY);
+
+        assertThat(service.me(id)).isEqualTo(new UserResponse(id, "ana@uade.edu.ar", "Ana Pérez", "1234567",
+                Role.REVIEWER, PriorityCategory.REDUCED_MOBILITY, DeclaredUserType.TEACHER));
+    }
+
+    @Test
+    void meOfADeletedAccountIs401() {
+        UUID id = UUID.randomUUID();
+        given(users.findById(id)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.me(id))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED));
+    }
 
     private static RegisterRequest request(String email, String legajo) {
         return new RegisterRequest("  Juana Martínez ", email, legajo, "una-clave-larga", DeclaredUserType.TEACHER);

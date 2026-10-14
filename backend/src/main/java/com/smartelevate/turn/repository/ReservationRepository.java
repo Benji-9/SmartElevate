@@ -31,6 +31,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             + "and r.departure.departureAt > :now")
     long countOngoing(@Param("userId") UUID userId, @Param("now") Instant now);
 
+    /** Reservas del usuario con salida desde {@code from}, de cualquier estado, la salida más tardía primero. */
+    @Query("select r from Reservation r join fetch r.departure d join fetch d.elevator "
+            + "where r.userId = :userId and d.departureAt >= :from order by d.departureAt desc, r.id desc")
+    List<Reservation> findMine(@Param("userId") UUID userId, @Param("from") Instant from);
+
     /** Reservas hechas en [from, to), de cualquier estado: cancelar no devuelve el cupo diario. */
     long countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(UUID userId, Instant from, Instant to);
 }

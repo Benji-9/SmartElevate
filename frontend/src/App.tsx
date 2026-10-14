@@ -27,7 +27,7 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
 /**
  * Rutas de la app (una por frame del Figma). El router (Browser/Memory) lo provee quien la monta.
- * Todo es privado salvo login, registro, recuperar contraseña, legales y 404; `/admin` además pide rol ADMIN según `/me`.
+ * Todo es privado salvo login, registro, recuperar contraseña, legales y 404; `/admin` además pide rol ADMIN según `/users/me`.
  */
 export function App() {
   // Guarda `?demo=1` apenas se entra, aunque la primera pantalla no lo use.
