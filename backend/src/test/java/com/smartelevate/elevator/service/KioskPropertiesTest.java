@@ -7,27 +7,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 
-/** Parámetros del kiosco al arrancar: en prod, sin clave HMAC (o corta) la app no levanta (#229). */
+/**
+ * Parámetros del kiosco al arrancar (#229). Que en prod falte la clave HMAC lo prueba RequiredProdPropertiesTest;
+ * la clave corta la rechaza QrTokenService en todos los perfiles (QrTokenServiceTest).
+ */
 class KioskPropertiesTest {
 
-    private static final String KEY = "app.kiosk.qr-secret=una-clave-de-prueba-de-al-menos-32-bytes";
-
-    // El mismo registro que la app (@ConfigurationPropertiesScan), así se prueba que @Profile("prod") aplica.
-    @ConfigurationPropertiesScan(basePackageClasses = KioskProperties.class)
+    @EnableConfigurationProperties(KioskProperties.class)
     static class Config {
     }
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class))
             .withUserConfiguration(Config.class);
-
-    private ApplicationContextRunner prod() {
-        return runner.withInitializer(ctx -> ctx.getEnvironment().setActiveProfiles("prod"));
-    }
 
     @Test
     void defaults() {
@@ -38,26 +34,7 @@ class KioskPropertiesTest {
             assertThat(props.simulatorEnabled()).isFalse();
             assertThat(props.rateLimitMaxRequests()).isEqualTo(10);
             assertThat(props.rateLimitWindow()).isEqualTo(Duration.ofMinutes(1));
-            // Fuera de prod la clave no es obligatoria: se usa una efímera.
-            assertThat(ctx).doesNotHaveBean(KioskProdProperties.class);
         });
-    }
-
-    @Test
-    void prodWithoutTheHmacKeyDoesNotStart() {
-        prod().run(ctx -> assertThat(ctx).hasFailed());
-        prod().withPropertyValues("app.kiosk.qr-secret=").run(ctx -> assertThat(ctx).hasFailed());
-    }
-
-    @Test
-    void prodWithAShortHmacKeyDoesNotStart() {
-        prod().withPropertyValues("app.kiosk.qr-secret=corta").run(ctx -> assertThat(ctx).hasFailed());
-    }
-
-    @Test
-    void prodWithTheHmacKeyStarts() {
-        prod().withPropertyValues(KEY)
-                .run(ctx -> assertThat(ctx).hasNotFailed().hasSingleBean(KioskProdProperties.class));
     }
 
     @ParameterizedTest

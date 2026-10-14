@@ -12,5 +12,5 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record VerificationProperties(
         @DefaultValue("PT24H") Duration tokenTtl,
         @DefaultValue("PT1M") Duration resendCooldown,
-        @DefaultValue("http://localhost:5173") String frontendUrl) {
+        String frontendUrl) {
 }
