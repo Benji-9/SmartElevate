@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { User } from '../types/pending';
+import type { User } from '../types/api';
 
 type Reply = { status?: number; body?: unknown };
 type Routes = Record<string, Reply | ((init?: RequestInit) => Reply)>;
@@ -53,7 +53,7 @@ export const tokens = (n = 1) => ({
 /** Rutas para arrancar con sesión (refresh válido; `stubApi` deja el refresh token guardado). */
 export const signedIn = (user: User = testUser): Routes => ({
   'POST /auth/refresh': { body: tokens() },
-  'GET /me': { body: user },
+  'GET /users/me': { body: user },
   'POST /auth/logout': { status: 204 },
   'GET /ping': { body: { status: 'ok' } },
 });

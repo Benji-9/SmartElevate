@@ -2,57 +2,12 @@
 // Los usan los datos simulados (services/mocks.ts) mientras no exista el backend.
 // Cuando el endpoint real esté, regenerar con `npm run gen:api`, exponer el tipo en
 // types/api.ts y borrarlo de acá.
-// Backend pendiente: auth y usuarios #6, turnos #7, ascensores y edificios #22,
+// Backend pendiente: turnos #7, ascensores y edificios #22,
 // tipo de usuario declarativo #32, check-in #23, certificados #24 y #26.
+import type { PriorityCategory } from './api';
 
 /** Nivel de congestión de un núcleo. */
 export type CongestionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
-
-export type Role = 'USER' | 'REVIEWER' | 'ADMIN';
-export type PriorityCategory = 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
-
-export type User = {
-  id: string;
-  email: string;
-  fullName: string;
-  legajo: string;
-  role: Role;
-  /** Prioridad vigente, solo para mostrar. El servidor la evalúa al reservar. */
-  priority: PriorityCategory;
-  /** Lo que declaró al registrarse (informativo, no da rol ni prioridad). */
-  declaredUserType: DeclaredUserType;
-};
-
-/**
- * Tipo de usuario que la persona declara al registrarse (#32). No otorga rol ni prioridad:
- * un docente declarado queda pendiente hasta que un ADMIN lo aprueba desde el panel.
- */
-export type DeclaredUserType = 'STUDENT' | 'TEACHER';
-
-export type RegisterRequest = {
-  fullName: string;
-  email: string;
-  legajo: string;
-  password: string;
-  declaredUserType: DeclaredUserType;
-};
-/** Pide el link para elegir otra contraseña (#138). El servidor responde 202 siempre. */
-export type ForgotPasswordRequest = { email: string };
-/** `token` viene en el link del mail; es de un solo uso y vence (#138). */
-export type ResetPasswordRequest = { token: string; newPassword: string };
-/**
- * Respuesta de `POST /auth/login` y `/auth/refresh` (backend: `TokenResponse`). Falta en
- * `docs/openapi.json` (los endpoints no declaran el 200); pasar a `types/api.ts` cuando el
- * contrato lo exponga. El access token no lleva rol ni prioridad (ADR 0009).
- */
-export type TokenResponse = {
-  accessToken: string;
-  /** Opaco y de un solo uso: cada refresh devuelve uno nuevo. */
-  refreshToken: string;
-  tokenType: string;
-  /** Segundos de vida del access token. */
-  expiresIn: number;
-};
 
 /** Núcleo de ascensores (L1, IND2…) con su congestión actual. */
 export type Core = {

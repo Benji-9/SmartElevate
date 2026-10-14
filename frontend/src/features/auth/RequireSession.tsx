@@ -1,9 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { useSession } from '../../hooks/useSession';
-import type { Role } from '../../types/pending';
+import type { Role } from '../../types/api';
 
 type RequireSessionProps = {
-  /** Rol necesario según `/me`. Es solo para la UI: la autorización real la hace el backend. */
+  /** Rol necesario según `/users/me`. Es solo para la UI: la autorización real la hace el backend. */
   role?: Role;
 };
 
