@@ -45,7 +45,7 @@ Prohibido usar `@media` de ancho para layout de pantallas (sí se pueden usar `@
 
 - **Modo por defecto:** `pantalla` si la ventana mide ≥ 1024 px; en menos, no hay selector ni marco.
 - **Orden de prioridad para decidir el modo:** parámetro `?vista=telefono|pantalla` de la URL → valor guardado en `localStorage` (`se:viewMode`) → por defecto.
-- **En `/admin` no hay selector:** el panel es solo de escritorio (ver sección 7).
+- **En `/admin` y en el kiosco `/qr/:ascensor` no hay selector:** el panel es solo de escritorio (ver sección 7) y el kiosco es la pantalla de una tablet del hall (`SCREENS.md` §10).
 - Cambiar de modo **no debe reiniciar** la pantalla, la ruta ni el estado de los formularios (ver sección 4).
 
 ---

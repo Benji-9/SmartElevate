@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
+import { ConfirmAction } from '../../components/ConfirmAction';
 import { errorMessage, useResource } from '../../hooks/useResource';
 import {
   ApiError,
@@ -12,49 +13,6 @@ import {
 } from '../../services/api';
 import { formatRegisteredAt } from './format';
 import './priority.css';
-
-/** Botón que pide confirmación en la misma fila antes de ejecutar (rechazar / revocar). */
-function ConfirmAction({
-  label,
-  name,
-  question,
-  confirmLabel,
-  onConfirm,
-}: {
-  label: string;
-  /** Nombre accesible completo ("Rechazar a Ana"). */
-  name: string;
-  question: string;
-  confirmLabel: string;
-  onConfirm: () => void;
-}) {
-  const [asking, setAsking] = useState(false);
-  if (!asking) {
-    return (
-      <Button variant="secondary" block={false} aria-label={name} onClick={() => setAsking(true)}>
-        {label}
-      </Button>
-    );
-  }
-  return (
-    <div role="group" aria-label={question} className="priority-confirm">
-      <p>{question}</p>
-      <Button
-        block={false}
-        onClick={() => {
-          setAsking(false);
-          onConfirm();
-        }}
-      >
-        {confirmLabel}
-      </Button>
-      {/* El foco empieza en la opción segura. */}
-      <Button variant="secondary" block={false} autoFocus onClick={() => setAsking(false)}>
-        Cancelar
-      </Button>
-    </div>
-  );
-}
 
 /** Tarjeta con título, estados de carga / error / vacío y una tabla de personas. */
 function Section<T extends { id: string }>({

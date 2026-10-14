@@ -7,7 +7,10 @@ import { DeviceStage } from './features/view-mode/DeviceStage';
 import { ViewModeProvider } from './features/view-mode/ViewModeProvider';
 import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminKioskSimulatorPage } from './pages/AdminKioskSimulatorPage';
+import { AdminKiosksPage } from './pages/AdminKiosksPage';
 import { AdminPriorityPage } from './pages/AdminPriorityPage';
+import { KioskPage } from './pages/KioskPage';
 import { CheckInPage } from './pages/CheckInPage';
 import { CheckInSuccessPage } from './pages/CheckInSuccessPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -62,8 +65,12 @@ export function App() {
               <Route path="admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboardPage />} />
                 <Route path="prioritarios" element={<AdminPriorityPage />} />
+                <Route path="kioscos" element={<AdminKiosksPage />} />
+                <Route path="simulador" element={<AdminKioskSimulatorPage />} />
               </Route>
             </Route>
+            {/* Tablet del hall: sin sesión de usuario, con la credencial del kiosco (§10). */}
+            <Route path="qr/:ascensor" element={<KioskPage />} />
             <Route element={<ScreenLayout />}>
               <Route path="login" element={<LoginPage />} />
               <Route path="registro" element={<RegisterPage />} />

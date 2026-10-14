@@ -1,13 +1,18 @@
 import type {
   ApiErrorBody,
   Building,
+  CreatedKiosk,
+  CreateKioskRequest,
+  Elevator,
   FieldViolation,
+  KioskList,
   ForgotPasswordRequest,
   LoginRequest,
   NoShowStatus,
   PendingTeacher,
   PingResponse,
   PriorityUser,
+  QrToken,
   RefreshRequest,
   RegisterRequest,
   ResendVerificationRequest,
@@ -79,7 +84,11 @@ export function onSessionExpired(listener: () => void) {
   };
 }
 
-async function send<T>(path: string, init?: RequestInit): Promise<T> {
+async function send<T>(
+  path: string,
+  init?: RequestInit,
+  onResponse?: (response: Response) => void,
+): Promise<T> {
   if (USE_MOCKS) {
     const { mockRequest } = await import('./mocks');
     const mocked = await mockRequest(init?.method ?? 'GET', path, init?.body);
@@ -98,6 +107,7 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
+  onResponse?.(response);
 
   if (!response.ok) {
     let message = response.statusText;
@@ -300,3 +310,32 @@ export const rejectTeacher = (id: string) =>
 export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
 export const revokePriority = (id: string) =>
   api.delete<void>(`/admin/priority-users/${encodeURIComponent(id)}`);
+
+export const getElevators = () => api.get<Elevator[]>('/elevators');
+
+/** Kioscos del QR (ADR 0020) y si el servidor habilita el simulador. Solo ADMIN. */
+export const getKiosks = () => api.get<KioskList>('/admin/kiosks');
+/** Da de alta un kiosco. La respuesta trae `secret` por única vez. */
+export const createKiosk = (body: CreateKioskRequest) =>
+  api.post<CreatedKiosk>('/admin/kiosks', body);
+export const revokeKiosk = (id: string) =>
+  api.post<void>(`/admin/kiosks/${encodeURIComponent(id)}/revoke`, {});
+
+/**
+ * Token del QR con la credencial del kiosco. No usa la sesión: pasa por `send` (sin renovar el
+ * JWT ante un 401) y su `Authorization` pisa el de la persona logueada (simulador del admin).
+ * `msLeft` se mide contra el header `Date` del servidor, así un reloj de tablet desfasado no
+ * corre la rotación. Sin `Date` (CORS, mocks) usa el reloj local.
+ */
+export async function getKioskQrToken(secret: string) {
+  let serverNow = NaN;
+  const qr = await send<QrToken>(
+    '/kiosks/me/qr-token',
+    { method: 'GET', headers: { Authorization: `Bearer ${secret}` } },
+    (response) => {
+      serverNow = Date.parse(response.headers.get('Date') ?? '');
+    },
+  );
+  const now = Number.isNaN(serverNow) ? Date.now() : serverNow;
+  return { ...qr, msLeft: Date.parse(qr.expiresAt) - now };
+}
