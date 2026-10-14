@@ -20,3 +20,8 @@ export type RefreshRequest = Schemas['RefreshRequest'];
 /** Token del link de verificación de email. */
 export type VerifyEmailRequest = Schemas['VerifyEmailRequest'];
 export type ResendVerificationRequest = Schemas['ResendVerificationRequest'];
+
+/** Panel admin (#140): docente declarado que espera aprobación; `registeredAt` en UTC. */
+export type PendingTeacher = Schemas['PendingTeacherResponse'];
+/** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
+export type PriorityUser = Schemas['PriorityUserResponse'];
