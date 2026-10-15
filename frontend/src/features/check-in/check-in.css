@@ -1,5 +1,5 @@
 /*
- * Check-in (Figma 06 y 06b): cámara a pantalla completa con los bottom sheets encima.
+ * Check-in (Figma 06): cámara a pantalla completa con el bottom sheet encima.
  * Llena la columna (ScreenLayout con `bleed`) en vez de ser `fixed`: dentro del marco de
  * teléfono (con transform) un fixed se ancla mal. `clip` corta el oscurecido del visor.
  */
@@ -111,10 +111,6 @@
   color: var(--color-text);
 }
 
-.check-in__code h2 {
-  font-size: var(--text-18);
-}
-
 .check-in__sheet-head {
   display: flex;
   flex-wrap: wrap;
@@ -125,44 +121,6 @@
 
 .check-in__route {
   color: var(--color-text-muted);
-}
-
-.check-in__sheet a.button {
-  text-decoration: none;
-}
-
-.check-in__code {
-  width: 100%;
-  max-width: var(--screen-max-width);
-  margin: auto auto 0;
-  border: 0;
-}
-
-/*
- * Modo Teléfono: el diálogo modal va a la capa superior (fuera del marco), así que se ubica
- * sobre el borde inferior de la pantalla del marco, que está centrado en la ventana.
- */
-.stage[data-mode='telefono'] .check-in__code {
-  inset: calc(50% + var(--phone-h) / 2 * var(--phone-scale)) 0 auto;
-  width: calc(var(--phone-w) * var(--phone-scale));
-  margin: 0 auto;
-  border-radius: var(--radius-sheet) var(--radius-sheet) calc(36px * var(--phone-scale))
-    calc(36px * var(--phone-scale));
-  translate: 0 -100%;
-}
-
-/* `display: grid` pisa el `display: none` nativo del diálogo cerrado. */
-.check-in__code:not([open]) {
-  display: none;
-}
-
-.check-in__code::backdrop {
-  background: color-mix(in srgb, var(--BlackPearl) 60%, transparent);
-}
-
-.check-in__code form {
-  display: grid;
-  gap: 12px;
 }
 
 /*
@@ -199,13 +157,5 @@
     padding: 16px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
-  }
-
-  /* El código manual, como diálogo centrado en vez de hoja inferior. */
-  .check-in__code {
-    margin: auto;
-    padding: 32px;
-    border: 0;
-    border-radius: var(--radius-sheet);
   }
 }

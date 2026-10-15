@@ -4,17 +4,17 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
 import { signedIn, signedOut, stubApi, testUser } from './test/stubApi';
-import type { CheckInResult } from './types/pending';
+import type { CheckIn } from './types/api';
 
-const checkInResult: CheckInResult = {
-  reservationId: 'r-1',
+const checkInResult: CheckIn = {
+  reservationId: 1,
   outcome: 'ON_TIME',
+  reservationStatus: 'USED',
+  elevator: '33',
+  reservedElevator: '33',
+  departureAt: '2026-09-29T17:04:00Z',
   checkedInAt: '2026-09-29T17:04:30Z',
-  waitDeltaSeconds: 20,
-  elevatorName: 'Ascensor 2',
-  coreName: 'Lima 1',
-  departsAt: '2026-09-29T17:04:00Z',
-  durationMinutes: 2,
+  source: 'REAL',
 };
 
 function renderAt(...entries: string[]) {
@@ -108,7 +108,6 @@ describe('App', () => {
   it.each([
     ['/reservar', 'Reservar turno', 'Reservar'],
     ['/check-in', 'Check-in', 'Check-in'],
-    ['/check-in/codigo', 'Check-in', 'Check-in'],
     ['/perfil/viajes', 'Mis viajes', 'Perfil'],
     ['/perfil/notificaciones', 'Notificaciones', 'Perfil'],
   ])(
@@ -171,7 +170,7 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/');
   });
 
-  it.each(['/', '/reservar', '/turno/42', '/check-in/codigo', '/perfil', '/perfil/viajes'])(
+  it.each(['/', '/reservar', '/turno/42', '/check-in', '/perfil', '/perfil/viajes'])(
     'sin sesión, %s redirige a /login',
     async (path) => {
       stubApi(signedOut);

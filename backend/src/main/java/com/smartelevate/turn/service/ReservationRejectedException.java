@@ -18,6 +18,8 @@ public class ReservationRejectedException extends RuntimeException {
         FLOOR_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
         FLOOR_NOT_SERVED(HttpStatus.UNPROCESSABLE_ENTITY),
         LOW_FLOOR_DESTINATION(HttpStatus.UNPROCESSABLE_ENTITY),
+        // Suspensión por faltas (#231, turnos.md §5)
+        NO_SHOW_SUSPENDED(HttpStatus.CONFLICT),
         // Check-in (#230)
         NO_ACTIVE_RESERVATION(HttpStatus.CONFLICT),
         OUTSIDE_CHECK_IN_WINDOW(HttpStatus.CONFLICT),

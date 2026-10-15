@@ -47,6 +47,7 @@ class QrTokenServiceTest {
         QrTokenResponse issued = at(T0.plusSeconds(10)).issue(kiosk);
 
         assertThat(issued.expiresAt()).isEqualTo(T0.plusSeconds(30));
+        assertThat(issued.elevatorId()).isEqualTo("33");
         var claims = at(T0.plusSeconds(12)).validate(issued.token());
         assertThat(claims.elevatorId()).isEqualTo("33");
         assertThat(claims.kioskId()).isEqualTo(kiosk.getId());

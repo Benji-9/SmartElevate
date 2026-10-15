@@ -52,7 +52,8 @@ public class QrTokenService {
         long exp = (clock.instant().getEpochSecond() / ttlSeconds + 1) * ttlSeconds;
         String payload = B64.encodeToString(
                 (kiosk.getElevatorId() + "|" + kiosk.getId() + "|" + exp).getBytes(StandardCharsets.UTF_8));
-        return new QrTokenResponse(payload + "." + B64.encodeToString(sign(payload)), Instant.ofEpochSecond(exp));
+        return new QrTokenResponse(payload + "." + B64.encodeToString(sign(payload)), Instant.ofEpochSecond(exp),
+                kiosk.getElevatorId());
     }
 
     /**

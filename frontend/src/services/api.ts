@@ -1,6 +1,8 @@
 import type {
   ApiErrorBody,
   Building,
+  CheckIn,
+  CheckInRequest,
   CreatedKiosk,
   CreateKioskRequest,
   Elevator,
@@ -8,6 +10,7 @@ import type {
   KioskList,
   ForgotPasswordRequest,
   LoginRequest,
+  NoShowStatus,
   PendingTeacher,
   PingResponse,
   PriorityUser,
@@ -24,20 +27,16 @@ import type {
   AdminKpis,
   AdminKpisQuery,
   AdminShift,
-  CheckInRequest,
-  CheckInResult,
   CongestionSnapshot,
   Core,
   Departure,
   FloorOption,
-  NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
   Reservation,
   ReserveRequest,
   TripPage,
-  WaitFeedbackRequest,
 } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -48,18 +47,22 @@ export class ApiError extends Error {
   readonly violations: FieldViolation[];
   /** Segundos que pide esperar el header `Retry-After` (429). */
   readonly retryAfter?: number;
+  /** Código estable de los errores de dominio (`INVALID_QR_TOKEN`, `ALREADY_CHECKED_IN`…). */
+  readonly code?: string;
 
   constructor(
     status: number,
     message: string,
     violations: FieldViolation[] = [],
     retryAfter?: number,
+    code?: string,
   ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.violations = violations;
     this.retryAfter = retryAfter;
+    this.code = code;
   }
 }
 
@@ -91,7 +94,13 @@ async function send<T>(
 ): Promise<T> {
   if (USE_MOCKS) {
     const { mockRequest } = await import('./mocks');
-    const mocked = await mockRequest(init?.method ?? 'GET', path, init?.body);
+    const mocked = await mockRequest(
+      init?.method ?? 'GET',
+      path,
+      init?.body,
+      undefined,
+      init?.headers,
+    );
     if (mocked) return mocked.data as T;
   }
 
@@ -112,15 +121,17 @@ async function send<T>(
   if (!response.ok) {
     let message = response.statusText;
     let violations: FieldViolation[] = [];
+    let code: string | undefined;
     try {
       const body = (await response.json()) as Partial<ApiErrorBody>;
       message = body.message ?? message;
       violations = body.violations ?? [];
+      code = body.code;
     } catch {
       // El cuerpo no es JSON: nos quedamos con statusText.
     }
     const retry = Number(response.headers.get('Retry-After'));
-    throw new ApiError(response.status, message, violations, retry > 0 ? retry : undefined);
+    throw new ApiError(response.status, message, violations, retry > 0 ? retry : undefined, code);
   }
 
   // 204, o 202 sin cuerpo (p. ej. /auth/password/forgot): no hay JSON que leer.
@@ -260,10 +271,11 @@ export const getReservation = (id: string) =>
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
 export const cancelReservation = (id: string) =>
   api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
-export const checkIn = (body: CheckInRequest) => api.post<CheckInResult>('/check-ins', body);
-/** Encuesta de espera, opcional y una sola vez por check-in. */
-export const sendWaitFeedback = (reservationId: string, body: WaitFeedbackRequest) =>
-  api.post<void>(`/check-ins/${encodeURIComponent(reservationId)}/wait-feedback`, body);
+/**
+ * Check-in con el token leído del QR. Rechazos por `code`: `INVALID_QR_TOKEN` (400),
+ * `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).
+ */
+export const checkIn = (body: CheckInRequest) => api.post<CheckIn>('/check-ins', body);
 export const getMyPriorityRequest = () => api.get<PriorityRequest | null>('/priority-requests/me');
 export const getPriorityUploadRules = () =>
   api.get<PriorityUploadRules>('/priority-requests/upload-rules');

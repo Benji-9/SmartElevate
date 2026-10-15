@@ -22,6 +22,8 @@ const ELEVATORS = [elevator('33', 'Independencia 2'), elevator('34', 'Independen
 function renderAdmin(path: string, { simulatorEnabled = true } = {}) {
   let kiosks: Kiosk[] = [];
   let created = 0;
+  /** Ascensor de cada credencial: el token lo devuelve como `elevatorId`. */
+  const elevatorOf = new Map<string, string>();
   const fetchMock = stubApi({
     ...signedIn({ ...testUser, role: 'ADMIN' }),
     'GET /elevators': { body: ELEVATORS },
@@ -36,15 +38,22 @@ function renderAdmin(path: string, { simulatorEnabled = true } = {}) {
         createdAt: '2026-10-14T18:40:00Z',
       };
       kiosks = [...kiosks, { ...kiosk, lastSeenAt: null, revokedAt: null }];
+      elevatorOf.set(`secreto-${created}`, elevatorId);
       return { status: 201, body: { ...kiosk, secret: `secreto-${created}` } };
     },
     'POST /admin/kiosks/k-1/revoke': () => {
       kiosks = kiosks.map((k) => ({ ...k, revokedAt: '2026-10-14T18:45:00Z' }));
       return { status: 204 };
     },
-    'GET /kiosks/me/qr-token': {
-      body: { token: 'token-1', expiresAt: new Date(Date.now() + 30_000).toISOString() },
-    },
+    'GET /kiosks/me/qr-token': (init) => ({
+      body: {
+        token: 'token-1',
+        expiresAt: new Date(Date.now() + 30_000).toISOString(),
+        elevatorId: elevatorOf.get(
+          new Headers(init?.headers).get('Authorization')!.replace('Bearer ', ''),
+        ),
+      },
+    }),
   });
   render(
     <MemoryRouter initialEntries={[path]}>

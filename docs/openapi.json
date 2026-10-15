@@ -1270,6 +1270,49 @@
         "tags" : [ "kiosk" ]
       }
     },
+    "/api/me/no-shows" : {
+      "get" : {
+        "description" : "Falta = NO_SHOW o CANCELLED_LATE. threshold faltas en windowDays días suspenden suspensionHours horas: mientras tanto, reservar responde NO_SHOW_SUSPENDED. Con prioridad vigente, exempt = true y nunca hay suspensión.",
+        "operationId" : "mine_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NoShowStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Mis faltas recientes y si estoy suspendido",
+        "tags" : [ "turn" ]
+      }
+    },
     "/api/ping" : {
       "get" : {
         "operationId" : "ping",
@@ -1311,7 +1354,7 @@
     },
     "/api/reservations" : {
       "post" : {
-        "description" : "El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría.",
+        "description" : "El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND, NO_SHOW_SUSPENDED. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría. NO_SHOW_SUSPENDED mientras dura la suspensión por faltas (GET /api/me/no-shows); a los prioritarios no se aplica.",
         "operationId" : "reserve",
         "requestBody" : {
           "content" : {
@@ -1362,7 +1405,7 @@
                 }
               }
             },
-            "description" : "Salida llena (TURN_FULL), fuera de ventana, o límite de reservas alcanzado"
+            "description" : "Salida llena (TURN_FULL), fuera de ventana, límite de reservas alcanzado o suspensión por faltas (NO_SHOW_SUSPENDED)"
           },
           "422" : {
             "content" : {
@@ -1914,6 +1957,45 @@
         },
         "required" : [ "email", "password" ]
       },
+      "NoShowStatusResponse" : {
+        "type" : "object",
+        "description" : "Faltas recientes y suspensión (turnos.md §5). Falta = NO_SHOW o CANCELLED_LATE",
+        "properties" : {
+          "exempt" : {
+            "type" : "boolean",
+            "description" : "Prioridad vigente: las faltas se registran pero no suspenden"
+          },
+          "recentNoShows" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Faltas de los últimos windowDays días, sin las de check-in simulado. Si no está suspendido ni exento, solo las que cuentan para la próxima suspensión (desde el fin de la última)",
+            "example" : 2
+          },
+          "suspendedUntil" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Hasta cuándo no puede reservar, en UTC. Null si no está suspendido",
+            "example" : "2026-10-14T15:58:00Z"
+          },
+          "suspensionHours" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 24
+          },
+          "threshold" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Faltas que suspenden",
+            "example" : 3
+          },
+          "windowDays" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 7
+          }
+        },
+        "required" : [ "exempt", "recentNoShows", "suspendedUntil", "suspensionHours", "threshold", "windowDays" ]
+      },
       "PendingTeacherResponse" : {
         "type" : "object",
         "description" : "Docente declarado que espera la aprobación de un ADMIN",
@@ -1984,6 +2066,11 @@
         "type" : "object",
         "description" : "Token firmado que el kiosco muestra como QR",
         "properties" : {
+          "elevatorId" : {
+            "type" : "string",
+            "description" : "Ascensor de la credencial: el kiosco avisa si no coincide con el de su URL",
+            "example" : "33"
+          },
           "expiresAt" : {
             "type" : "string",
             "format" : "date-time",
@@ -1996,7 +2083,7 @@
             "example" : "MzN8NmY5ZTRkM2EtM2I0Ny00YTVmLWI5ZjEtM2Q1ZTZmN2E4YjljfDE3NjA0NTYwMzA.c2lnbmF0dXJl"
           }
         },
-        "required" : [ "expiresAt", "token" ]
+        "required" : [ "elevatorId", "expiresAt", "token" ]
       },
       "RefreshRequest" : {
         "type" : "object",

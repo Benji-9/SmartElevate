@@ -38,10 +38,21 @@ La app es para movilidad inmediata; abrir con más anticipación facilita acapar
 ## 5. No-show
 
 - Una reserva **sin check-in QR a los 60 s de la salida** cuenta como no-show (ver [check-in](check-in-qr.md)).
-- **3 no-shows en 7 días** → **24 h sin poder reservar**.
+- **3 no-shows en 7 días** → **24 h sin poder reservar**. Después de cada suspensión el conteo **arranca de cero** (decidido el 14/10).
+- Los **check-ins simulados** (simulador de admin) **no cuentan**: una reserva con check-in simulado no es falta ni asistencia, y queda fuera de los [KPIs](kpis.md) (decidido el 14/10).
 - **Prioritarios**: el no-show se registra (para KPIs) pero **no se suspende**.
+- Con check-in a tiempo la reserva pasa a **usada** (`USED`) y no es falta; un escaneo *fuera de hora* deja la reserva en no-show ([check-in](check-in-qr.md#resultados)).
 
 Penalización leve y reversible: el objetivo es desalentar el acaparamiento, no castigar.
+
+**Cómo se aplica** ([#231](https://github.com/Benji-9/SmartElevate/issues/231)):
+
+- Un **job** pasa a `NO_SHOW` las reservas activas cuya salida pasó hace **más de** `no_show_after` (60 s): a los 60 s justos todavía no, porque el check-in hasta +60 s inclusive es a tiempo. Solo toca reservas activas, así que no pisa un usado ni una cancelada, y correrlo dos veces no cambia nada. Corre cada `app.no-show-job.interval` (15 s, parámetro técnico): una falta puede tardar hasta ese intervalo en registrarse.
+- **Faltas**: no-shows y cancelaciones tardías ([sección 4](#4-cancelación)), fechadas a la **hora de salida** de la reserva. Una reserva con check-in `SIMULATED` no es falta, aunque el escaneo simulado haya sido *fuera de hora*. El criterio vive en un solo lugar, el mismo que usan los KPIs.
+- **Suspensión**: cuando una falta completa `no_show_suspension_threshold` (3) dentro de `no_show_suspension_window` (7 días, contando hacia atrás desde esa falta y sin incluir el instante exacto de 7 días antes), el usuario no puede reservar por `no_show_suspension_duration` (24 h) **desde esa falta**. Reservar responde `409` con `code` `NO_SHOW_SUSPENDED`. Queda registrada en la tabla `no_show_suspension` (`V17`).
+- **Cero después de la suspensión**: para la próxima solo cuentan las faltas **desde el fin** de la última suspensión. Las que caen durante la suspensión no cuentan para la siguiente: hacen falta 3 faltas nuevas.
+- **Prioritarios**: la exención se evalúa **al intentar reservar**, con la prioridad vigente en ese momento (nunca el JWT). A un prioritario no se lo bloquea ni se le guarda la suspensión. Las faltas se registran igual: si la prioridad vence, cuentan las que haya desde la última suspensión.
+- `GET /api/me/no-shows` devuelve las faltas de los últimos 7 días (si no está suspendido, solo las que cuentan para la próxima), los parámetros de la regla, el fin de la suspensión (si hay) y si el usuario está exento.
 
 ## 6. Cupo para prioritarios
 
