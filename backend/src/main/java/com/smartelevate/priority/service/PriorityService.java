@@ -1,6 +1,7 @@
 package com.smartelevate.priority.service;
 
 import com.smartelevate.common.config.ConfigService;
+import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.priority.dto.PendingTeacherResponse;
 import com.smartelevate.priority.dto.PriorityUserResponse;
 import com.smartelevate.priority.model.PriorityAudit;
@@ -13,8 +14,9 @@ import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.Role;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.UserRepository;
-import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +37,7 @@ public class PriorityService {
     private final PriorityAuditRepository audit;
     private final UserRepository users;
     private final ConfigService config;
-    private final Clock clock;
+    private final CampusTime time;
 
     /**
      * Prioridad vigente: aprobada y no vencida. Si hay más de una, gana movilidad reducida. Al vencer, vuelve a
@@ -43,7 +45,7 @@ public class PriorityService {
      */
     @Transactional(readOnly = true)
     public PriorityCategory currentPriority(UUID userId) {
-        Instant now = clock.instant();
+        Instant now = time.now();
         return priorities.findByUserIdAndStatus(userId, PriorityStatus.APPROVED).stream()
                 .filter(p -> p.isCurrent(now))
                 .map(UserPriority::getCategory)
@@ -53,7 +55,7 @@ public class PriorityService {
 
     @Transactional(readOnly = true)
     public List<PendingTeacherResponse> pendingTeachers() {
-        return users.findPendingTeachers().stream()
+        return users.findPendingTeachers(time.now()).stream()
                 .map(u -> new PendingTeacherResponse(u.getId(), u.getFullName(), u.getEmail(), u.getLegajo(),
                         u.getCreatedAt()))
                 .toList();
@@ -61,7 +63,7 @@ public class PriorityService {
 
     @Transactional(readOnly = true)
     public List<PriorityUserResponse> priorityUsers() {
-        Instant now = clock.instant();
+        Instant now = time.now();
         List<UserPriority> current = priorities.findByStatus(PriorityStatus.APPROVED).stream()
                 .filter(p -> p.isCurrent(now))
                 .toList();
@@ -78,26 +80,37 @@ public class PriorityService {
                 .toList();
     }
 
-    /** Aprueba a un docente declarado. Con {@code priority_teacher_validity} definido, la prioridad vence. */
+    /**
+     * Aprueba a un docente declarado hasta el fin del cuatrimestre en curso: el fin del día (hora del campus) del
+     * primer cierre de {@code semester_end_dates} que sea hoy o después. Al vencer vuelve a la cola, y aprobarlo de
+     * nuevo lo renueva hasta el cierre siguiente. Sin un cierre cargado desde hoy falla: no se inventan fechas.
+     */
     @Transactional
     public void approveTeacher(UUID actorId, UUID userId) {
         User user = declaredTeacher(userId);
-        Instant now = clock.instant();
+        Instant now = time.now();
         UserPriority p = teacherRow(user.getId());
         if (p.isCurrent(now)) {
             throw new InvalidPriorityOperationException("El docente ya tiene la prioridad aprobada");
         }
-        Instant expiresAt = config.priorityTeacherValidity().map(now::plus).orElse(null);
+        LocalDate today = time.today();
+        LocalDate semesterEnd = config.semesterEndDates().stream()
+                .filter(end -> !end.isBefore(today))
+                .findFirst()
+                .orElseThrow(() -> new InvalidPriorityOperationException(
+                        "No hay un cierre de cuatrimestre cargado desde hoy: agregalo en app_config "
+                                + "(semester_end_dates) para poder aprobar docentes"));
+        Instant expiresAt = time.toInstant(semesterEnd.plusDays(1), LocalTime.MIDNIGHT);
         p.decide(PriorityStatus.APPROVED, expiresAt, now, actorId);
         priorities.save(p);
-        record(actorId, userId, "TEACHER_APPROVED", expiresAt == null ? null : "expires " + expiresAt);
+        record(actorId, userId, "TEACHER_APPROVED", "expires " + expiresAt);
     }
 
     /** Rechaza a un docente declarado: sale de la cola y sigue como usuario común. */
     @Transactional
     public void rejectTeacher(UUID actorId, UUID userId) {
         User user = declaredTeacher(userId);
-        Instant now = clock.instant();
+        Instant now = time.now();
         UserPriority p = teacherRow(user.getId());
         if (p.isCurrent(now)) {
             throw new InvalidPriorityOperationException(
@@ -111,7 +124,7 @@ public class PriorityService {
     /** Quita la prioridad vigente (cualquier categoría). Queda como rechazada, no vuelve a la cola. */
     @Transactional
     public void revoke(UUID actorId, UUID userId) {
-        Instant now = clock.instant();
+        Instant now = time.now();
         List<UserPriority> current = priorities.findByUserIdAndStatus(userId, PriorityStatus.APPROVED).stream()
                 .filter(p -> p.isCurrent(now))
                 .toList();
@@ -152,6 +165,6 @@ public class PriorityService {
     }
 
     private void record(UUID actorId, UUID targetId, String action, String detail) {
-        audit.save(new PriorityAudit(actorId, targetId, action, detail, clock.instant()));
+        audit.save(new PriorityAudit(actorId, targetId, action, detail, time.now()));
     }
 }

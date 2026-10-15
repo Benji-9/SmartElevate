@@ -14,6 +14,8 @@ Decisiones de diseño: [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md) y 
 
 ## Parámetros configurables
 
+Los valores de `app_config` se leen y validan al arrancar: **un cambio en la tabla se aplica reiniciando la app**.
+
 Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-parametros.md): las **reglas de negocio** en la tabla `app_config` (validada al arrancar, [ADR 0010](../adr/0010-integridad-de-reservas-tiempo-y-configuracion.md)), **nunca hardcodeadas**, para que QA pruebe variantes y el equipo calibre sin redeployar; los **técnicos y de seguridad** en `application.yml` con override por variable de entorno; los **secretos**, solo en variables de entorno ([README](../../README.md#variables-de-entorno-del-backend)).
 
 **Regla práctica:** si alguien necesita cambiarlo en caliente sin que un deploy lo deje registrado → `app_config`; si no → `application.yml`. Casos decididos ([#222](https://github.com/Benji-9/SmartElevate/issues/222), [#226](https://github.com/Benji-9/SmartElevate/issues/226)):
@@ -38,8 +40,8 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Apertura de reserva | 30 min antes | Solo mismo día |
 | Cierre de reserva | 2 min antes | |
 | Reservas activas por usuario | 1 | |
-| Reservas diarias por usuario | 8 | Cancelar sin falta devuelve el lugar en el tope; la cancelación tardía no ([#218](https://github.com/Benji-9/SmartElevate/issues/218)) |
-| Límite de cancelación sin falta | 10 min antes | Decidido el 14/10, calibrable en el piloto. `cancellation_deadline_before` vale hoy 1 min; lo cambia [#218](https://github.com/Benji-9/SmartElevate/issues/218) |
+| Reservas diarias por usuario | 8 | Cuentan las reservas hechas en el día salvo las canceladas sin falta (`CANCELLED`): cancelar a tiempo devuelve el lugar en el tope; la cancelación tardía no ([#218](https://github.com/Benji-9/SmartElevate/issues/218)) |
+| Límite de cancelación sin falta | 10 min antes | Decidido el 14/10, calibrable en el piloto (`cancellation_deadline_before`, `V18`). La reserva lo expone como `cancelFreeUntil`. Desde la salida no se puede cancelar |
 | Tolerancia de espera para cancelar sin falta (X) | — | **Fuera del MVP** ([alcance](../alcance-mvp.md)). `cancellation_wait_tolerance` queda en NULL y no se usa |
 | Ventana de check-in | −1 min a +2 min | |
 | Umbral de no-show | +60 s | Entre +60 s y +2 min el escaneo es *fuera de hora* y cuenta como no-show |
@@ -47,7 +49,7 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Lugares reservados para prioritarios | 2 de 10 | En ascensores comunes |
 | Liberación de lugares prioritarios | 3 min antes | Antes del cierre de la ventana (2 min) |
 | Envejecimiento de prioridad (N) | — | **Fuera del MVP** ([#212](https://github.com/Benji-9/SmartElevate/issues/212)). `priority_aging` queda en NULL y no se usa |
-| Vigencia de la prioridad de docente | Hasta el fin del cuatrimestre en curso | Renovable. `priority_teacher_validity` está hoy en NULL (no vence); la fecha de cierre del cuatrimestre la agrega [#218](https://github.com/Benji-9/SmartElevate/issues/218) |
+| Vigencia de la prioridad de docente | Hasta el fin del cuatrimestre en curso | Renovable. Cierres en `semester_end_dates` (`V18`): fechas `yyyy-MM-dd` separadas por coma, en orden; hoy `2026-12-31`, **provisorio**: hay que cargar el calendario real de UADE antes del 31/12/2026 ([bloqueantes](../bloqueantes.md)). `V18` también les puso ese vencimiento a las aprobaciones previas, que no vencían. Si al arrancar no queda ningún cierre desde hoy, la app lo avisa en el log (WARN). Vence al terminar ese día (hora de Buenos Aires). Sin un cierre cargado desde hoy, aprobar un docente falla. `V18` borró `priority_teacher_validity` |
 | Tiempo de carga (10 personas) | 14 s | Medido por el equipo |
 | Tiempo por piso | 3 s | Medido por el equipo |
 | Umbral de pisos bajos | 4 | Sin reserva con destino en los pisos 1 a 4; movilidad reducida exenta |

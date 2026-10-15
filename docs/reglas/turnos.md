@@ -25,13 +25,13 @@ La app es para movilidad inmediata; abrir con más anticipación facilita acapar
 ## 3. Límites por usuario
 
 - **1 reserva activa** a la vez.
-- **Tope diario**: 8 reservas por día. Una cancelación **sin falta devuelve** el lugar en el tope; una **tardía no** (decidido el 14/10, lo implementa [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
+- **Tope diario**: 8 reservas por día. Una cancelación **sin falta devuelve** el lugar en el tope; una **tardía no** (decidido el 14/10; `V18`, [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
 
 ## 4. Cancelación
 
-- El usuario puede cancelar **sin falta hasta 10 min antes** de la salida, y el lugar se libera. El valor se calibra en el piloto (`cancellation_deadline_before`; hoy vale 1 min y lo pasa a 10 [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
+- El usuario puede cancelar **sin falta hasta 10 min antes** de la salida, y el lugar se libera. El valor se calibra en el piloto (`cancellation_deadline_before`, [#218](https://github.com/Benji-9/SmartElevate/issues/218)). Cada reserva trae ese límite como `cancelFreeUntil` (salida − plazo, en UTC): a los 10 min justos todavía es sin falta.
 - Entre ese límite y la salida, cancelar libera el lugar pero es una **cancelación tardía** (`CANCELLED_LATE`) y **cuenta como falta** ([no-show](#5-no-show)).
-- **Después de la salida no se puede cancelar**: el turno pasa a no-show, o a usado si hubo check-in.
+- **Después de la salida no se puede cancelar**: el turno pasa a no-show, o a usado si hubo check-in. Desde la hora de salida, cancelar responde `409` con `code` `DEPARTURE_ALREADY_PASSED` (también una reserva en no-show); una reserva con check-in, `ALREADY_CHECKED_IN`.
 - **Compromiso aceptado:** la reserva abre 30 min y cierra 2 min antes, así que quien reserva en los últimos 10 min no puede cancelar sin falta. A cambio, un lugar cancelado a tiempo queda al menos 8 min en la ventana para que otro lo tome.
 - **Fuera del MVP:** la excepción por demora (si la espera real supera la estimada por más de X min, cancelar no cuenta como falta). Necesita el check-in y medir la espera real ([alcance](../alcance-mvp.md)).
 

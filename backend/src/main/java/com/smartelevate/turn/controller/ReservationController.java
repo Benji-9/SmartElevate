@@ -97,10 +97,14 @@ public class ReservationController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Cancela una reserva mía y libera el lugar",
-            description = "Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda "
-                    + "CANCELLED; después, CANCELLED_LATE (cuenta como falta).")
+            description = "Idempotente con una ya cancelada. Hasta cancelFreeUntil de la reserva (la salida menos "
+                    + "cancellation_deadline_before) queda CANCELLED y devuelve el lugar en el tope diario; "
+                    + "después, CANCELLED_LATE (cuenta como falta y no lo devuelve). Desde la salida no se puede.")
     @ApiResponse(responseCode = "404", description = "La reserva no existe o es de otro usuario "
             + "(RESERVATION_NOT_FOUND)", content = @Content(schema = @Schema(implementation = ApiError.class)))
+    @ApiResponse(responseCode = "409", description = "La salida ya pasó o la reserva es un no-show "
+            + "(DEPARTURE_ALREADY_PASSED), o ya tiene check-in (ALREADY_CHECKED_IN)",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void cancel(@AuthenticationPrincipal CurrentUser user, @PathVariable long id) {
         service.cancel(user.id(), id);
     }

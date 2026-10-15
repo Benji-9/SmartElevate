@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 class DepartureServiceTest {
 
     // 2026-10-13 es martes. Buenos Aires es UTC-3 todo el año.
-    private static final AtomicReference<Instant> NOW = new AtomicReference<>();
+    private static final AtomicReference<Instant> NOW = new AtomicReference<>(Instant.parse("2026-10-13T15:55:00Z")); // el arranque ya lee la hora (ConfigService)
     /** Sin prioridad en la base: usuario común. */
     private static final UUID COMMON = UUID.randomUUID();
 

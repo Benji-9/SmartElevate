@@ -16,6 +16,10 @@ public record ReservationResponse(
                 example = "Independencia") String buildingName,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Hora estimada de salida, en UTC",
                 example = "2026-10-13T15:58:00Z") Instant departureAt,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Hasta este instante (inclusive, UTC) "
+                + "se cancela sin falta: la salida menos cancellation_deadline_before. Después, cancelar es tardío "
+                + "y cuenta como falta; desde la salida ya no se puede cancelar.",
+                example = "2026-10-13T15:48:00Z") Instant cancelFreeUntil,
         @Schema(description = "Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.",
                 example = "3", nullable = true) Integer seatNumber,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "0") int originFloor,

@@ -65,8 +65,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> historyBefore(@Param("userId") UUID userId, @Param("at") Instant at, @Param("id") long id,
                                     Pageable page);
 
-    /** Reservas hechas en [from, to), de cualquier estado: cancelar no devuelve el cupo diario. */
-    long countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(UUID userId, Instant from, Instant to);
+    /**
+     * Tope diario: reservas hechas en [from, to) salvo las del estado excluido. Se excluye CANCELLED: cancelar sin
+     * falta devuelve el lugar en el tope; la tardía (CANCELLED_LATE) no (#218).
+     */
+    long countByUserIdAndStatusNotAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(UUID userId,
+            ReservationStatus excluded, Instant from, Instant to);
 
     /**
      * Job de no-shows (#231): ACTIVE con salida estrictamente antes de {@code cutoff} pasan a NO_SHOW. Condicional

@@ -20,13 +20,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @org.springframework.data.jpa.repository.Query("select u from User u where u.id = :id")
     Optional<User> lockById(@org.springframework.data.repository.query.Param("id") UUID id);
 
-    /** Docentes declarados con email verificado y sin ninguna decisión de prioridad de docente (cola del ADMIN). */
+    /**
+     * Cola del ADMIN: docentes declarados con email verificado, sin decisión de prioridad de docente o con la
+     * aprobación vencida (al cierre del cuatrimestre vuelven, para renovarla). Un rechazo o una revocación los saca.
+     */
     @Query("""
             select u from User u
             where u.declaredUserType = com.smartelevate.user.model.DeclaredUserType.TEACHER
               and u.emailVerified = true
               and not exists (select 1 from UserPriority p where p.userId = u.id
-                              and p.category = com.smartelevate.priority.model.PriorityCategory.TEACHER)
+                              and p.category = com.smartelevate.priority.model.PriorityCategory.TEACHER
+                              and (p.status <> com.smartelevate.priority.model.PriorityStatus.APPROVED
+                                   or p.expiresAt is null or p.expiresAt > :now))
             order by u.createdAt""")
-    List<User> findPendingTeachers();
+    List<User> findPendingTeachers(@org.springframework.data.repository.query.Param("now") java.time.Instant now);
 }

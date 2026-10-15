@@ -74,6 +74,7 @@ class ReservationControllerTest {
                 .andExpect(jsonPath("$.departureId").value(7))
                 .andExpect(jsonPath("$.elevator").value("33"))
                 .andExpect(jsonPath("$.seatNumber").value(3))
+                .andExpect(jsonPath("$.cancelFreeUntil").value("2026-10-13T15:48:00Z"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
@@ -137,8 +138,8 @@ class ReservationControllerTest {
     private static ReservationResponse response(long id, Integer seat, ReservationStatus status,
                                                 CheckInOutcome outcome) {
         return new ReservationResponse(id, 7, "33", "Independencia 2", "Independencia",
-                Instant.parse("2026-10-13T15:58:00Z"), seat, 0, 8, status, Instant.parse("2026-10-13T15:55:00Z"),
-                false, outcome);
+                Instant.parse("2026-10-13T15:58:00Z"), Instant.parse("2026-10-13T15:48:00Z"), seat, 0, 8, status,
+                Instant.parse("2026-10-13T15:55:00Z"), false, outcome);
     }
 
     @Test
@@ -151,6 +152,7 @@ class ReservationControllerTest {
                 .andExpect(jsonPath("$.coreName").value("Independencia 2"))
                 .andExpect(jsonPath("$.buildingName").value("Independencia"))
                 .andExpect(jsonPath("$.departureAt").value("2026-10-13T15:58:00Z"))
+                .andExpect(jsonPath("$.cancelFreeUntil").value("2026-10-13T15:48:00Z"))
                 .andExpect(jsonPath("$.cancelCountsAsNoShow").value(false));
     }
 
@@ -229,6 +231,17 @@ class ReservationControllerTest {
         mockMvc.perform(delete("/api/reservations/56").with(asUser()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RESERVATION_NOT_FOUND"));
+    }
+
+    @Test
+    void cancellingAfterTheDepartureReturns409WithCode() throws Exception {
+        willThrow(new ReservationRejectedException(ReservationRejectedException.Reason.DEPARTURE_ALREADY_PASSED,
+                "La salida ya pasó: la reserva no se puede cancelar.")).given(service).cancel(USER, 55L);
+
+        mockMvc.perform(delete("/api/reservations/55").with(asUser()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DEPARTURE_ALREADY_PASSED"))
+                .andExpect(jsonPath("$.path").value("/api/reservations/55"));
     }
 
     @Test

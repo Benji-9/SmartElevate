@@ -8,6 +8,7 @@ Resumen de lo que impide avanzar o requiere una decisión del equipo. **El segui
 | --- | --- | --- | --- | --- |
 | B-11 | [#22](https://github.com/Benji-9/SmartElevate/issues/22) | 🟡 | **Accesibilidad de las conexiones entre núcleos** | Relevado ([#99](https://github.com/Benji-9/SmartElevate/pull/99), `V2`): todos los núcleos están conectados en cada piso, sin paredes divisorias, y cruzar de punta a punta (Independencia 2 a Lima 1) tarda ~45–70 s. **Falta confirmar** si las conexiones se pueden hacer en silla de ruedas ([asignación](reglas/asignacion.md#ascensor-accesible)). No bloquea el MVP: el edificio alternativo quedó afuera. Próximo paso: recorrerlas con ese criterio. |
 | B-13 | [#24](https://github.com/Benji-9/SmartElevate/issues/24) | 🟡 | **Datos de salud (Ley 25.326)** | Postura del equipo: minimización (sin diagnóstico; certificado cifrado, acceso restringido, URLs firmadas cortas, borrado al resolver o vencer; [usuarios y prioridad](reglas/usuarios-y-prioridad.md#datos-sensibles)). Sigue a validar con la cátedra, porque el certificado mismo es dato de salud. No se aceptan certificados reales hasta entonces. |
+| B-19 | [#218](https://github.com/Benji-9/SmartElevate/issues/218) | 🟡 | **Calendario de cierres de cuatrimestre de UADE** | Calendario de cierres de cuatrimestre de UADE para `semester_end_dates` (provisorio 2026-12-31); cargarlo antes del 31/12/2026. Sin un cierre desde hoy no se pueden aprobar docentes ([usuarios y prioridad](reglas/usuarios-y-prioridad.md#roles-y-prioridad)). |
 
 ## Cómo agregar un bloqueante
 

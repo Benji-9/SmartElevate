@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.smartelevate.common.config.ConfigService;
+import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.priority.model.PriorityAudit;
 import com.smartelevate.priority.model.PriorityCategory;
 import com.smartelevate.priority.model.PriorityStatus;
@@ -22,11 +23,15 @@ import com.smartelevate.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -39,8 +44,21 @@ class PriorityServiceTest {
     private final PriorityAuditRepository audit = mock(PriorityAuditRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final ConfigService config = mock(ConfigService.class);
-    private final PriorityService service =
-            new PriorityService(priorities, audit, users, config, Clock.fixed(NOW, ZoneOffset.UTC));
+    private final PriorityService service = at(NOW);
+
+    private static final ZoneId CAMPUS = ZoneId.of("America/Argentina/Buenos_Aires");
+
+    private PriorityService at(Instant now) {
+        return new PriorityService(priorities, audit, users, config,
+                new CampusTime(Clock.fixed(now, ZoneOffset.UTC), CAMPUS));
+    }
+
+    private Instant approvedExpiry(PriorityService atTime, User u) {
+        atTime.approveTeacher(ADMIN, u.getId());
+        ArgumentCaptor<UserPriority> saved = ArgumentCaptor.forClass(UserPriority.class);
+        verify(priorities, org.mockito.Mockito.atLeastOnce()).save(saved.capture());
+        return saved.getValue().getExpiresAt();
+    }
 
     private User user(DeclaredUserType type) {
         User u = new User("Ana Pérez", "ana@uade.edu.ar", "1111111", "x", type, NOW);
@@ -104,33 +122,71 @@ class PriorityServiceTest {
 
     // --- docentes ---
 
+    private static final List<LocalDate> SEMESTER_ENDS = List.of(LocalDate.of(2026, 7, 31),
+            LocalDate.of(2026, 12, 19), LocalDate.of(2027, 7, 31));
+
     @Test
-    void approveTeacherGrantsPriorityAndAudits() {
+    void approveTeacherGrantsPriorityUntilTheEndOfTheCurrentSemesterAndAudits() {
         User u = user(DeclaredUserType.TEACHER);
         given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER)).willReturn(Optional.empty());
-        given(config.priorityTeacherValidity()).willReturn(Optional.empty());
+        given(config.semesterEndDates()).willReturn(SEMESTER_ENDS);
 
         service.approveTeacher(ADMIN, u.getId());
 
         ArgumentCaptor<UserPriority> saved = ArgumentCaptor.forClass(UserPriority.class);
         verify(priorities).save(saved.capture());
         assertThat(saved.getValue().getStatus()).isEqualTo(PriorityStatus.APPROVED);
-        assertThat(saved.getValue().getExpiresAt()).isNull();
+        // Fin del 19/12 en Buenos Aires (UTC-3) = 20/12 03:00 UTC.
+        assertThat(saved.getValue().getExpiresAt()).isEqualTo(Instant.parse("2026-12-20T03:00:00Z"));
         assertThat(saved.getValue().getDecidedBy()).isEqualTo(ADMIN);
         assertThat(auditedAction()).isEqualTo("TEACHER_APPROVED");
     }
 
-    @Test
-    void approveTeacherExpiresWhenValidityIsConfigured() {
+    // Borde del cambio de cuatrimestre: el día del cierre (hasta las 23:59 de Buenos Aires, ya 20/12 en UTC)
+    // todavía es el cuatrimestre que cierra; desde las 00:00 del 20/12 es el siguiente.
+    @ParameterizedTest
+    @CsvSource({
+            "2026-12-19T03:00:00Z, 2026-12-20T03:00:00Z",
+            "2026-12-20T02:59:59Z, 2026-12-20T03:00:00Z",
+            "2026-12-20T03:00:00Z, 2027-08-01T03:00:00Z",
+            "2026-07-31T12:00:00Z, 2026-08-01T03:00:00Z",
+            "2026-08-01T03:00:00Z, 2026-12-20T03:00:00Z"})
+    void approvalExpiresAtTheEndOfTheSemesterInCourse(Instant now, Instant expected) {
         User u = user(DeclaredUserType.TEACHER);
         given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER)).willReturn(Optional.empty());
-        given(config.priorityTeacherValidity()).willReturn(Optional.of(Duration.ofDays(180)));
+        given(config.semesterEndDates()).willReturn(SEMESTER_ENDS);
 
-        service.approveTeacher(ADMIN, u.getId());
+        assertThat(approvedExpiry(at(now), u)).isEqualTo(expected);
+    }
 
-        ArgumentCaptor<UserPriority> saved = ArgumentCaptor.forClass(UserPriority.class);
-        verify(priorities).save(saved.capture());
-        assertThat(saved.getValue().getExpiresAt()).isEqualTo(NOW.plus(Duration.ofDays(180)));
+    @Test
+    void anApprovalExpiresAtTheEndOfTheClosingDayAndCanBeRenewed() {
+        User u = user(DeclaredUserType.TEACHER);
+        UserPriority p = approved(u.getId(), PriorityCategory.TEACHER, Instant.parse("2026-12-20T03:00:00Z"));
+        given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER)).willReturn(Optional.of(p));
+        given(config.semesterEndDates()).willReturn(SEMESTER_ENDS);
+
+        assertThat(at(Instant.parse("2026-12-20T02:59:59Z")).currentPriority(u.getId()))
+                .isEqualTo(PriorityCategory.TEACHER);
+        assertThatThrownBy(() -> at(Instant.parse("2026-12-20T02:59:59Z")).approveTeacher(ADMIN, u.getId()))
+                .isInstanceOf(InvalidPriorityOperationException.class);
+
+        PriorityService nextSemester = at(Instant.parse("2026-12-20T03:00:00Z"));
+        assertThat(nextSemester.currentPriority(u.getId())).isEqualTo(PriorityCategory.NONE);
+        assertThat(approvedExpiry(nextSemester, u)).isEqualTo(Instant.parse("2027-08-01T03:00:00Z"));
+    }
+
+    @Test
+    void approvalFailsClearlyWhenNoSemesterEndIsLoadedFromToday() {
+        User u = user(DeclaredUserType.TEACHER);
+        given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER)).willReturn(Optional.empty());
+        given(config.semesterEndDates()).willReturn(List.of(LocalDate.of(2026, 7, 31)));
+
+        assertThatThrownBy(() -> service.approveTeacher(ADMIN, u.getId()))
+                .isInstanceOf(InvalidPriorityOperationException.class)
+                .hasMessageContaining("semester_end_dates");
+        verify(priorities, never()).save(any());
+        verify(audit, never()).save(any());
     }
 
     @Test
