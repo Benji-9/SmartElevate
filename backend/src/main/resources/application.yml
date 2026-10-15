@@ -28,6 +28,12 @@ app:
       secret: ${JWT_SECRET:}
       access-ttl: ${JWT_ACCESS_TTL:PT15M}
       refresh-ttl: ${JWT_REFRESH_TTL:P7D}
+    refresh-cookie:
+      # Cookie del refresh token (ADR 0019): HttpOnly siempre. Secure por defecto; en dev (http) se apaga.
+      name: ${APP_REFRESH_COOKIE_NAME:refresh_token}
+      secure: ${APP_REFRESH_COOKIE_SECURE:true}
+      same-site: ${APP_REFRESH_COOKIE_SAME_SITE:Lax}
+      path: ${APP_REFRESH_COOKIE_PATH:/api/auth}
   mail:
     # false (default): el mail solo se loguea. En prod se activa con APP_MAIL_ENABLED=true (SMTP, ADR 0013).
     enabled: ${APP_MAIL_ENABLED:false}

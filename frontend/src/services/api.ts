@@ -23,7 +23,6 @@ import type {
   AdminUserPage,
   Role,
   QrToken,
-  RefreshRequest,
   RegisterRequest,
   Reservation,
   ReservationPage,
@@ -69,9 +68,14 @@ const USE_MOCKS =
   import.meta.env.DEV &&
   (import.meta.env.VITE_USE_MOCKS ?? String(import.meta.env.MODE === 'development')) === 'true';
 
-// Sesión (#192, ADR 0014): el access token vive solo en memoria; el refresh token (opaco, de un
-// solo uso, viaja en el body JSON) en sessionStorage para sobrevivir a recargar la pestaña.
-const REFRESH_KEY = 'smartelevate.refresh';
+// Sesión (#204, ADR 0019): el access token vive solo en memoria; el refresh token (opaco, de un
+// solo uso) viaja en una cookie HttpOnly que el JS no ve y que sobrevive a recargar la pestaña.
+// El header custom es la defensa CSRF de /auth/refresh y /auth/logout (ADR 0023).
+const COOKIE_AUTH: RequestInit = {
+  method: 'POST',
+  credentials: 'include',
+  headers: { 'X-Requested-With': 'SmartElevate' },
+};
 let accessToken: string | null = null;
 let refreshing: Promise<boolean> | null = null;
 const expiredListeners = new Set<() => void>();
@@ -136,24 +140,12 @@ async function send<T>(
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-// Con el storage bloqueado (modo privado estricto) la sesión sigue, pero no sobrevive a recargar.
-function storage<T>(action: () => T): T | null {
-  try {
-    return action();
-  } catch {
-    return null;
-  }
-}
-const readRefresh = () => storage(() => sessionStorage.getItem(REFRESH_KEY));
-
-function saveTokens({ accessToken: access, refreshToken }: TokenResponse) {
+function saveTokens({ accessToken: access }: TokenResponse) {
   accessToken = access;
-  storage(() => sessionStorage.setItem(REFRESH_KEY, refreshToken));
 }
 
 function clearTokens() {
   accessToken = null;
-  storage(() => sessionStorage.removeItem(REFRESH_KEY));
 }
 
 /**
@@ -161,12 +153,7 @@ function clearTokens() {
  * intento: el refresh es de un solo uso y un segundo canje revocaría toda la sesión.
  */
 function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = readRefresh();
-  if (!refreshToken) return Promise.resolve(false);
-  refreshing ??= send<TokenResponse>('/auth/refresh', {
-    method: 'POST',
-    body: JSON.stringify({ refreshToken } satisfies RefreshRequest),
-  })
+  refreshing ??= send<TokenResponse>('/auth/refresh', COOKIE_AUTH)
     .then(
       (tokens) => {
         saveTokens(tokens);
@@ -225,11 +212,11 @@ export const resendVerification = (body: ResendVerificationRequest) =>
 
 /** Inicia sesión y devuelve el usuario según `/users/me` (rol y prioridad los decide el servidor). */
 export async function login(body: LoginRequest): Promise<User> {
-  saveTokens(await api.post<TokenResponse>('/auth/login', body));
+  saveTokens(await api.post<TokenResponse>('/auth/login', body, { credentials: 'include' }));
   return getMe();
 }
 
-/** Recupera la sesión al abrir la app con el refresh token guardado. `null` si no hay sesión. */
+/** Recupera la sesión al abrir la app con la cookie del refresh. `null` si no hay sesión (401). */
 export async function restoreSession(): Promise<User | null> {
   if (!(await refreshAccessToken())) return null;
   return getMe().catch(() => null);
@@ -243,11 +230,8 @@ export const resetPassword = (body: ResetPasswordRequest) =>
   api.post<void>('/auth/password/reset', body);
 
 export async function logout(): Promise<void> {
-  const refreshToken = readRefresh();
   try {
-    if (refreshToken) {
-      await api.post<void>('/auth/logout', { refreshToken } satisfies RefreshRequest);
-    }
+    await send<void>('/auth/logout', COOKIE_AUTH);
   } catch {
     // Aunque el backend no responda, la sesión local se cierra igual.
   } finally {

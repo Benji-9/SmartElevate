@@ -24,7 +24,6 @@ import type {
   Role,
   PriorityUser,
   QrToken,
-  RefreshRequest,
   RegisterRequest,
   Reservation,
   ReservationPage,
@@ -189,17 +188,12 @@ const users: User[] = [
 // Cuentas que todavía no hicieron click en el link de verificación.
 const unverified = new Set(['sin.verificar@uade.edu.ar']);
 
-// Simula la sesión del servidor (refresh token vigente): sobrevive a recargar la página.
+// Simula la cookie del refresh del servidor: sobrevive a recargar la página.
 const SESSION_KEY = 'smartelevate-mock-session';
 
-const REFRESH_KEY = 'smartelevate-mock-refresh';
-let tokenCounter = 0;
-
 function tokensFor(email: string): TokenResponse {
-  const refreshToken = `mock-refresh-${++tokenCounter}`;
   sessionStorage.setItem(SESSION_KEY, email);
-  sessionStorage.setItem(REFRESH_KEY, refreshToken);
-  return { accessToken: `mock-${Date.now()}`, refreshToken, tokenType: 'Bearer', expiresIn: 900 };
+  return { accessToken: `mock-${Date.now()}`, tokenType: 'Bearer', expiresIn: 900 };
 }
 
 function currentUser(): User {
@@ -544,14 +538,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   [
     'POST',
     /^\/auth\/refresh$/,
-    (body) => {
-      const { refreshToken } = body as RefreshRequest;
+    () => {
+      // Sin cookie (sin sesión) el real responde 401.
       const email = sessionStorage.getItem(SESSION_KEY);
-      // Un solo uso, como el real: el token viejo ya no sirve.
-      if (!email || refreshToken !== sessionStorage.getItem(REFRESH_KEY)) {
-        sessionStorage.removeItem(SESSION_KEY);
-        throw new ApiError(401, 'Sesión vencida');
-      }
+      if (!email) throw new ApiError(401, 'Sesión vencida');
       return tokensFor(email);
     },
   ],
@@ -561,7 +551,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/auth\/logout$/,
     () => {
       sessionStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem(REFRESH_KEY);
     },
   ],
   [

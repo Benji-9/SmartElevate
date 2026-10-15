@@ -1,17 +1,19 @@
 package com.smartelevate.user.controller;
 
 import com.smartelevate.common.error.ApiError;
+import com.smartelevate.common.security.RefreshCookie;
+import com.smartelevate.user.dto.SessionTokens;
 import com.smartelevate.user.dto.ForgotPasswordRequest;
 import com.smartelevate.user.dto.ResetPasswordRequest;
 import com.smartelevate.user.service.PasswordResetService;
 import com.smartelevate.user.dto.LoginRequest;
-import com.smartelevate.user.dto.RefreshRequest;
 import com.smartelevate.user.dto.RegisterRequest;
 import com.smartelevate.user.dto.TokenResponse;
 import com.smartelevate.user.service.AuthService;
 import com.smartelevate.user.dto.ResendVerificationRequest;
 import com.smartelevate.user.dto.VerifyEmailRequest;
 import com.smartelevate.user.service.EmailVerificationService;
+import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,7 +23,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +42,7 @@ public class AuthController {
     private final AuthService authService;
     private final EmailVerificationService emailVerification;
     private final PasswordResetService passwordReset;
+    private final RefreshCookie refreshCookie;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -51,11 +56,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Inicia sesión y devuelve access y refresh token",
+    @Operation(summary = "Inicia sesión y devuelve el access token y setea el refresh en una cookie HttpOnly",
             description = "Las credenciales incorrectas dan 401 sin distinguir si el email existe. "
                     + "Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos "
                     + "para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).")
-    @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
+    @ApiResponse(responseCode = "200", description = "Access token; Set-Cookie con el refresh",
             content = @Content(schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "Email o contraseña incorrectos",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
@@ -63,28 +68,51 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     @ApiResponse(responseCode = "429", description = "Demasiados intentos fallidos; Retry-After dice cuántos segundos "
             + "esperar", content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
-        return authService.login(request.email(), request.password(), http.getRemoteAddr());
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return withCookie(authService.login(request.email(), request.password(), http.getRemoteAddr()));
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Canjea un refresh token por un par nuevo (rotación)",
-            description = "El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, "
-                    + "se revoca toda la sesión.")
-    @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
+    @Operation(summary = "Canjea el refresh token de la cookie por un access token nuevo (rotación)",
+            description = "El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno "
+                    + "nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header "
+                    + "X-Requested-With: SmartElevate (defensa CSRF, ADR 0023); sin él, o con un Origin no "
+                    + "permitido, responde 403.")
+    @ApiResponse(responseCode = "200", description = "Access token nuevo; Set-Cookie con el refresh rotado",
             content = @Content(schema = @Schema(implementation = TokenResponse.class)))
-    @ApiResponse(responseCode = "401", description = "Refresh token inválido, vencido, revocado o ya usado",
+    @ApiResponse(responseCode = "401",
+            description = "Sin cookie, o refresh token inválido, vencido, revocado o ya usado",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
-        return authService.refresh(request.refreshToken());
+    @ApiResponse(responseCode = "403", description = "Falta el header CSRF o el Origin no está permitido",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public ResponseEntity<TokenResponse> refresh(HttpServletRequest http) {
+        refreshCookie.requireSameSiteRequest(http);
+        String token = refreshCookie.read(http);
+        if (token == null) {
+            throw new InvalidRefreshTokenException();
+        }
+        return withCookie(authService.refresh(token));
     }
 
     @PostMapping("/logout")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Cierra la sesión revocando el refresh token",
-            description = "Idempotente: un token desconocido tampoco da error.")
-    public void logout(@Valid @RequestBody RefreshRequest request) {
-        authService.logout(request.refreshToken());
+    @Operation(summary = "Cierra la sesión: revoca el refresh token de la cookie y la expira",
+            description = "Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header "
+                    + "X-Requested-With: SmartElevate (ADR 0023).")
+    @ApiResponse(responseCode = "204", description = "Sesión cerrada; Set-Cookie expira la cookie")
+    @ApiResponse(responseCode = "403", description = "Falta el header CSRF o el Origin no está permitido",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public ResponseEntity<Void> logout(HttpServletRequest http) {
+        refreshCookie.requireSameSiteRequest(http);
+        String token = refreshCookie.read(http);
+        if (token != null) {
+            authService.logout(token);
+        }
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, refreshCookie.expire()).build();
+    }
+
+    private ResponseEntity<TokenResponse> withCookie(SessionTokens session) {
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refreshCookie.issue(session.refreshToken()))
+                .body(session.response());
     }
 
     @PostMapping("/verify")
