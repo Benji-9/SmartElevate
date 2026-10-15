@@ -1,5 +1,5 @@
 import { useId, type CSSProperties } from 'react';
-import type { AdminKpis } from '../../types/pending';
+import type { AdminKpis } from '../../types/api';
 import { formatNumber } from './format';
 
 type ReservationsChartProps = { data: AdminKpis['reservationsByHour'] };

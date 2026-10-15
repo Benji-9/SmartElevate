@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import type {
-  AdminKpis,
-  AdminShift,
-  CongestionSnapshot,
   NotificationPreferences,
   PriorityUploadRules,
 } from '../types/pending';
@@ -47,6 +44,10 @@ const freeDeparture = async (building = 'INDEPENDENCIA') =>
 describe('mocks', () => {
   it('deja pasar al backend lo que no tiene mock', async () => {
     expect(await mockRequest('GET', '/ping', undefined, 0)).toBeUndefined();
+    // Congestión y KPIs ya los calcula el backend (#220).
+    for (const path of ['/congestion', '/admin/kpis?period=TODAY', '/admin/shifts']) {
+      expect(await mockRequest('GET', path, undefined, 0)).toBeUndefined();
+    }
   });
 
   it('las salidas tienen la forma del contrato y no incluyen ascensores dedicados ajenos', async () => {
@@ -173,13 +174,6 @@ describe('mocks', () => {
       status: 'CANCELLED',
       seatNumber: null,
     });
-  });
-
-  it('la congestión trae cada cuánto refrescar', async () => {
-    const snapshot = await call<CongestionSnapshot>('GET', '/congestion');
-
-    expect(snapshot.refreshAfterSeconds).toBeGreaterThan(0);
-    expect(snapshot.cores.map((c) => c.name)).toContain('Independencia 2');
   });
 
   it('edificios y ascensores usan los pisos del relevamiento', async () => {
@@ -330,40 +324,6 @@ describe('mocks', () => {
 
     expect(await call('GET', '/me/notification-preferences')).toMatchObject({
       departureReminder: true,
-    });
-  });
-
-  it('KPIs del panel admin: filtran por sede y escalan con el período', async () => {
-    const today = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY');
-    const week = await call<AdminKpis>('GET', '/admin/kpis?period=WEEK');
-    const lima = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY&buildingId=LIMA');
-
-    expect(today).toMatchObject({ baselinePercent: 43.5, capacity: 10 });
-    expect(Date.parse(today.to) - Date.parse(today.from)).toBe(86_400_000);
-    expect(today.reservations).toBe(
-      today.reservationsByHour.reduce((sum, h) => sum + h.reservations, 0),
-    );
-    expect(week.reservations).toBeGreaterThan(today.reservations);
-    expect(lima.cores.map((c) => c.coreId)).toEqual(['L1', 'L2', 'L3']);
-    await expect(call('GET', '/admin/kpis?period=YEAR')).rejects.toMatchObject({ status: 400 });
-  });
-
-  it('KPIs del panel admin: el turno de cursada recorta las reservas a su horario', async () => {
-    const shifts = await call<AdminShift[]>('GET', '/admin/shifts');
-    expect(shifts).toEqual([
-      { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '12:15' },
-    ]);
-
-    const allDay = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY');
-    const morning = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY&shiftId=MORNING');
-
-    expect(morning.reservationsByHour.map((h) => h.hour)).toEqual([7, 8, 9, 10, 11, 12]);
-    expect(morning.reservations).toBe(
-      morning.reservationsByHour.reduce((sum, h) => sum + h.reservations, 0),
-    );
-    expect(morning.reservations).toBeLessThan(allDay.reservations);
-    await expect(call('GET', '/admin/kpis?period=TODAY&shiftId=NIGHT')).rejects.toMatchObject({
-      status: 404,
     });
   });
 
