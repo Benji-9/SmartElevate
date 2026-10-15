@@ -22,6 +22,8 @@ import type {
   RefreshRequest,
   RegisterRequest,
   Reservation,
+  ReservationPage,
+  ReservationStatus,
   ReserveRequest,
   ResetPasswordRequest,
   TokenResponse,
@@ -37,10 +39,6 @@ import type {
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  Reservation as PendingReservation,
-  Trip,
-  TripPage,
-  TripResult,
 } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
@@ -214,14 +212,13 @@ function currentUser(): User {
   return found;
 }
 
-/** Datos del núcleo que el contrato no tiene (congestión, hall): solo para los mocks. */
+/** Datos del núcleo que el contrato no tiene (congestión): solo para los mocks. */
 type MockCore = {
   id: string;
   buildingId: string;
   name: string;
   congestion: CongestionLevel;
   estimatedWaitMinutes: number;
-  hall: string;
 };
 
 const cores: MockCore[] = [
@@ -231,7 +228,6 @@ const cores: MockCore[] = [
     name: 'Lima 1',
     congestion: 'HIGH',
     estimatedWaitMinutes: 9,
-    hall: 'Hall Lima, planta baja',
   },
   {
     id: 'L2',
@@ -239,7 +235,6 @@ const cores: MockCore[] = [
     name: 'Lima 2',
     congestion: 'MEDIUM',
     estimatedWaitMinutes: 5,
-    hall: 'Hall Lima, planta baja',
   },
   {
     id: 'L3',
@@ -247,7 +242,6 @@ const cores: MockCore[] = [
     name: 'Lima 3',
     congestion: 'LOW',
     estimatedWaitMinutes: 2,
-    hall: 'Hall Lima, entrepiso',
   },
   {
     id: 'IND1',
@@ -255,7 +249,6 @@ const cores: MockCore[] = [
     name: 'Independencia 1',
     congestion: 'LOW',
     estimatedWaitMinutes: 1,
-    hall: 'Hall Independencia, planta baja',
   },
   {
     id: 'IND2',
@@ -263,7 +256,6 @@ const cores: MockCore[] = [
     name: 'Independencia 2',
     congestion: 'LOW',
     estimatedWaitMinutes: 3,
-    hall: 'Hall Independencia, planta baja',
   },
 ];
 
@@ -297,6 +289,23 @@ let reservations: Reservation[] = [];
 let reservationCounter = 0;
 
 const activeReservation = () => reservations.find((r) => r.status === 'ACTIVE');
+
+/** Lo que `ReservationResponse` agrega del ascensor: núcleo y edificio. */
+function placeOf(elevatorCode: string) {
+  const e = ELEVATORS.find((x) => x.code === elevatorCode)!;
+  return {
+    elevator: e.code,
+    coreName: e.coreName,
+    buildingName: buildings.find((b) => b.code === e.building)!.name,
+  };
+}
+
+/** El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura. */
+const view = (r: Reservation): Reservation => ({
+  ...r,
+  cancelCountsAsNoShow:
+    r.status === 'ACTIVE' && Date.parse(r.departureAt) - Date.now() < CANCEL_DEADLINE_MS,
+});
 
 function occupied(departureId: number) {
   const base = OCCUPANCY[(Math.floor(departureId / 100) + (departureId % 100)) % OCCUPANCY.length];
@@ -404,49 +413,18 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
   const reservation: Reservation = {
     id: ++reservationCounter,
     departureId,
-    elevator: e.code,
+    ...placeOf(e.code),
     departureAt: departure.departureAt,
     seatNumber: occupied(departureId) + 1,
     originFloor,
     destinationFloor,
     status: 'ACTIVE',
     createdAt: new Date().toISOString(),
+    cancelCountsAsNoShow: false,
+    checkInOutcome: null,
   };
   reservations = [...reservations, reservation];
-  return reservation;
-}
-
-/**
- * Forma vieja (types/pending.ts) para `GET /reservations/active` y `/reservations/{id}`, que no
- * están en el contrato. Se va cuando #214 pase Inicio, Turno y Check-in a `/reservations/me`.
- */
-function toPending(r: Reservation): PendingReservation {
-  const e = ELEVATORS.find((x) => x.code === r.elevator)!;
-  const core = cores.find((c) => c.id === e.core)!;
-  return {
-    id: String(r.id),
-    status:
-      r.status === 'USED' ? 'COMPLETED' : r.status === 'CANCELLED_LATE' ? 'CANCELLED' : r.status,
-    departure: {
-      id: String(r.departureId),
-      coreId: core.id,
-      departsAt: r.departureAt,
-      durationMinutes: DEPARTURE_MINUTES,
-      capacity: CAPACITY,
-      occupied: occupied(r.departureId),
-    },
-    core: {
-      id: core.id,
-      name: core.name,
-      buildingName: buildings.find((b) => b.code === core.buildingId)!.name,
-      floors: e.floors,
-      hall: core.hall,
-    },
-    originFloor: r.originFloor,
-    destinationFloor: r.destinationFloor,
-    // El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura.
-    cancelCountsAsNoShow: Date.parse(r.departureAt) - Date.now() < CANCEL_DEADLINE_MS,
-  };
+  return view(reservation);
 }
 
 // Arranca con un turno activo en el ascensor 33 (Independencia 2), PB → 7.
@@ -460,13 +438,15 @@ function toPending(r: Reservation): PendingReservation {
     {
       id: ++reservationCounter,
       departureId,
-      elevator: '33',
+      ...placeOf('33'),
       departureAt: new Date(at).toISOString(),
       seatNumber: occupied(departureId) + 1,
       originFloor: 0,
       destinationFloor: 7,
       status: 'ACTIVE',
       createdAt: new Date().toISOString(),
+      cancelCountsAsNoShow: false,
+      checkInOutcome: null,
     },
   ];
 }
@@ -480,31 +460,41 @@ let notificationPreferences: NotificationPreferences = {
   priorityAccess: false,
 };
 
-// Historial de ejemplo: dos viajes por día hacia atrás, con todos los resultados posibles.
-const TRIP_RESULTS: TripResult[] = [
-  'COMPLETED',
-  'COMPLETED',
-  'OTHER_ELEVATOR',
-  'LATE',
-  'CANCELLED',
-  'NO_SHOW',
+// Historial de ejemplo: dos viajes por día hacia atrás, con todos los estados y resultados.
+const TRIP_RESULTS: [ReservationStatus, Reservation['checkInOutcome']][] = [
+  ['USED', 'ON_TIME'],
+  ['USED', 'ON_TIME'],
+  ['USED', 'OTHER_ELEVATOR'],
+  ['NO_SHOW', 'LATE'],
+  ['CANCELLED', null],
+  ['NO_SHOW', null],
+  ['CANCELLED_LATE', null],
 ];
-const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
+const pastTrips: Reservation[] = Array.from({ length: 24 }, (_, i) => {
   const day = Math.floor(i / 2) + 1;
   const departsAt = new Date(Date.now() - day * 86_400_000 - (i % 2) * 3 * 3_600_000);
   departsAt.setUTCSeconds(0, 0);
-  const core = cores[i % cores.length];
+  const [status, checkInOutcome] = TRIP_RESULTS[i % TRIP_RESULTS.length];
   return {
-    id: `t-${i + 1}`,
-    departsAt: departsAt.toISOString(),
-    durationMinutes: DEPARTURE_MINUTES,
-    coreName: core.name,
+    id: 1000 - i,
+    departureId: 0,
+    ...placeOf(ELEVATORS[(i * 3) % ELEVATORS.length].code),
+    departureAt: departsAt.toISOString(),
+    seatNumber: status.startsWith('CANCELLED') ? null : 3,
     originFloor: 0,
     // 5 a 7: fuera de los pisos bajos y servidos por todos los núcleos.
     destinationFloor: (i % 3) + 5,
-    result: TRIP_RESULTS[i % TRIP_RESULTS.length],
+    status,
+    createdAt: new Date(departsAt.getTime() - 10 * 60_000).toISOString(),
+    cancelCountsAsNoShow: false,
+    checkInOutcome,
   };
 });
+/** Historial como el backend: las de esta sesión y las de ejemplo, la salida más reciente primero. */
+const history = () =>
+  [...reservations, ...pastTrips].sort(
+    (a, b) => Date.parse(b.departureAt) - Date.parse(a.departureAt) || b.id - a.id,
+  );
 
 /**
  * Tokens de prueba del check-in: los del kiosco simulado (`mock-qr-<ascensor>-…`) traen su
@@ -679,32 +669,29 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (_, __, query) => {
       const start = Number(query.get('cursor') ?? 0);
       const end = start + TRIPS_PAGE_SIZE;
+      const all = history();
       return {
-        items: trips.slice(start, end),
-        nextCursor: end < trips.length ? String(end) : null,
-      } satisfies TripPage;
+        items: all.slice(start, end).map(view),
+        nextCursor: end < all.length ? String(end) : null,
+      } satisfies ReservationPage;
     },
-  ],
-  [
-    'GET',
-    /^\/reservations\/me$/,
-    () => [...reservations].sort((a, b) => Date.parse(b.departureAt) - Date.parse(a.departureAt)),
   ],
   [
     'GET',
     /^\/reservations\/active$/,
     () => {
+      // 204 sin cuerpo si no hay turno activo.
       const active = activeReservation();
-      return active ? toPending(active) : null;
+      return active && view(active);
     },
   ],
   [
     'GET',
     /^\/reservations\/([^/]+)$/,
     (_, [id]) => {
-      const found = reservations.find((r) => String(r.id) === id);
-      if (!found) throw new ApiError(404, 'No encontramos ese turno');
-      return toPending(found);
+      const found = history().find((r) => String(r.id) === id);
+      if (!found) throw rejected(404, 'RESERVATION_NOT_FOUND', 'La reserva no existe.');
+      return view(found);
     },
   ],
   ['POST', /^\/reservations$/, (body) => book(currentUser(), body as ReserveRequest)],
@@ -746,9 +733,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
             );
       }
       const status = late ? 'NO_SHOW' : 'USED';
+      const outcome = late ? 'LATE' : elevator === active.elevator ? 'ON_TIME' : 'OTHER_ELEVATOR';
       const result: CheckIn = {
         reservationId: active.id,
-        outcome: late ? 'LATE' : elevator === active.elevator ? 'ON_TIME' : 'OTHER_ELEVATOR',
+        outcome,
         reservationStatus: status,
         elevator,
         reservedElevator: active.elevator,
@@ -757,7 +745,9 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         source: 'SIMULATED',
       };
       lastCheckedIn = active.id;
-      reservations = reservations.map((r) => (r === active ? { ...r, status } : r));
+      reservations = reservations.map((r) =>
+        r === active ? { ...r, status, checkInOutcome: outcome } : r,
+      );
       return result;
     },
   ],
@@ -799,8 +789,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       const since = Date.now() - NO_SHOW_RULE.windowDays * 86_400_000;
       return {
         ...NO_SHOW_RULE,
-        recentNoShows: trips.filter(
-          (t) => t.result === 'NO_SHOW' && Date.parse(t.departsAt) >= since,
+        // Falta = NO_SHOW (con o sin check-in fuera de hora) o CANCELLED_LATE (turnos.md §5).
+        recentNoShows: history().filter(
+          (t) =>
+            (t.status === 'NO_SHOW' || t.status === 'CANCELLED_LATE') &&
+            Date.parse(t.departureAt) >= since,
         ).length,
         suspendedUntil: null,
         exempt: currentUser().priority !== 'NONE',
