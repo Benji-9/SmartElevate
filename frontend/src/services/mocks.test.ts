@@ -3,21 +3,21 @@ import type {
   AdminKpis,
   AdminShift,
   CongestionSnapshot,
-  Core,
-  Departure,
-  FloorOption,
   NotificationPreferences,
   PriorityUploadRules,
-  Reservation,
+  Reservation as PendingReservation,
   TripPage,
 } from '../types/pending';
 import type {
   Building,
   CheckIn,
   CreatedKiosk,
+  Departure,
+  Elevator,
   KioskList,
   NoShowStatus,
   QrToken,
+  Reservation,
 } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
@@ -33,32 +33,59 @@ const call = async <T>(method: string, path: string, body?: unknown, headers?: H
     )
   )?.data as T;
 
+const loginAna = () =>
+  call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
+/** Cancela el turno activo, si hay, para poder reservar otro. */
+async function cancelActive() {
+  const active = (await call<Reservation[]>('GET', '/reservations/me')).find(
+    (r) => r.status === 'ACTIVE',
+  );
+  if (active) await call('DELETE', `/reservations/${active.id}`);
+}
+const freeDeparture = async (building = 'INDEPENDENCIA') =>
+  (await call<Departure[]>('GET', `/departures?building=${building}`)).find(
+    (d) => d.remainingSeats > 0,
+  )!;
+
 describe('mocks', () => {
   it('deja pasar al backend lo que no tiene mock', async () => {
     expect(await mockRequest('GET', '/ping', undefined, 0)).toBeUndefined();
   });
 
-  it('las salidas traen cupo y duración como parámetros de la API', async () => {
-    const departures = await call<Departure[]>('GET', '/cores/L1/departures');
+  it('las salidas tienen la forma del contrato y no incluyen ascensores dedicados ajenos', async () => {
+    await loginAna();
+    const departures = await call<Departure[]>('GET', '/departures?building=independencia');
 
     expect(departures.length).toBeGreaterThan(0);
-    expect(departures[0]).toMatchObject({ coreId: 'L1', capacity: 10, durationMinutes: 2 });
+    expect(departures[0]).toMatchObject({
+      id: expect.any(Number),
+      building: 'INDEPENDENCIA',
+      capacity: 10,
+      remainingSeats: expect.any(Number),
+      status: 'SCHEDULED',
+    });
+    // Ana no tiene prioridad: solo ve el 33 y el 34 de IND2, no los dedicados 05 y 06.
+    expect(new Set(departures.map((d) => d.elevator))).toEqual(new Set(['33', '34']));
   });
 
-  it('arranca con un turno activo con su núcleo y la regla de cancelación', async () => {
-    const active = await call<Reservation>('GET', '/reservations/active');
+  it('arranca con un turno activo en el 33, también en la forma vieja', async () => {
+    await loginAna();
+    const [active] = await call<Reservation[]>('GET', '/reservations/me');
 
-    expect(active).toMatchObject({
-      status: 'ACTIVE',
-      core: { id: 'L2', buildingName: 'Lima', hall: expect.any(String) },
+    expect(active).toMatchObject({ id: expect.any(Number), status: 'ACTIVE', elevator: '33' });
+    const pending = await call<PendingReservation>('GET', '/reservations/active');
+    expect(pending).toMatchObject({
+      id: String(active.id),
+      core: { id: 'IND2', buildingName: 'Independencia', hall: expect.any(String) },
       cancelCountsAsNoShow: false,
     });
-    expect(await call('GET', `/reservations/${active.id}`)).toEqual(active);
+    expect(await call('GET', `/reservations/${active.id}`)).toEqual(pending);
     await expect(call('GET', '/reservations/no-existe')).rejects.toMatchObject({ status: 404 });
   });
 
   it('con un turno activo no se puede reservar otro', async () => {
-    const [departure] = await call<Departure[]>('GET', '/cores/IND2/departures');
+    await loginAna();
+    const departure = await freeDeparture();
 
     await expect(
       call('POST', '/reservations', {
@@ -66,14 +93,14 @@ describe('mocks', () => {
         originFloor: 0,
         destinationFloor: 8,
       }),
-    ).rejects.toMatchObject({ status: 409, message: expect.stringContaining('turno activo') });
+    ).rejects.toMatchObject({ status: 409, code: 'ACTIVE_LIMIT_REACHED' });
   });
 
-  it('reservar una salida llena da 409', async () => {
-    const active = await call<Reservation>('GET', '/reservations/active');
-    if (active) await call('DELETE', `/reservations/${active.id}`);
-    const departures = await call<Departure[]>('GET', '/cores/L1/departures');
-    const full = departures.find((d) => d.occupied >= d.capacity)!;
+  it('reservar una salida sin lugar da TURN_FULL', async () => {
+    await loginAna();
+    await cancelActive();
+    const departures = await call<Departure[]>('GET', '/departures?building=LIMA');
+    const full = departures.find((d) => d.remainingSeats === 0)!;
 
     const error = await call('POST', '/reservations', {
       departureId: full.id,
@@ -82,25 +109,71 @@ describe('mocks', () => {
     }).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).status).toBe(409);
-    expect((error as ApiError).message).toContain('llena');
+    expect(error).toMatchObject({ status: 409, code: 'TURN_FULL' });
   });
 
-  it('reservar, consultar y cancelar el turno activo', async () => {
-    const active = await call<Reservation>('GET', '/reservations/active');
-    if (active) await call('DELETE', `/reservations/${active.id}`);
-    const departures = await call<Departure[]>('GET', '/cores/IND2/departures');
-    const free = departures.find((d) => d.occupied < d.capacity)!;
+  it('rechaza los pisos con el code del backend', async () => {
+    await loginAna();
+    await cancelActive();
+    const departure = await freeDeparture();
+    const tryFloors = (originFloor: number, destinationFloor: number) =>
+      call('POST', '/reservations', { departureId: departure.id, originFloor, destinationFloor });
+
+    await expect(tryFloors(0, 0)).rejects.toMatchObject({ code: 'SAME_FLOOR' });
+    await expect(tryFloors(0, 12)).rejects.toMatchObject({ code: 'FLOOR_OUT_OF_RANGE' });
+    // IND2 no para en el 1.
+    await expect(tryFloors(0, 1)).rejects.toMatchObject({ code: 'FLOOR_NOT_SERVED' });
+    await expect(tryFloors(0, 3)).rejects.toMatchObject({
+      status: 422,
+      code: 'LOW_FLOOR_DESTINATION',
+      message: 'Para ir a los pisos 1 a 4 usá la escalera.',
+    });
+  });
+
+  it('un común no puede reservar en un ascensor dedicado', async () => {
+    await loginAna();
+    await cancelActive();
+    const elevators = await call<Elevator[]>('GET', '/elevators');
+    const teachers = elevators.findIndex((e) => e.usage === 'TEACHERS');
+    const [any] = await call<Departure[]>('GET', '/departures');
+    // Misma hora, otro ascensor: el id codifica hora × 100 + índice del ascensor.
+    const id = Math.floor(any.id / 100) * 100 + teachers;
+
+    await expect(
+      call('POST', '/reservations', { departureId: id, originFloor: 0, destinationFloor: 8 }),
+    ).rejects.toMatchObject({ status: 422, code: 'ELEVATOR_NOT_BOOKABLE' });
+  });
+
+  it('reservar, consultar y cancelar el turno', async () => {
+    await loginAna();
+    await cancelActive();
+    const free = await freeDeparture();
 
     const created = await call<Reservation>('POST', '/reservations', {
       departureId: free.id,
       originFloor: 0,
       destinationFloor: 8,
     });
-    expect(await call<Reservation>('GET', '/reservations/active')).toEqual(created);
+    expect(created).toMatchObject({
+      id: expect.any(Number),
+      departureId: free.id,
+      elevator: free.elevator,
+      departureAt: free.departureAt,
+      seatNumber: expect.any(Number),
+      status: 'ACTIVE',
+    });
+    expect(await call<Reservation[]>('GET', '/reservations/me')).toContainEqual(created);
+    const after = (await call<Departure[]>('GET', '/departures?building=INDEPENDENCIA')).find(
+      (d) => d.id === free.id,
+    )!;
+    expect(after.remainingSeats).toBe(free.remainingSeats - 1);
 
     await call('DELETE', `/reservations/${created.id}`);
     expect(await call('GET', '/reservations/active')).toBeNull();
+    const [cancelled] = await call<Reservation[]>('GET', '/reservations/me').then((list) =>
+      list.filter((r) => r.id === created.id),
+    );
+    expect(cancelled).toMatchObject({ status: 'CANCELLED', seatNumber: null });
   });
 
   it('la congestión trae cada cuánto refrescar', async () => {
@@ -110,32 +183,25 @@ describe('mocks', () => {
     expect(snapshot.cores.map((c) => c.name)).toContain('Independencia 2');
   });
 
-  it('los pisos de destino marcan el origen y los pisos bajos (1 a 4) como no elegibles', async () => {
-    await call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
-
-    const floors = await call<FloorOption[]>('GET', '/cores/L1/floors?origin=0');
-    const byFloor = (n: number) => floors.find((f) => f.floor === n);
-
-    expect(byFloor(0)).toMatchObject({ eligible: false });
-    expect(byFloor(1)).toMatchObject({ eligible: false, reason: expect.any(String) });
-    expect(byFloor(4)).toMatchObject({ eligible: false, reason: expect.any(String) });
-    expect(byFloor(-1)).toEqual({ floor: -1, eligible: true, reason: null });
-    expect(byFloor(5)).toEqual({ floor: 5, eligible: true, reason: null });
-    await call('POST', '/auth/logout');
-  });
-
-  it('edificios y núcleos usan los pisos del relevamiento', async () => {
+  it('edificios y ascensores usan los pisos del relevamiento', async () => {
     const buildings = await call<Building[]>('GET', '/buildings');
-    const cores = await call<Core[]>('GET', '/cores');
-    const floorsOf = (id: string) => cores.find((c) => c.id === id)!.floors;
+    const elevators = await call<Elevator[]>('GET', '/elevators');
+    const floorsOf = (code: string) => elevators.find((e) => e.code === code)!.floors;
 
     expect(buildings.map((b) => [b.code, b.minFloor, b.maxFloor])).toEqual([
       ['LIMA', -4, 10],
       ['INDEPENDENCIA', -4, 11],
     ]);
-    expect(floorsOf('IND2')).not.toContain(1);
-    expect(floorsOf('IND2').at(-1)).toBe(11);
-    expect([floorsOf('L1')[0], floorsOf('L1').at(-1)]).toEqual([-3, 7]);
+    expect(floorsOf('33')).not.toContain(1);
+    expect(floorsOf('33').at(-1)).toBe(11);
+    expect([floorsOf('01')[0], floorsOf('01').at(-1)]).toEqual([-3, 7]);
+    // L2: la batería alta no para en el −1 ni en el 1.
+    expect(floorsOf('35')).not.toContain(-1);
+    expect(floorsOf('07').at(-1)).toBe(5);
+    expect(elevators.filter((e) => e.core === 'IND1').map((e) => e.usage)).toEqual([
+      'TEACHERS',
+      'REDUCED_MOBILITY',
+    ]);
   });
 
   it('login, /users/me y logout simulan la sesión con cookie', async () => {
@@ -178,9 +244,11 @@ describe('mocks', () => {
   });
 
   it('check-in: token vencido da 400, después otro ascensor y ya escaneado, con su code', async () => {
-    const active = await call<Reservation>('GET', '/reservations/active');
-    if (active) await call('DELETE', `/reservations/${active.id}`);
-    const [departure] = await call<Departure[]>('GET', '/cores/IND2/departures');
+    await loginAna();
+    await cancelActive();
+    const departure = (await call<Departure[]>('GET', '/departures?elevator=33')).find(
+      (d) => d.remainingSeats > 0,
+    )!;
     const turn = await call<Reservation>('POST', '/reservations', {
       departureId: departure.id,
       originFloor: 0,
@@ -193,13 +261,13 @@ describe('mocks', () => {
     });
     const result = await call<CheckIn>('POST', '/check-ins', { token: 'mock-qr-34-1' });
     expect(result).toMatchObject({
+      reservationId: turn.id,
       outcome: 'OTHER_ELEVATOR',
       reservationStatus: 'USED',
       elevator: '34',
       reservedElevator: '33',
-      departureAt: turn.departure.departsAt,
+      departureAt: departure.departureAt,
     });
-    expect(departure.departsAt).toBe(turn.departure.departsAt);
     await expect(call('POST', '/check-ins', { token: 'X' })).rejects.toMatchObject({
       status: 409,
       code: 'ALREADY_CHECKED_IN',

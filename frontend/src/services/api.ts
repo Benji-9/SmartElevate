@@ -5,6 +5,7 @@ import type {
   CheckInRequest,
   CreatedKiosk,
   CreateKioskRequest,
+  Departure,
   Elevator,
   FieldViolation,
   KioskList,
@@ -17,6 +18,8 @@ import type {
   QrToken,
   RefreshRequest,
   RegisterRequest,
+  Reservation,
+  ReserveRequest,
   ResendVerificationRequest,
   ResetPasswordRequest,
   TokenResponse,
@@ -28,14 +31,10 @@ import type {
   AdminKpisQuery,
   AdminShift,
   CongestionSnapshot,
-  Core,
-  Departure,
-  FloorOption,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  Reservation,
-  ReserveRequest,
+  Reservation as PendingReservation,
   TripPage,
 } from '../types/pending';
 
@@ -257,17 +256,27 @@ export async function logout(): Promise<void> {
     clearTokens();
   }
 }
+/** Edificios con su rango de pisos y sus núcleos (código y nombre visible). */
 export const getBuildings = () => api.get<Building[]>('/buildings');
-export const getCores = () => api.get<Core[]>('/cores');
-export const getDepartures = (coreId: string) =>
-  api.get<Departure[]>(`/cores/${encodeURIComponent(coreId)}/departures`);
+/**
+ * Salidas reservables ahora de un edificio. Ya vienen filtradas para el usuario (solo los
+ * ascensores que puede usar) y `remainingSeats` es lo que él puede tomar: el front no decide.
+ */
+export const getDepartures = (building: string) =>
+  api.get<Departure[]>(`/departures?building=${encodeURIComponent(building)}`);
 export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
-/** Pisos de destino desde `origin`, con su elegibilidad para el usuario actual. */
-export const getDestinationFloors = (coreId: string, origin: number) =>
-  api.get<FloorOption[]>(`/cores/${encodeURIComponent(coreId)}/floors?origin=${origin}`);
-export const getActiveReservation = () => api.get<Reservation | null>('/reservations/active');
+/** Mis reservas de hoy en adelante (activas y canceladas), la salida más tardía primero. */
+export const getMyReservations = () => api.get<Reservation[]>('/reservations/me');
+export const getActiveReservation = () =>
+  api.get<PendingReservation | null>('/reservations/active');
 export const getReservation = (id: string) =>
-  api.get<Reservation>(`/reservations/${encodeURIComponent(id)}`);
+  api.get<PendingReservation>(`/reservations/${encodeURIComponent(id)}`);
+/**
+ * Reserva un lugar. Rechazos por `code`: TURN_FULL (también si lo que queda es de prioritarios),
+ * ELEVATOR_NOT_BOOKABLE, OUTSIDE_BOOKING_WINDOW, DEPARTURE_NOT_FOUND, ACTIVE_LIMIT_REACHED,
+ * DAILY_LIMIT_REACHED, NO_SHOW_SUSPENDED y los de pisos (SAME_FLOOR, FLOOR_OUT_OF_RANGE,
+ * FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION).
+ */
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
 export const cancelReservation = (id: string) =>
   api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
