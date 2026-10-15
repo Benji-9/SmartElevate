@@ -38,7 +38,7 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 
 - Cada franja horaria tiene **capacidad de 10 personas**; al llegar a 10 se muestra "Completo" y no se puede elegir.
 - Las franjas de ejemplo son de 5 minutos (7:15 – 7:20, 7:20 – 7:25…), pensadas para la entrada, el recreo y la salida de cada bloque de cursada.
-- **Regla de pisos bajos** ([`asignacion.md`](../reglas/asignacion.md)): los trayectos cortos van por escalera, salvo **movilidad reducida**, que queda exenta (los docentes no). Hoy no se reserva con destino en los pisos **1 a 4** (umbral `low_floors_threshold` de la tabla de configuración, [#113](https://github.com/Benji-9/SmartElevate/issues/113)); el "0–4" del wireframe era de ejemplo. La elegibilidad de cada piso y el motivo los manda el servidor; la UI deshabilita esos botones y muestra el motivo, sin hardcodear pisos ni textos.
+- **Regla de pisos bajos** ([`asignacion.md`](../reglas/asignacion.md)): los trayectos cortos van por escalera, salvo **movilidad reducida**, que queda exenta (los docentes no). Hoy no se reserva con destino en los pisos **1 a 4** (umbral `low_floors_threshold` de la tabla de configuración, [#113](https://github.com/Benji-9/SmartElevate/issues/113)); el "0–4" del wireframe era de ejemplo. La regla la evalúa el servidor al reservar: hoy el contrato no expone la elegibilidad por piso, así que la UI no la marca de antemano y muestra el motivo de `LOW_FLOOR_DESTINATION` (ver §04), sin hardcodear pisos ni textos.
 - El **acceso prioritario** se solicita desde el perfil subiendo un certificado de discapacidad (PDF) o un certificado médico (PDF o imagen); queda en estado "Pendiente de validación" hasta que se valida.
 - El **check-in** se hace escaneando el QR que rota en la pantalla dentro de la cabina.
 - Los núcleos son **Lima 1, Lima 2, Lima 3, Independencia 1 e Independencia 2** (en botones cortos: "Indep. 1", "Indep. 2"). El "Lima 3, ascensores 1–3, pisos 7–10" del wireframe es de ejemplo: la zonificación real ya está relevada ([asignación](../reglas/asignacion.md#ascensores-y-pisos-servidos)) y la manda el servidor.
@@ -180,24 +180,37 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 
 `PageHeader` con volver + "Reservar turno". `main`: pad 8/20/20/20, gap 12.
 
-**Precarga del último viaje:** si la persona ya reservó desde ese dispositivo, el formulario abre con el núcleo, el origen y el destino de ese turno (guardados en `localStorage` al reservar con éxito), y arriba un aviso (mismo estilo que el de pisos) "Usamos tu último viaje: Lima 3 · PB → 7. Podés cambiarlo abajo.". Lo que ya no sea válido (núcleo que no existe, piso fuera de rango o no elegible) se ignora sin error. **La franja nunca se precarga:** depende del cupo del momento. Al cambiar cualquier elección el aviso se va.
+**Datos (contrato, #217):** el backend modela por **ascensor**. El front arma los núcleos con `GET /api/buildings` (nombre, rango de pisos y núcleos) y `GET /api/elevators` (pisos servidos por cada ascensor); las franjas salen de `GET /api/departures?building=…`, que ya viene filtrado para el usuario (solo los ascensores que puede usar, p. ej. los dedicados de IND1 solo para su categoría) con `remainingSeats` = lugares que **él** puede tomar. El front no decide elegibilidad: lo que no valga lo rechaza `POST /api/reservations` con su `code`. Si ya hay una reserva `ACTIVE` en `GET /api/reservations/me`, no se ofrece el formulario: "Ya tenés un turno activo para la salida de las 14:32. Para reservar otro, primero cancelalo." y el link "Ver mi turno".
 
-1. Etiqueta "Edificio" (14 px / 600) y **selector de edificio** (pills en fila con wrap, gap 8, pad 8/14, `--radius-pill`, texto 14 px / 500): Lima 1 · Lima 2 · **Lima 3 (seleccionado)** · Indep. 1 · Indep. 2. Seleccionado: fondo `--accent`, texto `--on-accent`; resto: `--surface`, borde 1 px `--border`.
-2. Etiqueta "Piso de destino" y **selector de piso**: botones de **50 × 44** (`--radius-sm`, número 15 px / 600) del **0 al 10**, con wrap y gap 8. Piso 7 seleccionado (`--accent`). Pisos **0–4 deshabilitados** para usuarios no prioritarios: fondo `--surface-subtle`, número `--ink-subtle`, `disabled`. Resto: `--surface` con borde `--border`.
-3. **Aviso** (pad 12, `--radius-sm`, fondo `--accent-tint`, 12 px) con el motivo que manda el servidor para los pisos deshabilitados (p. ej. "Hasta el piso 4 usá la escalera."). No hardcodear el texto del wireframe.
-4. Etiqueta "Franja horaria" y **lista de franjas** (gap 8). Cada franja: fila pad 12/14, gap 12, `--radius-md`, borde 1 px `--line`; a la izquierda hora (15 px / 600) y barra de capacidad (120 × 6, pista `--line`, relleno `--accent`, ancho = `taken/10 × 120`); luego "5/10" (13 px / 500 `--ink-muted`); a la derecha radio de 20 px.
+**Precarga del último viaje:** si la persona ya reservó desde ese dispositivo, el formulario abre con el núcleo, el origen y el destino de ese turno (guardados en `localStorage` al reservar con éxito), y arriba un aviso (pad 12, `--accent-tint`) "Usamos tu último viaje: Lima 3 · PB → 7. Podés cambiarlo abajo.". Lo que ya no sea válido (núcleo que no existe o sin ascensores activos, piso que ya no sirve ningún ascensor) se ignora sin error. **La franja nunca se precarga:** depende del cupo del momento. Al cambiar cualquier elección el aviso se va.
 
-| Franja | Ocupación | Estado |
+1. Etiqueta "Edificio" (14 px / 600) y **selector de núcleo** (pills en fila con wrap, gap 8, pad 8/14, `--radius-pill`, texto 14 px / 500): los núcleos de `/buildings` que tienen algún ascensor activo, en el orden de los edificios (Lima 1 · Lima 2 · **Lima 3 (seleccionado)** · Indep. 1 · Indep. 2). Seleccionado: fondo `--accent`, texto `--on-accent`; resto: `--surface`, borde 1 px `--border`.
+2. **Piso de origen** (desplegable nativo): los pisos donde para algún ascensor del núcleo, dentro del rango del edificio.
+3. Etiqueta "Piso de destino" y **selector de piso**: botones de **50 × 44** (`--radius-sm`, número 15 px / 600) con wrap y gap 8, con los pisos de los ascensores que paran en el origen (cada batería tiene los suyos, p. ej. L2), sin el origen. Seleccionado: `--accent`; resto: `--surface` con borde `--border`. **La regla de pisos bajos no se marca de antemano**: el contrato no expone qué pisos puede elegir cada usuario (el umbral está en `app_config` y no se hardcodea); si el destino no vale, el servidor responde `LOW_FLOOR_DESTINATION` con el motivo (p. ej. "Para ir a los pisos 1 a 4 usá la escalera.") y se pide otro destino.
+4. Etiqueta "Franja horaria" y **lista de franjas** (gap 8): las salidas de los ascensores del núcleo que paran en los pisos elegidos, **agrupadas por hora** (todos los ascensores salen a la misma hora). En cada hora se ofrece la salida con más lugares libres para el usuario. Cada franja: fila pad 12/14, gap 12, `--radius-md`, borde 1 px `--line`; a la izquierda la hora de salida (15 px / 600) y el ascensor ("· Ascensor 12", 13 px / 500 `--ink-muted`), y la barra de ocupación (120 × 6, pista `--line`, relleno `--accent`, ancho = `(capacity − remainingSeats) / capacity`); luego "6 libres" (13 px / 500 `--ink-muted`); a la derecha radio de 20 px. La franja muestra solo la hora: el contrato no trae la duración de la salida.
+
+| Franja | Libres | Estado |
 |---|---|---|
-| 7:15 – 7:20 | 10/10 | **Completo**: deshabilitada, hora e indicador atenuados, texto "Completo" en lugar de "10/10" |
-| 7:20 – 7:25 | 8/10 | disponible |
-| 7:25 – 7:30 | 5/10 | **seleccionada**: borde 2 px `--accent`, fondo `--accent-tint`, radio relleno |
-| 7:30 – 7:35 | 2/10 | disponible |
+| 14:30 · Ascensor 10 | 0 | **Completo**: deshabilitada, hora e indicador atenuados, texto "Completo". También cuando lo que queda está reservado para prioritarios (`remainingSeats` ya lo descuenta) |
+| 14:32 · Ascensor 12 | 2 | disponible |
+| 14:34 · Ascensor 11 | 5 | **seleccionada**: borde 2 px `--accent`, fondo `--accent-tint`, radio relleno |
+| 14:36 · Ascensor 10 | 8 | disponible |
+
+Sin salidas: "No hay salidas que puedas reservar en este núcleo ahora. Probá en unos minutos." (p. ej. IND1 para quien no tiene la prioridad de sus ascensores dedicados).
 
 5. **Pie fijo** mientras el contenido scrollea, con:
-   - El **resumen** de lo elegido en una línea (15 px / 600): "Lima 3 · Piso 7 · 7:25 – 7:27". Sin nada elegido no se muestra.
+   - El **resumen** de lo elegido en una línea (15 px / 600): "Lima 3 · Piso 7 · 14:34". Sin nada elegido no se muestra.
    - Mientras falte algo, el **próximo paso** (13 px, `--ink-muted`): "Falta elegir el edificio", "…el piso de origen", "…el piso de destino" o "…la franja horaria". Va asociado al botón con `aria-describedby`.
-   - `Button` primary con la franja elegida: "Confirmar turno · 7:25" (deshabilitado hasta completar todo).
+   - `Button` primary con la franja elegida: "Confirmar turno · 14:34" (deshabilitado hasta completar todo).
+   - Si el servidor rechaza la reserva, el **motivo** (`role="alert"`, fondo `--danger-tint`) es el `message` del `ApiError` (ya viene en español y con los valores de la regla); el `code` decide qué más pasa:
+
+| `code` | Qué hace la pantalla |
+|---|---|
+| `TURN_FULL` (incluye "los lugares que quedan están reservados para prioritarios"), `ELEVATOR_NOT_BOOKABLE`, `OUTSIDE_BOOKING_WINDOW`, `DEPARTURE_NOT_FOUND` | Recarga las salidas, deselecciona la franja y lleva el foco a "Franja horaria" para elegir otra |
+| `SAME_FLOOR`, `FLOOR_OUT_OF_RANGE`, `FLOOR_NOT_SERVED`, `LOW_FLOOR_DESTINATION` | Deselecciona el destino |
+| `ACTIVE_LIMIT_REACHED` | Vuelve a pedir `/reservations/me` y muestra el aviso de turno activo con "Ver mi turno" |
+| `NO_SHOW_SUSPENDED` | Solo el motivo, que dice hasta cuándo ("…no podés reservar hasta el 14/10 a las 12:58.") |
+| `DAILY_LIMIT_REACHED` y sin `code` | Solo el motivo (sin conexión: "No pudimos conectarnos. Probá de nuevo.") |
 
 ## 05 · Turno confirmado — `/turno/:id`
 

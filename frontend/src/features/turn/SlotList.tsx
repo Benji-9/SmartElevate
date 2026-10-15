@@ -1,17 +1,21 @@
 import { useId, type Ref } from 'react';
-import type { Departure } from '../../types/pending';
-import { formatSlot } from './format';
+import type { Slot } from './catalog';
+import { formatTime } from './format';
 
 type SlotListProps = {
-  departures: Departure[];
+  slots: Slot[];
+  /** `departureAt` de la franja elegida. */
   value: string | null;
-  onChange: (departureId: string) => void;
+  onChange: (departureAt: string) => void;
   /** Para llevar el foco al título (p. ej. cuando la salida elegida se llenó). */
   labelRef?: Ref<HTMLSpanElement>;
 };
 
-/** Salidas de ascensor para reservar, con su ocupación. Las completas no se pueden elegir. */
-export function SlotList({ departures, value, onChange, labelRef }: SlotListProps) {
+/**
+ * Salidas para reservar, con su ascensor y los lugares que el usuario puede tomar (los manda el
+ * servidor). Las que no tienen lugar no se pueden elegir.
+ */
+export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
   const labelId = useId();
   return (
     <div className="option-group">
@@ -19,37 +23,37 @@ export function SlotList({ departures, value, onChange, labelRef }: SlotListProp
         Franja horaria
       </span>
       <div role="radiogroup" aria-labelledby={labelId} className="slot-list">
-        {departures.map((d) => {
-          const full = d.occupied >= d.capacity;
+        {slots.map(({ departureAt, departure: d }) => {
+          const full = d.remainingSeats <= 0;
+          const taken = d.capacity - d.remainingSeats;
           return (
-            <label key={d.id} className={['slot', full && 'slot--full'].filter(Boolean).join(' ')}>
+            <label
+              key={departureAt}
+              className={['slot', full && 'slot--full'].filter(Boolean).join(' ')}
+            >
               <span className="slot__info">
-                <span className="slot__time">{formatSlot(d.departsAt, d.durationMinutes)}</span>
+                <span className="slot__time">
+                  {formatTime(departureAt)}
+                  {/* Separa la hora del ascensor en el nombre accesible. */}{' '}
+                  <span className="slot__elevator">· Ascensor {d.elevator}</span>
+                </span>
                 <span className="slot__bar" aria-hidden="true">
-                  <span style={{ width: `${Math.min(100, (d.occupied / d.capacity) * 100)}%` }} />
+                  <span style={{ width: `${Math.min(100, (taken / d.capacity) * 100)}%` }} />
                 </span>
+              </span>{' '}
+              <span className="slot__count">
+                {full
+                  ? 'Completo'
+                  : `${d.remainingSeats} ${d.remainingSeats === 1 ? 'libre' : 'libres'}`}
               </span>
-              {/* Separa la hora del cupo en el nombre accesible ("14:32 – 14:34 Completo"). */}{' '}
-              {full ? (
-                <span className="slot__count">Completo</span>
-              ) : (
-                <span className="slot__count">
-                  <span aria-hidden="true">
-                    {d.occupied}/{d.capacity}
-                  </span>
-                  <span className="visually-hidden">
-                    {d.occupied} de {d.capacity} lugares ocupados
-                  </span>
-                </span>
-              )}
               <input
                 type="radio"
                 className="slot__radio"
                 name="departure"
-                value={d.id}
-                checked={value === d.id}
+                value={departureAt}
+                checked={value === departureAt}
                 disabled={full}
-                onChange={() => onChange(d.id)}
+                onChange={() => onChange(departureAt)}
               />
             </label>
           );

@@ -8,8 +8,10 @@ import type {
   Building,
   CheckIn,
   CheckInRequest,
+  CongestionLevel,
   CreatedKiosk,
   CreateKioskRequest,
+  Departure,
   Elevator,
   Kiosk,
   KioskList,
@@ -20,20 +22,18 @@ import type {
   QrToken,
   RefreshRequest,
   RegisterRequest,
+  Reservation,
+  ReserveRequest,
   ResetPasswordRequest,
   TokenResponse,
   User,
 } from '../types/api';
 import { ApiError } from './api';
 import type {
-  Core,
-  Departure,
-  FloorOption,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  Reservation,
-  ReserveRequest,
+  Reservation as PendingReservation,
   Trip,
   TripPage,
   TripResult,
@@ -43,6 +43,8 @@ import type {
 const DEPARTURE_MINUTES = 2;
 const CAPACITY = 10;
 const WINDOW_MINUTES = 30;
+/** La ventana de reserva cierra 2 min antes de la salida. */
+const BOOKING_CLOSES_MS = 2 * 60_000;
 /** Pisos bajos (`low_floors_threshold`): sin reserva con destino del 1 a este piso. */
 const LOW_FLOORS_THRESHOLD = 4;
 /** Se puede cancelar sin falta hasta este tiempo antes de la salida. */
@@ -55,35 +57,42 @@ const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 /** `app.kiosk.qr-ttl` del backend (ADR 0020). */
 const QR_TTL_MS = 30_000;
-// Kioscos del QR (#229): ascensores de ejemplo de Independencia 2 y Lima 3.
+/** Lugares de cada salida común guardados para prioritarios (turnos.md §6). */
+const PRIORITY_SEATS = 2;
+
+function range(from: number, to: number) {
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+}
+
+// Ascensores y pisos servidos del relevamiento (asignacion.md#ascensores-y-pisos-servidos).
+const elevator = (
+  code: string,
+  core: string,
+  floors: number[],
+  usage: Elevator['usage'] = 'COMMON',
+): Elevator => {
+  const lima = core.startsWith('L');
+  return {
+    code,
+    building: lima ? 'LIMA' : 'INDEPENDENCIA',
+    core,
+    coreName: `${lima ? 'Lima' : 'Independencia'} ${core.at(-1)}`,
+    floors,
+    usage,
+    active: true,
+  };
+};
 const ELEVATORS: Elevator[] = [
-  {
-    code: '33',
-    building: 'INDEPENDENCIA',
-    core: 'IND2',
-    coreName: 'Independencia 2',
-    floors: [0, 5, 6, 7, 8, 9, 10, 11],
-    usage: 'COMMON',
-    active: true,
-  },
-  {
-    code: '34',
-    building: 'INDEPENDENCIA',
-    core: 'IND2',
-    coreName: 'Independencia 2',
-    floors: [0, 5, 6, 7, 8, 9, 10, 11],
-    usage: 'COMMON',
-    active: true,
-  },
-  {
-    code: '12',
-    building: 'LIMA',
-    core: 'L3',
-    coreName: 'Lima 3',
-    floors: [0, 7, 8, 9, 10],
-    usage: 'COMMON',
-    active: true,
-  },
+  ...['01', '02', '03', '04'].map((code) => elevator(code, 'L1', range(-3, 7))),
+  // L2 tiene dos baterías: la baja (07–08) y la alta (35–36), que no para en el −1 ni en el 1.
+  ...['07', '08'].map((code) => elevator(code, 'L2', range(-4, 5))),
+  ...['35', '36'].map((code) => elevator(code, 'L2', [-2, 0, ...range(2, 10)])),
+  ...['10', '11', '12', '13', '14', '15'].map((code) => elevator(code, 'L3', range(-3, 10))),
+  // Dedicados: docentes y movilidad reducida.
+  elevator('05', 'IND1', range(-4, 10), 'TEACHERS'),
+  elevator('06', 'IND1', range(-4, 10), 'REDUCED_MOBILITY'),
+  // No paran en el 1; único núcleo que llega al 11.
+  ...['33', '34'].map((code) => elevator(code, 'IND2', [...range(-4, 0), ...range(2, 11)])),
 ];
 let kiosks: Kiosk[] = [];
 // Cola de docentes y prioritarios del panel admin (#140). Ids UUID y mensajes de error como los
@@ -175,15 +184,21 @@ function currentUser(): User {
   return found;
 }
 
-const range = (from: number, to: number) =>
-  Array.from({ length: to - from + 1 }, (_, i) => from + i);
+/** Datos del núcleo que el contrato no tiene (congestión, hall): solo para los mocks. */
+type MockCore = {
+  id: string;
+  buildingId: string;
+  name: string;
+  congestion: CongestionLevel;
+  estimatedWaitMinutes: number;
+  hall: string;
+};
 
-const cores: Core[] = [
+const cores: MockCore[] = [
   {
     id: 'L1',
     buildingId: 'LIMA',
     name: 'Lima 1',
-    floors: range(-3, 7),
     congestion: 'HIGH',
     estimatedWaitMinutes: 9,
     hall: 'Hall Lima, planta baja',
@@ -192,9 +207,6 @@ const cores: Core[] = [
     id: 'L2',
     buildingId: 'LIMA',
     name: 'Lima 2',
-    // Unión de las dos baterías (07–08: −4 a 5; 35–36: −2, 0, 2 a 10) hasta que el
-    // contrato las exponga (#101).
-    floors: range(-4, 10),
     congestion: 'MEDIUM',
     estimatedWaitMinutes: 5,
     hall: 'Hall Lima, planta baja',
@@ -203,7 +215,6 @@ const cores: Core[] = [
     id: 'L3',
     buildingId: 'LIMA',
     name: 'Lima 3',
-    floors: range(-3, 10),
     congestion: 'LOW',
     estimatedWaitMinutes: 2,
     hall: 'Hall Lima, entrepiso',
@@ -212,8 +223,6 @@ const cores: Core[] = [
     id: 'IND1',
     buildingId: 'INDEPENDENCIA',
     name: 'Independencia 1',
-    // Ascensores dedicados (docentes y movilidad reducida, #101).
-    floors: range(-4, 10),
     congestion: 'LOW',
     estimatedWaitMinutes: 1,
     hall: 'Hall Independencia, planta baja',
@@ -222,15 +231,14 @@ const cores: Core[] = [
     id: 'IND2',
     buildingId: 'INDEPENDENCIA',
     name: 'Independencia 2',
-    // No para en el 1.
-    floors: [...range(-4, 0), ...range(2, 11)],
     congestion: 'LOW',
     estimatedWaitMinutes: 3,
     hall: 'Hall Independencia, planta baja',
   },
 ];
 
-// Ocupación de ejemplo por salida; la segunda está llena para probar el 409.
+// Ocupación de ejemplo por salida, rotada por ascensor: hay llenas para probar TURN_FULL y casi
+// llenas (8–9) donde lo que queda es de prioritarios.
 const OCCUPANCY = [4, 10, 7, 2, 9, 0, 5, 3, 8, 1, 6, 2, 0, 4, 1];
 
 // Misma forma que GET /api/buildings: los núcleos van con código y nombre visible.
@@ -248,65 +256,192 @@ const buildings: Building[] = [
   },
 ];
 
-function departuresFor(coreId: string): Departure[] {
-  const step = DEPARTURE_MINUTES * 60_000;
-  const first = Math.ceil(Date.now() / step) * step + step;
-  return Array.from({ length: WINDOW_MINUTES / DEPARTURE_MINUTES }, (_, i) => {
-    const departsAt = new Date(first + i * step).toISOString();
-    return {
-      id: `${coreId}-${departsAt}`,
-      coreId,
-      departsAt,
-      durationMinutes: DEPARTURE_MINUTES,
-      capacity: CAPACITY,
-      occupied: OCCUPANCY[i % OCCUPANCY.length],
-    };
-  });
+const STEP_MS = DEPARTURE_MINUTES * 60_000;
+/** El id numérico codifica la salida: hora (en pasos de 2 min) × 100 + índice del ascensor. */
+const departureIdOf = (at: number, elevatorIndex: number) => (at / STEP_MS) * 100 + elevatorIndex;
+/** Primera salida dentro de la ventana (cierra 2 min antes). */
+const firstSlot = () => Math.ceil((Date.now() + BOOKING_CLOSES_MS) / STEP_MS) * STEP_MS;
+
+// Estado en memoria: se reinicia al recargar la página.
+let reservations: Reservation[] = [];
+let reservationCounter = 0;
+
+const activeReservation = () => reservations.find((r) => r.status === 'ACTIVE');
+
+function occupied(departureId: number) {
+  const base = OCCUPANCY[(Math.floor(departureId / 100) + (departureId % 100)) % OCCUPANCY.length];
+  const booked = reservations.filter(
+    (r) => r.departureId === departureId && r.status === 'ACTIVE',
+  ).length;
+  return Math.min(CAPACITY, base + booked);
 }
 
-function findDeparture(id: string): Departure {
-  const departure = cores.flatMap((c) => departuresFor(c.id)).find((d) => d.id === id);
-  if (!departure) throw new ApiError(404, 'La salida no existe o ya cerró');
-  return departure;
-}
+/** Como en el backend: los dedicados solo para su categoría vigente. */
+const canUse = (e: Elevator, user: User) =>
+  e.usage === 'COMMON' ||
+  (e.usage === 'TEACHERS' && user.priority === 'TEACHER') ||
+  (e.usage === 'REDUCED_MOBILITY' && user.priority === 'REDUCED_MOBILITY');
 
-function newReservation(
-  id: string,
-  departure: Departure,
-  originFloor: number,
-  destinationFloor: number,
-): Reservation {
-  const core = cores.find((c) => c.id === departure.coreId)!;
+// ponytail: los 2 lugares de prioritarios se descuentan siempre a los comunes; el backend
+// además los libera 3 min antes y cuenta los ya tomados por prioritarios.
+function departureFor(id: number, user: User): Departure {
+  const e = ELEVATORS[id % 100];
+  const free = CAPACITY - occupied(id);
+  const held = e.usage === 'COMMON' && user.priority === 'NONE' ? PRIORITY_SEATS : 0;
   return {
     id,
+    elevator: e.code,
+    building: e.building,
+    departureAt: new Date(Math.floor(id / 100) * STEP_MS).toISOString(),
+    capacity: CAPACITY,
+    remainingSeats: Math.max(0, free - held),
+    status: 'SCHEDULED',
+  };
+}
+
+/** `GET /departures`: la ventana de reserva de los ascensores que el usuario puede usar. */
+function bookable(user: User, building: string | null, elevatorCode: string | null) {
+  const first = firstSlot();
+  const times = range(0, WINDOW_MINUTES / DEPARTURE_MINUTES)
+    .map((i) => first + i * STEP_MS)
+    .filter((at) => at <= Date.now() + WINDOW_MINUTES * 60_000);
+  return times.flatMap((at) =>
+    ELEVATORS.flatMap((e, index) =>
+      canUse(e, user) &&
+      (!building || e.building === building.toUpperCase()) &&
+      (!elevatorCode || e.code === elevatorCode)
+        ? [departureFor(departureIdOf(at, index), user)]
+        : [],
+    ),
+  );
+}
+
+const rejected = (status: number, code: string, message: string) =>
+  new ApiError(status, message, [], undefined, code);
+
+/** `POST /reservations`, con los rechazos y los `code` del backend (ReservationService). */
+function book(user: User, { departureId, originFloor, destinationFloor }: ReserveRequest) {
+  const e = Number.isInteger(departureId) ? ELEVATORS[departureId % 100] : undefined;
+  if (!e) throw rejected(404, 'DEPARTURE_NOT_FOUND', 'La salida no existe.');
+  if (!canUse(e, user)) {
+    throw rejected(
+      422,
+      'ELEVATOR_NOT_BOOKABLE',
+      e.usage === 'TEACHERS'
+        ? 'Ese ascensor es exclusivo para docentes.'
+        : 'Ese ascensor es exclusivo para personas con movilidad reducida.',
+    );
+  }
+  const departure = departureFor(departureId, user);
+  const at = Date.parse(departure.departureAt);
+  if (at < Date.now() + BOOKING_CLOSES_MS || at > Date.now() + WINDOW_MINUTES * 60_000) {
+    throw rejected(409, 'OUTSIDE_BOOKING_WINDOW', 'La salida está fuera de la ventana de reserva.');
+  }
+  if (originFloor === destinationFloor) {
+    throw rejected(422, 'SAME_FLOOR', 'El piso de origen y el de destino son el mismo.');
+  }
+  const building = buildings.find((b) => b.code === e.building)!;
+  const inRange = (f: number) => f >= building.minFloor && f <= building.maxFloor;
+  if (!inRange(originFloor) || !inRange(destinationFloor)) {
+    throw rejected(422, 'FLOOR_OUT_OF_RANGE', 'Alguno de los pisos no existe en el edificio.');
+  }
+  if (!e.floors.includes(originFloor) || !e.floors.includes(destinationFloor)) {
+    throw rejected(422, 'FLOOR_NOT_SERVED', 'Ese ascensor no para en alguno de los pisos.');
+  }
+  if (
+    user.priority !== 'REDUCED_MOBILITY' &&
+    destinationFloor >= 1 &&
+    destinationFloor <= LOW_FLOORS_THRESHOLD
+  ) {
+    throw rejected(
+      422,
+      'LOW_FLOOR_DESTINATION',
+      `Para ir a los pisos 1 a ${LOW_FLOORS_THRESHOLD} usá la escalera.`,
+    );
+  }
+  if (activeReservation()) {
+    throw rejected(409, 'ACTIVE_LIMIT_REACHED', 'Ya tenés una reserva activa.');
+  }
+  if (departure.remainingSeats <= 0) {
+    throw rejected(
+      409,
+      'TURN_FULL',
+      occupied(departureId) < CAPACITY
+        ? 'Los lugares que quedan están reservados para prioritarios. Elegí otra salida.'
+        : 'La salida está llena. Elegí otra.',
+    );
+  }
+  const reservation: Reservation = {
+    id: ++reservationCounter,
+    departureId,
+    elevator: e.code,
+    departureAt: departure.departureAt,
+    seatNumber: occupied(departureId) + 1,
+    originFloor,
+    destinationFloor,
     status: 'ACTIVE',
-    departure,
+    createdAt: new Date().toISOString(),
+  };
+  reservations = [...reservations, reservation];
+  return reservation;
+}
+
+/**
+ * Forma vieja (types/pending.ts) para `GET /reservations/active` y `/reservations/{id}`, que no
+ * están en el contrato. Se va cuando #214 pase Inicio, Turno y Check-in a `/reservations/me`.
+ */
+function toPending(r: Reservation): PendingReservation {
+  const e = ELEVATORS.find((x) => x.code === r.elevator)!;
+  const core = cores.find((c) => c.id === e.core)!;
+  return {
+    id: String(r.id),
+    status:
+      r.status === 'USED' ? 'COMPLETED' : r.status === 'CANCELLED_LATE' ? 'CANCELLED' : r.status,
+    departure: {
+      id: String(r.departureId),
+      coreId: core.id,
+      departsAt: r.departureAt,
+      durationMinutes: DEPARTURE_MINUTES,
+      capacity: CAPACITY,
+      occupied: occupied(r.departureId),
+    },
     core: {
       id: core.id,
       name: core.name,
       buildingName: buildings.find((b) => b.code === core.buildingId)!.name,
-      floors: core.floors,
+      floors: e.floors,
       hall: core.hall,
     },
-    originFloor,
-    destinationFloor,
-    cancelCountsAsNoShow: false,
+    originFloor: r.originFloor,
+    destinationFloor: r.destinationFloor,
+    // El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura.
+    cancelCountsAsNoShow: Date.parse(r.departureAt) - Date.now() < CANCEL_DEADLINE_MS,
   };
 }
 
-/** El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura. */
-const withCancelRule = (r: Reservation): Reservation => ({
-  ...r,
-  cancelCountsAsNoShow: Date.parse(r.departure.departsAt) - Date.now() < CANCEL_DEADLINE_MS,
-});
-
-// Estado en memoria: se reinicia al recargar la página.
-let activeReservation: Reservation | null = newReservation('r-1', departuresFor('L2')[3], 0, 7);
+// Arranca con un turno activo en el ascensor 33 (Independencia 2), PB → 7.
+{
+  const at = firstSlot() + 3 * STEP_MS;
+  const departureId = departureIdOf(
+    at,
+    ELEVATORS.findIndex((e) => e.code === '33'),
+  );
+  reservations = [
+    {
+      id: ++reservationCounter,
+      departureId,
+      elevator: '33',
+      departureAt: new Date(at).toISOString(),
+      seatNumber: occupied(departureId) + 1,
+      originFloor: 0,
+      destinationFloor: 7,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
 /** Turno del último check-in, para "ya escaneado". */
-let lastCheckedIn: string | null = null;
-/** El turno de los mocks no dice su ascensor (Reservation sigue en pending.ts): es el 33. */
-const RESERVED_ELEVATOR = '33';
-let checkInCount = 0;
+let lastCheckedIn: number | null = null;
 let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
   departureReminder: false,
@@ -343,10 +478,11 @@ const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
 
 /**
  * Tokens de prueba del check-in: los del kiosco simulado (`mock-qr-<ascensor>-…`) traen su
- * ascensor; "VENCIDO" es inválido, "OTRO" da el ascensor 34 y "TARDE" fuera de hora. Cualquier
- * otro token no vacío (p. ej. el "DEMO" del modo demo) es del ascensor del turno.
+ * ascensor; "VENCIDO" es inválido, "OTRO" da otro ascensor (34, o 33 si el turno es del 34) y
+ * "TARDE" fuera de hora. Cualquier otro token no vacío (p. ej. el "DEMO" del modo demo) es del
+ * ascensor del turno.
  */
-function scanned(token: string) {
+function scanned(token: string, reserved: string) {
   const normalized = token.trim().toUpperCase();
   if (!normalized || normalized.includes('VENCIDO')) {
     throw new ApiError(
@@ -359,7 +495,7 @@ function scanned(token: string) {
   }
   const elevator =
     /^mock-qr-([^-]+)-/.exec(token)?.[1] ??
-    (normalized.includes('OTRO') ? '34' : RESERVED_ELEVATOR);
+    (normalized.includes('OTRO') ? (reserved === '34' ? '33' : '34') : reserved);
   return { elevator, late: normalized.includes('TARDE') };
 }
 
@@ -486,28 +622,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ],
   ['GET', /^\/users\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
-  ['GET', /^\/cores$/, () => cores],
-  ['GET', /^\/cores\/([^/]+)\/departures$/, (_, [coreId]) => departuresFor(coreId)],
+  ['GET', /^\/elevators$/, () => ELEVATORS],
   [
     'GET',
-    /^\/cores\/([^/]+)\/floors$/,
-    (_, [coreId], query) => {
-      const core = cores.find((c) => c.id === coreId);
-      if (!core) throw new ApiError(404, 'El núcleo no existe');
-      const origin = Number(query.get('origin'));
-      const exempt = currentUser().priority === 'REDUCED_MOBILITY';
-      return core.floors.map((floor): FloorOption => {
-        if (floor === origin) return { floor, eligible: false, reason: 'Es tu piso de origen.' };
-        if (!exempt && floor >= 1 && floor <= LOW_FLOORS_THRESHOLD) {
-          return {
-            floor,
-            eligible: false,
-            reason: `Hasta el piso ${LOW_FLOORS_THRESHOLD} usá la escalera.`,
-          };
-        }
-        return { floor, eligible: true, reason: null };
-      });
-    },
+    /^\/departures$/,
+    (_, __, query) => bookable(currentUser(), query.get('building'), query.get('elevator')),
   ],
   [
     'GET',
@@ -521,50 +640,50 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       } satisfies TripPage;
     },
   ],
-  ['GET', /^\/reservations\/active$/, () => activeReservation && withCancelRule(activeReservation)],
+  [
+    'GET',
+    /^\/reservations\/me$/,
+    () => [...reservations].sort((a, b) => Date.parse(b.departureAt) - Date.parse(a.departureAt)),
+  ],
+  [
+    'GET',
+    /^\/reservations\/active$/,
+    () => {
+      const active = activeReservation();
+      return active ? toPending(active) : null;
+    },
+  ],
   [
     'GET',
     /^\/reservations\/([^/]+)$/,
     (_, [id]) => {
-      if (activeReservation?.id !== id) throw new ApiError(404, 'No encontramos ese turno');
-      return withCancelRule(activeReservation);
+      const found = reservations.find((r) => String(r.id) === id);
+      if (!found) throw new ApiError(404, 'No encontramos ese turno');
+      return toPending(found);
     },
   ],
-  [
-    'POST',
-    /^\/reservations$/,
-    (body) => {
-      const { departureId, originFloor, destinationFloor } = body as ReserveRequest;
-      if (activeReservation) {
-        throw new ApiError(409, 'Ya tenés un turno activo. Cancelalo para reservar otro.');
-      }
-      const departure = findDeparture(departureId);
-      if (departure.occupied >= departure.capacity) {
-        throw new ApiError(409, 'La salida está llena. Elegí otra.');
-      }
-      activeReservation = newReservation(
-        `r-${Date.now()}`,
-        { ...departure, occupied: departure.occupied + 1 },
-        originFloor,
-        destinationFloor,
-      );
-      return withCancelRule(activeReservation);
-    },
-  ],
+  ['POST', /^\/reservations$/, (body) => book(currentUser(), body as ReserveRequest)],
   [
     'DELETE',
     /^\/reservations\/([^/]+)$/,
     (_, [id]) => {
-      if (activeReservation?.id !== id) throw new ApiError(404, 'No encontramos ese turno');
-      activeReservation = null;
+      const found = reservations.find((r) => String(r.id) === id);
+      if (!found) throw rejected(404, 'RESERVATION_NOT_FOUND', 'La reserva no existe.');
+      // Idempotente: solo una activa cambia de estado.
+      if (found.status !== 'ACTIVE') return;
+      const late = Date.parse(found.departureAt) - Date.now() < CANCEL_DEADLINE_MS;
+      reservations = reservations.map((r) =>
+        r === found ? { ...r, status: late ? 'CANCELLED_LATE' : 'CANCELLED', seatNumber: null } : r,
+      );
     },
   ],
   [
     'POST',
     /^\/check-ins$/,
     (body) => {
-      const { elevator, late } = scanned((body as CheckInRequest).token);
-      if (!activeReservation) {
+      const active = activeReservation();
+      const { elevator, late } = scanned((body as CheckInRequest).token, active?.elevator ?? '33');
+      if (!active) {
         throw lastCheckedIn
           ? new ApiError(
               409,
@@ -581,19 +700,19 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
               'NO_ACTIVE_RESERVATION',
             );
       }
-      const outcome = late ? 'LATE' : elevator === RESERVED_ELEVATOR ? 'ON_TIME' : 'OTHER_ELEVATOR';
+      const status = late ? 'NO_SHOW' : 'USED';
       const result: CheckIn = {
-        reservationId: ++checkInCount,
-        outcome,
-        reservationStatus: late ? 'NO_SHOW' : 'USED',
+        reservationId: active.id,
+        outcome: late ? 'LATE' : elevator === active.elevator ? 'ON_TIME' : 'OTHER_ELEVATOR',
+        reservationStatus: status,
         elevator,
-        reservedElevator: RESERVED_ELEVATOR,
-        departureAt: activeReservation.departure.departsAt,
+        reservedElevator: active.elevator,
+        departureAt: active.departureAt,
         checkedInAt: new Date().toISOString(),
         source: 'SIMULATED',
       };
-      lastCheckedIn = activeReservation.id;
-      activeReservation = null;
+      lastCheckedIn = active.id;
+      reservations = reservations.map((r) => (r === active ? { ...r, status } : r));
       return result;
     },
   ],
@@ -664,7 +783,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       return undefined;
     },
   ],
-  ['GET', /^\/elevators$/, () => ELEVATORS],
   ['GET', /^\/admin\/kiosks$/, () => ({ simulatorEnabled: true, kiosks }) satisfies KioskList],
   [
     'POST',

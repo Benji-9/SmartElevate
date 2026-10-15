@@ -4,45 +4,24 @@
 // types/api.ts y borrarlo de acá.
 // Backend pendiente: turnos #7, ascensores y edificios #22,
 // tipo de usuario declarativo #32, certificados #24 y #26.
-import type { CongestionLevel, PriorityCategory } from './api';
+import type { PriorityCategory } from './api';
 
-/** Núcleo de ascensores (L1, IND2…) con su congestión actual. */
-export type Core = {
-  id: string;
-  /** Código del edificio (`Building.code`). */
-  buildingId: string;
-  name: string;
-  floors: number[];
-  congestion: CongestionLevel;
-  estimatedWaitMinutes: number;
-  /** Dónde esperar el ascensor (p. ej. "Hall Lima, planta baja"). */
-  hall: string;
-};
-
-/**
- * Piso de destino posible para un origen dado. La elegibilidad (regla de pisos bajos,
- * exención por movilidad reducida) la decide el servidor; `reason` explica por qué no.
- */
-export type FloorOption = { floor: number; eligible: boolean; reason: string | null };
-
-/** Salida de ascensor (la franja que se reserva). `departsAt` en UTC (ISO 8601). */
-export type Departure = {
-  id: string;
-  coreId: string;
-  departsAt: string;
-  durationMinutes: number;
-  capacity: number;
-  occupied: number;
-};
-
+// Forma vieja del turno: la usan Inicio, Turno y Check-in con `GET /reservations/active` y
+// `GET /reservations/{id}`, que no están en el contrato. La migra #214 a `Reservation` de
+// types/api.ts (`GET /reservations/me`); Reservar ya usa la del contrato.
 export type ReservationStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
-
-export type ReserveRequest = { departureId: string; originFloor: number; destinationFloor: number };
 
 export type Reservation = {
   id: string;
   status: ReservationStatus;
-  departure: Departure;
+  departure: {
+    id: string;
+    coreId: string;
+    departsAt: string;
+    durationMinutes: number;
+    capacity: number;
+    occupied: number;
+  };
   core: { id: string; name: string; buildingName: string; floors: number[]; hall: string };
   originFloor: number;
   destinationFloor: number;
