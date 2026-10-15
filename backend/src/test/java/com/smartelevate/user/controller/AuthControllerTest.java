@@ -41,8 +41,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(AuthController.class)
-@EnableConfigurationProperties(CorsProperties.class)
-@Import(ClockConfig.class)
+@EnableConfigurationProperties({CorsProperties.class, com.smartelevate.common.security.JwtProperties.class,
+        com.smartelevate.common.security.RefreshCookieProperties.class})
+@Import({ClockConfig.class, com.smartelevate.common.security.RefreshCookie.class})
 @com.smartelevate.common.security.WithAppSecurity
 class AuthControllerTest {
 
@@ -343,15 +344,20 @@ class AuthControllerTest {
     // ---- sesión
 
     @Test
-    void loginReturnsTheTokenPair() throws Exception {
+    void loginReturnsTheAccessTokenAndSetsTheRefreshCookie() throws Exception {
         org.mockito.BDDMockito.given(authService.login(eq("ana@uade.edu.ar"), eq("una-clave-larga"), any()))
-                .willReturn(new com.smartelevate.user.dto.TokenResponse("acc", "ref", "Bearer", 900));
+                .willReturn(new com.smartelevate.user.dto.SessionTokens(
+                        new com.smartelevate.user.dto.TokenResponse("acc", "Bearer", 900), "ref"));
 
         postJson("/api/auth/login", "{\"email\":\"ana@uade.edu.ar\",\"password\":\"una-clave-larga\"}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("acc"))
-                .andExpect(jsonPath("$.refreshToken").value("ref"))
-                .andExpect(jsonPath("$.expiresIn").value(900));
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.expiresIn").value(900))
+                .andExpect(header().string("Set-Cookie", startsWith("refresh_token=ref;")))
+                .andExpect(header().string("Set-Cookie", containsString("HttpOnly")))
+                .andExpect(header().string("Set-Cookie", containsString("SameSite=Lax")))
+                .andExpect(header().string("Set-Cookie", containsString("Path=/api/auth")));
     }
 
     @Test
@@ -392,19 +398,54 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginAndRefreshValidateTheBody() throws Exception {
+    void loginValidatesTheBody() throws Exception {
         postJson("/api/auth/login", "{\"email\":\"\"}").andExpect(status().isBadRequest());
-        postJson("/api/auth/refresh", "{}").andExpect(status().isBadRequest());
-        postJson("/api/auth/logout", "{}").andExpect(status().isBadRequest());
+    }
+
+    private ResultActions refreshWith(String cookie) throws Exception {
+        var req = post("/api/auth/refresh").header("X-Requested-With", "SmartElevate");
+        return mockMvc.perform(cookie == null ? req : req.cookie(new jakarta.servlet.http.Cookie("refresh_token", cookie)));
     }
 
     @Test
-    void invalidRefreshIs401AndLogoutIs204() throws Exception {
+    void refreshReadsTheCookieAndRotatesIt() throws Exception {
+        org.mockito.BDDMockito.given(authService.refresh("viejo")).willReturn(new com.smartelevate.user.dto.SessionTokens(
+                new com.smartelevate.user.dto.TokenResponse("acc2", "Bearer", 900), "nuevo"));
+
+        refreshWith("viejo").andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("acc2"))
+                .andExpect(header().string("Set-Cookie", startsWith("refresh_token=nuevo;")));
+    }
+
+    @Test
+    void invalidOrMissingRefreshIs401() throws Exception {
         org.mockito.BDDMockito.given(authService.refresh("viejo"))
                 .willThrow(new com.smartelevate.user.service.InvalidRefreshTokenException());
 
-        postJson("/api/auth/refresh", "{\"refreshToken\":\"viejo\"}").andExpect(status().isUnauthorized());
-        postJson("/api/auth/logout", "{\"refreshToken\":\"viejo\"}").andExpect(status().isNoContent());
+        refreshWith("viejo").andExpect(status().isUnauthorized());
+        refreshWith(null).andExpect(status().isUnauthorized());
+        verify(authService, never()).refresh("");
+    }
+
+    @Test
+    void refreshAndLogoutNeedTheCsrfHeaderAndAnAllowedOrigin() throws Exception {
+        var cookie = new jakarta.servlet.http.Cookie("refresh_token", "viejo");
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(cookie)).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+        mockMvc.perform(post("/api/auth/logout").cookie(cookie)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/auth/logout").cookie(cookie).header("X-Requested-With", "SmartElevate")
+                .header("Origin", "https://evil.example")).andExpect(status().isForbidden());
+        verify(authService, never()).refresh(any());
+        verify(authService, never()).logout(any());
+    }
+
+    @Test
+    void logoutRevokesAndExpiresTheCookie() throws Exception {
+        mockMvc.perform(post("/api/auth/logout").header("X-Requested-With", "SmartElevate")
+                        .header("Origin", "http://localhost:5173")
+                        .cookie(new jakarta.servlet.http.Cookie("refresh_token", "viejo")))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
         verify(authService).logout("viejo");
     }
 }

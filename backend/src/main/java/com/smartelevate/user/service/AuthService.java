@@ -2,6 +2,7 @@ package com.smartelevate.user.service;
 
 import com.smartelevate.common.security.JwtProperties;
 import com.smartelevate.common.validation.PasswordPolicy;
+import com.smartelevate.user.dto.SessionTokens;
 import com.smartelevate.user.dto.TokenResponse;
 import com.smartelevate.user.model.RefreshToken;
 import com.smartelevate.user.model.User;
@@ -55,7 +56,7 @@ public class AuthService {
      * @param ip dirección del cliente, para el límite de intentos por IP
      * @throws TooManyLoginAttemptsException si la cuenta o la IP agotaron los intentos (no se mira la clave)
      */
-    public TokenResponse login(String email, String password, String ip) {
+    public SessionTokens login(String email, String password, String ip) {
         String account = email.trim().toLowerCase(Locale.ROOT);
         loginThrottle.check(account, ip);
         // La misma normalización que al hashear en el registro y el reset (ADR 0015).
@@ -86,7 +87,7 @@ public class AuthService {
         return dummyHash;
     }
 
-    public TokenResponse refresh(String rawRefreshToken) {
+    public SessionTokens refresh(String rawRefreshToken) {
         Instant now = clock.instant();
         RefreshToken token = refreshTokens.findByTokenHash(hash(rawRefreshToken))
                 .orElseThrow(InvalidRefreshTokenException::new);
@@ -113,7 +114,7 @@ public class AuthService {
                 .ifPresent(t -> refreshTokens.revokeFamily(t.getFamilyId(), clock.instant()));
     }
 
-    private TokenResponse issue(User user, UUID familyId) {
+    private SessionTokens issue(User user, UUID familyId) {
         Instant now = clock.instant();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(user.getId().toString())
@@ -127,7 +128,7 @@ public class AuthService {
         random.nextBytes(bytes);
         String refresh = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         refreshTokens.save(new RefreshToken(user.getId(), familyId, hash(refresh), now, now.plus(props.refreshTtl())));
-        return new TokenResponse(access, refresh, TOKEN_TYPE, props.accessTtl().toSeconds());
+        return new SessionTokens(new TokenResponse(access, TOKEN_TYPE, props.accessTtl().toSeconds()), refresh);
     }
 
     /**

@@ -115,15 +115,15 @@ class PasswordResetApiTest {
     @Test
     void resetChangesThePasswordAndClosesEverySession() throws Exception {
         registerAna();
-        String refresh = json.readTree(login(OLD).andExpect(status().isOk()).andReturn().getResponse()
-                .getContentAsString()).get("refreshToken").asString();
+        jakarta.servlet.http.Cookie refresh = login(OLD).andExpect(status().isOk()).andReturn().getResponse()
+                .getCookie("refresh_token");
 
         resetWith(forgotAndReadToken(), NEW).andExpect(status().isNoContent());
 
         login(OLD).andExpect(status().isUnauthorized());
         login(NEW).andExpect(status().isOk());
-        postJson("/api/auth/refresh", "{\"refreshToken\":\"%s\"}".formatted(refresh))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/refresh").cookie(refresh)
+                .header("X-Requested-With", "SmartElevate")).andExpect(status().isUnauthorized());
     }
 
     @Test

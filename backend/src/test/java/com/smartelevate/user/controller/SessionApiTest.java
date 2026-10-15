@@ -13,6 +13,7 @@ import com.smartelevate.user.model.Role;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.RefreshTokenRepository;
 import com.smartelevate.user.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -110,9 +111,20 @@ class SessionApiTest {
                 .getResponse().getContentAsString());
     }
 
-    private ResultActions refresh(String token) throws Exception {
-        return mockMvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(token)));
+    private ResultActions refresh(Cookie cookie) throws Exception {
+        return mockMvc.perform(post("/api/auth/refresh").cookie(cookie).header("X-Requested-With", "SmartElevate"));
+    }
+
+    private ResultActions logout(Cookie cookie) throws Exception {
+        return mockMvc.perform(post("/api/auth/logout").cookie(cookie).header("X-Requested-With", "SmartElevate"));
+    }
+
+    private static Cookie refreshCookie(ResultActions result) {
+        return result.andReturn().getResponse().getCookie("refresh_token");
+    }
+
+    private Cookie loginCookie() throws Exception {
+        return refreshCookie(login("ana@uade.edu.ar", PASSWORD).andExpect(status().isOk()));
     }
 
     private ResultActions getWith(String path, String accessToken) throws Exception {
@@ -126,6 +138,7 @@ class SessionApiTest {
 
         assertThat(tokens.get("tokenType").asString()).isEqualTo("Bearer");
         assertThat(tokens.get("expiresIn").asLong()).isEqualTo(900);
+        assertThat(tokens.has("refreshToken")).isFalse();
         getWith("/api/probe/me", tokens.get("accessToken").asString()).andExpect(status().isOk());
     }
 
@@ -214,37 +227,67 @@ class SessionApiTest {
     }
 
     @Test
+    void loginSetsTheRefreshOnlyInAnHttpOnlyCookie() throws Exception {
+        registerAna(true);
+
+        String setCookie = login("ana@uade.edu.ar", PASSWORD).andExpect(status().isOk()).andReturn().getResponse()
+                .getHeader("Set-Cookie");
+
+        assertThat(setCookie).startsWith("refresh_token=").contains("HttpOnly", "SameSite=Lax", "Path=/api/auth",
+                "Max-Age=604800");
+    }
+
+    @Test
     void refreshRotatesAndReusingTheOldTokenKillsTheSession() throws Exception {
         registerAna(true);
-        String first = loginOk().get("refreshToken").asString();
+        Cookie first = loginCookie();
 
-        JsonNode second = json.readTree(refresh(first).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString());
-        assertThat(second.get("refreshToken").asString()).isNotEqualTo(first);
+        ResultActions ok = refresh(first).andExpect(status().isOk());
+        Cookie second = refreshCookie(ok);
+        assertThat(second.getValue()).isNotEqualTo(first.getValue());
+        assertThat(json.readTree(ok.andReturn().getResponse().getContentAsString()).has("refreshToken")).isFalse();
 
         // El viejo ya no sirve y, como alguien lo reusó, el nuevo de su familia también se revoca.
         refresh(first).andExpect(status().isUnauthorized());
-        refresh(second.get("refreshToken").asString()).andExpect(status().isUnauthorized());
+        refresh(second).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void refreshWithGarbageIsUnauthorized() throws Exception {
-        refresh("no-existe").andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest());
+    void refreshWithoutCookieOrWithGarbageIsUnauthorized() throws Exception {
+        refresh(new Cookie("refresh_token", "no-existe")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/refresh").header("X-Requested-With", "SmartElevate"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void logoutRevokesTheRefreshToken() throws Exception {
+    void refreshAndLogoutRejectRequestsWithoutTheCsrfHeaderOrFromAnotherOrigin() throws Exception {
         registerAna(true);
-        String refresh = loginOk().get("refreshToken").asString();
+        Cookie cookie = loginCookie();
 
-        mockMvc.perform(post("/api/auth/logout").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(refresh))).andExpect(status().isNoContent());
-        refresh(refresh).andExpect(status().isUnauthorized());
-        // Idempotente.
-        mockMvc.perform(post("/api/auth/logout").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"%s\"}".formatted(refresh))).andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/auth/refresh").cookie(cookie)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/auth/logout").cookie(cookie)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/auth/refresh").cookie(cookie).header("X-Requested-With", "SmartElevate")
+                .header("Origin", "https://evil.example")).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/auth/refresh").cookie(cookie).header("X-Requested-With", "otra-cosa"))
+                .andExpect(status().isForbidden());
+        // Nada de eso gastó el token: sigue sirviendo con el header y el origen correctos.
+        mockMvc.perform(post("/api/auth/refresh").cookie(cookie).header("X-Requested-With", "SmartElevate")
+                .header("Origin", "http://localhost:5173")).andExpect(status().isOk());
+    }
+
+    @Test
+    void logoutRevokesTheSessionAndExpiresTheCookie() throws Exception {
+        registerAna(true);
+        Cookie cookie = loginCookie();
+
+        String setCookie = logout(cookie).andExpect(status().isNoContent()).andReturn().getResponse()
+                .getHeader("Set-Cookie");
+        assertThat(setCookie).startsWith("refresh_token=;").contains("Max-Age=0", "HttpOnly", "Path=/api/auth");
+        refresh(cookie).andExpect(status().isUnauthorized());
+        // Idempotente, también sin cookie.
+        logout(cookie).andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/auth/logout").header("X-Requested-With", "SmartElevate"))
+                .andExpect(status().isNoContent());
     }
 
     @Test
