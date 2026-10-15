@@ -1,0 +1,165 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
+import { describe, expect, it } from 'vitest';
+import { App } from '../App';
+import { signedIn, stubApi, testUser } from '../test/stubApi';
+import type { AdminUser } from '../types/api';
+
+const carla: AdminUser = {
+  id: 'a-1',
+  fullName: 'Carla Díaz',
+  email: 'carla@uade.edu.ar',
+  legajo: '1088888',
+  role: 'USER',
+};
+const yo: AdminUser = {
+  ...carla,
+  id: testUser.id,
+  fullName: 'Ana Pérez',
+  email: 'ana@uade.edu.ar',
+  legajo: '1099999',
+  role: 'ADMIN',
+};
+
+function renderPage(extra: Parameters<typeof stubApi>[0] = {}) {
+  const fetchMock = stubApi({
+    ...signedIn({ ...testUser, role: 'ADMIN' }),
+    'GET /admin/teachers/pending': { body: [] },
+    'GET /admin/priority-users': { body: [] },
+    'GET /admin/users?query=carla': { body: { items: [carla, yo], nextCursor: null } },
+    ...extra,
+  });
+  render(
+    <MemoryRouter initialEntries={['/admin/prioritarios']}>
+      <App />
+    </MemoryRouter>,
+  );
+  return fetchMock;
+}
+
+const search = async (text: string) =>
+  userEvent.type(await screen.findByRole('searchbox', { name: 'Buscar usuario' }), text);
+
+describe('Roles de usuarios (09b)', () => {
+  it('no busca con menos de 3 caracteres y muestra la ayuda', async () => {
+    const fetchMock = renderPage();
+
+    await search('ca');
+    await new Promise((r) => setTimeout(r, 400));
+
+    expect(screen.getByText(/mínimo 3 caracteres/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining('/admin/users'),
+      expect.anything(),
+    );
+  });
+
+  it('busca tras la pausa y muestra nombre, email, legajo y rol', async () => {
+    const fetchMock = renderPage();
+
+    await search('carla');
+
+    const table = await screen.findByRole('table', { name: 'Roles de usuarios' });
+    expect(within(table).getByRole('rowheader', { name: 'Carla Díaz' })).toBeInTheDocument();
+    expect(within(table).getByText('carla@uade.edu.ar')).toBeInTheDocument();
+    expect(within(table).getByText('1088888')).toBeInTheDocument();
+    expect(within(table).getByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue('USER');
+    // Un solo pedido: el debounce agrupó las teclas.
+    const searches = fetchMock.mock.calls.filter(([url]) => String(url).includes('/admin/users'));
+    expect(searches).toHaveLength(1);
+  });
+
+  it('la cuenta propia no ofrece cambiar el rol', async () => {
+    renderPage();
+
+    await search('carla');
+
+    expect(await screen.findByText('Es tu cuenta')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Rol de Ana Pérez' })).not.toBeInTheDocument();
+  });
+
+  it('cambiar el rol pide confirmación y se puede cancelar', async () => {
+    const fetchMock = renderPage();
+    await search('carla');
+
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' }),
+      'REVIEWER',
+    );
+    expect(screen.getByRole('group', { name: 'Cambiar rol de Carla Díaz' })).toHaveTextContent(
+      '¿Cambiar a Carla Díaz de Usuario a Revisor?',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.getByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue('USER');
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/admin/users/a-1/role', expect.anything());
+  });
+
+  it('confirmar manda el rol y actualiza la fila', async () => {
+    const fetchMock = renderPage({ 'PUT /admin/users/a-1/role': { status: 204 } });
+    await search('carla');
+
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' }),
+      'REVIEWER',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
+
+    expect(await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue(
+      'REVIEWER',
+    );
+    const put = fetchMock.mock.calls.find(([url]) => url === '/api/admin/users/a-1/role');
+    expect(JSON.parse(String(put?.[1]?.body))).toEqual({ role: 'REVIEWER' });
+  });
+
+  it('si el cambio falla muestra el error y deja el rol como estaba', async () => {
+    renderPage({
+      'PUT /admin/users/a-1/role': { status: 409, body: { message: 'No se puede' } },
+    });
+    await search('carla');
+
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' }),
+      'ADMIN',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se puede');
+    expect(screen.getByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue('USER');
+  });
+
+  it('sin resultados lo avisa', async () => {
+    renderPage({ 'GET /admin/users?query=zzz': { body: { items: [], nextCursor: null } } });
+
+    await search('zzz');
+
+    expect(await screen.findByText('No encontramos usuarios para «zzz».')).toBeInTheDocument();
+  });
+
+  it('error de búsqueda con Reintentar', async () => {
+    renderPage({
+      'GET /admin/users?query=carla': { status: 500, body: { message: 'Algo salió mal' } },
+    });
+
+    await search('carla');
+
+    expect(await screen.findByText('Algo salió mal')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  it('"Ver más resultados" agrega la página siguiente con el cursor', async () => {
+    const lucia: AdminUser = { ...carla, id: 'a-2', fullName: 'Lucía Fernández' };
+    renderPage({
+      'GET /admin/users?query=carla': { body: { items: [carla], nextCursor: 'c-1' } },
+      'GET /admin/users?query=carla&cursor=c-1': { body: { items: [lucia], nextCursor: null } },
+    });
+    await search('carla');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Ver más resultados' }));
+
+    expect(await screen.findByRole('rowheader', { name: 'Lucía Fernández' })).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: 'Carla Díaz' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver más resultados' })).not.toBeInTheDocument();
+  });
+});

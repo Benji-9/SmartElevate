@@ -5,6 +5,8 @@
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
 import type {
+  AdminUser,
+  AdminUserPage,
   Building,
   CheckIn,
   CheckInRequest,
@@ -18,6 +20,7 @@ import type {
   LoginRequest,
   NoShowStatus,
   PendingTeacher,
+  Role,
   PriorityUser,
   QrToken,
   RefreshRequest,
@@ -112,6 +115,30 @@ let pendingTeachers: PendingTeacher[] = [
     email: 'julian.ruiz@uade.edu.ar',
     legajo: '2005678',
     registeredAt: '2026-10-11T09:05:00Z',
+  },
+];
+// Usuarios que ve el buscador de roles (#215). El primero es el admin del mock (ver `users`).
+const adminUsers: AdminUser[] = [
+  {
+    id: 'u-2',
+    fullName: 'Admin UADE',
+    email: 'admin@uade.edu.ar',
+    legajo: '1000001',
+    role: 'ADMIN',
+  },
+  {
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b11',
+    fullName: 'Carla Díaz',
+    email: 'carla.diaz@uade.edu.ar',
+    legajo: '1088888',
+    role: 'USER',
+  },
+  {
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b12',
+    fullName: 'Lucía Fernández',
+    email: 'lucia.fernandez@uade.edu.ar',
+    legajo: '1077777',
+    role: 'REVIEWER',
   },
 ];
 let priorityUsers: PriorityUser[] = [
@@ -835,6 +862,29 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     },
   ],
   ['GET', /^\/admin\/priority-users$/, () => priorityUsers],
+  [
+    'GET',
+    /^\/admin\/users$/,
+    (_, __, query) => {
+      const q = (query.get('query') ?? '').trim().toLowerCase();
+      if (q.length < 3) throw new ApiError(400, 'La búsqueda necesita al menos 3 caracteres');
+      const items = adminUsers.filter((u) =>
+        [u.fullName, u.email, u.legajo].some((field) => field.toLowerCase().includes(q)),
+      );
+      return { items, nextCursor: null } satisfies AdminUserPage;
+    },
+  ],
+  [
+    'PUT',
+    /^\/admin\/users\/([^/]+)\/role$/,
+    (body, [id]) => {
+      if (id === currentUser().id) throw new ApiError(409, 'No podés cambiar tu propio rol');
+      const target = adminUsers.find((u) => u.id === id);
+      if (!target) throw new ApiError(404, 'Usuario inexistente');
+      target.role = (body as { role: Role }).role;
+      return undefined;
+    },
+  ],
   [
     'DELETE',
     /^\/admin\/priority-users\/([^/]+)$/,
