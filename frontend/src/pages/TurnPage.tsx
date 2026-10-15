@@ -9,16 +9,19 @@ import { SuccessHero } from '../features/turn/SuccessHero';
 import { TurnDetails } from '../features/turn/TurnDetails';
 import '../features/turn/turn.css';
 import { ApiError, cancelReservation, getReservation } from '../services/api';
-import type { Reservation, ReservationStatus } from '../types/pending';
+import type { Reservation, ReservationStatus } from '../types/api';
 
 const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.';
 
 const closedStatus: Record<Exclude<ReservationStatus, 'ACTIVE'>, string> = {
-  COMPLETED: 'Viaje cumplido',
+  USED: 'Viaje cumplido',
   CANCELLED: 'Turno cancelado',
+  CANCELLED_LATE: 'Cancelado tarde: cuenta como falta',
   NO_SHOW: 'Falta',
 };
+/** Las faltas (turnos.md §5) van en tono de alerta. */
+const isFault = (status: ReservationStatus) => status === 'NO_SHOW' || status === 'CANCELLED_LATE';
 
 export function TurnPage() {
   const { id = '' } = useParams();
@@ -90,7 +93,7 @@ export function TurnPage() {
   } else if (reservation.status !== 'ACTIVE') {
     content = (
       <>
-        <Chip tone={reservation.status === 'NO_SHOW' ? 'danger' : 'neutral'}>
+        <Chip tone={isFault(reservation.status) ? 'danger' : 'neutral'}>
           {closedStatus[reservation.status]}
         </Chip>
         <TurnDetails reservation={reservation} />
@@ -100,7 +103,9 @@ export function TurnPage() {
     // Turno activo: pantalla de confirmación sin header, con el hero como `h1`.
     return (
       <div className="success-screen">
-        <SuccessHero title="¡Turno confirmado!">Esperá en {reservation.core.hall}.</SuccessHero>
+        <SuccessHero title="¡Turno confirmado!">
+          Te esperamos en el hall de {reservation.coreName}.
+        </SuccessHero>
         <TurnDetails reservation={reservation} />
         <CheckinHint />
         <div className="turn-actions turn-actions--row">

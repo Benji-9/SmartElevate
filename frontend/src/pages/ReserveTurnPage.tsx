@@ -192,8 +192,8 @@ export function ReserveTurnPage() {
         // Con un turno activo no se puede reservar otro (turnos.md §3): no se ofrece el formulario.
         <div className="reserve__notice">
           <p>
-            Ya tenés un turno activo para la salida de las{' '}
-            {formatTime(active.data.departure.departsAt)}. Para reservar otro, primero cancelalo.
+            Ya tenés un turno activo para la salida de las {formatTime(active.data.departureAt)}.
+            Para reservar otro, primero cancelalo.
           </p>
           <Link
             to={`/turno/${encodeURIComponent(active.data.id)}`}

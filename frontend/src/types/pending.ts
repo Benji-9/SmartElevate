@@ -52,20 +52,7 @@ export type Departure = {
   occupied: number;
 };
 
-export type ReservationStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
-
 export type ReserveRequest = { departureId: string; originFloor: number; destinationFloor: number };
-
-export type Reservation = {
-  id: string;
-  status: ReservationStatus;
-  departure: Departure;
-  core: { id: string; name: string; buildingName: string; floors: number[]; hall: string };
-  originFloor: number;
-  destinationFloor: number;
-  /** `true` si cancelar ahora cuenta como falta (pasado el límite). Lo calcula el servidor. */
-  cancelCountsAsNoShow: boolean;
-};
 
 export type PriorityRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type PriorityRequest = {
@@ -85,23 +72,6 @@ export type PriorityUploadRules = {
   /** MIME aceptados, p. ej. `application/pdf`. */
   acceptedTypes: string[];
 };
-
-/**
- * Viaje del historial. `result` combina el estado de la reserva con el resultado del
- * check-in: COMPLETED = cumplido a tiempo.
- */
-export type TripResult = 'COMPLETED' | 'OTHER_ELEVATOR' | 'LATE' | 'CANCELLED' | 'NO_SHOW';
-export type Trip = {
-  id: string;
-  departsAt: string;
-  durationMinutes: number;
-  coreName: string;
-  originFloor: number;
-  destinationFloor: number;
-  result: TripResult;
-};
-/** Página del historial, del más reciente al más viejo. `nextCursor` null = no hay más. */
-export type TripPage = { items: Trip[]; nextCursor: string | null };
 
 /** Qué avisos quiere recibir el usuario. */
 export type NotificationPreferences = {

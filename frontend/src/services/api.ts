@@ -16,6 +16,8 @@ import type {
   PriorityUser,
   QrToken,
   RefreshRequest,
+  Reservation,
+  ReservationPage,
   RegisterRequest,
   ResendVerificationRequest,
   ResetPasswordRequest,
@@ -34,9 +36,7 @@ import type {
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  Reservation,
   ReserveRequest,
-  TripPage,
 } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -265,7 +265,10 @@ export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
 /** Pisos de destino desde `origin`, con su elegibilidad para el usuario actual. */
 export const getDestinationFloors = (coreId: string, origin: number) =>
   api.get<FloorOption[]>(`/cores/${encodeURIComponent(coreId)}/floors?origin=${origin}`);
-export const getActiveReservation = () => api.get<Reservation | null>('/reservations/active');
+/** Reserva activa (mientras se le puede hacer check-in); el backend responde 204 si no hay. */
+export const getActiveReservation = () =>
+  api.get<Reservation | undefined>('/reservations/active').then((r) => r ?? null);
+/** Una reserva propia en cualquier estado; 404 `RESERVATION_NOT_FOUND` si no existe o es de otro. */
 export const getReservation = (id: string) =>
   api.get<Reservation>(`/reservations/${encodeURIComponent(id)}`);
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
@@ -290,9 +293,9 @@ export function submitPriorityRequest(certificate: File, consentAccepted: true) 
   form.append('certificate', certificate);
   return request<PriorityRequest>('/priority-requests', { method: 'POST', body: form });
 }
-/** Historial de viajes paginado; sin `cursor` trae la primera página. */
+/** Historial de reservas paginado por cursor; sin `cursor` trae la primera página. */
 export const getTrips = (cursor?: string | null) =>
-  api.get<TripPage>(
+  api.get<ReservationPage>(
     `/reservations/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
   );
 export const getNoShowStatus = () => api.get<NoShowStatus>('/me/no-shows');

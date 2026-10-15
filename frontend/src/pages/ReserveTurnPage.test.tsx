@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
-import { signedIn, stubApi } from '../test/stubApi';
-import type { Departure, FloorOption, Reservation } from '../types/pending';
+import { signedIn, stubApi, testReservation } from '../test/stubApi';
+import type { Departure, FloorOption } from '../types/pending';
 
 // 17:32 UTC = 14:32 en Buenos Aires.
 const departures: Departure[] = [
@@ -59,7 +59,7 @@ const routes = {
       },
     ],
   },
-  'GET /reservations/active': { body: null },
+  'GET /reservations/active': { status: 204 },
   'GET /cores/L1/departures': { body: departures },
   'GET /cores/L1/floors?origin=0': { body: floorsFromPB },
 };
@@ -269,7 +269,7 @@ describe('ReserveTurnPage', () => {
     stubApi({
       ...routes,
       'GET /reservations/active': {
-        body: { id: 'r-1', departure: departures[0] } as Partial<Reservation>,
+        body: { ...testReservation, departureAt: departures[0].departsAt },
       },
     });
     render(
@@ -279,10 +279,7 @@ describe('ReserveTurnPage', () => {
     );
 
     expect(await screen.findByText(/Ya tenés un turno activo/)).toHaveTextContent('14:32');
-    expect(screen.getByRole('link', { name: 'Ver mi turno' })).toHaveAttribute(
-      'href',
-      '/turno/r-1',
-    );
+    expect(screen.getByRole('link', { name: 'Ver mi turno' })).toHaveAttribute('href', '/turno/55');
     expect(screen.queryByRole('radiogroup', { name: 'Edificio' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Confirmar turno/ })).not.toBeInTheDocument();
   });

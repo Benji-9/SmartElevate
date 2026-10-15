@@ -8,8 +8,6 @@ import type {
   FloorOption,
   NotificationPreferences,
   PriorityUploadRules,
-  Reservation,
-  TripPage,
 } from '../types/pending';
 import type {
   Building,
@@ -18,6 +16,8 @@ import type {
   KioskList,
   NoShowStatus,
   QrToken,
+  Reservation,
+  ReservationPage,
 } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
@@ -50,7 +50,10 @@ describe('mocks', () => {
 
     expect(active).toMatchObject({
       status: 'ACTIVE',
-      core: { id: 'L2', buildingName: 'Lima', hall: expect.any(String) },
+      coreName: 'Lima 2',
+      buildingName: 'Lima',
+      elevator: '33',
+      checkInOutcome: null,
       cancelCountsAsNoShow: false,
     });
     expect(await call('GET', `/reservations/${active.id}`)).toEqual(active);
@@ -197,9 +200,9 @@ describe('mocks', () => {
       reservationStatus: 'USED',
       elevator: '34',
       reservedElevator: '33',
-      departureAt: turn.departure.departsAt,
+      departureAt: turn.departureAt,
     });
-    expect(departure.departsAt).toBe(turn.departure.departsAt);
+    expect(departure.departsAt).toBe(turn.departureAt);
     await expect(call('POST', '/check-ins', { token: 'X' })).rejects.toMatchObject({
       status: 409,
       code: 'ALREADY_CHECKED_IN',
@@ -235,11 +238,14 @@ describe('mocks', () => {
   it('historial paginado y faltas recientes con los parámetros de la regla', async () => {
     await call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
 
-    const first = await call<TripPage>('GET', '/reservations/history');
-    const second = await call<TripPage>('GET', `/reservations/history?cursor=${first.nextCursor}`);
+    const first = await call<ReservationPage>('GET', '/reservations/history');
+    const second = await call<ReservationPage>(
+      'GET',
+      `/reservations/history?cursor=${first.nextCursor}`,
+    );
     expect(first.items).toHaveLength(10);
     expect(second.items[0].id).not.toBe(first.items[0].id);
-    expect(new Set(first.items.map((t) => t.result)).size).toBe(5);
+    expect(new Set(first.items.map((t) => `${t.status} ${t.checkInOutcome}`)).size).toBe(6);
 
     const noShows = await call<NoShowStatus>('GET', '/me/no-shows');
     expect(noShows).toMatchObject({ threshold: 3, windowDays: 7, exempt: false });

@@ -20,6 +20,9 @@ import type {
   QrToken,
   RefreshRequest,
   RegisterRequest,
+  Reservation,
+  ReservationPage,
+  ReservationStatus,
   ResetPasswordRequest,
   TokenResponse,
   User,
@@ -36,11 +39,7 @@ import type {
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  Reservation,
   ReserveRequest,
-  Trip,
-  TripPage,
-  TripResult,
 } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
@@ -300,42 +299,55 @@ function findDeparture(id: string): Departure {
   return departure;
 }
 
+/** Las salidas de los mocks son por núcleo, no por ascensor: el turno siempre es del 33. */
+const RESERVED_ELEVATOR = '33';
+
+/** Misma forma que `ReservationResponse` del backend. */
 function newReservation(
-  id: string,
-  departure: Departure,
+  id: number,
+  core: Core,
+  departureAt: string,
   originFloor: number,
   destinationFloor: number,
+  status: ReservationStatus = 'ACTIVE',
+  checkInOutcome: Reservation['checkInOutcome'] = null,
 ): Reservation {
-  const core = cores.find((c) => c.id === departure.coreId)!;
   return {
     id,
-    status: 'ACTIVE',
-    departure,
-    core: {
-      id: core.id,
-      name: core.name,
-      buildingName: buildings.find((b) => b.code === core.buildingId)!.name,
-      floors: core.floors,
-      hall: core.hall,
-    },
+    departureId: 1000 + id,
+    elevator: RESERVED_ELEVATOR,
+    coreName: core.name,
+    buildingName: buildings.find((b) => b.code === core.buildingId)!.name,
+    departureAt,
+    seatNumber: status.startsWith('CANCELLED') ? null : 3,
     originFloor,
     destinationFloor,
+    status,
+    createdAt: new Date(Date.parse(departureAt) - 10 * 60_000).toISOString(),
     cancelCountsAsNoShow: false,
+    checkInOutcome,
   };
 }
 
 /** El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura. */
 const withCancelRule = (r: Reservation): Reservation => ({
   ...r,
-  cancelCountsAsNoShow: Date.parse(r.departure.departsAt) - Date.now() < CANCEL_DEADLINE_MS,
+  cancelCountsAsNoShow:
+    r.status === 'ACTIVE' && Date.parse(r.departureAt) - Date.now() < CANCEL_DEADLINE_MS,
 });
 
+const coreOf = (id: string) => cores.find((c) => c.id === id)!;
+
 // Estado en memoria: se reinicia al recargar la página.
-let activeReservation: Reservation | null = newReservation('r-1', departuresFor('L2')[3], 0, 7);
+let activeReservation: Reservation | null = newReservation(
+  1,
+  coreOf('L2'),
+  departuresFor('L2')[3].departsAt,
+  0,
+  7,
+);
 /** Turno del último check-in, para "ya escaneado". */
-let lastCheckedIn: string | null = null;
-/** El turno de los mocks no dice su ascensor (Reservation sigue en pending.ts): es el 33. */
-const RESERVED_ELEVATOR = '33';
+let lastCheckedIn: number | null = null;
 let checkInCount = 0;
 let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
@@ -345,30 +357,31 @@ let notificationPreferences: NotificationPreferences = {
   priorityAccess: false,
 };
 
-// Historial de ejemplo: dos viajes por día hacia atrás, con todos los resultados posibles.
-const TRIP_RESULTS: TripResult[] = [
-  'COMPLETED',
-  'COMPLETED',
-  'OTHER_ELEVATOR',
-  'LATE',
-  'CANCELLED',
-  'NO_SHOW',
+// Historial de ejemplo: dos viajes por día hacia atrás, con todos los estados y resultados.
+const TRIP_RESULTS: [ReservationStatus, Reservation['checkInOutcome']][] = [
+  ['USED', 'ON_TIME'],
+  ['USED', 'ON_TIME'],
+  ['USED', 'OTHER_ELEVATOR'],
+  ['NO_SHOW', 'LATE'],
+  ['CANCELLED', null],
+  ['NO_SHOW', null],
+  ['CANCELLED_LATE', null],
 ];
-const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
+const trips: Reservation[] = Array.from({ length: 24 }, (_, i) => {
   const day = Math.floor(i / 2) + 1;
   const departsAt = new Date(Date.now() - day * 86_400_000 - (i % 2) * 3 * 3_600_000);
   departsAt.setUTCSeconds(0, 0);
-  const core = cores[i % cores.length];
-  return {
-    id: `t-${i + 1}`,
-    departsAt: departsAt.toISOString(),
-    durationMinutes: DEPARTURE_MINUTES,
-    coreName: core.name,
-    originFloor: 0,
-    // 5 a 7: fuera de los pisos bajos y servidos por todos los núcleos.
-    destinationFloor: (i % 3) + 5,
-    result: TRIP_RESULTS[i % TRIP_RESULTS.length],
-  };
+  const [status, outcome] = TRIP_RESULTS[i % TRIP_RESULTS.length];
+  // 5 a 7: fuera de los pisos bajos y servidos por todos los núcleos.
+  return newReservation(
+    100 - i,
+    cores[i % cores.length],
+    departsAt.toISOString(),
+    0,
+    (i % 3) + 5,
+    status,
+    outcome,
+  );
 });
 
 /**
@@ -563,7 +576,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       return {
         items: trips.slice(start, end),
         nextCursor: end < trips.length ? String(end) : null,
-      } satisfies TripPage;
+      } satisfies ReservationPage;
     },
   ],
   ['GET', /^\/reservations\/active$/, () => activeReservation && withCancelRule(activeReservation)],
@@ -571,8 +584,9 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'GET',
     /^\/reservations\/([^/]+)$/,
     (_, [id]) => {
-      if (activeReservation?.id !== id) throw new ApiError(404, 'No encontramos ese turno');
-      return withCancelRule(activeReservation);
+      const found = [activeReservation, ...trips].find((r) => String(r?.id) === id);
+      if (!found) throw new ApiError(404, 'No encontramos ese turno');
+      return withCancelRule(found);
     },
   ],
   [
@@ -588,8 +602,9 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         throw new ApiError(409, 'La salida está llena. Elegí otra.');
       }
       activeReservation = newReservation(
-        `r-${Date.now()}`,
-        { ...departure, occupied: departure.occupied + 1 },
+        Date.now(),
+        coreOf(departure.coreId),
+        departure.departsAt,
         originFloor,
         destinationFloor,
       );
@@ -600,7 +615,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'DELETE',
     /^\/reservations\/([^/]+)$/,
     (_, [id]) => {
-      if (activeReservation?.id !== id) throw new ApiError(404, 'No encontramos ese turno');
+      if (String(activeReservation?.id) !== id) throw new ApiError(404, 'No encontramos ese turno');
       activeReservation = null;
     },
   ],
@@ -633,7 +648,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         reservationStatus: late ? 'NO_SHOW' : 'USED',
         elevator,
         reservedElevator: RESERVED_ELEVATOR,
-        departureAt: activeReservation.departure.departsAt,
+        departureAt: activeReservation.departureAt,
         checkedInAt: new Date().toISOString(),
         source: 'SIMULATED',
       };
@@ -680,8 +695,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       const since = Date.now() - NO_SHOW_RULE.windowDays * 86_400_000;
       return {
         ...NO_SHOW_RULE,
+        // Falta = NO_SHOW (con o sin check-in fuera de hora) o CANCELLED_LATE (turnos.md §5).
         recentNoShows: trips.filter(
-          (t) => t.result === 'NO_SHOW' && Date.parse(t.departsAt) >= since,
+          (t) =>
+            (t.status === 'NO_SHOW' || t.status === 'CANCELLED_LATE') &&
+            Date.parse(t.departureAt) >= since,
         ).length,
         suspendedUntil: null,
         exempt: currentUser().priority !== 'NONE',
