@@ -106,6 +106,21 @@ Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ve
 - La variable de GitHub **`BACKEND_URL`** = `https://smartelevate.onrender.com`. El workflow la escribe en el rewrite de `vercel.json` antes de buildear.
 - Si cambia `BACKEND_URL`, el front recién la toma **en el próximo deploy de producción**.
 
+### Headers de seguridad (CSP)
+
+Los define `frontend/vercel.json` (sección `headers`, todas las rutas). Decisión y justificación: [ADR 0022](adr/0022-csp-y-headers-de-seguridad-en-vercel.md).
+
+| Header | Valor | Por qué |
+| --- | --- | --- |
+| `Content-Security-Policy` | `default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `style-src-attr 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`, `media-src 'self' blob:`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` | Mitiga XSS (el refresh vive en `sessionStorage`, ADR 0014) y clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Evita que el navegador adivine tipos MIME |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | No filtra rutas a otros orígenes |
+| `Permissions-Policy` | `camera=(self)` y el resto denegado | El check-in escanea con la cámara |
+
+HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay que agregarlo a la CSP. Si #204 mantiene el proxy del mismo origen, `connect-src` queda en `'self'`.
+
+**Verificar en un preview:** abrir la URL del preview con DevTools > Console y confirmar que no hay mensajes `Refused to ...`, y en Network > Headers que la respuesta trae los headers. Recorrer: login y registro, Inicio, Reservar, Mis viajes, check-in (pide cámara y escanea), kiosco con el QR visible, panel admin con gráficos, 404.
+
 ## Cómo llega un cambio a producción
 
 1. PR a `develop` → CI. El front se deploya como preview y el backend no se deploya.
