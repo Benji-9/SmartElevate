@@ -1,10 +1,17 @@
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { BuildingSelector } from '../features/turn/BuildingSelector';
+import {
+  coreOptions,
+  destinationFloorsOf,
+  elevatorsServing,
+  originFloorsOf,
+  slotsOf,
+} from '../features/turn/catalog';
 import { FloorSelector } from '../features/turn/FloorSelector';
-import { formatFloor, formatSlot, formatTime } from '../features/turn/format';
+import { formatFloor, formatTime } from '../features/turn/format';
 import { loadLastTrip, saveLastTrip } from '../features/turn/lastTrip';
 import { OriginFloorInput } from '../features/turn/OriginFloorInput';
 import { SlotList } from '../features/turn/SlotList';
@@ -12,39 +19,49 @@ import '../features/turn/ReserveTurn.css';
 import { errorMessage, useResource } from '../hooks/useResource';
 import {
   ApiError,
-  getActiveReservation,
   getBuildings,
-  getCores,
   getDepartures,
-  getDestinationFloors,
+  getElevators,
+  getMyReservations,
   reserve,
 } from '../services/api';
-import type { Building } from '../types/api';
-import type { Core, Departure } from '../types/pending';
 import { Skeleton } from '../components/Skeleton';
 
-const loadCatalog = () => Promise.all([getBuildings(), getCores()]);
+const loadCatalog = () => Promise.all([getBuildings(), getElevators()]);
 // Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
-const loadActive = () => getActiveReservation().catch(() => null);
+const loadActive = () =>
+  getMyReservations().then(
+    (reservations) => reservations.find((r) => r.status === 'ACTIVE') ?? null,
+    () => null,
+  );
 
-/** Pisos de origen posibles: los del núcleo dentro del rango de su edificio. */
-function originFloorsOf(core: Core | undefined, buildings: Building[]) {
-  const building = buildings.find((b) => b.code === core?.buildingId);
-  return core && building
-    ? core.floors.filter((f) => f >= building.minFloor && f <= building.maxFloor)
-    : [];
-}
+// Rechazos de POST /reservations por `code`. El texto es el del servidor (trae los valores de la
+// regla, p. ej. hasta cuándo dura la suspensión); el código decide qué más hace la pantalla.
+/** La salida ya no sirve: se recargan las salidas y se elige otra. */
+const SLOT_ERRORS = new Set([
+  'TURN_FULL',
+  'ELEVATOR_NOT_BOOKABLE',
+  'OUTSIDE_BOOKING_WINDOW',
+  'DEPARTURE_NOT_FOUND',
+]);
+/** El destino no vale para este viaje (o este usuario): se elige otro. */
+const FLOOR_ERRORS = new Set([
+  'SAME_FLOOR',
+  'FLOOR_OUT_OF_RANGE',
+  'FLOOR_NOT_SERVED',
+  'LOW_FLOOR_DESTINATION',
+]);
 
 export function ReserveTurnPage() {
   const navigate = useNavigate();
-  const [coreId, setCoreId] = useState<string | null>(null);
+  const [coreCode, setCoreCode] = useState<string | null>(null);
+  // Las salidas son por edificio: se guarda aparte para no pedirlas de nuevo al cambiar de núcleo.
+  const [buildingCode, setBuildingCode] = useState<string | null>(null);
   const [origin, setOrigin] = useState<number | null>(null);
   const [destination, setDestination] = useState<number | null>(null);
-  const [departureId, setDepartureId] = useState<string | null>(null);
+  const [slotTime, setSlotTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // Salida rechazada con 409 al confirmar: puede ser que se haya llenado.
-  const [rejected, setRejected] = useState<Departure | null>(null);
   const slotsLabel = useRef<HTMLSpanElement>(null);
   const missingId = useId();
   const [lastTrip] = useState(loadLastTrip);
@@ -54,26 +71,21 @@ export function ReserveTurnPage() {
 
   const catalog = useResource(loadCatalog);
   const active = useResource(loadActive);
-  const floors = useResource(
-    useMemo(
-      () => (coreId && origin !== null ? () => getDestinationFloors(coreId, origin) : null),
-      [coreId, origin],
-    ),
-  );
+  const cores = catalog.data ? coreOptions(...catalog.data) : [];
+  const core = cores.find((c) => c.code === coreCode);
   const departures = useResource(
-    useMemo(() => (coreId ? () => getDepartures(coreId) : null), [coreId]),
+    useMemo(() => (buildingCode ? () => getDepartures(buildingCode) : null), [buildingCode]),
   );
-
-  const [buildings, cores] = catalog.data ?? [[], []];
 
   // Con el catálogo cargado, se precarga el último viaje si sigue siendo válido (la franja nunca).
-  // El destino se valida contra los pisos elegibles más abajo (`validDestination`).
+  // El destino se valida contra los pisos posibles más abajo (`validDestination`).
   if (!prefillDone && catalog.data) {
     setPrefillDone(true);
-    const savedCore = cores.find((c) => c.id === lastTrip?.coreId);
+    const savedCore = cores.find((c) => c.code === lastTrip?.coreId);
     if (lastTrip && savedCore) {
-      setCoreId(savedCore.id);
-      if (originFloorsOf(savedCore, buildings).includes(lastTrip.originFloor)) {
+      setCoreCode(savedCore.code);
+      setBuildingCode(savedCore.building.code);
+      if (originFloorsOf(savedCore).includes(lastTrip.originFloor)) {
         setOrigin(lastTrip.originFloor);
         setDestination(lastTrip.destinationFloor);
       }
@@ -81,32 +93,29 @@ export function ReserveTurnPage() {
     }
   }
 
-  const core = cores.find((c) => c.id === coreId);
-  const originFloors = originFloorsOf(core, buildings);
-  // Si la elección dejó de ser válida (p. ej. la salida se llenó al recargar), no cuenta.
-  const validDestination = floors.data?.some((f) => f.floor === destination && f.eligible)
-    ? destination
-    : null;
-  const departure = departures.data?.find((d) => d.id === departureId && d.occupied < d.capacity);
-  // Con las salidas ya recargadas, la rechazada no tiene lugar: se llenó.
-  const filled =
-    rejected &&
-    !departures.loading &&
-    departures.data &&
-    !departures.data.some((d) => d.id === rejected.id && d.occupied < d.capacity)
-      ? rejected
-      : null;
-  const alertMessage = filled
-    ? `La salida de las ${formatTime(filled.departsAt)} se llenó. Elegí otra.`
-    : rejected && departures.loading
-      ? null
-      : submitError;
-  const ready = origin !== null && validDestination !== null && departure !== undefined;
-  // "Lima 3 · Piso 7 · 7:25 – 7:27" con lo que ya se eligió.
+  const originFloors = originFloorsOf(core);
+  const destinationFloors = core && origin !== null ? destinationFloorsOf(core, origin) : [];
+  // Si la elección dejó de ser válida (p. ej. otro núcleo), no cuenta.
+  const validDestination =
+    destination !== null && destinationFloors.includes(destination) ? destination : null;
+  // Solo las salidas de los ascensores que paran en los pisos elegidos.
+  const slots =
+    core && departures.data
+      ? slotsOf(
+          departures.data,
+          elevatorsServing(
+            core,
+            [origin, validDestination].filter((f) => f !== null),
+          ),
+        )
+      : undefined;
+  const slot = slots?.find((s) => s.departureAt === slotTime && s.departure.remainingSeats > 0);
+  const ready = origin !== null && validDestination !== null && slot !== undefined;
+  // "Lima 3 · Piso 7 · 7:25" con lo que ya se eligió.
   const summary = [
     core?.name,
     validDestination !== null && `Piso ${formatFloor(validDestination)}`,
-    departure && formatSlot(departure.departsAt, departure.durationMinutes),
+    slot && formatTime(slot.departureAt),
   ]
     .filter(Boolean)
     .join(' · ');
@@ -117,66 +126,65 @@ export function ReserveTurnPage() {
       ? 'Falta elegir el piso de origen'
       : validDestination === null
         ? 'Falta elegir el piso de destino'
-        : !departure
+        : !slot
           ? 'Falta elegir la franja horaria'
           : null;
 
-  // La lista de franjas cambió: se lleva el foco ahí para elegir otra.
-  useEffect(() => {
-    if (filled) slotsLabel.current?.focus();
-  }, [filled]);
-
-  function clearSubmitError() {
-    setSubmitError(null);
-    setRejected(null);
-  }
-
-  function chooseCore(id: string) {
+  function chooseCore(code: string) {
     setFromLastTrip(false);
-    setCoreId(id);
+    setCoreCode(code);
+    setBuildingCode(cores.find((c) => c.code === code)?.building.code ?? null);
     setOrigin(null);
     setDestination(null);
-    setDepartureId(null);
-    clearSubmitError();
+    setSlotTime(null);
+    setSubmitError(null);
   }
 
-  function chooseDeparture(id: string) {
-    setDepartureId(id);
-    clearSubmitError();
+  function chooseSlot(departureAt: string) {
+    setSlotTime(departureAt);
+    setSubmitError(null);
   }
 
   function chooseOrigin(floor: number) {
     setFromLastTrip(false);
     setOrigin(floor);
     setDestination(null);
+    setSubmitError(null);
   }
 
   function chooseDestination(floor: number) {
     setFromLastTrip(false);
     setDestination(floor);
+    setSubmitError(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (origin === null || validDestination === null || !departure) return;
+    if (!core || origin === null || validDestination === null || !slot) return;
     setSubmitting(true);
-    clearSubmitError();
+    setSubmitError(null);
     try {
       const reservation = await reserve({
-        departureId: departure.id,
+        departureId: slot.departure.id,
         originFloor: origin,
         destinationFloor: validDestination,
       });
-      saveLastTrip({
-        coreId: departure.coreId,
-        originFloor: origin,
-        destinationFloor: validDestination,
-      });
-      navigate(`/turno/${encodeURIComponent(reservation.id)}`);
+      saveLastTrip({ coreId: core.code, originFloor: origin, destinationFloor: validDestination });
+      navigate(`/turno/${reservation.id}`);
     } catch (error) {
       setSubmitError(errorMessage(error));
-      if (error instanceof ApiError && error.status === 409) setRejected(departure);
-      // La ocupación pudo cambiar (p. ej. la salida se llenó): se muestra la actual.
+      const code = error instanceof ApiError ? error.code : undefined;
+      if (code && SLOT_ERRORS.has(code)) {
+        // Se muestran los lugares actuales y el foco va a las franjas para elegir otra.
+        setSlotTime(null);
+        slotsLabel.current?.focus();
+      } else if (code && FLOOR_ERRORS.has(code)) {
+        setDestination(null);
+      } else if (code === 'ACTIVE_LIMIT_REACHED') {
+        // Ya tiene un turno (p. ej. reservado desde otro dispositivo): se ofrece ir a verlo.
+        active.reload();
+      }
+      // El cupo pudo cambiar en cualquier caso.
       departures.reload();
       setSubmitting(false);
     }
@@ -192,13 +200,10 @@ export function ReserveTurnPage() {
         // Con un turno activo no se puede reservar otro (turnos.md §3): no se ofrece el formulario.
         <div className="reserve__notice">
           <p>
-            Ya tenés un turno activo para la salida de las{' '}
-            {formatTime(active.data.departure.departsAt)}. Para reservar otro, primero cancelalo.
+            Ya tenés un turno activo para la salida de las {formatTime(active.data.departureAt)}.
+            Para reservar otro, primero cancelalo.
           </p>
-          <Link
-            to={`/turno/${encodeURIComponent(active.data.id)}`}
-            className="button button--primary button--inline"
-          >
+          <Link to={`/turno/${active.data.id}`} className="button button--primary button--inline">
             Ver mi turno
           </Link>
         </div>
@@ -221,31 +226,19 @@ export function ReserveTurnPage() {
               </p>
             )}
 
-            <BuildingSelector
-              buildings={buildings}
-              cores={cores}
-              value={coreId}
-              onChange={chooseCore}
-            />
+            <BuildingSelector cores={cores} value={coreCode} onChange={chooseCore} />
 
             {core && (
               <OriginFloorInput floors={originFloors} value={origin} onChange={chooseOrigin} />
             )}
 
-            {origin !== null &&
-              (floors.loading ? (
-                <Skeleton label="Cargando pisos…" rows={2} height={44} />
-              ) : floors.error ? (
-                <p role="alert" className="reserve__alert">
-                  {floors.error}
-                </p>
-              ) : (
-                <FloorSelector
-                  floors={floors.data ?? []}
-                  value={validDestination}
-                  onChange={chooseDestination}
-                />
-              ))}
+            {origin !== null && (
+              <FloorSelector
+                floors={destinationFloors}
+                value={validDestination}
+                onChange={chooseDestination}
+              />
+            )}
           </div>
 
           <div className="reserve__column reserve__column--aside">
@@ -254,17 +247,17 @@ export function ReserveTurnPage() {
                 <p role="alert" className="reserve__alert">
                   {departures.error}
                 </p>
-              ) : !departures.data ? (
+              ) : !slots ? (
                 <Skeleton label="Cargando salidas…" rows={4} height={56} />
-              ) : !departures.data.length ? (
+              ) : !slots.length ? (
                 <p className="page-placeholder">
-                  No hay salidas abiertas para reservar en este núcleo. Probá en unos minutos.
+                  No hay salidas que puedas reservar en este núcleo ahora. Probá en unos minutos.
                 </p>
               ) : (
                 <SlotList
-                  departures={departures.data}
-                  value={departure?.id ?? null}
-                  onChange={chooseDeparture}
+                  slots={slots}
+                  value={slot?.departureAt ?? null}
+                  onChange={chooseSlot}
                   labelRef={slotsLabel}
                 />
               ))}
@@ -288,9 +281,9 @@ export function ReserveTurnPage() {
                   </p>
                 )}
               </div>
-              {alertMessage && (
+              {submitError && (
                 <p role="alert" className="reserve__alert">
-                  {alertMessage}
+                  {submitError}
                 </p>
               )}
               <Button
@@ -301,9 +294,7 @@ export function ReserveTurnPage() {
                 loading={submitting}
                 loadingLabel="Reservando…"
               >
-                {departure
-                  ? `Confirmar turno · ${formatTime(departure.departsAt)}`
-                  : 'Confirmar turno'}
+                {slot ? `Confirmar turno · ${formatTime(slot.departureAt)}` : 'Confirmar turno'}
               </Button>
             </div>
           </div>
