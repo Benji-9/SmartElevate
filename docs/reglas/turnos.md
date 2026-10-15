@@ -25,7 +25,7 @@ La app es para movilidad inmediata; abrir con más anticipación facilita acapar
 ## 3. Límites por usuario
 
 - **1 reserva activa** a la vez.
-- **Tope diario**: 8 reservas por día. Una cancelación **sin falta devuelve** el lugar en el tope; una **tardía no** (decidido el 14/10, lo implementa [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
+- **Tope diario**: 8 reservas por día. Una cancelación **sin falta devuelve** el lugar en el tope; una **tardía no** (decidido el 14/10; `V18`, [#218](https://github.com/Benji-9/SmartElevate/issues/218)).
 
 ## 4. Cancelación
 
