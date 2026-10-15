@@ -1,4 +1,4 @@
-import type { CongestionLevel } from '../../types/pending';
+import type { CongestionLevel } from '../../types/api';
 
 /** Tono de `Chip` y etiqueta escrita de cada nivel de congestión. */
 export const congestionTone = {

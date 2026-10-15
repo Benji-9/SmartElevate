@@ -5,8 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../App';
 import { NBSP } from '../features/admin/format';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
-import type { Building } from '../types/api';
-import type { AdminKpis, AdminShift } from '../types/pending';
+import type { AdminKpis, AdminShift, Building } from '../types/api';
 
 const buildings: Building[] = [
   { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [] },
@@ -51,6 +50,7 @@ const kpis = (overrides: Partial<AdminKpis> = {}): AdminKpis => ({
       congestion: 'LOW',
     },
   ],
+  previous: null,
   ...overrides,
 });
 
@@ -208,6 +208,72 @@ describe('AdminDashboardPage', () => {
     await userEvent.click(within(alert).getByRole('button', { name: 'Reintentar' }));
 
     expect(await screen.findByRole('table', { name: 'Estado por núcleo' })).toBeInTheDocument();
+  });
+
+  it('compara con el período anterior de igual largo', async () => {
+    renderAdmin({
+      'GET /admin/kpis?period=TODAY': {
+        body: kpis({
+          previous: {
+            from: '2026-09-28T03:00:00Z',
+            to: '2026-09-29T03:00:00Z',
+            reservations: 1000,
+            checkInPercent: 81,
+            avgOccupancy: 8.5,
+            avgWaitSeconds: null,
+            wait5To10Percent: null,
+          },
+        }),
+      },
+    });
+
+    expect(await screen.findByRole('article', { name: 'Turnos reservados' })).toHaveTextContent(
+      'Subió 24 % vs. ayer',
+    );
+    expect(screen.getByRole('article', { name: 'Check-ins realizados' })).toHaveTextContent(
+      'Igual que ayer',
+    );
+    expect(screen.getByRole('article', { name: 'Ocupación promedio' })).toHaveTextContent(
+      'Bajó 20 % vs. ayer',
+    );
+  });
+
+  it('los KPIs sin datos dicen "Sin datos" y no se comparan', async () => {
+    renderAdmin({
+      'GET /admin/kpis?period=TODAY': {
+        body: kpis({
+          avgWaitSeconds: null,
+          wait5To10Percent: null,
+          checkInPercent: null,
+          avgOccupancy: null,
+          cores: [
+            {
+              coreId: 'L1',
+              name: 'Lima 1',
+              reservations: 4,
+              occupancyPercent: null,
+              avgWaitSeconds: null,
+              congestion: null,
+            },
+          ],
+        }),
+      },
+    });
+
+    const wait = await screen.findByRole('article', { name: 'Espera promedio' });
+    expect(wait).toHaveTextContent('Sin datos');
+    expect(wait).toHaveTextContent('Sin datos de la encuesta de espera');
+    expect(within(wait).queryByText(/línea base$/)).not.toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Check-ins realizados' })).toHaveTextContent(
+      'Sin datos',
+    );
+    expect(screen.getByRole('article', { name: 'Ocupación promedio' })).toHaveTextContent(
+      'Sin datos',
+    );
+    const table = screen.getByRole('table', { name: 'Estado por núcleo' });
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent(
+      'Lima 14Sin datosSin datosSin datos',
+    );
   });
 
   it('sin reservas en el período muestra el estado vacío', async () => {
