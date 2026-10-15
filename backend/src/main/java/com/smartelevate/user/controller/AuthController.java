@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -85,13 +86,19 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     @ApiResponse(responseCode = "403", description = "Falta el header CSRF o el Origin no está permitido",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public ResponseEntity<TokenResponse> refresh(HttpServletRequest http) {
+    public ResponseEntity<TokenResponse> refresh(HttpServletRequest http, HttpServletResponse response) {
         refreshCookie.requireSameSiteRequest(http);
-        String token = refreshCookie.read(http);
-        if (token == null) {
-            throw new InvalidRefreshTokenException();
+        try {
+            String token = refreshCookie.read(http);
+            if (token == null) {
+                throw new InvalidRefreshTokenException();
+            }
+            return withCookie(authService.refresh(token));
+        } catch (InvalidRefreshTokenException e) {
+            // La cookie ya no sirve: se la borra del navegador junto con el 401 (arma el body el handler).
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.expire());
+            throw e;
         }
-        return withCookie(authService.refresh(token));
     }
 
     @PostMapping("/logout")

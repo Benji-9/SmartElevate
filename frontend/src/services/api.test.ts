@@ -119,4 +119,35 @@ describe('sesión en services/api', () => {
     expect(header(init, 'X-Requested-With')).toBe('SmartElevate');
     await expect(getMe()).rejects.toBeInstanceOf(ApiError);
   });
+
+  it('serializa el refresh entre pestañas con navigator.locks', async () => {
+    const events: string[] = [];
+    let queue: Promise<unknown> = Promise.resolve();
+    const request = vi.fn((name: string, action: () => Promise<unknown>) => {
+      const run = queue.then(async () => {
+        events.push(`lock ${name}`);
+        try {
+          return await action();
+        } finally {
+          events.push('unlock');
+        }
+      });
+      queue = run.catch(() => undefined);
+      return run;
+    });
+    vi.stubGlobal('navigator', { ...navigator, locks: { request } });
+    try {
+      stubApi({
+        'POST /auth/refresh': { body: tokens(2) },
+        'GET /users/me': meAccepting('token-2'),
+      });
+
+      await expect(restoreSession()).resolves.toEqual(testUser);
+
+      expect(request).toHaveBeenCalledWith('smartelevate-refresh', expect.any(Function));
+      expect(events).toEqual(['lock smartelevate-refresh', 'unlock']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

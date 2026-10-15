@@ -149,11 +149,23 @@ function clearTokens() {
 }
 
 /**
+ * La cookie del refresh se comparte entre pestañas pero `refreshing` es por pestaña: dos pestañas
+ * canjeando a la vez mandarían el mismo token y la segunda se tomaría por reuso (revoca la sesión).
+ * El lock del navegador las serializa: la segunda manda la cookie ya rotada (ADR 0023).
+ * Sin `navigator.locks` (jsdom, navegadores viejos) se canjea sin lock.
+ */
+function withRefreshLock<T>(action: () => Promise<T>): Promise<T> {
+  return typeof navigator !== 'undefined' && navigator.locks
+    ? navigator.locks.request('smartelevate-refresh', action)
+    : action();
+}
+
+/**
  * Canjea el refresh token por un par nuevo (rotación). Las llamadas simultáneas comparten el
  * intento: el refresh es de un solo uso y un segundo canje revocaría toda la sesión.
  */
 function refreshAccessToken(): Promise<boolean> {
-  refreshing ??= send<TokenResponse>('/auth/refresh', COOKIE_AUTH)
+  refreshing ??= withRefreshLock(() => send<TokenResponse>('/auth/refresh', COOKIE_AUTH))
     .then(
       (tokens) => {
         saveTokens(tokens);
