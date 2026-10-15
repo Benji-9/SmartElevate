@@ -53,7 +53,7 @@ Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
 - Los asigna un **ADMIN** desde el panel de administración.
 - **Docentes**: el ADMIN aprueba a los que se declararon docentes ([ver arriba](#tipo-de-usuario-declarado)).
 - **Movilidad reducida**: por certificado ([ver abajo](#certificado-de-prioridad)).
-- **Vigencia de la prioridad de docente:** hasta el **fin del cuatrimestre en curso**, renovable (decidido el 14/10). La fecha de cierre del cuatrimestre va en `app_config`; hoy `priority_teacher_validity` está en NULL y la aprobación no vence. Lo implementa [#218](https://github.com/Benji-9/SmartElevate/issues/218).
+- **Vigencia de la prioridad de docente:** hasta el **fin del cuatrimestre en curso**, renovable (decidido el 14/10). Los cierres de cuatrimestre van en `app_config` (`semester_end_dates`); al aprobar, la prioridad vence al terminar el día del primer cierre que sea hoy o después (hora de Buenos Aires). Al vencer, el docente vuelve a la cola "Docentes a validar" y aprobarlo de nuevo lo renueva hasta el cierre siguiente. Si no hay un cierre cargado desde hoy, la aprobación falla: hay que cargar el próximo ([#218](https://github.com/Benji-9/SmartElevate/issues/218)).
 
 Modelo implementado (roles en `V5`, prioridad y auditoría en `V10`, [#121](https://github.com/Benji-9/SmartElevate/issues/121)):
 

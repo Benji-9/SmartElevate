@@ -1,7 +1,9 @@
 package com.smartelevate.turn.service;
 
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.ACTIVE_LIMIT_REACHED;
+import static com.smartelevate.turn.service.ReservationRejectedException.Reason.ALREADY_CHECKED_IN;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.DAILY_LIMIT_REACHED;
+import static com.smartelevate.turn.service.ReservationRejectedException.Reason.DEPARTURE_ALREADY_PASSED;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.DEPARTURE_NOT_FOUND;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.ELEVATOR_NOT_BOOKABLE;
 import static com.smartelevate.turn.service.ReservationRejectedException.Reason.FLOOR_NOT_SERVED;
@@ -120,13 +122,15 @@ public class ReservationService {
     }
 
     /**
-     * Cancela una reserva del usuario y libera su lugar (ver {@link Reservation#cancel}). Idempotente.
+     * Cancela una reserva del usuario y libera su lugar (ver {@link Reservation#cancel}). Idempotente con una ya
+     * cancelada. Desde la hora de salida no se puede (DEPARTURE_ALREADY_PASSED): el turno termina en no-show, o en
+     * usado si hubo check-in. Tampoco una usada (ALREADY_CHECKED_IN), aunque el check-in sea antes de la salida.
      * Toma los mismos locks que {@link #reserve}, en el mismo orden (usuario, después salida): serializa con las
      * reservas de esa salida y con otro pedido del mismo usuario, sin riesgo de deadlock.
      * Una reserva ajena responde igual que una inexistente (404), para no filtrar que existe.
      *
-     * <p>Una cancelación tardía cuenta como falta para la suspensión ({@link NoShowService}). Cancelar no devuelve el
-     * cupo diario (ver {@link #checkUserLimits}).
+     * <p>Una cancelación tardía cuenta como falta para la suspensión ({@link NoShowService}) y no devuelve el cupo
+     * diario; una sin falta, sí (ver {@link #checkUserLimits}).
      */
     @Transactional
     public void cancel(UUID userId, long reservationId) {
@@ -135,7 +139,24 @@ public class ReservationService {
                 .filter(r -> r.getUserId().equals(userId))
                 .orElseThrow(() -> new ReservationRejectedException(RESERVATION_NOT_FOUND, "La reserva no existe."));
         departures.findByIdForUpdate(reservation.getDeparture().getId());
-        reservation.cancel(time.now(), config.cancellationDeadlineBefore());
+        Instant now = time.now();
+        switch (reservation.getStatus()) {
+            case USED -> throw new ReservationRejectedException(ALREADY_CHECKED_IN,
+                    "Ya hiciste el check-in: la reserva no se puede cancelar.");
+            case NO_SHOW -> throw departurePassed();
+            case ACTIVE -> {
+                if (!now.isBefore(reservation.getDeparture().getDepartureAt())) {
+                    throw departurePassed();
+                }
+            }
+            case CANCELLED, CANCELLED_LATE -> { }
+        }
+        reservation.cancel(now, config.cancellationDeadlineBefore());
+    }
+
+    private static ReservationRejectedException departurePassed() {
+        return new ReservationRejectedException(DEPARTURE_ALREADY_PASSED,
+                "La salida ya pasó: la reserva no se puede cancelar.");
     }
 
     /**
@@ -203,7 +224,8 @@ public class ReservationService {
         boolean lateCancel = r.getStatus() == ReservationStatus.ACTIVE
                 && r.cancelIsLate(now, config.cancellationDeadlineBefore());
         return new ReservationResponse(r.getId(), d.getId(), e.getCode(), e.getCore().getName(),
-                e.getCore().getBuilding().getName(), d.getDepartureAt(), r.getSeatNumber(), r.getOriginFloor(),
+                e.getCore().getBuilding().getName(), d.getDepartureAt(),
+                d.getDepartureAt().minus(config.cancellationDeadlineBefore()), r.getSeatNumber(), r.getOriginFloor(),
                 r.getDestinationFloor(), r.getStatus(), r.getCreatedAt(), lateCancel, outcome);
     }
 
@@ -259,8 +281,8 @@ public class ReservationService {
         LocalDate today = time.today();
         Instant dayStart = time.toInstant(today, LocalTime.MIDNIGHT);
         Instant dayEnd = time.toInstant(today.plusDays(1), LocalTime.MIDNIGHT);
-        if (reservations.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(userId, dayStart, dayEnd)
-                >= config.maxDailyBookingsPerUser()) {
+        if (reservations.countByUserIdAndStatusNotAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(userId,
+                ReservationStatus.CANCELLED, dayStart, dayEnd) >= config.maxDailyBookingsPerUser()) {
             throw new ReservationRejectedException(DAILY_LIMIT_REACHED, "Llegaste al tope de reservas de hoy.");
         }
     }

@@ -49,6 +49,7 @@ const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   coreName: 'Lima 1',
   buildingName: 'Lima',
   departureAt: '2026-09-29T17:32:00Z',
+  cancelFreeUntil: '2026-09-29T17:22:00Z',
   seatNumber: 5,
   originFloor: 0,
   destinationFloor: 5,
