@@ -211,7 +211,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Inicia sesión y devuelve access y refresh token
+     * Inicia sesión y devuelve el access token y setea el refresh en una cookie HttpOnly
      * @description Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).
      */
     post: operations['login'];
@@ -231,8 +231,8 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Cierra la sesión revocando el refresh token
-     * @description Idempotente: un token desconocido tampoco da error.
+     * Cierra la sesión: revoca el refresh token de la cookie y la expira
+     * @description Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header X-Requested-With: SmartElevate (ADR 0023).
      */
     post: operations['logout'];
     delete?: never;
@@ -291,8 +291,8 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Canjea un refresh token por un par nuevo (rotación)
-     * @description El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, se revoca toda la sesión.
+     * Canjea el refresh token de la cookie por un access token nuevo (rotación)
+     * @description El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header X-Requested-With: SmartElevate (defensa CSRF, ADR 0023); sin él, o con un Origin no permitido, responde 403.
      */
     post: operations['refresh'];
     delete?: never;
@@ -1186,11 +1186,6 @@ export interface components {
        */
       token: string;
     };
-    /** @description Refresh token vigente de la sesión */
-    RefreshRequest: {
-      /** @example b0Yq3k... */
-      refreshToken: string;
-    };
     /** @description Datos para crear una cuenta. No lleva rol ni prioridad: todo usuario nace común */
     RegisterRequest: {
       /**
@@ -1324,7 +1319,7 @@ export interface components {
       /** @example Zk3pQ1x9... */
       token: string;
     };
-    /** @description Par de tokens de la sesión. El access token no lleva rol ni prioridad */
+    /** @description Access token de la sesión (el refresh va en una cookie HttpOnly, ADR 0019). No lleva rol ni prioridad */
     TokenResponse: {
       /** @description JWT corto, va en Authorization: Bearer */
       accessToken: string;
@@ -1334,8 +1329,6 @@ export interface components {
        * @example 900
        */
       expiresIn: number;
-      /** @description Opaco y de un solo uso: cada refresh devuelve uno nuevo */
-      refreshToken: string;
       /** @example Bearer */
       tokenType: string;
     };
@@ -1958,7 +1951,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Par de tokens nuevo */
+      /** @description Access token; Set-Cookie con el refresh */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2021,13 +2014,9 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RefreshRequest'];
-      };
-    };
+    requestBody?: never;
     responses: {
-      /** @description No Content */
+      /** @description Sesión cerrada; Set-Cookie expira la cookie */
       204: {
         headers: {
           [name: string]: unknown;
@@ -2036,6 +2025,15 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Falta el header CSRF o el Origin no está permitido */
+      403: {
         headers: {
           [name: string]: unknown;
         };
@@ -2141,13 +2139,9 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RefreshRequest'];
-      };
-    };
+    requestBody?: never;
     responses: {
-      /** @description Par de tokens nuevo */
+      /** @description Access token nuevo; Set-Cookie con el refresh rotado */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2165,8 +2159,17 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
-      /** @description Refresh token inválido, vencido, revocado o ya usado */
+      /** @description Sin cookie, o refresh token inválido, vencido, revocado o ya usado */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Falta el header CSRF o el Origin no está permitido */
+      403: {
         headers: {
           [name: string]: unknown;
         };
