@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { User } from '../types/api';
+import type { Reservation, User } from '../types/api';
 
 type Reply = { status?: number; body?: unknown; headers?: Record<string, string> };
 type Routes = Record<string, Reply | ((init?: RequestInit) => Reply)>;
@@ -44,6 +44,24 @@ export const testUser: User = {
   role: 'USER',
   priority: 'NONE',
   declaredUserType: 'STUDENT',
+};
+
+/** Reserva activa como la manda el backend. 17:04 UTC = 14:04 en Buenos Aires. */
+export const testReservation: Reservation = {
+  id: 55,
+  departureId: 7,
+  elevator: '33',
+  coreName: 'Lima 1',
+  buildingName: 'Lima',
+  departureAt: '2026-09-29T17:04:00Z',
+  cancelFreeUntil: '2026-09-29T16:54:00Z',
+  seatNumber: 3,
+  originFloor: 0,
+  destinationFloor: 5,
+  status: 'ACTIVE',
+  createdAt: '2026-09-29T16:50:00Z',
+  cancelCountsAsNoShow: false,
+  checkInOutcome: null,
 };
 
 /** Respuesta de login/refresh del backend (`TokenResponse`). */

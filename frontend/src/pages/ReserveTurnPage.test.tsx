@@ -46,6 +46,8 @@ const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   id: 9,
   departureId: 1,
   elevator: '01',
+  coreName: 'Lima 1',
+  buildingName: 'Lima',
   departureAt: '2026-09-29T17:32:00Z',
   cancelFreeUntil: '2026-09-29T17:22:00Z',
   seatNumber: 5,
@@ -53,6 +55,8 @@ const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   destinationFloor: 5,
   status: 'ACTIVE',
   createdAt: '2026-09-29T17:10:00Z',
+  cancelCountsAsNoShow: false,
+  checkInOutcome: null,
   ...overrides,
 });
 
@@ -60,7 +64,7 @@ const routes = {
   ...signedIn(),
   'GET /buildings': { body: [lima] },
   'GET /elevators': { body: elevators },
-  'GET /reservations/me': { body: [] },
+  'GET /reservations/active': { status: 204 },
   'GET /departures?building=LIMA': { body: departures },
 };
 
@@ -333,7 +337,8 @@ describe('ReserveTurnPage', () => {
       let mine = 0;
       stubApi({
         ...routes,
-        'GET /reservations/me': () => ({ body: mine++ ? [reservation({ id: 7 })] : [] }),
+        'GET /reservations/active': () =>
+          mine++ ? { body: reservation({ id: 7 }) } : { status: 204 },
         'POST /reservations': rejection(
           409,
           'ACTIVE_LIMIT_REACHED',
@@ -367,12 +372,7 @@ describe('ReserveTurnPage', () => {
   it('con un turno activo no ofrece el formulario y lleva al turno', async () => {
     stubApi({
       ...routes,
-      'GET /reservations/me': {
-        body: [
-          reservation({ id: 8, status: 'CANCELLED', departureAt: '2026-09-29T17:40:00Z' }),
-          reservation({ id: 7 }),
-        ],
-      },
+      'GET /reservations/active': { body: reservation({ id: 7 }) },
     });
     renderPage();
 
@@ -385,7 +385,7 @@ describe('ReserveTurnPage', () => {
   it('si no se puede saber si hay un turno activo, muestra el formulario igual', async () => {
     stubApi({
       ...routes,
-      'GET /reservations/me': { status: 500, body: { message: 'Error interno' } },
+      'GET /reservations/active': { status: 500, body: { message: 'Error interno' } },
     });
     renderPage();
 

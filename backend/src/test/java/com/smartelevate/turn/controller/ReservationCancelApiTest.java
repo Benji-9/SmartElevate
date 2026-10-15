@@ -162,9 +162,9 @@ class ReservationCancelApiTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DAILY_LIMIT_REACHED"));
 
-        mockMvc.perform(authed(get("/api/reservations/me")))
+        mockMvc.perform(authed(get("/api/reservations/history")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[1].cancelFreeUntil").value(NOW.minus(Duration.ofMinutes(5)).toString()));
+                .andExpect(jsonPath("$.items[1].cancelFreeUntil").value(NOW.minus(Duration.ofMinutes(5)).toString()));
     }
 
     @Test

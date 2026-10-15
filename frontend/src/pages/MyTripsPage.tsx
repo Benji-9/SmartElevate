@@ -7,7 +7,7 @@ import { TripList } from '../features/trips/TripList';
 import '../features/trips/trips.css';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { getNoShowStatus, getTrips } from '../services/api';
-import type { TripPage } from '../types/pending';
+import type { ReservationPage } from '../types/api';
 import { Skeleton } from '../components/Skeleton';
 
 export function MyTripsPage() {
@@ -15,7 +15,7 @@ export function MyTripsPage() {
   // El aviso de faltas es secundario: si falla, la lista se muestra igual sin él.
   const noShows = useResource(getNoShowStatus);
   // Páginas pedidas con "Ver más", en orden.
-  const [more, setMore] = useState<TripPage[]>([]);
+  const [more, setMore] = useState<ReservationPage[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
 

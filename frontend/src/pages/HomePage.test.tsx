@@ -3,30 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
-import { signedIn, stubApi } from '../test/stubApi';
-import type { CongestionSnapshot, Reservation } from '../types/pending';
+import { signedIn, stubApi, testReservation } from '../test/stubApi';
+import type { CongestionSnapshot } from '../types/pending';
 
-const reservation: Reservation = {
-  id: 'r-1',
-  status: 'ACTIVE',
-  departure: {
-    id: 'd-1',
-    coreId: 'L1',
-    departsAt: '2026-09-29T17:32:00Z',
-    durationMinutes: 2,
-    capacity: 10,
-    occupied: 4,
-  },
-  core: {
-    id: 'L1',
-    name: 'Lima 1',
-    buildingName: 'Lima',
-    floors: [0, 1, 2, 3, 4, 5, 6, 7],
-    hall: 'Hall Lima, planta baja',
-  },
-  originFloor: 0,
+const reservation = {
+  ...testReservation,
+  departureAt: '2026-09-29T17:32:00Z',
   destinationFloor: 7,
-  cancelCountsAsNoShow: false,
 };
 
 const congestion = (): CongestionSnapshot => ({
@@ -56,7 +39,7 @@ describe('HomePage', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-09-28T15:00:00Z') });
     stubApi({
       ...signedIn(),
-      'GET /reservations/active': { body: null },
+      'GET /reservations/active': { status: 204 },
       'GET /congestion': { body: congestion() },
     });
     renderHome();
@@ -75,14 +58,14 @@ describe('HomePage', () => {
 
     const card = (await screen.findByRole('heading', { name: 'Tu turno' })).closest('section')!;
     expect(within(card).getByText('Confirmado')).toBeInTheDocument();
-    expect(within(card).getByText('14:32 – 14:34 · Lima 1 · Piso 7')).toBeInTheDocument();
+    expect(within(card).getByText('14:32 hs · Lima 1 · Ascensor 33 · Piso 7')).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: 'Hacer check-in' })).toHaveAttribute(
       'href',
       '/check-in',
     );
     expect(within(card).getByRole('link', { name: 'Ver turno' })).toHaveAttribute(
       'href',
-      '/turno/r-1',
+      '/turno/55',
     );
     expect(screen.queryByRole('link', { name: 'Reservar turno' })).not.toBeInTheDocument();
   });
@@ -110,7 +93,7 @@ describe('HomePage', () => {
   it('sin turno activo invita a reservar', async () => {
     stubApi({
       ...signedIn(),
-      'GET /reservations/active': { body: null },
+      'GET /reservations/active': { status: 204 },
       'GET /congestion': { body: congestion() },
     });
     renderHome();
@@ -125,7 +108,7 @@ describe('HomePage', () => {
   it('muestra la congestión por núcleo con su etiqueta y cuándo se actualizó', async () => {
     stubApi({
       ...signedIn(),
-      'GET /reservations/active': { body: null },
+      'GET /reservations/active': { status: 204 },
       'GET /congestion': { body: congestion() },
     });
     renderHome();
@@ -146,7 +129,7 @@ describe('HomePage', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const fetchMock = stubApi({
       ...signedIn(),
-      'GET /reservations/active': { body: null },
+      'GET /reservations/active': { status: 204 },
       'GET /congestion': () => ({ body: congestion() }),
     });
     renderHome();
@@ -164,7 +147,7 @@ describe('HomePage', () => {
     let fail = true;
     stubApi({
       ...signedIn(),
-      'GET /reservations/active': { body: null },
+      'GET /reservations/active': { status: 204 },
       'GET /congestion': () =>
         fail
           ? { status: 503, body: { message: 'Servicio no disponible' } }
@@ -185,7 +168,7 @@ describe('HomePage', () => {
   it('muestra el aviso que deja otra pantalla, como al cancelar un turno', async () => {
     stubApi({
       ...signedIn(),
-      'GET /reservations/active': { body: null },
+      'GET /reservations/active': { status: 204 },
       'GET /congestion': { body: congestion() },
     });
     renderHome({ notice: 'Cancelaste tu turno.' });

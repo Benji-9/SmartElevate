@@ -19,6 +19,7 @@ import type {
   RefreshRequest,
   RegisterRequest,
   Reservation,
+  ReservationPage,
   ReserveRequest,
   ResendVerificationRequest,
   ResetPasswordRequest,
@@ -34,8 +35,6 @@ import type {
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  Reservation as PendingReservation,
-  TripPage,
 } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -265,12 +264,12 @@ export const getBuildings = () => api.get<Building[]>('/buildings');
 export const getDepartures = (building: string) =>
   api.get<Departure[]>(`/departures?building=${encodeURIComponent(building)}`);
 export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
-/** Mis reservas de hoy en adelante (activas y canceladas), la salida más tardía primero. */
-export const getMyReservations = () => api.get<Reservation[]>('/reservations/me');
+/** Reserva activa (mientras se le puede hacer check-in); el backend responde 204 si no hay. */
 export const getActiveReservation = () =>
-  api.get<PendingReservation | null>('/reservations/active');
+  api.get<Reservation | undefined>('/reservations/active').then((r) => r ?? null);
+/** Una reserva propia en cualquier estado; 404 `RESERVATION_NOT_FOUND` si no existe o es de otro. */
 export const getReservation = (id: string) =>
-  api.get<PendingReservation>(`/reservations/${encodeURIComponent(id)}`);
+  api.get<Reservation>(`/reservations/${encodeURIComponent(id)}`);
 /**
  * Reserva un lugar. Rechazos por `code`: TURN_FULL (también si lo que queda es de prioritarios),
  * ELEVATOR_NOT_BOOKABLE, OUTSIDE_BOOKING_WINDOW, DEPARTURE_NOT_FOUND, ACTIVE_LIMIT_REACHED,
@@ -278,8 +277,7 @@ export const getReservation = (id: string) =>
  * FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION).
  */
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
-export const cancelReservation = (id: string) =>
-  api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
+export const cancelReservation = (id: number) => api.delete<void>(`/reservations/${id}`);
 /**
  * Check-in con el token leído del QR. Rechazos por `code`: `INVALID_QR_TOKEN` (400),
  * `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).
@@ -299,9 +297,9 @@ export function submitPriorityRequest(certificate: File, consentAccepted: true) 
   form.append('certificate', certificate);
   return request<PriorityRequest>('/priority-requests', { method: 'POST', body: form });
 }
-/** Historial de viajes paginado; sin `cursor` trae la primera página. */
+/** Historial de reservas paginado por cursor; sin `cursor` trae la primera página. */
 export const getTrips = (cursor?: string | null) =>
-  api.get<TripPage>(
+  api.get<ReservationPage>(
     `/reservations/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
   );
 export const getNoShowStatus = () => api.get<NoShowStatus>('/me/no-shows');

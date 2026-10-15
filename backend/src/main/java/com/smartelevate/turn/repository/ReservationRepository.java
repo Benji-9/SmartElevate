@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -45,6 +46,24 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("select r from Reservation r join fetch r.departure d join fetch d.elevator "
             + "where r.userId = :userId and d.departureAt >= :from order by d.departureAt desc, r.id desc")
     List<Reservation> findMine(@Param("userId") UUID userId, @Param("from") Instant from);
+
+    /** Reserva con su salida, ascensor, núcleo y edificio: lo que lleva {@code ReservationResponse}. */
+    String WITH_DETAILS = "select r from Reservation r join fetch r.departure d join fetch d.elevator e "
+            + "join fetch e.core c join fetch c.building where r.userId = :userId ";
+    String NEWEST_FIRST = " order by d.departureAt desc, r.id desc";
+
+    /** Activas del usuario con salida desde {@code from}, la más próxima primero. */
+    @Query(WITH_DETAILS + "and r.status = 'ACTIVE' and d.departureAt >= :from order by d.departureAt, r.id")
+    List<Reservation> findActiveFrom(@Param("userId") UUID userId, @Param("from") Instant from);
+
+    /** Primera página del historial (keyset sobre salida e id, de la más reciente a la más vieja). */
+    @Query(WITH_DETAILS + NEWEST_FIRST)
+    List<Reservation> history(@Param("userId") UUID userId, Pageable page);
+
+    /** Página siguiente del historial: las estrictamente anteriores a (at, id) en el mismo orden. */
+    @Query(WITH_DETAILS + "and (d.departureAt < :at or (d.departureAt = :at and r.id < :id))" + NEWEST_FIRST)
+    List<Reservation> historyBefore(@Param("userId") UUID userId, @Param("at") Instant at, @Param("id") long id,
+                                    Pageable page);
 
     /**
      * Tope diario: reservas hechas en [from, to) salvo las del estado excluido. Se excluye CANCELLED: cancelar sin

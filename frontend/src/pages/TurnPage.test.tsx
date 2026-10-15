@@ -2,39 +2,17 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import { signedIn, stubApi } from '../test/stubApi';
-import type { Reservation } from '../types/pending';
+import { signedIn, stubApi, testReservation } from '../test/stubApi';
 import { TurnPage } from './TurnPage';
 
-const reservation: Reservation = {
-  id: 'r-1',
-  status: 'ACTIVE',
-  departure: {
-    id: 'd-1',
-    coreId: 'c-1',
-    departsAt: '2026-09-29T17:04:00Z',
-    durationMinutes: 2,
-    capacity: 12,
-    occupied: 7,
-  },
-  core: {
-    id: 'c-1',
-    name: 'L1',
-    buildingName: 'Lima',
-    floors: [0, 1, 2, 5, 10],
-    hall: 'Hall Lima, planta baja',
-  },
-  originFloor: 0,
-  destinationFloor: 5,
-  cancelCountsAsNoShow: false,
-};
+const reservation = testReservation;
 
 function HomeProbe() {
   const { state } = useLocation();
   return <p>Inicio: {(state as { notice?: string } | null)?.notice}</p>;
 }
 
-function renderTurn(id = 'r-1') {
+function renderTurn(id = '55') {
   render(
     <MemoryRouter initialEntries={[`/turno/${id}`]}>
       <Routes>
@@ -52,7 +30,7 @@ async function openCancelDialog(name = '¿Cancelar el turno?') {
 
 describe('TurnPage', () => {
   it('muestra el turno confirmado con su detalle', async () => {
-    stubApi({ ...signedIn(), 'GET /reservations/r-1': { body: reservation } });
+    stubApi({ ...signedIn(), 'GET /reservations/55': { body: reservation } });
     renderTurn();
 
     expect(screen.getByRole('status')).toHaveTextContent('Cargando');
@@ -62,11 +40,10 @@ describe('TurnPage', () => {
     // Pantalla de confirmación: sin header ni botón volver.
     expect(screen.queryByRole('heading', { name: 'Tu turno' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
-    expect(screen.getByText('Esperá en Hall Lima, planta baja.')).toBeInTheDocument();
+    expect(screen.getByText('Te esperamos en el hall de Lima 1.')).toBeInTheDocument();
     expect(screen.getByText('Lima')).toBeInTheDocument();
-    expect(screen.getByText(/pisos PB a 10/)).toBeInTheDocument();
-    expect(screen.getByText('14:04 – 14:06')).toBeInTheDocument();
-    expect(screen.getByText('7 / 12 personas')).toBeInTheDocument();
+    expect(screen.getByText(/· Lima 1/)).toBeInTheDocument();
+    expect(screen.getByText('14:04 hs')).toBeInTheDocument();
     expect(screen.getByText(/escaneá el QR que aparece en la pantalla/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir a check-in' })).toHaveAttribute(
       'href',
@@ -77,8 +54,8 @@ describe('TurnPage', () => {
   it('cancela el turno y vuelve al inicio con un aviso', async () => {
     const fetchMock = stubApi({
       ...signedIn(),
-      'GET /reservations/r-1': { body: reservation },
-      'DELETE /reservations/r-1': { status: 204 },
+      'GET /reservations/55': { body: reservation },
+      'DELETE /reservations/55': { status: 204 },
     });
     renderTurn();
 
@@ -88,13 +65,13 @@ describe('TurnPage', () => {
 
     expect(await screen.findByText('Inicio: Cancelaste tu turno.')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/reservations/r-1',
+      '/api/reservations/55',
       expect.objectContaining({ method: 'DELETE' }),
     );
   });
 
   it('"Mantener turno" es la opción por defecto y cierra el diálogo sin cancelar', async () => {
-    const fetchMock = stubApi({ ...signedIn(), 'GET /reservations/r-1': { body: reservation } });
+    const fetchMock = stubApi({ ...signedIn(), 'GET /reservations/55': { body: reservation } });
     renderTurn();
 
     const dialog = await openCancelDialog();
@@ -105,7 +82,7 @@ describe('TurnPage', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith(
-      '/api/reservations/r-1',
+      '/api/reservations/55',
       expect.objectContaining({ method: 'DELETE' }),
     );
   });
@@ -113,7 +90,7 @@ describe('TurnPage', () => {
   it('si la cancelación cuenta como falta, lo dice en el título', async () => {
     stubApi({
       ...signedIn(),
-      'GET /reservations/r-1': { body: { ...reservation, cancelCountsAsNoShow: true } },
+      'GET /reservations/55': { body: { ...reservation, cancelCountsAsNoShow: true } },
     });
     renderTurn();
 
@@ -125,8 +102,8 @@ describe('TurnPage', () => {
   it('muestra el error si no se pudo cancelar', async () => {
     stubApi({
       ...signedIn(),
-      'GET /reservations/r-1': { body: reservation },
-      'DELETE /reservations/r-1': { status: 409, body: { message: 'La salida ya partió' } },
+      'GET /reservations/55': { body: reservation },
+      'DELETE /reservations/55': { status: 409, body: { message: 'La salida ya partió' } },
     });
     renderTurn();
 
@@ -155,7 +132,7 @@ describe('TurnPage', () => {
   it('muestra otros errores como alerta', async () => {
     stubApi({
       ...signedIn(),
-      'GET /reservations/r-1': { status: 500, body: { message: 'Error inesperado' } },
+      'GET /reservations/55': { status: 500, body: { message: 'Error inesperado' } },
     });
     renderTurn();
 

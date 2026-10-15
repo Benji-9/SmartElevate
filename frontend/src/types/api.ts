@@ -60,6 +60,15 @@ export type CheckInRequest = Schemas['CheckInRequest'];
 export type CheckIn = Schemas['CheckInResponse'];
 export type CheckInOutcome = CheckIn['outcome'];
 
+/**
+ * Reserva (#214): la de `POST /reservations`, `/reservations/active`, `/reservations/{id}` y los
+ * ítems del historial. `cancelCountsAsNoShow` lo calcula el servidor; `checkInOutcome` viene si hubo.
+ */
+export type Reservation = Schemas['ReservationResponse'];
+export type ReservationStatus = Reservation['status'];
+/** Página de `GET /reservations/history`, de la salida más reciente a la más vieja. */
+export type ReservationPage = Schemas['ReservationPageResponse'];
+
 /** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
 export type NoShowStatus = Schemas['NoShowStatusResponse'];
 
@@ -69,6 +78,3 @@ export type NoShowStatus = Schemas['NoShowStatusResponse'];
  */
 export type Departure = Schemas['DepartureResponse'];
 export type ReserveRequest = Schemas['ReserveRequest'];
-/** Reserva (`POST /reservations`, `GET /reservations/me`). `id` y `departureId` son numéricos. */
-export type Reservation = Schemas['ReservationResponse'];
-export type ReservationStatus = Reservation['status'];

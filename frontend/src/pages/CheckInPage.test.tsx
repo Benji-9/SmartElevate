@@ -3,29 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createQrReader } from '../features/check-in/qrReader';
-import { signedIn, stubApi } from '../test/stubApi';
+import { signedIn, stubApi, testReservation } from '../test/stubApi';
 import type { CheckIn } from '../types/api';
-import type { Reservation } from '../types/pending';
 import { CheckInPage } from './CheckInPage';
 
 vi.mock('../features/check-in/qrReader', () => ({ createQrReader: vi.fn() }));
 
-const reservation: Reservation = {
-  id: 'r-1',
-  status: 'ACTIVE',
-  departure: {
-    id: 'd-1',
-    coreId: 'c-1',
-    departsAt: '2026-09-29T17:04:00Z',
-    durationMinutes: 2,
-    capacity: 10,
-    occupied: 7,
-  },
-  core: { id: 'c-1', name: 'L1', buildingName: 'Lima', floors: [0, 10], hall: 'Hall Lima, PB' },
-  originFloor: 0,
-  destinationFloor: 5,
-  cancelCountsAsNoShow: false,
-};
+const reservation = testReservation;
 
 const result: CheckIn = {
   reservationId: 1,
@@ -89,14 +73,14 @@ describe('CheckInPage', () => {
       screen.getByText('El código rota: escanealo desde dentro de la cabina'),
     ).toBeInTheDocument();
     const sheet = screen.getByRole('region', { name: 'Tu turno' });
-    expect(await within(sheet).findByText('14:04 – 14:06')).toBeInTheDocument();
-    expect(within(sheet).getByText('L1 · Piso 5')).toBeInTheDocument();
+    expect(await within(sheet).findByText('14:04 hs')).toBeInTheDocument();
+    expect(within(sheet).getByText('Lima 1 · Ascensor 33 · Piso 5')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument();
   });
 
   it('sin turno activo avisa y no pide la cámara', async () => {
     const getUserMedia = stubCamera();
-    stubApi({ ...signedIn(), 'GET /reservations/active': { body: null } });
+    stubApi({ ...signedIn(), 'GET /reservations/active': { status: 204 } });
     renderCheckIn();
 
     expect(await screen.findByText(/No tenés un turno activo/)).toBeInTheDocument();
@@ -227,7 +211,7 @@ describe('CheckInPage', () => {
     stubApi(withTurn);
     renderCheckIn();
 
-    await screen.findByText('14:04 – 14:06');
+    await screen.findByText('14:04 hs');
     expect(
       screen.queryByRole('button', { name: 'Simular escaneo del QR' }),
     ).not.toBeInTheDocument();
@@ -275,7 +259,7 @@ describe('CheckInPage', () => {
     stubCamera();
     stubApi(withTurn);
     const { unmount } = renderCheckIn();
-    await screen.findByText('14:04 – 14:06');
+    await screen.findByText('14:04 hs');
 
     unmount();
 

@@ -22,18 +22,14 @@ import {
   getBuildings,
   getDepartures,
   getElevators,
-  getMyReservations,
+  getActiveReservation,
   reserve,
 } from '../services/api';
 import { Skeleton } from '../components/Skeleton';
 
 const loadCatalog = () => Promise.all([getBuildings(), getElevators()]);
 // Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
-const loadActive = () =>
-  getMyReservations().then(
-    (reservations) => reservations.find((r) => r.status === 'ACTIVE') ?? null,
-    () => null,
-  );
+const loadActive = () => getActiveReservation().catch(() => null);
 
 // Rechazos de POST /reservations por `code`. El texto es el del servidor (trae los valores de la
 // regla, p. ej. hasta cuándo dura la suspensión); el código decide qué más hace la pantalla.
