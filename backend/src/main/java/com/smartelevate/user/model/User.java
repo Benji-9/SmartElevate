@@ -54,6 +54,13 @@ public class User {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    /** Avisos por email (V20). Activos por defecto. */
+    @Column(name = "notify_departure_reminder")
+    private boolean notifyDepartureReminder = true;
+
+    @Column(name = "notify_elevator_out_of_service")
+    private boolean notifyElevatorOutOfService = true;
+
     public User(String fullName, String email, String legajo, String passwordHash,
                 DeclaredUserType declaredUserType, Instant createdAt) {
         this.fullName = fullName;
@@ -69,6 +76,11 @@ public class User {
     /** Solo lo llama el endpoint de ADMIN (#121). */
     public void assignRole(Role role) {
         this.role = role;
+    }
+
+    public void setNotificationPreferences(boolean departureReminder, boolean elevatorOutOfService) {
+        this.notifyDepartureReminder = departureReminder;
+        this.notifyElevatorOutOfService = elevatorOutOfService;
     }
 
     public void verifyEmail() {

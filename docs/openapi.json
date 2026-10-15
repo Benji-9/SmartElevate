@@ -1313,6 +1313,100 @@
         "tags" : [ "turn" ]
       }
     },
+    "/api/me/notification-preferences" : {
+      "get" : {
+        "description" : "Por defecto todos los avisos están activos. Sin token responde 401.",
+        "operationId" : "get",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Preferencias de aviso por email",
+        "tags" : [ "users" ]
+      },
+      "put" : {
+        "description" : "Reemplaza las dos preferencias; faltar alguna o mandar null responde 400.",
+        "operationId" : "update",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NotificationPreferences"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Guarda las preferencias de aviso por email",
+        "tags" : [ "users" ]
+      }
+    },
     "/api/ping" : {
       "get" : {
         "operationId" : "ping",
@@ -2115,6 +2209,23 @@
           }
         },
         "required" : [ "exempt", "recentNoShows", "suspendedUntil", "suspensionHours", "threshold", "windowDays" ]
+      },
+      "NotificationPreferences" : {
+        "type" : "object",
+        "description" : "Avisos por email que el usuario quiere recibir",
+        "properties" : {
+          "departureReminder" : {
+            "type" : "boolean",
+            "description" : "Recordatorio un rato antes de la salida de su turno",
+            "example" : true
+          },
+          "elevatorOutOfService" : {
+            "type" : "boolean",
+            "description" : "Aviso si su reserva se cancela porque el ascensor sale de servicio",
+            "example" : true
+          }
+        },
+        "required" : [ "departureReminder", "elevatorOutOfService" ]
       },
       "PendingTeacherResponse" : {
         "type" : "object",

@@ -65,6 +65,11 @@ app:
   no-show-job:
     # Cada cuánto se marcan los no-shows (#231). Técnico: el umbral de negocio es no_show_after en app_config.
     interval: ${APP_NO_SHOW_JOB_INTERVAL:PT15S}
+  reminder-job:
+    # Recordatorio de salida por email (#221). Técnico: cuánto antes es departure_reminder_before en app_config.
+    # false lo desactiva (p. ej. sin SMTP configurado). Una pasada cada 30 s alcanza para una ventana de minutos.
+    enabled: ${APP_REMINDER_JOB_ENABLED:true}
+    interval: ${APP_REMINDER_JOB_INTERVAL:PT30S}
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app". Obligatoria en
     # prod; el default localhost vive solo en application-dev.yml.
