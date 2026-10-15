@@ -1,8 +1,8 @@
 import { useId } from 'react';
 import { Chip } from '../../components/Chip';
 import { congestionLabel, congestionTone } from '../congestion/level';
-import type { CoreKpis } from '../../types/pending';
-import { formatMinutes, formatNumber, formatPercent } from './format';
+import type { CoreKpis } from '../../types/api';
+import { formatMinutes, formatNumber, formatPercent, NO_DATA } from './format';
 
 /** Tabla "Estado por núcleo". */
 export function CoreTable({ cores }: { cores: CoreKpis[] }) {
@@ -32,12 +32,20 @@ export function CoreTable({ cores }: { cores: CoreKpis[] }) {
                 <tr key={core.coreId}>
                   <th scope="row">{core.name}</th>
                   <td>{formatNumber(core.reservations)}</td>
-                  <td>{formatPercent(core.occupancyPercent)}</td>
-                  <td>{formatMinutes(core.avgWaitSeconds)}</td>
                   <td>
-                    <Chip tone={congestionTone[core.congestion]}>
-                      {congestionLabel[core.congestion]}
-                    </Chip>
+                    {core.occupancyPercent == null ? NO_DATA : formatPercent(core.occupancyPercent)}
+                  </td>
+                  <td>
+                    {core.avgWaitSeconds == null ? NO_DATA : formatMinutes(core.avgWaitSeconds)}
+                  </td>
+                  <td>
+                    {core.congestion == null ? (
+                      <Chip tone="neutral">{NO_DATA}</Chip>
+                    ) : (
+                      <Chip tone={congestionTone[core.congestion]}>
+                        {congestionLabel[core.congestion]}
+                      </Chip>
+                    )}
                   </td>
                 </tr>
               ))}

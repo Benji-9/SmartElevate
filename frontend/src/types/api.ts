@@ -1,6 +1,6 @@
 // Tipos de la API derivados del contrato OpenAPI (docs/openapi.json).
 // No definir DTOs a mano: regenerar con `npm run gen:api` y exponerlos acá con un alias.
-import type { components } from './openapi';
+import type { components, operations } from './openapi';
 
 type Schemas = components['schemas'];
 
@@ -62,3 +62,25 @@ export type CheckInOutcome = CheckIn['outcome'];
 
 /** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
 export type NoShowStatus = Schemas['NoShowStatusResponse'];
+
+/** Congestión actual por núcleo (#220). El servidor dice cada cuánto volver a consultarla. */
+export type CongestionSnapshot = Schemas['CongestionResponse'];
+export type CoreCongestion = Schemas['CoreCongestion'];
+/** Nivel de congestión de un núcleo; los umbrales los fija el servidor (app_config). */
+export type CongestionLevel = CoreCongestion['level'];
+
+/**
+ * KPIs de congestión del panel admin (docs/reglas/kpis.md). Todo lo calcula el servidor; los
+ * `null` son KPIs sin datos (la espera real necesita la encuesta, fuera del MVP).
+ */
+export type AdminKpis = Schemas['AdminKpisResponse'];
+/** Totales del período anterior de igual largo, para comparar (#180). */
+export type PreviousKpis = Schemas['PreviousKpis'];
+/** Estado de un núcleo en el período (tabla "Estado por núcleo"). */
+export type CoreKpis = Schemas['CoreKpis'];
+/** Turno de cursada (kpis.md#filtros): horas `"HH:mm"` en Buenos Aires, `endsAt` exclusivo. */
+export type AdminShift = Schemas['AdminShiftResponse'];
+/** Filtros de `GET /admin/kpis`: sin `buildingId`, todas las sedes; sin `shiftId`, todo el día. */
+export type AdminKpisQuery = operations['kpis']['parameters']['query'];
+/** Período del panel admin; el servidor lo resuelve en hora de Buenos Aires. */
+export type AdminPeriod = AdminKpisQuery['period'];

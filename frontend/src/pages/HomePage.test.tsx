@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
 import { signedIn, stubApi } from '../test/stubApi';
-import type { CongestionSnapshot, Reservation } from '../types/pending';
+import type { CongestionSnapshot } from '../types/api';
+import type { Reservation } from '../types/pending';
 
 const reservation: Reservation = {
   id: 'r-1',
@@ -33,8 +34,8 @@ const congestion = (): CongestionSnapshot => ({
   updatedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
   refreshAfterSeconds: 30,
   cores: [
-    { coreId: 'L1', name: 'Lima 1', level: 'HIGH', estimatedWaitMinutes: 9 },
-    { coreId: 'IND2', name: 'Independencia 2', level: 'LOW', estimatedWaitMinutes: 3 },
+    { coreId: 'L1', name: 'Lima 1', level: 'HIGH', occupancyPercent: 90 },
+    { coreId: 'IND2', name: 'Independencia 2', level: 'LOW', occupancyPercent: 12.5 },
   ],
 });
 
@@ -137,8 +138,10 @@ describe('HomePage', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent('Lima 1');
     expect(rows[0]).toHaveTextContent('Alta');
+    expect(rows[0]).toHaveTextContent('90 % de los lugares reservados');
     expect(rows[1]).toHaveTextContent('Independencia 2');
     expect(rows[1]).toHaveTextContent('Baja');
+    expect(rows[1]).toHaveTextContent('12,5 % de los lugares reservados');
     expect(within(section).getByText('Actualizado hace 2 min')).toBeInTheDocument();
   });
 
