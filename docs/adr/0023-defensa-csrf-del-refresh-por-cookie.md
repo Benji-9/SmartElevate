@@ -17,11 +17,15 @@ El [ADR 0019](0019-refresh-token-en-cookie-httponly.md) mueve el refresh token a
 
 ## Decisión
 
-Opción **3**, además de `SameSite=Lax`. `/auth/refresh` y `/auth/logout` responden **403** si falta `X-Requested-With: SmartElevate` o si hay un `Origin` fuera de `CORS_ALLOWED_ORIGINS`; la comprobación va antes de leer la cookie, así un pedido rechazado no gasta el token. Un `Origin` ausente se acepta porque el header custom ya cubre ese caso (un cliente que no es navegador no es un vector CSRF).
+Opción **3**, además de `SameSite=Lax`. `/auth/refresh` y `/auth/logout` responden **403** si falta `X-Requested-With: SmartElevate` o si hay un `Origin` fuera de `CORS_ALLOWED_ORIGINS`; la comprobación va antes de leer la cookie, así un pedido rechazado no gasta el token. La comparación con `CORS_ALLOWED_ORIGINS` es **exacta**: sin barra final, sin path y en minúsculas, tal como el navegador manda el `Origin` (`https://smart-elevate.vercel.app`, no `https://Smart-Elevate.vercel.app/`). Un `Origin` ausente se acepta porque el header custom ya cubre ese caso (un cliente que no es navegador no es un vector CSRF).
 
 CORS queda con orígenes explícitos y **sin** `allowCredentials`: con el proxy del mismo origen (Vercel en prod, proxy de Vite en dev) el navegador nunca hace cross-origin con la cookie. Si algún día se llamara al backend directo desde otro origen habría que habilitarlo, y este ADR se revisa.
 
 La cookie se llama `refresh_token`, con `Path=/api/auth` (no viaja al resto de la API) y `Max-Age` igual a `JWT_REFRESH_TTL`. Nombre, `Secure`, `SameSite` y `Path` son propiedades técnicas (`app.security.refresh-cookie.*`, ADR 0017) con override `APP_REFRESH_COOKIE_*`; `Secure` es `true` por defecto y el perfil `dev` lo apaga para `http://localhost`.
+
+**Varias pestañas.** La cookie se comparte entre pestañas, pero la promesa que evita canjes simultáneos (`refreshing`) es por pestaña. Al abrir N pestañas a la vez (o vencer el access token en varias), todas mandarían el mismo refresh: la primera rota, y las demás parecerían un reuso y revocarían la familia, cerrando la sesión sin culpa del usuario. Solución en el front: el canje corre dentro de `navigator.locks.request('smartelevate-refresh', ...)`, así la segunda pestaña manda la cookie ya rotada. Sin `navigator.locks` (jsdom, navegadores viejos) se canjea sin lock. La detección de reuso del backend **no se relaja**: un token robado sigue revocando la sesión.
+
+**401 de refresh.** Cuando el refresh es inválido, vencido, revocado o reusado (o falta la cookie), el 401 trae además un `Set-Cookie` que expira la cookie (mismos nombre, `Path` y `SameSite`), para que el navegador no siga mandando un token muerto.
 
 ## Consecuencias
 
