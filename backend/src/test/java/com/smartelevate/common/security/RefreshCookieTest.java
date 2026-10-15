@@ -12,6 +12,22 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 class RefreshCookieTest {
 
+    @org.springframework.context.annotation.Configuration
+    @org.springframework.boot.context.properties.EnableConfigurationProperties(RefreshCookieProperties.class)
+    static class PropsConfig {
+    }
+
+    @Test
+    void withoutTheDevProfileTheRealDefaultIsSecureLaxAndScopedToAuth() {
+        // Lee el application.yml de verdad, sin el application-dev.yml que apaga Secure.
+        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withInitializer(new org.springframework.boot.test.context.ConfigDataApplicationContextInitializer())
+                .withPropertyValues("spring.profiles.active=prod")
+                .withUserConfiguration(PropsConfig.class)
+                .run(ctx -> assertThat(ctx.getBean(RefreshCookieProperties.class))
+                        .isEqualTo(new RefreshCookieProperties("refresh_token", true, "Lax", "/api/auth")));
+    }
+
     private final RefreshCookie cookie = new RefreshCookie(
             new RefreshCookieProperties(null, true, null, null),
             new JwtProperties("x", Duration.ofMinutes(15), Duration.ofDays(7)),

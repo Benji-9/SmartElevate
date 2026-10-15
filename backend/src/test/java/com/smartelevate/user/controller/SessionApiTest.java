@@ -244,6 +244,7 @@ class SessionApiTest {
 
         ResultActions ok = refresh(first).andExpect(status().isOk());
         Cookie second = refreshCookie(ok);
+        assertThat(ok.andReturn().getResponse().getHeader("Set-Cookie")).contains("SameSite=Lax");
         assertThat(second.getValue()).isNotEqualTo(first.getValue());
         assertThat(json.readTree(ok.andReturn().getResponse().getContentAsString()).has("refreshToken")).isFalse();
 
@@ -257,6 +258,22 @@ class SessionApiTest {
         refresh(new Cookie("refresh_token", "no-existe")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/auth/refresh").header("X-Requested-With", "SmartElevate"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anInvalidRefreshAlsoExpiresTheCookie() throws Exception {
+        registerAna(true);
+        Cookie first = loginCookie();
+        refresh(first).andExpect(status().isOk());
+
+        // Reuso: 401 y la cookie se borra del navegador, con los mismos atributos con que se instaló.
+        String setCookie = refresh(first).andExpect(status().isUnauthorized()).andReturn().getResponse()
+                .getHeader("Set-Cookie");
+        assertThat(setCookie).startsWith("refresh_token=;").contains("Max-Age=0", "HttpOnly", "SameSite=Lax",
+                "Path=/api/auth");
+        String missing = mockMvc.perform(post("/api/auth/refresh").header("X-Requested-With", "SmartElevate"))
+                .andExpect(status().isUnauthorized()).andReturn().getResponse().getHeader("Set-Cookie");
+        assertThat(missing).contains("Max-Age=0");
     }
 
     @Test

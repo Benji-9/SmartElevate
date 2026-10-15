@@ -421,7 +421,8 @@ class AuthControllerTest {
         org.mockito.BDDMockito.given(authService.refresh("viejo"))
                 .willThrow(new com.smartelevate.user.service.InvalidRefreshTokenException());
 
-        refreshWith("viejo").andExpect(status().isUnauthorized());
+        refreshWith("viejo").andExpect(status().isUnauthorized())
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
         refreshWith(null).andExpect(status().isUnauthorized());
         verify(authService, never()).refresh("");
     }
