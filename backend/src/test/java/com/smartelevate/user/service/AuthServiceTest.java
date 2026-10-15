@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -22,6 +24,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javax.crypto.SecretKey;
@@ -29,7 +32,10 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -45,8 +51,13 @@ class AuthServiceTest {
 
     private final UserRepository users = mock(UserRepository.class);
     private final RefreshTokenRepository refreshTokens = mock(RefreshTokenRepository.class);
-    // Costo 4 (mínimo de BCrypt): algoritmo real sin pagar ~140 ms por hash.
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(4);
+    private static final String IP = "203.0.113.7";
+
+    // Mismo esquema que PasswordEncoderConfig, con costos mínimos: algoritmos reales sin pagar el tiempo de prod.
+    private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder(4);
+    private final PasswordEncoder encoder = new DelegatingPasswordEncoder("argon2",
+            Map.of("argon2", new Argon2PasswordEncoder(16, 32, 1, 64, 1), "bcrypt", bcrypt));
+    private final LoginThrottle throttle = mock(LoginThrottle.class);
     private final SecretKey key = new SecretKeySpec(
             "una-clave-de-prueba-de-32-bytes-o-mas!".getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     private final NimbusJwtDecoder decoder =
@@ -59,7 +70,7 @@ class AuthServiceTest {
         // El reloj de la app es fijo (NOW) y el real no: acá solo se inspecciona el contenido, sin validar el vencimiento.
         decoder.setJwtValidator(token -> OAuth2TokenValidatorResult.success());
         service = new AuthService(users, refreshTokens, encoder, new NimbusJwtEncoder(new ImmutableSecret<>(key)),
-                new JwtProperties("x", ACCESS_TTL, REFRESH_TTL), Clock.fixed(NOW, ZoneOffset.UTC));
+                new JwtProperties("x", ACCESS_TTL, REFRESH_TTL), Clock.fixed(NOW, ZoneOffset.UTC), throttle);
         user = new User("Ana Pérez", "ana@uade.edu.ar", "1111111", encoder.encode("una-clave-larga"),
                 DeclaredUserType.STUDENT, NOW);
         ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
@@ -77,7 +88,7 @@ class AuthServiceTest {
 
     @Test
     void loginReturnsAccessAndRefreshAndStoresOnlyTheRefreshHash() {
-        TokenResponse response = service.login(" Ana@UADE.edu.ar ", "una-clave-larga");
+        TokenResponse response = service.login(" Ana@UADE.edu.ar ", "una-clave-larga", IP);
 
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.expiresIn()).isEqualTo(900);
@@ -89,7 +100,7 @@ class AuthServiceTest {
 
     @Test
     void accessTokenCarriesOnlySubjectAndTimestamps_noRoleNorPriority() {
-        TokenResponse response = service.login("ana@uade.edu.ar", "una-clave-larga");
+        TokenResponse response = service.login("ana@uade.edu.ar", "una-clave-larga", IP);
 
         Jwt jwt = decoder.decode(response.accessToken());
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
@@ -101,9 +112,9 @@ class AuthServiceTest {
     void wrongPasswordAndUnknownEmailGiveTheSameError() {
         given(users.findByEmail("nadie@uade.edu.ar")).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "otra-clave-larga"))
+        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "otra-clave-larga", IP))
                 .isInstanceOf(InvalidCredentialsException.class).hasMessage("Email o contraseña incorrectos");
-        assertThatThrownBy(() -> service.login("nadie@uade.edu.ar", "una-clave-larga"))
+        assertThatThrownBy(() -> service.login("nadie@uade.edu.ar", "una-clave-larga", IP))
                 .isInstanceOf(InvalidCredentialsException.class).hasMessage("Email o contraseña incorrectos");
         verify(refreshTokens, never()).save(any());
     }
@@ -114,11 +125,98 @@ class AuthServiceTest {
                 DeclaredUserType.STUDENT, NOW);
         given(users.findByEmail("ana@uade.edu.ar")).willReturn(Optional.of(unverified));
 
-        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "una-clave-larga"))
+        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "una-clave-larga", IP))
                 .isInstanceOf(EmailNotVerifiedException.class);
         // Con clave incorrecta no se revela que la cuenta existe.
-        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "otra-clave-larga"))
+        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "otra-clave-larga", IP))
                 .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void failuresAreRecordedForTheNormalizedAccountAndTheIp() {
+        given(users.findByEmail("nadie@uade.edu.ar")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "otra-clave-larga", IP))
+                .isInstanceOf(InvalidCredentialsException.class);
+        assertThatThrownBy(() -> service.login(" Nadie@UADE.edu.ar ", "una-clave-larga", IP))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        verify(throttle).recordFailure("ana@uade.edu.ar", IP);
+        verify(throttle).recordFailure("nadie@uade.edu.ar", IP);
+        verify(throttle, never()).clearAccount(any());
+    }
+
+    @Test
+    void aSuccessfulLoginIsCheckedFirstAndThenClearsTheAccountFailures() {
+        service.login("ana@uade.edu.ar", "una-clave-larga", IP);
+
+        var order = inOrder(throttle, users);
+        order.verify(throttle).check("ana@uade.edu.ar", IP);
+        order.verify(users).findByEmail("ana@uade.edu.ar");
+        order.verify(throttle).clearAccount("ana@uade.edu.ar");
+        verify(throttle, never()).recordFailure(any(), any());
+    }
+
+    @Test
+    void whenThrottledThePasswordIsNotEvenChecked() {
+        willThrow(new TooManyLoginAttemptsException(Duration.ofSeconds(90))).given(throttle).check("ana@uade.edu.ar", IP);
+
+        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "una-clave-larga", IP))
+                .isInstanceOf(TooManyLoginAttemptsException.class);
+        verify(users, never()).findByEmail(any());
+        verify(throttle, never()).recordFailure(any(), any());
+        verify(refreshTokens, never()).save(any());
+    }
+
+    @Test
+    void aLegacyBcryptHashIsUpgradedToArgon2idOnASuccessfulLogin() {
+        // Así quedan los hashes de antes de #211 tras la migración V13: BCrypt con el prefijo {bcrypt}.
+        user.changePasswordHash("{bcrypt}" + bcrypt.encode("una-clave-larga"));
+
+        service.login("ana@uade.edu.ar", "una-clave-larga", IP);
+
+        verify(users).save(user);
+        assertThat(user.getPasswordHash()).startsWith("{argon2}$argon2id$");
+        assertThat(encoder.matches("una-clave-larga", user.getPasswordHash())).isTrue();
+    }
+
+    @Test
+    void anArgon2idHashIsNotRehashed() {
+        String hash = user.getPasswordHash();
+
+        service.login("ana@uade.edu.ar", "una-clave-larga", IP);
+
+        assertThat(hash).startsWith("{argon2}");
+        assertThat(user.getPasswordHash()).isEqualTo(hash);
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void aWrongPasswordDoesNotUpgradeTheLegacyHash() {
+        String legacy = "{bcrypt}" + bcrypt.encode("una-clave-larga");
+        user.changePasswordHash(legacy);
+
+        assertThatThrownBy(() -> service.login("ana@uade.edu.ar", "otra-clave-larga", IP))
+                .isInstanceOf(InvalidCredentialsException.class);
+        assertThat(user.getPasswordHash()).isEqualTo(legacy);
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void theUnknownEmailPathComparesAgainstAnArgon2idHash() {
+        given(users.findByEmail("nadie@uade.edu.ar")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.login("nadie@uade.edu.ar", "una-clave-larga", IP))
+                .isInstanceOf(InvalidCredentialsException.class);
+        assertThat((String) ReflectionTestUtils.getField(service, "dummyHash")).startsWith("{argon2}$argon2id$");
+    }
+
+    @Test
+    void theLoginNormalizesThePasswordWithNfkcLikeTheRegistration() {
+        // Registrada con la "ñ" compuesta (U+00F1), escrita al entrar con n + tilde combinable (U+0303).
+        user.changePasswordHash(encoder.encode("contraseña-larga"));
+
+        assertThat(service.login("ana@uade.edu.ar", "contraseña-larga", IP).accessToken()).isNotBlank();
     }
 
     // ---- refresh
@@ -126,7 +224,7 @@ class AuthServiceTest {
     private String lastRaw;
 
     private RefreshToken issueAndGetStored() {
-        TokenResponse first = service.login("ana@uade.edu.ar", "una-clave-larga");
+        TokenResponse first = service.login("ana@uade.edu.ar", "una-clave-larga", IP);
         RefreshToken stored = savedToken();
         given(refreshTokens.findByTokenHash(stored.getTokenHash())).willReturn(Optional.of(stored));
         given(users.findById(user.getId())).willReturn(Optional.of(user));

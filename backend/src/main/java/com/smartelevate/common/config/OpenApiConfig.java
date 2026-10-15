@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     public static final String BEARER = "bearerAuth";
+    public static final String KIOSK = "kioskAuth";
 
     @Bean
     public OpenAPI smartElevateOpenApi() {
@@ -25,9 +26,14 @@ public class OpenApiConfig {
                 // exportada en docs/openapi.json no depende del entorno donde se generó.
                 // Esquema de seguridad: los endpoints protegidos lo declaran con
                 // @SecurityRequirement(name = OpenApiConfig.BEARER) (ver SecurityConfig).
-                .components(new Components().addSecuritySchemes(BEARER, new SecurityScheme()
-                        .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
-                        .description("Access token del login: Authorization: Bearer <accessToken>")))
+                .components(new Components()
+                        .addSecuritySchemes(BEARER, new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
+                                .description("Access token del login: Authorization: Bearer <accessToken>"))
+                        .addSecuritySchemes(KIOSK, new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP).scheme("bearer")
+                                .description("Credencial del kiosco (ADR 0020): Authorization: Bearer <secret>, "
+                                        + "el secreto que devolvió el alta del kiosco")))
                 .servers(List.of(new Server().url("/").description("Mismo origen")));
     }
 }

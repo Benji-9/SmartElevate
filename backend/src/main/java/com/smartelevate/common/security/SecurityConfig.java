@@ -36,6 +36,9 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  * </ul>
  * La prioridad y el rol no se leen del token: el rol se carga de la base por request y la prioridad se
  * consulta en el servidor al reservar (ADR 0009).
+ *
+ * <p>{@code /api/kiosks/**} no pasa por acá: tiene su propia cadena con la credencial del kiosco
+ * ({@link KioskSecurityConfig}, ADR 0020).
  */
 @Configuration
 @EnableMethodSecurity

@@ -1,6 +1,9 @@
 package com.smartelevate.user.controller;
 
 import com.smartelevate.common.error.ApiError;
+import com.smartelevate.user.dto.ForgotPasswordRequest;
+import com.smartelevate.user.dto.ResetPasswordRequest;
+import com.smartelevate.user.service.PasswordResetService;
 import com.smartelevate.user.dto.LoginRequest;
 import com.smartelevate.user.dto.RefreshRequest;
 import com.smartelevate.user.dto.RegisterRequest;
@@ -15,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,6 +37,7 @@ public class AuthController {
     private final UserService userService;
     private final AuthService authService;
     private final EmailVerificationService emailVerification;
+    private final PasswordResetService passwordReset;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -48,19 +53,26 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Inicia sesión y devuelve access y refresh token",
             description = "Las credenciales incorrectas dan 401 sin distinguir si el email existe. "
-                    + "Con la clave correcta pero el email sin verificar responde 403.")
+                    + "Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos "
+                    + "para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).")
+    @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
+            content = @Content(schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "Email o contraseña incorrectos",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     @ApiResponse(responseCode = "403", description = "El email institucional todavía no se verificó",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request.email(), request.password());
+    @ApiResponse(responseCode = "429", description = "Demasiados intentos fallidos; Retry-After dice cuántos segundos "
+            + "esperar", content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return authService.login(request.email(), request.password(), http.getRemoteAddr());
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "Canjea un refresh token por un par nuevo (rotación)",
             description = "El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, "
                     + "se revoca toda la sesión.")
+    @ApiResponse(responseCode = "200", description = "Par de tokens nuevo",
+            content = @Content(schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "Refresh token inválido, vencido, revocado o ya usado",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
@@ -96,5 +108,25 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         emailVerification.resend(request.email());
+    }
+
+    @PostMapping("/password/forgot")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Pide el link para restablecer la contraseña",
+            description = "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar "
+                    + "qué emails están registrados. Un pedido nuevo invalida el link anterior.")
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordReset.request(request.email());
+    }
+
+    @PostMapping("/password/reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Elige una contraseña nueva con el token del link",
+            description = "El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh "
+                    + "tokens del usuario (se cierran todas sus sesiones).")
+    @ApiResponse(responseCode = "400", description = "Token inválido, usado o vencido, o contraseña fuera de política",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordReset.reset(request.token(), request.newPassword());
     }
 }

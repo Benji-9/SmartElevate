@@ -1,10 +1,11 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createQrReader } from '../features/check-in/qrReader';
 import { signedIn, stubApi } from '../test/stubApi';
-import type { CheckInResult, Reservation } from '../types/pending';
+import type { CheckIn } from '../types/api';
+import type { Reservation } from '../types/pending';
 import { CheckInPage } from './CheckInPage';
 
 vi.mock('../features/check-in/qrReader', () => ({ createQrReader: vi.fn() }));
@@ -26,15 +27,15 @@ const reservation: Reservation = {
   cancelCountsAsNoShow: false,
 };
 
-const result: CheckInResult = {
-  reservationId: 'r-1',
+const result: CheckIn = {
+  reservationId: 1,
   outcome: 'ON_TIME',
+  reservationStatus: 'USED',
+  elevator: '33',
+  reservedElevator: '33',
+  departureAt: '2026-09-29T17:04:00Z',
   checkedInAt: '2026-09-29T17:04:30Z',
-  waitDeltaSeconds: 30,
-  elevatorName: 'Ascensor 1',
-  coreName: 'L1',
-  departsAt: '2026-09-29T17:04:00Z',
-  durationMinutes: 2,
+  source: 'REAL',
 };
 
 const track = { stop: vi.fn() };
@@ -65,7 +66,6 @@ function renderCheckIn(path = '/check-in') {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/check-in" element={<CheckInPage />} />
-        <Route path="/check-in/codigo" element={<CheckInPage manual />} />
         <Route path="/check-in/ok" element={<ResultProbe />} />
       </Routes>
     </MemoryRouter>,
@@ -84,7 +84,7 @@ describe('CheckInPage', () => {
     expect(
       await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
     ).toBeInTheDocument();
-    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
     expect(
       screen.getByText('El código rota: escanealo desde dentro de la cabina'),
     ).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('CheckInPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
     expect(await screen.findByText(/Apuntá la cámara/)).toBeInTheDocument();
-    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
   });
 
   it('al leer un QR registra el check-in y va al resultado', async () => {
@@ -129,17 +129,21 @@ describe('CheckInPage', () => {
     expect(await screen.findByText(`Resultado: ${JSON.stringify(result)}`)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/check-ins',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ code: 'QR-TOKEN' }) }),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'QR-TOKEN' }) }),
     );
   });
 
   it.each([
-    [400, 'El código venció. Escanealo de nuevo desde la cabina.'],
-    [409, 'No tenés un turno activo para hacer check-in.'],
-    [409, 'Ya registraste el check-in de este turno.'],
-  ])('si el check-in da %i muestra "%s" sin salir', async (status, message) => {
+    [400, 'INVALID_QR_TOKEN', 'El QR no es válido o ya venció. Escaneá el que está en pantalla.'],
+    [409, 'OUTSIDE_CHECK_IN_WINDOW', 'Tu turno no está en horario de check-in.'],
+    [409, 'NO_ACTIVE_RESERVATION', 'No tenés un turno para hacer check-in.'],
+    [409, 'ALREADY_CHECKED_IN', 'Ya registraste el check-in de este turno.'],
+  ])('si el check-in da %i %s muestra el mensaje sin salir', async (status, code, message) => {
     stubCamera({ qr: 'QR-TOKEN' });
-    const fetchMock = stubApi({ ...withTurn, 'POST /check-ins': { status, body: { message } } });
+    const fetchMock = stubApi({
+      ...withTurn,
+      'POST /check-ins': { status, body: { message, code } },
+    });
     renderCheckIn();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
@@ -149,7 +153,53 @@ describe('CheckInPage', () => {
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
   });
 
-  it('si se niega el permiso de cámara lo explica y ofrece el código manual', async () => {
+  it.each([
+    ['NO_ACTIVE_RESERVATION', 'link', 'Reservá un turno', '/reservar'],
+    ['ALREADY_CHECKED_IN', 'link', 'Volver al inicio', '/'],
+  ])('con %s ofrece "%s" y deja de escanear', async (code, _role, name, href) => {
+    const read = vi.fn(async () => `QR-${read.mock.calls.length}`);
+    stubCamera();
+    vi.mocked(createQrReader).mockResolvedValue(read);
+    const fetchMock = stubApi({
+      ...withTurn,
+      'POST /check-ins': { status: 409, body: { message: 'Rechazado', code } },
+    });
+    renderCheckIn();
+
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByRole('link', { name })).toHaveAttribute('href', href);
+    // Llegan QR nuevos (rotan), pero con este rechazo no se reenvía ninguno.
+    await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(2));
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
+  });
+
+  it('fuera de la ventana explica cuándo escanear y prueba con el QR siguiente', async () => {
+    const read = vi.fn(async () => `QR-${read.mock.calls.length}`);
+    stubCamera();
+    vi.mocked(createQrReader).mockResolvedValue(read);
+    const fetchMock = stubApi({
+      ...withTurn,
+      'POST /check-ins': {
+        status: 409,
+        body: {
+          message: 'Tu turno no está en horario de check-in.',
+          code: 'OUTSIDE_CHECK_IN_WINDOW',
+        },
+      },
+    });
+    renderCheckIn();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Escaneá el QR cerca de la hora de salida de tu turno.',
+    );
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins').length,
+      ).toBeGreaterThan(1),
+    );
+  });
+
+  it('si se niega el permiso de cámara lo explica, sin ingreso manual', async () => {
     stubCamera({ error: new DOMException('Permiso denegado', 'NotAllowedError') });
     stubApi(withTurn);
     renderCheckIn();
@@ -157,59 +207,19 @@ describe('CheckInPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'No tenemos permiso para usar la cámara' }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Habilitá la cámara desde la configuración/)).toBeInTheDocument();
     expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('link', { name: 'Ingresar código manualmente' }));
-
-    expect(screen.getByRole('dialog', { name: 'Ingresá el código' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /manualmente/ })).not.toBeInTheDocument();
   });
 
-  it('sin cámara en el dispositivo también ofrece el código manual', async () => {
+  it('sin cámara en el dispositivo lo explica', async () => {
     stubApi(withTurn);
     renderCheckIn();
 
     expect(
       await screen.findByRole('heading', { name: 'No pudimos usar la cámara' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ingresar código manualmente' })).toBeInTheDocument();
-  });
-
-  it('con el código manual registra el check-in y va al resultado', async () => {
-    stubCamera();
-    const fetchMock = stubApi({ ...withTurn, 'POST /check-ins': { body: result } });
-    renderCheckIn('/check-in/codigo');
-
-    const dialog = screen.getByRole('dialog', { name: 'Ingresá el código' });
-    const input = within(dialog).getByLabelText('Código del ascensor');
-    await userEvent.type(input, ' AB12 ');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar check-in' }));
-
-    expect(await screen.findByText(`Resultado: ${JSON.stringify(result)}`)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/check-ins',
-      expect.objectContaining({ body: JSON.stringify({ code: 'AB12' }) }),
-    );
-  });
-
-  it('muestra el error del código manual en el sheet y "Volver a escanear" lo cierra', async () => {
-    stubCamera();
-    stubApi({
-      ...withTurn,
-      'POST /check-ins': { status: 400, body: { message: 'Código inválido o vencido.' } },
-    });
-    renderCheckIn('/check-in/codigo');
-
-    const dialog = screen.getByRole('dialog', { name: 'Ingresá el código' });
-    await userEvent.type(within(dialog).getByLabelText('Código del ascensor'), 'VENCIDO');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar check-in' }));
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
-      'Código inválido o vencido.',
-    );
-
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Volver a escanear' }));
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
   it('sin ?demo=1 no ofrece simular el escaneo', async () => {
@@ -233,7 +243,7 @@ describe('CheckInPage', () => {
     expect(await screen.findByText(`Resultado: ${JSON.stringify(result)}`)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/check-ins',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ code: 'DEMO' }) }),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'DEMO' }) }),
     );
   });
 
@@ -269,6 +279,6 @@ describe('CheckInPage', () => {
 
     unmount();
 
-    expect(track.stop).toHaveBeenCalled();
+    await waitFor(() => expect(track.stop).toHaveBeenCalled());
   });
 });

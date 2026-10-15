@@ -1,12 +1,12 @@
 # Check-in con QR
 
-> Estado: **aprobado**. Decisión de diseño en [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md).
+> Estado: **aprobado**. Decisión de diseño en los ADR [0008](../adr/0008-check-in-con-qr-rotativo.md) y [0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) (firma y kiosco). Se implementa en [#219](https://github.com/Benji-9/SmartElevate/issues/219).
 
 El check-in confirma que el usuario usó su reserva. Alimenta el no-show y los KPIs.
 
 ## Cómo funciona
 
-1. Cada ascensor muestra un **QR con un token firmado** que **rota cada 60 s** y está **atado a ese ascensor**. Dónde se muestra (pantalla o tablet en cada ascensor) está pendiente: [#23](https://github.com/Benji-9/SmartElevate/issues/23).
+1. Cada ascensor muestra un **QR con un token firmado** que **rota cada ~30 s** y está **atado a ese ascensor**. Se muestra en un **kiosco web** (`/qr/:ascensor`) abierto en una tablet o pantalla del hall, sin hardware propio ([#23](https://github.com/Benji-9/SmartElevate/issues/23)). La rotación es un parámetro técnico, `app.kiosk.qr-ttl` en `application.yml` (30 s, override por `APP_KIOSK_QR_TTL`); dejó de estar en `app_config` (`V15`, [#229](https://github.com/Benji-9/SmartElevate/issues/229)).
 2. El usuario lo escanea desde la app. El **JWT de su sesión identifica quién escanea**; el QR solo identifica el ascensor y el momento.
 3. El backend valida la firma, que el token no esté vencido y que corresponda a una reserva activa del usuario.
 
@@ -29,5 +29,21 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 ## Seguridad
 
 - La rotación corta evita que se comparta una foto del QR.
-- La firma (HMAC o similar con secreto del servidor) evita fabricar tokens.
+- La firma **HMAC-SHA256** de `elevatorId + kioskId + exp`, con una clave del servidor en variable de entorno (`APP_KIOSK_QR_SECRET`), evita fabricar tokens. El `kioskId` firmado dice si el check-in vino de un kiosco real o del simulador de admin (`source` `REAL`/`SIMULATED`), sin confiar en el cliente; revocar el kiosco invalida sus QR en el acto ([ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)).
 - La unicidad por reserva evita que un mismo escaneo cuente dos veces.
+- Un QR inválido, vencido o de un kiosco revocado se rechaza igual, sin decir por qué (`INVALID_QR_TOKEN`).
+
+## Implementación
+
+`POST /api/check-ins` ([#230](https://github.com/Benji-9/SmartElevate/issues/230)), con la sesión del usuario y el token leído. La ventana y el umbral salen de `app_config` (`check_in_opens_before`, `check_in_closes_after`, `no_show_after`).
+
+- *Cumplida* (`ON_TIME`) y *otro ascensor* (`OTHER_ELEVATOR`): la reserva pasa a usada (`USED`). Hasta +60 s inclusive cuenta como a tiempo.
+- *Fuera de hora* (`LATE`): queda el check-in y la reserva pasa a no-show (`NO_SHOW`), la haya marcado ya el job de no-shows ([#231](https://github.com/Benji-9/SmartElevate/issues/231)) o no. Si además fue en otro ascensor, gana `LATE`; el ascensor escaneado queda guardado igual.
+- Rechazos con `code`: `INVALID_QR_TOKEN` (400), `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).
+- `USED` y `NO_SHOW` conservan el lugar de la reserva; solo cancelar lo libera.
+- `GET /api/kiosks/me/qr-token` devuelve también el `elevatorId` de la credencial: si no coincide con el ascensor de la URL del kiosco, el kiosco avisa y no muestra el QR ([#238](https://github.com/Benji-9/SmartElevate/issues/238)).
+
+## Limitaciones del MVP
+
+- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)).
+- **Kiosco caído:** si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in mientras dure la caída.

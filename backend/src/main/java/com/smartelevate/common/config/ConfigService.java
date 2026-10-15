@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
@@ -101,8 +102,10 @@ public class ConfigService {
         return get("priority_aging", Duration::parse);
     }
 
-    public Duration qrRotation() {
-        return get("qr_rotation", Duration::parse);
+    /** A definir: vacío = la prioridad de docente aprobada no vence. */
+    public Optional<Duration> priorityTeacherValidity() {
+        return isDefined("priority_teacher_validity")
+                ? Optional.of(get("priority_teacher_validity", Duration::parse)) : Optional.empty();
     }
 
     public Duration boardingTime() {
@@ -132,6 +135,9 @@ public class ConfigService {
                 "max_daily_bookings_per_user no puede ser menor que max_active_bookings_per_user");
         check(!cancellationDeadlineBefore().isNegative(), "cancellation_deadline_before no puede ser negativo");
         check(!checkInOpensBefore().isNegative(), "check_in_opens_before no puede ser negativo");
+        // El check-in conserva el lugar (V16): si abriera antes del cierre de la reserva, otro podría pedirlo.
+        check(checkInOpensBefore().compareTo(bookingClosesBefore()) <= 0,
+                "check_in_opens_before no puede superar booking_closes_before");
         check(checkInClosesAfter().isPositive(), "check_in_closes_after tiene que ser mayor a 0");
         check(noShowAfter().isPositive() && noShowAfter().compareTo(checkInClosesAfter()) <= 0,
                 "no_show_after tiene que ser mayor a 0 y no superar check_in_closes_after");
@@ -143,7 +149,6 @@ public class ConfigService {
         // Liberados después del cierre de la ventana, nadie podría reservarlos (#113).
         check(prioritySeatsReleaseBefore().compareTo(bookingClosesBefore()) > 0,
                 "priority_seats_release_before tiene que ser mayor que booking_closes_before");
-        check(qrRotation().isPositive(), "qr_rotation tiene que ser mayor a 0");
         check(boardingTime().isPositive(), "boarding_time tiene que ser mayor a 0");
         check(timePerFloor().isPositive(), "time_per_floor tiene que ser mayor a 0");
         check(lowFloorsThreshold() >= 0, "low_floors_threshold no puede ser negativo");
@@ -151,6 +156,8 @@ public class ConfigService {
         if (isDefined("cancellation_wait_tolerance")) {
             check(cancellationWaitTolerance().isPositive(), "cancellation_wait_tolerance tiene que ser mayor a 0");
         }
+        check(priorityTeacherValidity().map(Duration::isPositive).orElse(true),
+                "priority_teacher_validity tiene que ser mayor a 0");
         if (isDefined("priority_aging")) {
             check(priorityAging().isPositive(), "priority_aging tiene que ser mayor a 0");
         }

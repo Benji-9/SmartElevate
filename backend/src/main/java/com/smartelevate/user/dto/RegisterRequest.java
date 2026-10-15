@@ -1,8 +1,8 @@
 package com.smartelevate.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.smartelevate.common.validation.MaxUtf8Bytes;
 import com.smartelevate.common.validation.PasswordPolicy;
+import com.smartelevate.common.validation.ValidPassword;
 import com.smartelevate.user.model.DeclaredUserType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -32,11 +32,9 @@ public record RegisterRequest(
         @Pattern(regexp = "\\d{1,10}", message = "El legajo tiene que ser numérico, de hasta 10 dígitos.")
         String legajo,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, format = "password", example = "una-clave-larga",
-                description = "Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). "
-                        + "Sin otras reglas")
+                minLength = PasswordPolicy.MIN, maxLength = PasswordPolicy.MAX, description = PasswordPolicy.DESCRIPTION)
         @NotNull(message = "Elegí una contraseña.")
-        @Size(min = PasswordPolicy.MIN, max = PasswordPolicy.MAX, message = PasswordPolicy.SIZE_MESSAGE)
-        @MaxUtf8Bytes(value = PasswordPolicy.MAX, message = PasswordPolicy.BYTES_MESSAGE)
+        @ValidPassword
         String password,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
                 description = "Lo que la persona declara ser. Es informativo: no da rol ni prioridad")

@@ -79,25 +79,26 @@ class RegistrationApiTest {
     }
 
     @Test
-    void thePasswordIsStoredOnlyAsABcryptHash() throws Exception {
+    void thePasswordIsStoredOnlyAsAnArgon2idHash() throws Exception {
         register(json("ana@uade.edu.ar", "1111111")).andExpect(status().isCreated());
 
         String stored = users.findAll().getFirst().getPasswordHash();
-        assertThat(stored).startsWith("$2").hasSize(60).doesNotContain("una-clave-larga");
+        // Parámetros OWASP: 19 MiB, 2 pasadas, 1 hilo. Entra en la columna ampliada por V13.
+        assertThat(stored).startsWith("{argon2}$argon2id$v=19$m=19456,t=2,p=1$").hasSizeLessThanOrEqualTo(255)
+                .doesNotContain("una-clave-larga");
         assertThat(passwordEncoder.matches("una-clave-larga", stored)).isTrue();
         assertThat(passwordEncoder.matches("otra-clave-larga", stored)).isFalse();
     }
 
     @Test
-    void aPasswordOverTheBcryptLimitIsAClientErrorNotAServerError() throws Exception {
-        // 37 ñ son 74 bytes: si la validación la dejara pasar, BCrypt tiraría IllegalArgumentException (un 500).
+    void sixtyFourNonAsciiCharactersAreAcceptedAndHashedAfterNfkc() throws Exception {
+        // 64 "ñ" descompuestas (n + U+0303): 128 code points antes de NFKC, 64 después. Con BCrypt no entraban.
         register("""
                 {"fullName":"Ana Pérez","email":"ana@uade.edu.ar","legajo":"1111111","password":"%s",
-                 "declaredUserType":"STUDENT"}""".formatted("ñ".repeat(37)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.violations[0].field").value("password"));
+                 "declaredUserType":"STUDENT"}""".formatted("ñ".repeat(64)))
+                .andExpect(status().isCreated());
 
-        assertThat(users.count()).isZero();
+        assertThat(passwordEncoder.matches("ñ".repeat(64), users.findAll().getFirst().getPasswordHash())).isTrue();
     }
 
     @Test

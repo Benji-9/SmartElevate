@@ -2,7 +2,6 @@ import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Chip } from '../components/Chip';
-import { Input } from '../components/Input';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { createQrReader } from '../features/check-in/qrReader';
 import '../features/check-in/check-in.css';
@@ -10,55 +9,69 @@ import { formatFloor, formatSlot } from '../features/turn/format';
 import '../features/turn/turn.css';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { errorMessage, useResource } from '../hooks/useResource';
-import { checkIn, getActiveReservation } from '../services/api';
+import { ApiError, checkIn, getActiveReservation } from '../services/api';
 
 type Camera = 'starting' | 'on' | 'denied' | 'unavailable';
+type CheckInError = { message: string; code?: string };
 
 const SCAN_INTERVAL_MS = 300;
-/** Código de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
-const DEMO_CODE = 'DEMO';
+/** Token de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
+const DEMO_TOKEN = 'DEMO';
+/** Con estos rechazos otro QR no cambia nada: se deja de escanear. */
+const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN'];
+
+/** Qué puede hacer la persona después de cada rechazo (además del mensaje del servidor). */
+function ErrorAction({ code }: { code?: string }) {
+  if (code === 'NO_ACTIVE_RESERVATION') return <Link to="/reservar">Reservá un turno</Link>;
+  if (code === 'ALREADY_CHECKED_IN') return <Link to="/">Volver al inicio</Link>;
+  if (code === 'OUTSIDE_CHECK_IN_WINDOW') {
+    return <>Escaneá el QR cerca de la hora de salida de tu turno.</>;
+  }
+  return null;
+}
 
 /**
- * Check-in (Figma 06 y 06b). Escanea el QR del ascensor con la cámara; en `/check-in/codigo`
- * (`manual`) abre el bottom sheet para tipear el código. Con el resultado va a `/check-in/ok`.
+ * Check-in (Figma 06). Escanea el QR del ascensor con la cámara y manda el token a
+ * `POST /api/check-ins`; con el resultado va a `/check-in/ok`. No hay ingreso manual: el token
+ * es largo y opaco (docs/alcance-mvp.md).
  */
-export function CheckInPage({ manual = false }: { manual?: boolean }) {
+export function CheckInPage() {
   const navigate = useNavigate();
   const demo = useDemoMode();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const failedCode = useRef<string | null>(null);
+  const failedToken = useRef<string | null>(null);
   const [camera, setCamera] = useState<Camera>(() =>
     'mediaDevices' in navigator ? 'starting' : 'unavailable',
   );
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState('');
+  const [error, setError] = useState<CheckInError | null>(null);
   const turn = useResource(getActiveReservation);
   const turnTitleId = useId();
-  const codeTitleId = useId();
-  const codeDescriptionId = useId();
   const reservation = turn.data;
   // La cámara se pide solo con turno activo (#152). Si falla la carga del turno se pide igual:
   // el servidor valida el check-in y no queremos trabar a quien sí tiene turno.
   const wantsCamera = !turn.loading && (turn.error !== undefined || reservation != null);
+  const scanDone = error?.code !== undefined && FINAL_CODES.includes(error.code);
 
-  async function submit(value: string) {
+  async function submit(token: string) {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await checkIn({ code: value });
+      const result = await checkIn({ token });
       navigate('/check-in/ok', { state: result });
     } catch (submitError) {
-      failedCode.current = value;
-      setError(errorMessage(submitError));
+      failedToken.current = token;
+      setError({
+        message: errorMessage(submitError),
+        code: submitError instanceof ApiError ? submitError.code : undefined,
+      });
       setSubmitting(false);
     }
   }
 
   // No reintenta el mismo QR que ya falló: el siguiente token (rota) sí se envía.
   const onScan = useEffectEvent((value: string) => {
-    if (!manual && !submitting && value !== failedCode.current) void submit(value);
+    if (!submitting && !scanDone && value !== failedToken.current) void submit(value);
   });
 
   useEffect(() => {
@@ -110,18 +123,6 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
     };
   }, [wantsCamera]);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (manual && !dialog.open) dialog.showModal();
-    if (!manual && dialog.open) dialog.close();
-  }, [manual]);
-
-  function closeManual() {
-    setError(null);
-    navigate('/check-in', { replace: true });
-  }
-
   let cameraState;
   if (!wantsCamera) {
     cameraState = null;
@@ -135,8 +136,8 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
         </h2>
         <p>
           {camera === 'denied'
-            ? 'Habilitala desde la configuración del navegador o ingresá el código que aparece debajo del QR del ascensor.'
-            : 'Ingresá el código que aparece debajo del QR del ascensor.'}
+            ? 'Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador.'
+            : 'Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular.'}
         </p>
       </section>
     );
@@ -198,15 +199,15 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
               variant="secondary"
               className="check-in__demo"
               disabled={submitting}
-              onClick={() => void submit(DEMO_CODE)}
+              onClick={() => void submit(DEMO_TOKEN)}
             >
               Simular escaneo del QR
             </Button>
           )}
-          {submitting && !manual && <p role="status">Registrando tu check-in…</p>}
-          {error && !manual && (
+          {submitting && <p role="status">Registrando tu check-in…</p>}
+          {error && (
             <p role="alert" className="turn-alert check-in__alert">
-              {error}
+              {error.message} <ErrorAction code={error.code} />
             </p>
           )}
         </div>
@@ -224,50 +225,7 @@ export function CheckInPage({ manual = false }: { manual?: boolean }) {
           )}
         </div>
         {turnContent}
-        <Link to="/check-in/codigo" replace className="button button--secondary button--inline">
-          Ingresar código manualmente
-        </Link>
       </section>
-
-      <dialog
-        ref={dialogRef}
-        className="check-in__sheet check-in__code"
-        aria-labelledby={codeTitleId}
-        aria-describedby={codeDescriptionId}
-        onClose={() => manual && closeManual()}
-      >
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit(code.trim());
-          }}
-        >
-          <h2 id={codeTitleId}>Ingresá el código</h2>
-          <p id={codeDescriptionId} className="page-placeholder">
-            Está debajo del QR, en la pantalla del ascensor. Rota igual que el QR.
-          </p>
-          <Input
-            label="Código del ascensor"
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            required
-          />
-          {error && manual && (
-            <p role="alert" className="turn-alert">
-              {error}
-            </p>
-          )}
-          <Button type="submit" loading={submitting} loadingLabel="Registrando tu check-in…">
-            Confirmar check-in
-          </Button>
-          <Button variant="secondary" disabled={submitting} onClick={closeManual}>
-            Volver a escanear
-          </Button>
-        </form>
-      </dialog>
     </div>
   );
 }

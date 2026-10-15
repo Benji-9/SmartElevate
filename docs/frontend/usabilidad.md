@@ -35,7 +35,7 @@ Y dónde se traba, duda o se equivoca.
 - **El teléfono de cada participante**, con su navegador de siempre. Que haya al menos un Android y un iPhone en la ronda.
 - **Una pasada en modo Pantalla** (laptop), con una de las personas, repitiendo la tarea 2.
 - **En el campus**, frente a un núcleo real (p. ej. Lima 1), en un horario de operación (7:00 a 22:30) y fuera del pico, para no molestar.
-- Para la tarea de check-in: el QR del ascensor si ya está instalado; si no, un QR de prueba impreso, o el código corto (`/check-in/codigo`). Anotar cuál se usó.
+- Para la tarea de check-in: el QR del ascensor si ya está instalado; si no, el simulador de kiosco del panel admin (`/admin/simulador`) en otra pantalla. No hay ingreso manual del código ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)). Anotar cuál se usó.
 - Las salidas se reservan **de 30 a 2 min antes** ([ventana de reserva](../reglas/turnos.md#2-ventana-de-reserva)): la persona que modera verifica antes de la tarea 2 que haya salidas abiertas.
 
 ## 4. Roles del equipo
@@ -59,7 +59,7 @@ Leerlas tal cual, sin nombrar botones ni pantallas. Después de cada una, pregun
 | 2 | "Vas al piso 7 por el núcleo Lima 1. Reservá un lugar en la próxima salida que te sirva." | Ve "¡Turno confirmado!". | Si entiende qué es una salida, los pisos deshabilitados y su motivo, si se da cuenta cuando una salida está completa. |
 | 3 | "Desde el inicio, decinos cuánto falta para que salga tu ascensor." | Lo dice en voz alta. | Si encuentra la cuenta regresiva de la tarjeta "Tu turno". |
 | 4 | "Cambiaste de idea: cancelá ese turno." | Vuelve al inicio sin turno activo. | Si entiende el diálogo de cancelar y si cancelar a último momento cuenta como falta. |
-| 5 | "Reservá de nuevo y, cuando llegue el ascensor, registrá que subiste." | Ve el resultado del check-in. | Permiso de cámara, si encuentra el código manual, si entiende el resultado. |
+| 5 | "Reservá de nuevo y, cuando llegue el ascensor, registrá que subiste." | Ve el resultado del check-in. | Permiso de cámara, si entiende el resultado. |
 | 6 | "Buscá el viaje que acabás de hacer." | Encuentra el viaje en *Mis viajes*. | Si encuentra la sección y entiende el resultado de cada viaje. |
 
 **Modo Pantalla:** con una de las personas, repetir la tarea 2 en la laptop.

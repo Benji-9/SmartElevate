@@ -1,30 +1,42 @@
-import type { ApiErrorBody, Building, FieldViolation, PingResponse } from '../types/api';
+import type {
+  ApiErrorBody,
+  Building,
+  CheckIn,
+  CheckInRequest,
+  CreatedKiosk,
+  CreateKioskRequest,
+  Elevator,
+  FieldViolation,
+  KioskList,
+  ForgotPasswordRequest,
+  LoginRequest,
+  NoShowStatus,
+  PendingTeacher,
+  PingResponse,
+  PriorityUser,
+  QrToken,
+  RefreshRequest,
+  RegisterRequest,
+  ResendVerificationRequest,
+  ResetPasswordRequest,
+  TokenResponse,
+  User,
+  VerifyEmailRequest,
+} from '../types/api';
 import type {
   AdminKpis,
   AdminKpisQuery,
   AdminShift,
-  PendingTeacher,
-  PriorityUser,
-  CheckInRequest,
-  CheckInResult,
   CongestionSnapshot,
   Core,
   Departure,
   FloorOption,
-  ForgotPasswordRequest,
-  LoginRequest,
-  NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  RegisterRequest,
   Reservation,
   ReserveRequest,
-  ResetPasswordRequest,
-  Session,
   TripPage,
-  User,
-  WaitFeedbackRequest,
 } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -33,12 +45,24 @@ export class ApiError extends Error {
   readonly status: number;
   /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */
   readonly violations: FieldViolation[];
+  /** Segundos que pide esperar el header `Retry-After` (429). */
+  readonly retryAfter?: number;
+  /** Código estable de los errores de dominio (`INVALID_QR_TOKEN`, `ALREADY_CHECKED_IN`…). */
+  readonly code?: string;
 
-  constructor(status: number, message: string, violations: FieldViolation[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    violations: FieldViolation[] = [],
+    retryAfter?: number,
+    code?: string,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.violations = violations;
+    this.retryAfter = retryAfter;
+    this.code = code;
   }
 }
 
@@ -48,8 +72,9 @@ const USE_MOCKS =
   import.meta.env.DEV &&
   (import.meta.env.VITE_USE_MOCKS ?? String(import.meta.env.MODE === 'development')) === 'true';
 
-// Sesión (#45): el access token vive solo en memoria. El refresh token lo maneja el backend
-// en una cookie httpOnly (propuesta, a confirmar en #6): el frontend nunca lo lee.
+// Sesión (#192, ADR 0014): el access token vive solo en memoria; el refresh token (opaco, de un
+// solo uso, viaja en el body JSON) en sessionStorage para sobrevivir a recargar la pestaña.
+const REFRESH_KEY = 'smartelevate.refresh';
 let accessToken: string | null = null;
 let refreshing: Promise<boolean> | null = null;
 const expiredListeners = new Set<() => void>();
@@ -62,10 +87,20 @@ export function onSessionExpired(listener: () => void) {
   };
 }
 
-async function send<T>(path: string, init?: RequestInit): Promise<T> {
+async function send<T>(
+  path: string,
+  init?: RequestInit,
+  onResponse?: (response: Response) => void,
+): Promise<T> {
   if (USE_MOCKS) {
     const { mockRequest } = await import('./mocks');
-    const mocked = await mockRequest(init?.method ?? 'GET', path, init?.body);
+    const mocked = await mockRequest(
+      init?.method ?? 'GET',
+      path,
+      init?.body,
+      undefined,
+      init?.headers,
+    );
     if (mocked) return mocked.data as T;
   }
 
@@ -81,18 +116,22 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
+  onResponse?.(response);
 
   if (!response.ok) {
     let message = response.statusText;
     let violations: FieldViolation[] = [];
+    let code: string | undefined;
     try {
       const body = (await response.json()) as Partial<ApiErrorBody>;
       message = body.message ?? message;
       violations = body.violations ?? [];
+      code = body.code;
     } catch {
       // El cuerpo no es JSON: nos quedamos con statusText.
     }
-    throw new ApiError(response.status, message, violations);
+    const retry = Number(response.headers.get('Retry-After'));
+    throw new ApiError(response.status, message, violations, retry > 0 ? retry : undefined, code);
   }
 
   // 204, o 202 sin cuerpo (p. ej. /auth/password/forgot): no hay JSON que leer.
@@ -100,16 +139,44 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-/** Pide un access token nuevo con la cookie de refresh. Las llamadas simultáneas comparten el intento. */
+// Con el storage bloqueado (modo privado estricto) la sesión sigue, pero no sobrevive a recargar.
+function storage<T>(action: () => T): T | null {
+  try {
+    return action();
+  } catch {
+    return null;
+  }
+}
+const readRefresh = () => storage(() => sessionStorage.getItem(REFRESH_KEY));
+
+function saveTokens({ accessToken: access, refreshToken }: TokenResponse) {
+  accessToken = access;
+  storage(() => sessionStorage.setItem(REFRESH_KEY, refreshToken));
+}
+
+function clearTokens() {
+  accessToken = null;
+  storage(() => sessionStorage.removeItem(REFRESH_KEY));
+}
+
+/**
+ * Canjea el refresh token por un par nuevo (rotación). Las llamadas simultáneas comparten el
+ * intento: el refresh es de un solo uso y un segundo canje revocaría toda la sesión.
+ */
 function refreshAccessToken(): Promise<boolean> {
-  refreshing ??= send<Session>('/auth/refresh', { method: 'POST', credentials: 'include' })
+  const refreshToken = readRefresh();
+  if (!refreshToken) return Promise.resolve(false);
+  refreshing ??= send<TokenResponse>('/auth/refresh', {
+    method: 'POST',
+    body: JSON.stringify({ refreshToken } satisfies RefreshRequest),
+  })
     .then(
-      (session) => {
-        accessToken = session.accessToken;
+      (tokens) => {
+        saveTokens(tokens);
         return true;
       },
       () => {
-        accessToken = null;
+        clearTokens();
         return false;
       },
     )
@@ -147,20 +214,25 @@ export const api = {
 
 export const ping = (signal?: AbortSignal) => api.get<PingResponse>('/ping', { signal });
 
-// Endpoints todavía sin backend: por ahora los responde services/mocks.ts.
-export const getMe = () => api.get<User>('/me');
+/** Usuario de la sesión. Rol y prioridad salen de la base, nunca del JWT (ADR 0009). */
+export const getMe = () => api.get<User>('/users/me');
 
 /** Crea la cuenta; queda pendiente de verificar por email. */
 export const register = (body: RegisterRequest) => api.post<void>('/auth/register', body);
 
-/** Inicia sesión y devuelve el usuario según `/me` (rol y prioridad los decide el servidor). */
+/** Confirma el email con el token del link. 400 si no existe, ya se usó o venció. */
+export const verifyEmail = (body: VerifyEmailRequest) => api.post<void>('/auth/verify', body);
+/** Reenvía el link de verificación. 202 exista o no la cuenta; 429 trae `retryAfter`. */
+export const resendVerification = (body: ResendVerificationRequest) =>
+  api.post<void>('/auth/resend-verification', body);
+
+/** Inicia sesión y devuelve el usuario según `/users/me` (rol y prioridad los decide el servidor). */
 export async function login(body: LoginRequest): Promise<User> {
-  const session = await api.post<Session>('/auth/login', body, { credentials: 'include' });
-  accessToken = session.accessToken;
+  saveTokens(await api.post<TokenResponse>('/auth/login', body));
   return getMe();
 }
 
-/** Recupera la sesión al abrir la app (cookie de refresh). `null` si no hay sesión. */
+/** Recupera la sesión al abrir la app con el refresh token guardado. `null` si no hay sesión. */
 export async function restoreSession(): Promise<User | null> {
   if (!(await refreshAccessToken())) return null;
   return getMe().catch(() => null);
@@ -174,12 +246,15 @@ export const resetPassword = (body: ResetPasswordRequest) =>
   api.post<void>('/auth/password/reset', body);
 
 export async function logout(): Promise<void> {
+  const refreshToken = readRefresh();
   try {
-    await api.post<void>('/auth/logout', undefined, { credentials: 'include' });
+    if (refreshToken) {
+      await api.post<void>('/auth/logout', { refreshToken } satisfies RefreshRequest);
+    }
   } catch {
     // Aunque el backend no responda, la sesión local se cierra igual.
   } finally {
-    accessToken = null;
+    clearTokens();
   }
 }
 export const getBuildings = () => api.get<Building[]>('/buildings');
@@ -196,10 +271,11 @@ export const getReservation = (id: string) =>
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
 export const cancelReservation = (id: string) =>
   api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
-export const checkIn = (body: CheckInRequest) => api.post<CheckInResult>('/check-ins', body);
-/** Encuesta de espera, opcional y una sola vez por check-in. */
-export const sendWaitFeedback = (reservationId: string, body: WaitFeedbackRequest) =>
-  api.post<void>(`/check-ins/${encodeURIComponent(reservationId)}/wait-feedback`, body);
+/**
+ * Check-in con el token leído del QR. Rechazos por `code`: `INVALID_QR_TOKEN` (400),
+ * `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).
+ */
+export const checkIn = (body: CheckInRequest) => api.post<CheckIn>('/check-ins', body);
 export const getMyPriorityRequest = () => api.get<PriorityRequest | null>('/priority-requests/me');
 export const getPriorityUploadRules = () =>
   api.get<PriorityUploadRules>('/priority-requests/upload-rules');
@@ -246,3 +322,32 @@ export const rejectTeacher = (id: string) =>
 export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
 export const revokePriority = (id: string) =>
   api.delete<void>(`/admin/priority-users/${encodeURIComponent(id)}`);
+
+export const getElevators = () => api.get<Elevator[]>('/elevators');
+
+/** Kioscos del QR (ADR 0020) y si el servidor habilita el simulador. Solo ADMIN. */
+export const getKiosks = () => api.get<KioskList>('/admin/kiosks');
+/** Da de alta un kiosco. La respuesta trae `secret` por única vez. */
+export const createKiosk = (body: CreateKioskRequest) =>
+  api.post<CreatedKiosk>('/admin/kiosks', body);
+export const revokeKiosk = (id: string) =>
+  api.post<void>(`/admin/kiosks/${encodeURIComponent(id)}/revoke`, {});
+
+/**
+ * Token del QR con la credencial del kiosco. No usa la sesión: pasa por `send` (sin renovar el
+ * JWT ante un 401) y su `Authorization` pisa el de la persona logueada (simulador del admin).
+ * `msLeft` se mide contra el header `Date` del servidor, así un reloj de tablet desfasado no
+ * corre la rotación. Sin `Date` (CORS, mocks) usa el reloj local.
+ */
+export async function getKioskQrToken(secret: string) {
+  let serverNow = NaN;
+  const qr = await send<QrToken>(
+    '/kiosks/me/qr-token',
+    { method: 'GET', headers: { Authorization: `Bearer ${secret}` } },
+    (response) => {
+      serverNow = Date.parse(response.headers.get('Date') ?? '');
+    },
+  );
+  const now = Number.isNaN(serverNow) ? Date.now() : serverNow;
+  return { ...qr, msLeft: Date.parse(qr.expiresAt) - now };
+}

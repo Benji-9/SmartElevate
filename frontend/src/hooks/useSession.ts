@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react';
-import type { LoginRequest, User } from '../types/pending';
+import type { LoginRequest, User } from '../types/api';
 
 export type SessionState = {
-  /** Usuario según `/me`; `null` sin sesión. */
+  /** Usuario según `/users/me`; `null` sin sesión. */
   user: User | null;
   /** `true` mientras se recupera la sesión al abrir la app. */
   loading: boolean;

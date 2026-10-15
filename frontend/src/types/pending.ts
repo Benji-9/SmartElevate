@@ -2,48 +2,12 @@
 // Los usan los datos simulados (services/mocks.ts) mientras no exista el backend.
 // Cuando el endpoint real esté, regenerar con `npm run gen:api`, exponer el tipo en
 // types/api.ts y borrarlo de acá.
-// Backend pendiente: auth y usuarios #6, turnos #7, ascensores y edificios #22,
-// tipo de usuario declarativo #32, check-in #23, certificados #24 y #26.
+// Backend pendiente: turnos #7, ascensores y edificios #22,
+// tipo de usuario declarativo #32, certificados #24 y #26.
+import type { PriorityCategory } from './api';
 
 /** Nivel de congestión de un núcleo. */
 export type CongestionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
-
-export type Role = 'USER' | 'REVIEWER' | 'ADMIN';
-export type PriorityCategory = 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
-
-export type User = {
-  id: string;
-  email: string;
-  fullName: string;
-  legajo: string;
-  role: Role;
-  /** Prioridad vigente, solo para mostrar. El servidor la evalúa al reservar. */
-  priority: PriorityCategory;
-  /** Lo que declaró al registrarse (informativo, no da rol ni prioridad). */
-  declaredUserType: DeclaredUserType;
-};
-
-export type LoginRequest = { email: string; password: string };
-
-/**
- * Tipo de usuario que la persona declara al registrarse (#32). No otorga rol ni prioridad:
- * un docente declarado queda pendiente hasta que un ADMIN lo aprueba desde el panel.
- */
-export type DeclaredUserType = 'STUDENT' | 'TEACHER';
-
-export type RegisterRequest = {
-  fullName: string;
-  email: string;
-  legajo: string;
-  password: string;
-  declaredUserType: DeclaredUserType;
-};
-/** Pide el link para elegir otra contraseña (#138). El servidor responde 202 siempre. */
-export type ForgotPasswordRequest = { email: string };
-/** `token` viene en el link del mail; es de un solo uso y vence (#138). */
-export type ResetPasswordRequest = { token: string; newPassword: string };
-/** El refresh token viaja en una cookie httpOnly (propuesta, #6): no está en el body. */
-export type Session = { accessToken: string };
 
 /** Núcleo de ascensores (L1, IND2…) con su congestión actual. */
 export type Core = {
@@ -103,33 +67,6 @@ export type Reservation = {
   cancelCountsAsNoShow: boolean;
 };
 
-/**
- * Token del QR escaneado o código corto tipeado a mano (rota igual que el QR y está atado
- * al ascensor; a confirmar con backend, #23). El JWT de la sesión identifica al usuario.
- * Errores: 400 código inválido o vencido, 409 sin turno activo o check-in ya registrado.
- */
-export type CheckInRequest = { code: string };
-/** Cumplida / otro ascensor / fuera de hora (docs/reglas/check-in-qr.md#resultados). */
-export type CheckInOutcome = 'ON_TIME' | 'OTHER_ELEVATOR' | 'LATE';
-export type CheckInResult = {
-  reservationId: string;
-  outcome: CheckInOutcome;
-  checkedInAt: string;
-  /** Espera real − estimada, en segundos (negativo si fue antes). */
-  waitDeltaSeconds: number;
-  /** Ascensor donde se escaneó (puede no ser el del turno) y su núcleo. */
-  elevatorName: string;
-  coreName: string;
-  /** Salida reservada (UTC), para mostrar la franja. */
-  departsAt: string;
-  durationMinutes: number;
-};
-
-/** Rangos de la encuesta "¿Cuánto esperaste?" (mismos que el baseline, kpis.md). */
-export type WaitRange = 'UNDER_2' | 'FROM_2_TO_5' | 'FROM_5_TO_10' | 'OVER_10';
-/** Una sola vez por check-in: la segunda da 409. */
-export type WaitFeedbackRequest = { range: WaitRange };
-
 export type PriorityRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type PriorityRequest = {
   category: Exclude<PriorityCategory, 'NONE'>;
@@ -165,17 +102,6 @@ export type Trip = {
 };
 /** Página del historial, del más reciente al más viejo. `nextCursor` null = no hay más. */
 export type TripPage = { items: Trip[]; nextCursor: string | null };
-
-/** Faltas recientes (turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
-export type NoShowStatus = {
-  recentNoShows: number;
-  /** Parámetros de la regla: N faltas en `windowDays` días suspenden. */
-  threshold: number;
-  windowDays: number;
-  suspensionHours: number;
-  suspendedUntil: string | null;
-  exempt: boolean;
-};
 
 /** Qué avisos quiere recibir el usuario. */
 export type NotificationPreferences = {
@@ -231,24 +157,4 @@ export type AdminKpis = {
   /** Reservas por hora del día (0–23, Buenos Aires) sumadas en el período, en orden. */
   reservationsByHour: { hour: number; reservations: number }[];
   cores: CoreKpis[];
-};
-
-/**
- * Panel admin de prioridad (#140, endpoints de #121 a confirmar). Docente declarado que
- * espera aprobación; `registeredAt` en UTC.
- */
-export type PendingTeacher = {
-  id: string;
-  fullName: string;
-  email: string;
-  legajo: string;
-  registeredAt: string;
-};
-/** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
-export type PriorityUser = {
-  id: string;
-  fullName: string;
-  email: string;
-  legajo: string;
-  category: Exclude<PriorityCategory, 'NONE'>;
 };

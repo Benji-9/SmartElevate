@@ -15,6 +15,8 @@ public record ApiError(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "404") int status,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "Not Found") String error,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "Recurso no encontrado") String message,
+        @Schema(description = "Código estable de los errores de dominio, para que el cliente decida qué mostrar",
+                example = "TURN_FULL") String code,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "/api/turns/42") String path,
         @Schema(description = "Solo en errores de validación") List<FieldViolation> violations) {
 

@@ -4,7 +4,7 @@
 
 ## Registro
 
-- Solo emails **@uade.edu.ar**, **verificados por link** antes del primer login (proveedor de email: [#25](https://github.com/Benji-9/SmartElevate/issues/25)).
+- Solo emails **@uade.edu.ar**, **verificados por link** antes del primer login (por SMTP con Brevo: [ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)).
 - **Email y legajo únicos.**
 - No hay acceso al sistema de UADE: el **legajo es autodeclarado**. La verificación real es la del email institucional.
 - El email se guarda en **minúsculas**: `Ana@UADE.edu.ar` y `ana@uade.edu.ar` son la misma cuenta. El legajo son solo dígitos, hasta 10.
@@ -13,11 +13,28 @@
 
 ### Contraseña
 
-Decidido en [#181](https://github.com/Benji-9/SmartElevate/issues/181) para el registro; la de "contraseña nueva" va con [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+Alineada a NIST SP 800-63B en [#211](https://github.com/Benji-9/SmartElevate/issues/211) ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md), con la tabla de qué cumple y qué no). Reemplaza el tope en bytes de [#181](https://github.com/Benji-9/SmartElevate/issues/181). El registro y la "contraseña nueva" del reset ([#138](https://github.com/Benji-9/SmartElevate/issues/138)) aplican **la misma política**.
 
-- **Mínimo 8 caracteres**, sin exigir mayúsculas, números ni símbolos, como recomienda la guía NIST SP 800-63B.
-- **Máximo 72 bytes**, el límite de BCrypt, que rechaza con error lo que lo pase. La "ñ" y las tildes ocupan 2 bytes, así que una contraseña con muchas letras acentuadas tiene un tope menor a 72 caracteres.
-- Se guarda como **hash BCrypt**. La contraseña nunca se guarda ni se loguea en texto plano, ni siquiera con el log en DEBUG.
+- **Entre 8 y 64 caracteres.** Se cuentan **caracteres** (code points), no bytes: una "ñ", una tilde o un emoji valen 1. NIST pide 15 de mínimo cuando la contraseña es el único factor; elegimos 8 por usabilidad y lo compensamos con la lista de comunes, Argon2id y el límite de intentos.
+- Antes de validar y de hashear (registro, reset y login) se **normaliza con NFKC**: la "ñ" compuesta y la descompuesta son la misma contraseña.
+- **Sin reglas de composición** (no se exigen mayúsculas, números ni símbolos), **sin cambio periódico obligatorio**, y se puede **pegar** y usar **gestores de contraseñas**.
+- Se rechazan las **2500 contraseñas más comunes** (lista embebida de SecLists más variantes locales como "contraseña", "uade2026" o "ascensor"), sin distinguir mayúsculas: "Esa contraseña es muy común y fácil de adivinar. Elegí otra."
+- Se guarda como **hash Argon2id**. Los hashes BCrypt de antes de #211 siguen sirviendo y se pasan a Argon2id la próxima vez que la persona entra. La contraseña nunca se guarda ni se loguea en texto plano, ni siquiera con el log en DEBUG.
+
+### Límite de intentos de login
+
+- Por **cuenta** y por **IP**, en una **ventana deslizante**: con **10 fallos de la cuenta** o **100 de la IP** en los últimos **15 minutos**, el login responde **429** con `Retry-After` (sin mirar la contraseña) hasta que el fallo más viejo sale de la ventana. El tope por cuenta no puede pasar de 100 (NIST). Es un límite **por ventana más un tope por IP**, no la lectura literal de NIST de "100 seguidos"; el tope por IP es conservador porque la red de la universidad sale por pocas IPs (NAT) y se calibra en el piloto ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). Los tres valores viven en `application.yml` (`app.login-throttle.*`), con override por `APP_LOGIN_THROTTLE_WINDOW`, `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` y `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` ([#225](https://github.com/Benji-9/SmartElevate/issues/225), [ADR 0017](../adr/0017-donde-viven-los-parametros.md)).
+- El bloqueo siempre es **temporal**: un tercero no puede dejar bloqueada una cuenta para siempre. Un **login correcto** o un **reset de contraseña** borran los fallos de la cuenta.
+- Cuenta igual un email que no existe: el 429 no revela qué cuentas hay. Se guarda el hash de la cuenta y de la IP, nunca el email ni la IP.
+
+### Olvidé mi contraseña
+
+Implementado en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
+
+- `POST /api/auth/password/forgot` responde **202 siempre**, exista o no la cuenta (y también si hubo un pedido reciente: la espera entre pedidos, 1 minuto, se aplica en silencio porque un 429 delataría qué cuentas existen).
+- El link vale **30 minutos**, se usa **una sola vez** y se guarda hasheado. Pedir otro invalida el anterior. Vencimiento y espera son configuración (`app.password-reset.*`).
+- **Cuenta sin verificar que pide reset**: no se manda link de reset; se le **reenvía el link de verificación** (con su propia espera). Primero tiene que verificar el email.
+- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
 
 ### Tipo de usuario declarado
 
@@ -36,21 +53,22 @@ Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
 - Los asigna un **ADMIN** desde el panel de administración.
 - **Docentes**: el ADMIN aprueba a los que se declararon docentes ([ver arriba](#tipo-de-usuario-declarado)).
 - **Movilidad reducida**: por certificado ([ver abajo](#certificado-de-prioridad)).
+- **Vigencia de la prioridad de docente:** hasta el **fin del cuatrimestre en curso**, renovable (decidido el 14/10). La fecha de cierre del cuatrimestre va en `app_config`; hoy `priority_teacher_validity` está en NULL y la aprobación no vence. Lo implementa [#218](https://github.com/Benji-9/SmartElevate/issues/218).
 
-Modelo propuesto (a validar al implementar):
+Modelo implementado (roles en `V5`, prioridad y auditoría en `V10`, [#121](https://github.com/Benji-9/SmartElevate/issues/121)):
 
 | Concepto | Valores |
 | --- | --- |
 | Rol | `USER`, `REVIEWER` (revisa certificados), `ADMIN` |
 | Categoría de prioridad | `NONE`, `TEACHER`, `REDUCED_MOBILITY` |
-| Estado de la solicitud de prioridad | `PENDING`, `APPROVED`, `REJECTED`, con fecha de vencimiento |
+| Estado de la solicitud de prioridad | `PENDING`, `APPROVED`, `REJECTED`, con fecha de vencimiento opcional (`expires_at`) |
 
 ### Primer ADMIN
 
 No hay endpoint, seed ni migración que cree administradores: así no queda ningún dato del admin en el repo, que es público.
 
 1. La persona se **registra normalmente** con su email @uade.edu.ar y lo **verifica**.
-2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Neon**. En dev, lo mismo en `/h2-console`. La sentencia exacta se documenta en [`infraestructura.md`](../infraestructura.md) junto con la migración de usuarios ([#121](https://github.com/Benji-9/SmartElevate/issues/121)).
+2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Neon**. En dev, lo mismo en `/h2-console`. La sentencia exacta está en [`infraestructura.md`](../infraestructura.md#crear-el-primer-admin).
 3. Desde ahí, los demás `ADMIN` y `REVIEWER` los asigna un ADMIN desde el panel.
 
 Render free no permite SSH ni comandos sueltos, así que no hay un comando para correr dentro del servidor.
@@ -67,14 +85,16 @@ PENDIENTE ──► APROBADO (con vencimiento) ──► vence ──► usuario
 
 ### Archivos
 
-- Validar el **tipo por contenido** (magic bytes), no por extensión.
-- **Tope de tamaño** (propuesta: 5 MB).
-- Formatos propuestos: PDF, JPG, PNG.
+Decidido el 14/10; se implementa en [#123](https://github.com/Benji-9/SmartElevate/issues/123).
+
+- **Hasta 5 MB**, en **PDF, JPG o PNG**.
+- El **tipo se valida por contenido** (magic bytes), no por extensión.
 
 ## Sesión (JWT)
 
-- **Access token corto (~15 min) más refresh token.**
+- **Access token corto (15 min) más refresh token (7 días)**, configurables con `JWT_ACCESS_TTL` y `JWT_REFRESH_TTL`.
 - Implementado en [#120](https://github.com/Benji-9/SmartElevate/issues/120): el JWT lleva solo `sub` (id de usuario); el rol se lee de la base en cada request. El refresh es opaco, de un solo uso y se guarda hasheado; reusar uno ya rotado revoca toda la sesión. Credenciales erróneas dan 401 sin distinguir si el email existe, y una cuenta sin verificar no puede loguearse (403, solo tras acertar la clave).
+- Decidido el 14/10 ([#204](https://github.com/Benji-9/SmartElevate/issues/204), [ADR 0019](../adr/0019-refresh-token-en-cookie-httponly.md)): el refresh pasa a una cookie `HttpOnly; Secure; SameSite=Lax`, a través del proxy del mismo origen de `vercel.json`. Hasta entonces viaja en el body y el front lo guarda en `sessionStorage` ([ADR 0014](../adr/0014-refresh-token-en-sessionstorage.md)).
 - La **prioridad se evalúa en el servidor al reservar**, consultando el estado actual. **No se usa un claim del token**: la prioridad puede vencer o revocarse mientras el token sigue vigente.
 
 ## Datos sensibles
@@ -83,9 +103,10 @@ Un certificado médico o de discapacidad es un **dato de salud**. La **Ley 25.32
 
 > Esto **no es asesoramiento legal**. La normativa vigente la tiene que verificar el equipo, por ejemplo consultando a la cátedra: [#24](https://github.com/Benji-9/SmartElevate/issues/24).
 
-Diseño propuesto:
+Postura del equipo (14/10): **minimización**. Sigue a validar con la cátedra, porque el certificado mismo es un dato de salud.
 
+- **No se guarda el diagnóstico**: solo la categoría, el estado y el vencimiento.
 - **Consentimiento explícito** al subir el archivo: checkbox con el texto de finalidad, y registro de cuándo se aceptó.
-- Guardarlo en un **bucket privado** (proveedor: [#26](https://github.com/Benji-9/SmartElevate/issues/26)), accesible **solo por el rol `REVIEWER`**, mediante **URLs firmadas de corta duración**.
-- **Borrar el archivo apenas se resuelve** la solicitud, y conservar **solo el estado y el vencimiento**.
-- No loguear el contenido ni el nombre original del archivo.
+- El certificado se guarda **cifrado** en un **bucket privado** (Cloudflare R2, [ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)), con **acceso restringido** al rol `REVIEWER`, mediante **URLs firmadas de corta duración**.
+- **Se borra el archivo al resolver** la solicitud **o al vencer**, y queda **solo el estado y el vencimiento**.
+- No se loguea el contenido ni el nombre original del archivo.

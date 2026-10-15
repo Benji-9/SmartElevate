@@ -29,23 +29,23 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 Antes de implementar algo de `turn`, `elevator`, `user` o `priority` (backend o UI), leé [`docs/reglas/`](docs/reglas/README.md) (y el [glosario](docs/glosario.md)). Puntos que no se negocian en el código:
 
 - La franja es una **salida de ascensor (~2 min)**, no un bloque de 15 min (ADR 0007).
-- **Parámetros en la tabla de configuración**, nunca hardcodeados (tiempos, ventanas, cupo, conexiones).
+- **Parámetros** (ADR 0017): los secretos van solo en variables de entorno. Los parámetros técnicos y de seguridad (TTL de tokens, límites de intentos) van en `application.yml`, con override por variable de entorno. En `app_config` van únicamente las reglas de negocio ajustables sin redeploy (tiempos, ventanas, cupo, conexiones), **nunca hardcodeadas**.
 - **Cupo atómico** (lock pesimista o constraint único), instantes en **UTC**, franjas en **America/Argentina/Buenos_Aires**, y un **`Clock` inyectable**: nada de `Instant.now()` directo en services (ADR 0010).
   La hora se pide a `common/time/CampusTime` (`now()`, `today()`, `toInstant(fecha, hora)`) o al bean `Clock`; en tests, `Clock.fixed(...)`.
 - La prioridad se evalúa **en el servidor al reservar**, nunca desde un claim del JWT. El rol y la prioridad no vienen del registro (ADR 0009).
 - Los certificados son **datos de salud**: bucket privado, URLs firmadas cortas, borrado al resolver.
 
-Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` (hoy: los valores X y N, que siguen en NULL en `app_config`).
+Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` y `docs/bloqueantes.md` (hoy: accesibilidad de las conexiones, #22; datos de salud, #24). X y N quedaron fuera del MVP (`docs/alcance-mvp.md`): no los implementes.
 
 ## Arquitectura
 
 ### Backend (`backend/src/main/java/com/smartelevate/`)
 
-- **Paquetes por feature**: `user`, `elevator`, `turn`, `priority`, cada uno con `controller/ service/ repository/ dto/ model/`. Lo transversal va en `common/` (`config`, `error`, `ping`).
+- **Paquetes por feature**: `user`, `elevator`, `turn`, `priority`, cada uno con `controller/ service/ repository/ dto/ model/`. Lo transversal va en `common/` (`config`, `error`, `mail`, `ping`, `security`, `time`, `validation`).
 - Controllers bajo `/api/...`, delgados: validan (`@Valid`), delegan en el service y devuelven DTOs (records). **Nunca exponer entidades JPA** en la API.
 - La lógica de negocio (cupo de 10, prioridades) vive en los services y se testea con tests unitarios.
 - Errores: lanzar excepciones y dejar que `common/error/GlobalExceptionHandler` arme el `ApiError`. Si hace falta un caso nuevo (p. ej. `TurnFullException` → 409), agregá el handler ahí; no armes respuestas de error a mano en los controllers.
-- Configuración por variables de entorno (ver tabla en README). **Nunca hardcodear secretos** ni URLs de producción.
+- Configuración de despliegue por variables de entorno (ver tabla en README), según la regla de parámetros de arriba. **Nunca hardcodear secretos** ni URLs de producción.
 - Perfiles: `dev` (H2, default) y `prod` (Postgres). Los tests usan `dev`.
 - **Base de datos con Flyway** (ADR 0004): el schema lo crean las migraciones de `src/main/resources/db/migration/V<n>__<descripcion>.sql`, en todos los perfiles, y Hibernate solo valida (`ddl-auto: validate`). Toda entidad nueva o cambio de columnas trae su migración en el mismo PR; una migración ya mergeada no se edita. SQL compatible con H2 (`MODE=PostgreSQL`) y con Postgres.
 - Lombok está disponible; preferir `record` para DTOs y `@RequiredArgsConstructor` para inyección.

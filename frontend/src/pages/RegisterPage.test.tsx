@@ -24,7 +24,7 @@ const valid = {
   'Nombre y apellido': 'Ana Pérez',
   'Email institucional': 'ana.perez',
   Legajo: '1099999',
-  Contraseña: 'secreta',
+  Contraseña: 'secreta-123',
 };
 
 const submit = () => userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
@@ -45,6 +45,94 @@ describe('RegisterPage', () => {
     );
     expect(screen.getByLabelText('Contraseña')).toBeInvalid();
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
+  });
+
+  it('muestra los requisitos de la contraseña antes de escribir', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      'Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas.',
+    );
+  });
+
+  it('rechaza una contraseña corta', async () => {
+    const fetchMock = stubApi(signedOut);
+    await renderRegister();
+
+    await fill({ ...valid, Contraseña: 'corta' });
+    await submit();
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      /La contraseña tiene que tener entre 8 y 64 caracteres\./,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
+  });
+
+  // Se pega en vez de tipear: 65 teclas con userEvent.type hacían lento (y a veces timeout) el test.
+  async function pastePassword(value: string) {
+    await userEvent.click(screen.getByLabelText('Contraseña'));
+    await userEvent.paste(value);
+  }
+
+  it('cuenta caracteres y no bytes: 64 ñ entran, 65 no', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/register': { status: 204 } });
+    await renderRegister();
+
+    await fill({ ...valid, Contraseña: '' });
+    await pastePassword('ñ'.repeat(65));
+    await submit();
+
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      /La contraseña tiene que tener entre 8 y 64 caracteres\./,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything());
+
+    await userEvent.clear(screen.getByLabelText('Contraseña'));
+    await pastePassword('ñ'.repeat(64));
+    await submit();
+
+    await screen.findByRole('heading', { name: 'Revisá tu email' });
+  });
+
+  it('cuenta tras normalizar con NFKC: la ñ descompuesta vale un carácter', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/register': { status: 204 } });
+    await renderRegister();
+
+    // n + tilde combinable (U+0303): 128 code points sin normalizar, 64 con NFKC. Los emojis valen 1.
+    await fill({ ...valid, Contraseña: '' });
+    await pastePassword('ñ'.repeat(56) + '🛗'.repeat(8));
+    await submit();
+
+    await screen.findByRole('heading', { name: 'Revisá tu email' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/register', expect.anything());
+  });
+
+  it('muestra en el campo el aviso de contraseña común que manda el servidor', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/register': {
+        status: 400,
+        body: {
+          message: 'La solicitud tiene campos inválidos',
+          violations: [
+            {
+              field: 'password',
+              message: 'Esa contraseña es muy común y fácil de adivinar. Elegí otra.',
+            },
+          ],
+        },
+      },
+    });
+    await renderRegister();
+
+    await fill({ ...valid, Contraseña: 'contraseña123' });
+    await submit();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esa contraseña es muy común');
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      'Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas. Esa contraseña es muy común y fácil de adivinar. Elegí otra.',
+    );
   });
 
   it('valida el dominio del email y que el legajo sea numérico', async () => {
@@ -121,7 +209,7 @@ describe('RegisterPage', () => {
       fullName: 'Ana Pérez',
       email: 'ana.perez@uade.edu.ar',
       legajo: '1099999',
-      password: 'secreta',
+      password: 'secreta-123',
       declaredUserType: 'TEACHER',
     });
   });

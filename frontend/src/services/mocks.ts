@@ -4,35 +4,43 @@
 // lo que no matchea acá sigue de largo al backend.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
-import type { Building } from '../types/api';
+import type {
+  Building,
+  CheckIn,
+  CheckInRequest,
+  CreatedKiosk,
+  CreateKioskRequest,
+  Elevator,
+  Kiosk,
+  KioskList,
+  LoginRequest,
+  NoShowStatus,
+  PendingTeacher,
+  PriorityUser,
+  QrToken,
+  RefreshRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  TokenResponse,
+  User,
+} from '../types/api';
 import { ApiError } from './api';
 import type {
   AdminKpis,
   AdminPeriod,
   AdminShift,
-  PendingTeacher,
-  PriorityUser,
-  CheckInRequest,
-  CheckInResult,
   CongestionSnapshot,
   Core,
   Departure,
   FloorOption,
-  LoginRequest,
-  NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  RegisterRequest,
   Reservation,
   ReserveRequest,
-  ResetPasswordRequest,
-  Session,
   Trip,
   TripPage,
   TripResult,
-  User,
-  WaitFeedbackRequest,
 } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
@@ -52,17 +60,51 @@ const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 const DAY_MS = 86_400_000;
 const BA_OFFSET_MS = 3 * 3_600_000;
-// Cola de docentes y prioritarios del panel admin (#140).
+/** `app.kiosk.qr-ttl` del backend (ADR 0020). */
+const QR_TTL_MS = 30_000;
+// Kioscos del QR (#229): ascensores de ejemplo de Independencia 2 y Lima 3.
+const ELEVATORS: Elevator[] = [
+  {
+    code: '33',
+    building: 'INDEPENDENCIA',
+    core: 'IND2',
+    coreName: 'Independencia 2',
+    floors: [0, 5, 6, 7, 8, 9, 10, 11],
+    usage: 'COMMON',
+    active: true,
+  },
+  {
+    code: '34',
+    building: 'INDEPENDENCIA',
+    core: 'IND2',
+    coreName: 'Independencia 2',
+    floors: [0, 5, 6, 7, 8, 9, 10, 11],
+    usage: 'COMMON',
+    active: true,
+  },
+  {
+    code: '12',
+    building: 'LIMA',
+    core: 'L3',
+    coreName: 'Lima 3',
+    floors: [0, 7, 8, 9, 10],
+    usage: 'COMMON',
+    active: true,
+  },
+];
+let kiosks: Kiosk[] = [];
+// Cola de docentes y prioritarios del panel admin (#140). Ids UUID y mensajes de error como los
+// del backend (PriorityService): 404 PriorityNotFoundException, 409 InvalidPriorityOperation.
 let pendingTeachers: PendingTeacher[] = [
   {
-    id: 't-1',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b01',
     fullName: 'Marta Gómez',
     email: 'marta.gomez@uade.edu.ar',
     legajo: '2001234',
     registeredAt: '2026-10-08T14:20:00Z',
   },
   {
-    id: 't-2',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b02',
     fullName: 'Julián Ruiz',
     email: 'julian.ruiz@uade.edu.ar',
     legajo: '2005678',
@@ -71,14 +113,14 @@ let pendingTeachers: PendingTeacher[] = [
 ];
 let priorityUsers: PriorityUser[] = [
   {
-    id: 'p-1',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b03',
     fullName: 'Carla Díaz',
     email: 'carla.diaz@uade.edu.ar',
     legajo: '1088888',
     category: 'REDUCED_MOBILITY',
   },
   {
-    id: 'p-2',
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b04',
     fullName: 'Rubén Sosa',
     email: 'ruben.sosa@uade.edu.ar',
     legajo: '2000456',
@@ -143,8 +185,18 @@ const users: User[] = [
 // Cuentas que todavía no hicieron click en el link de verificación.
 const unverified = new Set(['sin.verificar@uade.edu.ar']);
 
-// Simula la cookie httpOnly de refresh: sobrevive a recargar la página, como la real.
+// Simula la sesión del servidor (refresh token vigente): sobrevive a recargar la página.
 const SESSION_KEY = 'smartelevate-mock-session';
+
+const REFRESH_KEY = 'smartelevate-mock-refresh';
+let tokenCounter = 0;
+
+function tokensFor(email: string): TokenResponse {
+  const refreshToken = `mock-refresh-${++tokenCounter}`;
+  sessionStorage.setItem(SESSION_KEY, email);
+  sessionStorage.setItem(REFRESH_KEY, refreshToken);
+  return { accessToken: `mock-${Date.now()}`, refreshToken, tokenType: 'Bearer', expiresIn: 900 };
+}
 
 function currentUser(): User {
   const email = sessionStorage.getItem(SESSION_KEY);
@@ -280,9 +332,11 @@ const withCancelRule = (r: Reservation): Reservation => ({
 
 // Estado en memoria: se reinicia al recargar la página.
 let activeReservation: Reservation | null = newReservation('r-1', departuresFor('L2')[3], 0, 7);
-/** Turno del último check-in, para "ya escaneado" y la encuesta de espera. */
+/** Turno del último check-in, para "ya escaneado". */
 let lastCheckedIn: string | null = null;
-const answeredFeedback = new Set<string>();
+/** El turno de los mocks no dice su ascensor (Reservation sigue en pending.ts): es el 33. */
+const RESERVED_ELEVATOR = '33';
+let checkInCount = 0;
 let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
   departureReminder: false,
@@ -318,20 +372,33 @@ const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
 });
 
 /**
- * Códigos de prueba del check-in: "VENCIDO" es inválido, "OTRO" da otro ascensor y
- * "TARDE" fuera de hora; cualquier otro código no vacío sale cumplido.
+ * Tokens de prueba del check-in: los del kiosco simulado (`mock-qr-<ascensor>-…`) traen su
+ * ascensor; "VENCIDO" es inválido, "OTRO" da el ascensor 34 y "TARDE" fuera de hora. Cualquier
+ * otro token no vacío (p. ej. el "DEMO" del modo demo) es del ascensor del turno.
  */
-function checkInOutcome(code: string): CheckInResult['outcome'] {
-  const normalized = code.trim().toUpperCase();
+function scanned(token: string) {
+  const normalized = token.trim().toUpperCase();
   if (!normalized || normalized.includes('VENCIDO')) {
-    throw new ApiError(400, 'El código es inválido o ya venció. Escaneá el QR de nuevo.');
+    throw new ApiError(
+      400,
+      'El QR no es válido o ya venció. Escaneá el que está en pantalla.',
+      [],
+      undefined,
+      'INVALID_QR_TOKEN',
+    );
   }
-  if (normalized.includes('OTRO')) return 'OTHER_ELEVATOR';
-  if (normalized.includes('TARDE')) return 'LATE';
-  return 'ON_TIME';
+  const elevator =
+    /^mock-qr-([^-]+)-/.exec(token)?.[1] ??
+    (normalized.includes('OTRO') ? '34' : RESERVED_ELEVATOR);
+  return { elevator, late: normalized.includes('TARDE') };
 }
 
-type Handler = (body: unknown, params: string[], query: URLSearchParams) => unknown;
+type Handler = (
+  body: unknown,
+  params: string[],
+  query: URLSearchParams,
+  headers: Headers,
+) => unknown;
 
 const routes: [method: string, path: RegExp, handler: Handler][] = [
   [
@@ -346,23 +413,30 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       if (unverified.has(found.email)) {
         throw new ApiError(403, 'Tu cuenta todavía no está verificada. Revisá tu email.');
       }
-      sessionStorage.setItem(SESSION_KEY, found.email);
-      return { accessToken: `mock-${Date.now()}` } satisfies Session;
+      return tokensFor(found.email);
     },
   ],
   [
     'POST',
     /^\/auth\/refresh$/,
-    () => {
-      currentUser();
-      return { accessToken: `mock-${Date.now()}` } satisfies Session;
+    (body) => {
+      const { refreshToken } = body as RefreshRequest;
+      const email = sessionStorage.getItem(SESSION_KEY);
+      // Un solo uso, como el real: el token viejo ya no sirve.
+      if (!email || refreshToken !== sessionStorage.getItem(REFRESH_KEY)) {
+        sessionStorage.removeItem(SESSION_KEY);
+        throw new ApiError(401, 'Sesión vencida');
+      }
+      return tokensFor(email);
     },
   ],
+  ['POST', /^\/auth\/resend-verification$/, () => undefined],
   [
     'POST',
     /^\/auth\/logout$/,
     () => {
       sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(REFRESH_KEY);
     },
   ],
   [
@@ -397,6 +471,29 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ],
   [
     'POST',
+    /^\/auth\/verify$/,
+    (body) => {
+      // Tokens de prueba: "VENCIDO" y "USADO" dan el 400 con su motivo.
+      const token = ((body as { token?: string }).token ?? '').toUpperCase();
+      if (token.includes('VENCIDO')) throw new ApiError(400, 'El link venció. Pedí uno nuevo.');
+      if (token.includes('USADO')) throw new ApiError(400, 'Este link ya se usó.');
+      if (!token) throw new ApiError(400, 'El link no es válido.');
+      return undefined;
+    },
+  ],
+  [
+    'POST',
+    /^\/auth\/resend-verification$/,
+    (body) => {
+      // "limite@uade.edu.ar" simula el 429 con Retry-After de 30 s.
+      if ((body as { email: string }).email.startsWith('limite@')) {
+        throw new ApiError(429, 'Ya te mandamos un email hace poco.', [], 30);
+      }
+      return undefined; // 202 exista o no la cuenta
+    },
+  ],
+  [
+    'POST',
     /^\/auth\/password\/forgot$/,
     // 202 exista o no la cuenta, para no revelar qué emails están registrados.
     () => undefined,
@@ -417,7 +514,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       }
     },
   ],
-  ['GET', /^\/me$/, () => currentUser()],
+  ['GET', /^\/users\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
   ['GET', /^\/cores$/, () => cores],
   ['GET', /^\/cores\/([^/]+)\/departures$/, (_, [coreId]) => departuresFor(coreId)],
@@ -511,42 +608,38 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'POST',
     /^\/check-ins$/,
     (body) => {
-      const { code } = body as CheckInRequest;
+      const { elevator, late } = scanned((body as CheckInRequest).token);
       if (!activeReservation) {
-        throw new ApiError(
-          409,
-          lastCheckedIn
-            ? 'Ya registraste el check-in de este turno.'
-            : 'No tenés un turno activo para hacer check-in.',
-        );
+        throw lastCheckedIn
+          ? new ApiError(
+              409,
+              'Ya registraste el check-in de este turno.',
+              [],
+              undefined,
+              'ALREADY_CHECKED_IN',
+            )
+          : new ApiError(
+              409,
+              'No tenés un turno para hacer check-in.',
+              [],
+              undefined,
+              'NO_ACTIVE_RESERVATION',
+            );
       }
-      const outcome = checkInOutcome(code);
-      const { id, core, departure } = activeReservation;
-      const result: CheckInResult = {
-        reservationId: id,
+      const outcome = late ? 'LATE' : elevator === RESERVED_ELEVATOR ? 'ON_TIME' : 'OTHER_ELEVATOR';
+      const result: CheckIn = {
+        reservationId: ++checkInCount,
         outcome,
+        reservationStatus: late ? 'NO_SHOW' : 'USED',
+        elevator,
+        reservedElevator: RESERVED_ELEVATOR,
+        departureAt: activeReservation.departure.departsAt,
         checkedInAt: new Date().toISOString(),
-        waitDeltaSeconds: outcome === 'LATE' ? 95 : 45,
-        elevatorName: outcome === 'OTHER_ELEVATOR' ? 'Ascensor 3' : 'Ascensor 1',
-        coreName: core.name,
-        departsAt: departure.departsAt,
-        durationMinutes: departure.durationMinutes,
+        source: 'SIMULATED',
       };
+      lastCheckedIn = activeReservation.id;
       activeReservation = null;
-      lastCheckedIn = id;
       return result;
-    },
-  ],
-  [
-    'POST',
-    /^\/check-ins\/([^/]+)\/wait-feedback$/,
-    (body, [reservationId]) => {
-      if (reservationId !== lastCheckedIn) throw new ApiError(404, 'No encontramos ese check-in');
-      if (answeredFeedback.has(reservationId)) {
-        throw new ApiError(409, 'Ya respondiste la encuesta de este viaje.');
-      }
-      if (!(body as WaitFeedbackRequest).range) throw new ApiError(400, 'Elegí un rango');
-      answeredFeedback.add(reservationId);
     },
   ],
   ['GET', /^\/priority-requests\/me$/, () => priorityRequest],
@@ -608,7 +701,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/admin\/teachers\/([^/]+)\/(approve|reject)$/,
     (_, [id, action]) => {
       const teacher = pendingTeachers.find((t) => t.id === id);
-      if (!teacher) throw new ApiError(404, 'Ese docente ya no está pendiente');
+      if (!teacher) throw new ApiError(404, 'Usuario inexistente');
       pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
       if (action === 'approve') {
         const { fullName, email, legajo } = teacher;
@@ -617,13 +710,66 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       return undefined;
     },
   ],
+  ['GET', /^\/elevators$/, () => ELEVATORS],
+  ['GET', /^\/admin\/kiosks$/, () => ({ simulatorEnabled: true, kiosks }) satisfies KioskList],
+  [
+    'POST',
+    /^\/admin\/kiosks$/,
+    (body) => {
+      const { elevatorId, simulated = false } = body as CreateKioskRequest;
+      if (!ELEVATORS.some((e) => e.code === elevatorId)) {
+        throw new ApiError(404, 'El ascensor no existe');
+      }
+      const kiosk = { id: crypto.randomUUID(), elevatorId, simulated };
+      const created = {
+        ...kiosk,
+        createdAt: new Date().toISOString(),
+        secret: `mock-${elevatorId}-${kiosk.id}`,
+      };
+      kiosks = [...kiosks, { ...kiosk, createdAt: created.createdAt, lastSeenAt: null }];
+      return created satisfies CreatedKiosk;
+    },
+  ],
+  [
+    'POST',
+    /^\/admin\/kiosks\/([^/]+)\/revoke$/,
+    (_, [id]) => {
+      if (!kiosks.some((k) => k.id === id)) throw new ApiError(404, 'El kiosco no existe');
+      kiosks = kiosks.map((k) => (k.id === id ? { ...k, revokedAt: new Date().toISOString() } : k));
+      return undefined;
+    },
+  ],
+  // El ascensor sale de la credencial: sirve cualquier `mock-<ascensor>-…` (como las del alta).
+  // Ciclos de 30 s alineados al reloj.
+  [
+    'GET',
+    /^\/kiosks\/me\/qr-token$/,
+    (_body, _params, _query, headers) => {
+      const elevatorId = /^Bearer mock-([^-]+)-/.exec(headers.get('Authorization') ?? '')?.[1];
+      if (!elevatorId) {
+        throw new ApiError(
+          401,
+          'Credencial de kiosco inválida',
+          [],
+          undefined,
+          'KIOSK_UNAUTHORIZED',
+        );
+      }
+      const expiresAt = Math.floor(Date.now() / QR_TTL_MS + 1) * QR_TTL_MS;
+      return {
+        token: `mock-qr-${elevatorId}-${expiresAt}`,
+        expiresAt: new Date(expiresAt).toISOString(),
+        elevatorId,
+      } satisfies QrToken;
+    },
+  ],
   ['GET', /^\/admin\/priority-users$/, () => priorityUsers],
   [
     'DELETE',
     /^\/admin\/priority-users\/([^/]+)$/,
     (_, [id]) => {
       if (!priorityUsers.some((u) => u.id === id)) {
-        throw new ApiError(404, 'Ese usuario ya no tiene prioridad');
+        throw new ApiError(404, 'El usuario no tiene una prioridad vigente');
       }
       priorityUsers = priorityUsers.filter((u) => u.id !== id);
       return undefined;
@@ -693,6 +839,7 @@ export async function mockRequest(
   path: string,
   body?: BodyInit | null,
   latencyMs = 300 + Math.random() * 500,
+  headers?: HeadersInit,
 ): Promise<{ data: unknown } | undefined> {
   const [pathname, search] = path.split('?');
   for (const [routeMethod, pattern, handler] of routes) {
@@ -702,7 +849,7 @@ export async function mockRequest(
     // JSON como string; FormData (subida de archivos) pasa tal cual.
     const parsed: unknown = typeof body === 'string' ? JSON.parse(body) : (body ?? undefined);
     const params = match.slice(1).map(decodeURIComponent);
-    return { data: handler(parsed, params, new URLSearchParams(search)) };
+    return { data: handler(parsed, params, new URLSearchParams(search), new Headers(headers)) };
   }
   return undefined;
 }

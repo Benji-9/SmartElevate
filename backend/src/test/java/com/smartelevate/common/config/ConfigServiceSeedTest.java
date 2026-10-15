@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -19,6 +20,9 @@ class ConfigServiceSeedTest {
 
     @Autowired
     private ConfigService config;
+
+    @Autowired
+    private ConfigEntryRepository repository;
 
     @Test
     void seedMatchesTheBusinessRules() {
@@ -39,7 +43,6 @@ class ConfigServiceSeedTest {
         assertThat(config.noShowSuspensionDuration()).isEqualTo(Duration.ofHours(24));
         assertThat(config.prioritySeatsPerDeparture()).isEqualTo(2);
         assertThat(config.prioritySeatsReleaseBefore()).isEqualTo(Duration.ofMinutes(3));
-        assertThat(config.qrRotation()).isEqualTo(Duration.ofSeconds(60));
         assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
@@ -49,5 +52,12 @@ class ConfigServiceSeedTest {
     void parametersToBeDefinedExistButFailWhenRequested() {
         assertThatThrownBy(config::cancellationWaitTolerance).hasMessageContaining("todavía no está definido");
         assertThatThrownBy(config::priorityAging).hasMessageContaining("todavía no está definido");
+    }
+
+    @Test
+    void securityParametersAreNotInAppConfig() {
+        // V14 (#225): los límites de login viven en application.yml (app.login-throttle.*).
+        assertThat(repository.findAllById(List.of("login_failure_window",
+                "login_max_failures_per_account", "login_max_failures_per_ip"))).isEmpty();
     }
 }

@@ -44,6 +44,77 @@ describe('ResetPasswordPage', () => {
     expect(first).toBeInTheDocument();
   });
 
+  it('muestra los requisitos de la contraseña antes de escribir', async () => {
+    stubApi(signedOut);
+    await renderReset();
+
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAccessibleDescription(
+      'Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas.',
+    );
+  });
+
+  it('rechaza una contraseña corta sin llamar al servidor', async () => {
+    const fetchMock = stubApi(signedOut);
+    await renderReset();
+
+    await submit('corta', 'corta');
+
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAccessibleDescription(
+      /La contraseña tiene que tener entre 8 y 64 caracteres\./,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/password/reset', expect.anything());
+  });
+
+  // Se pega en vez de tipear: con userEvent.type, 65 caracteres por campo hacían lento el test.
+  async function pasteAndSubmit(password: string) {
+    for (const label of ['Contraseña nueva', 'Repetí la contraseña']) {
+      await userEvent.clear(screen.getByLabelText(label));
+      await userEvent.click(screen.getByLabelText(label));
+      await userEvent.paste(password);
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
+  }
+
+  it('cuenta caracteres y no bytes: 64 ñ entran, 65 no', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/password/reset': { status: 204 } });
+    await renderReset();
+
+    await pasteAndSubmit('ñ'.repeat(65));
+
+    expect(screen.getByLabelText('Contraseña nueva')).toHaveAccessibleDescription(
+      /La contraseña tiene que tener entre 8 y 64 caracteres\./,
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/password/reset', expect.anything());
+
+    await pasteAndSubmit('ñ'.repeat(64));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Listo, cambiaste tu contraseña');
+  });
+
+  it('el aviso de contraseña común del servidor va al lado del campo', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/password/reset': {
+        status: 400,
+        body: {
+          message: 'La solicitud tiene campos inválidos',
+          violations: [
+            {
+              field: 'newPassword',
+              message: 'Esa contraseña es muy común y fácil de adivinar. Elegí otra.',
+            },
+          ],
+        },
+      },
+    });
+    await renderReset();
+
+    await pasteAndSubmit('qwertyuiop');
+
+    expect(await screen.findByText(/Esa contraseña es muy común/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pedir otro link' })).not.toBeInTheDocument();
+  });
+
   it('las dos contraseñas tienen que coincidir', async () => {
     const fetchMock = stubApi(signedOut);
     await renderReset();
@@ -84,7 +155,7 @@ describe('ResetPasswordPage', () => {
     });
     await renderReset();
 
-    await submit('corta', 'corta');
+    await submit('nueva-123', 'nueva-123');
 
     expect(await screen.findByText('Usá al menos 8 caracteres.')).toBeInTheDocument();
   });

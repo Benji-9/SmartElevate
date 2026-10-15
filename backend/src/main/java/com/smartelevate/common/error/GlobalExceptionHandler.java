@@ -1,11 +1,21 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.common.security.KioskAuthenticationException;
+import com.smartelevate.elevator.service.InvalidQrTokenException;
+import com.smartelevate.elevator.service.KioskException;
+import com.smartelevate.elevator.service.KioskRateLimitedException;
+import com.smartelevate.turn.service.ReservationRejectedException;
+import com.smartelevate.turn.service.TurnFullException;
+
+import com.smartelevate.priority.service.InvalidPriorityOperationException;
+import com.smartelevate.priority.service.PriorityNotFoundException;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
 import com.smartelevate.user.service.ResendTooSoonException;
+import com.smartelevate.user.service.TooManyLoginAttemptsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -117,9 +127,45 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, "Necesitás iniciar sesión", request, List.of());
     }
 
+    // Sin @ResponseStatus: se documenta en GET /api/kiosks/me/qr-token.
+    @ExceptionHandler(KioskAuthenticationException.class)
+    public ResponseEntity<ApiError> handleKioskUnauthenticated(KioskAuthenticationException ex,
+                                                               HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), "KIOSK_UNAUTHORIZED", request, List.of());
+    }
+
+    @ExceptionHandler(KioskRateLimitedException.class)
+    public ResponseEntity<ApiError> handleKioskRateLimited(KioskRateLimitedException ex,
+                                                           HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    // Sin @ResponseStatus: se documenta en POST /api/check-ins. El mensaje es fijo: no dice por qué falló.
+    @ExceptionHandler(InvalidQrTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidQrToken(InvalidQrTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), "INVALID_QR_TOKEN", request, List.of());
+    }
+
+    @ExceptionHandler(KioskException.class)
+    public ResponseEntity<ApiError> handleKiosk(KioskException ex, HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "No tenés permisos para esta acción", request, List.of());
+    }
+
+    @ExceptionHandler(PriorityNotFoundException.class)
+    public ResponseEntity<ApiError> handlePriorityNotFound(PriorityNotFoundException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(InvalidPriorityOperationException.class)
+    public ResponseEntity<ApiError> handleInvalidPriorityOperation(InvalidPriorityOperationException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, List.of());
     }
 
     @ExceptionHandler(InvalidTokenException.class)
@@ -129,9 +175,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResendTooSoonException.class)
     public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
-        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request, List.of());
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfter().toSeconds(), request);
+    }
+
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    public ResponseEntity<ApiError> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
+                                                               HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    private ResponseEntity<ApiError> tooManyRequests(String message, long retryAfterSeconds,
+                                                     HttpServletRequest request) {
+        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, message, request, List.of());
         return ResponseEntity.status(response.getStatusCode())
-                .header("Retry-After", String.valueOf(ex.getRetryAfter().toSeconds()))
+                .header("Retry-After", String.valueOf(retryAfterSeconds))
                 .body(response.getBody());
     }
 
@@ -142,9 +199,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request, List.of());
     }
 
+    // Sin @ResponseStatus: se documentan en POST /api/reservations.
+    @ExceptionHandler(TurnFullException.class)
+    public ResponseEntity<ApiError> handleTurnFull(TurnFullException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), "TURN_FULL", request, List.of());
+    }
+
+    @ExceptionHandler(ReservationRejectedException.class)
+    public ResponseEntity<ApiError> handleReservationRejected(ReservationRejectedException ex,
+                                                              HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
+    }
+
     private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest request,
                                            List<ApiError.FieldViolation> violations) {
-        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message,
+        return build(status, message, null, request, violations);
+    }
+
+    private ResponseEntity<ApiError> build(HttpStatus status, String message, String code,
+                                           HttpServletRequest request, List<ApiError.FieldViolation> violations) {
+        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message, code,
                 request.getRequestURI(), violations);
         return ResponseEntity.status(status).body(body);
     }

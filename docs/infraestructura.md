@@ -19,8 +19,8 @@ smartelevate.onrender.com         Render: imagen Docker de backend/ (Spring Boot
 Neon Postgres (AWS us-east-2)     Flyway crea y migra el schema al arrancar
 
 El backend además usa:
-  Brevo (SMTP)                    mails de verificación de cuenta
-  Cloudflare R2 (bucket privado)  certificados de prioridad
+  Brevo (SMTP)                    mails de verificación de cuenta y de reset de contraseña
+  Cloudflare R2 (bucket privado)  certificados de prioridad (todavía sin código que lo use, #123)
 ```
 
 El navegador solo habla con Vercel: `/api/*` lo reenvía Vercel al backend. Por eso no hace falta configurar CORS en producción.
@@ -70,6 +70,10 @@ Variables de entorno (en Render → **Environment**):
 | `DATABASE_URL` | `jdbc:postgresql://<host de Neon>/neondb?sslmode=require` |
 | `DATABASE_USER` | `neondb_owner` |
 | `DATABASE_PASSWORD` | La clave del rol en Neon |
+| `JWT_SECRET` | `openssl rand -base64 48` (mínimo 32 caracteres) |
+| `APP_FRONTEND_URL` | `https://smart-elevate.vercel.app` |
+| `CORS_ALLOWED_ORIGINS` | `https://smart-elevate.vercel.app` |
+| `APP_KIOSK_QR_SECRET` | `openssl rand -base64 48` (mínimo 32 caracteres, distinta de `JWT_SECRET`; clave HMAC del QR, [ADR 0020](adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)) |
 
 `PORT` lo define Render y `SPRING_PROFILES_ACTIVE=prod` ya viene en la imagen. Si aparecen reinicios por falta de memoria, agregar `JAVA_OPTS=-XX:MaxRAMPercentage=60`. La lista completa de variables está en el [README](../README.md#variables-de-entorno-del-backend).
 
@@ -85,6 +89,16 @@ Variables de entorno (en Render → **Environment**):
 1. Neon → **Branches → production → Roles → `neondb_owner` → Reset password**.
 2. Pegar la nueva en Render → Environment → `DATABASE_PASSWORD` → **Save, rebuild and deploy**.
 
+### Crear el primer ADMIN
+
+No hay endpoint ni seed que cree administradores ([ADR 0009](adr/0009-autenticacion-y-prioridad.md)). La persona se registra y verifica el email; después se la promueve en el **SQL Editor de Neon** (en dev, en `/h2-console`):
+
+```sql
+UPDATE app_user SET role = 'ADMIN' WHERE email = 'nombre@uade.edu.ar';
+```
+
+La tabla es `app_user` y el rol vive en su columna `role` (`USER`, `REVIEWER`, `ADMIN`). Desde ahí, los demás roles se asignan con `PUT /api/admin/users/{id}/role`, que deja registro en `priority_audit`. Este `UPDATE` manual no queda auditado: es la única excepción. El rol se lee de la base en cada request, así que no hace falta que la persona vuelva a loguearse.
+
 ## Frontend en Vercel
 
 Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ver [README](../README.md#cicd)). Lo que importa para el backend:
@@ -98,6 +112,14 @@ Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ve
 2. Release `develop` → `main`:
    - **Front:** `CI Frontend` termina OK y `deploy-frontend.yml` deploya a producción.
    - **Back:** `backend-verify` termina OK y Render buildea la imagen nueva (la primera vez tarda ~5–10 min) y la publica cuando `/api/ping` responde.
+
+### Smoke test del deploy
+
+Después de cada deploy del backend:
+
+1. **Variables:** en Render → **Environment** están `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` y `APP_KIOSK_QR_SECRET`, ninguna en blanco. Si falta una, el deploy queda en *failed* y el log dice cuál (`Binding validation errors on app`, #222).
+2. `GET /api/ping` responde 200 y `GET /actuator/health` da `UP` (despierta a Neon).
+3. Desde el front de producción, el login funciona (CORS bien configurado) y el mail de verificación trae un link a `APP_FRONTEND_URL`.
 
 ### Redeployar sin cambios de código
 
@@ -159,7 +181,7 @@ Variables en Render (Spring lee las `SPRING_MAIL_*` sin configuración extra):
 | `SPRING_MAIL_PASSWORD` | SMTP key de Brevo |
 | `APP_MAIL_FROM` | `smartelevate.uade@gmail.com` |
 
-STARTTLS ya está activado en `application-prod.yml`. Además de las de arriba, Render necesita `APP_FRONTEND_URL` (`https://smart-elevate.vercel.app`) para armar el link del mail. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
+STARTTLS ya está activado en `application-prod.yml`. `APP_FRONTEND_URL` (obligatoria, ver [Backend en Render](#backend-en-render)) arma los links de verificación y de reset de contraseña. En `prod` el envío real está activo por defecto (`APP_MAIL_ENABLED=true`); en dev y tests solo se loguea.
 
 **Rotar la clave:** Brevo → **SMTP & API → SMTP → Generate a new SMTP key**, cargarla en Render y borrar la vieja.
 
@@ -175,7 +197,7 @@ Los certificados de prioridad son **datos de salud** ([ADR 0009](adr/0009-autent
 | Acceso público | **Desactivado**: sin Public Development URL ni dominio propio. Sin credenciales responde `400` |
 | Token de API | *Object Read & Write*, **solo** sobre este bucket |
 
-Variables en Render:
+Variables en Render, para la implementación futura de los certificados ([#123](https://github.com/Benji-9/SmartElevate/issues/123)). Hoy el backend no las lee:
 
 | Variable | Valor |
 | --- | --- |
@@ -198,4 +220,4 @@ Para usar las mismas credenciales en local, ponelas en un `.env` en la raíz del
 - Claude Code no lo puede leer: hay una regla `deny` en `.claude/settings.json`.
 - **Spring no lo carga solo:** para correr el backend con esas variables, exportalas antes (`set -a; . ./.env; set +a`).
 
-El código que usa email y storage llega con la implementación de la autenticación ([B-05](bloqueantes.md)). Hasta entonces, estas variables están cargadas en Render pero nadie las lee.
+El email ya está en uso (verificación y reset). Las `APP_STORAGE_*` están cargadas en Render pero nadie las lee hasta que lleguen los certificados ([#123](https://github.com/Benji-9/SmartElevate/issues/123)).

@@ -19,13 +19,539 @@
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   }, {
+    "description" : "Datos del usuario autenticado",
+    "name" : "users"
+  }, {
+    "description" : "Roles y prioridad de usuarios (solo ADMIN)",
+    "name" : "admin-priority"
+  }, {
+    "description" : "Kioscos del QR (solo ADMIN)",
+    "name" : "admin-kiosk"
+  }, {
+    "description" : "Kiosco del QR del ascensor (credencial de dispositivo)",
+    "name" : "kiosk"
+  }, {
     "description" : "Salidas de ascensor y turnos",
     "name" : "turn"
   } ],
   "paths" : {
+    "/api/admin/kiosks" : {
+      "get" : {
+        "operationId" : "listKiosks",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KioskListResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Kioscos dados de alta (sin secretos) y si el simulador está habilitado",
+        "tags" : [ "admin-kiosk" ]
+      },
+      "post" : {
+        "description" : "Devuelve la credencial del kiosco una sola vez: en la base queda solo su hash.",
+        "operationId" : "createKiosk",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateKioskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreatedKioskResponse"
+                }
+              }
+            },
+            "description" : "Kiosco creado, con su secreto"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Ascensor inexistente (code ELEVATOR_NOT_FOUND)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Kiosco simulado con APP_KIOSK_SIMULATOR_ENABLED apagado (code SIMULATOR_DISABLED)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Da de alta un kiosco para un ascensor",
+        "tags" : [ "admin-kiosk" ]
+      }
+    },
+    "/api/admin/kiosks/{id}/revoke" : {
+      "post" : {
+        "description" : "Revocar uno ya revocado no hace nada.",
+        "operationId" : "revokeKiosk",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Kiosco inexistente (code KIOSK_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Revoca un kiosco: deja de funcionar en el acto y sus QR dejan de validar",
+        "tags" : [ "admin-kiosk" ]
+      }
+    },
+    "/api/admin/priority-users" : {
+      "get" : {
+        "operationId" : "priorityUsers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PriorityUserResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Usuarios con prioridad vigente",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/priority-users/{id}" : {
+      "delete" : {
+        "operationId" : "revoke",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "El usuario no tiene una prioridad vigente"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Quita la prioridad vigente de un usuario",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/pending" : {
+      "get" : {
+        "operationId" : "pendingTeachers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PendingTeacherResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Docentes declarados que esperan aprobación",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/{id}/approve" : {
+      "post" : {
+        "operationId" : "approve",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se declaró docente o ya está aprobado"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Aprueba a un docente: pasa a tener prioridad TEACHER",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/teachers/{id}/reject" : {
+      "post" : {
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se declaró docente o ya tiene la prioridad aprobada"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Rechaza a un docente: sigue como usuario común",
+        "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/users/{id}/role" : {
+      "put" : {
+        "operationId" : "assignRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se puede cambiar el rol propio"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Asigna el rol de un usuario (USER, REVIEWER, ADMIN)",
+        "tags" : [ "admin-priority" ]
+      }
+    },
     "/api/auth/login" : {
       "post" : {
-        "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.",
+        "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).",
         "operationId" : "login",
         "requestBody" : {
           "content" : {
@@ -38,6 +564,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "Par de tokens nuevo"
+          },
           "400" : {
             "content" : {
               "application/json" : {
@@ -67,6 +603,16 @@
               }
             },
             "description" : "El email institucional todavía no se verificó"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados intentos fallidos; Retry-After dice cuántos segundos esperar"
           },
           "500" : {
             "content" : {
@@ -126,6 +672,92 @@
         "tags" : [ "auth" ]
       }
     },
+    "/api/auth/password/forgot" : {
+      "post" : {
+        "description" : "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.",
+        "operationId" : "forgotPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Pide el link para restablecer la contraseña",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/password/reset" : {
+      "post" : {
+        "description" : "El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh tokens del usuario (se cierran todas sus sesiones).",
+        "operationId" : "resetPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Token inválido, usado o vencido, o contraseña fuera de política"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Elige una contraseña nueva con el token del link",
+        "tags" : [ "auth" ]
+      }
+    },
     "/api/auth/refresh" : {
       "post" : {
         "description" : "El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, se revoca toda la sesión.",
@@ -141,6 +773,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "Par de tokens nuevo"
+          },
           "400" : {
             "content" : {
               "application/json" : {
@@ -367,9 +1009,72 @@
         "tags" : [ "elevator" ]
       }
     },
+    "/api/check-ins" : {
+      "post" : {
+        "description" : "El usuario sale de la sesión; el ascensor y el kiosco, del token firmado. Se acepta desde check_in_opens_before antes hasta check_in_closes_after después de la salida (hoy −1 min a +2 min), una sola vez por reserva. Pasado no_show_after (+60 s) el resultado es LATE y la reserva queda NO_SHOW. Los rechazos traen un code estable: INVALID_QR_TOKEN, NO_ACTIVE_RESERVATION, OUTSIDE_CHECK_IN_WINDOW, ALREADY_CHECKED_IN.",
+        "operationId" : "checkIn",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CheckInRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckInResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Body inválido, o QR inválido, vencido o de un kiosco revocado (INVALID_QR_TOKEN, sin decir cuál)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Sin turno (NO_ACTIVE_RESERVATION), fuera de la ventana (OUTSIDE_CHECK_IN_WINDOW) o check-in ya registrado (ALREADY_CHECKED_IN)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Hace check-in con el QR del ascensor",
+        "tags" : [ "turn" ]
+      }
+    },
     "/api/departures" : {
       "get" : {
-        "description" : "Excluye los ascensores dedicados. Genera las salidas que falten de forma idempotente.",
+        "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.",
         "operationId" : "bookable",
         "parameters" : [ {
           "description" : "Código del ascensor",
@@ -425,6 +1130,9 @@
             "description" : "Internal Server Error"
           }
         },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
         "summary" : "Lista las salidas reservables ahora (ventana de reserva) con su cupo restante",
         "tags" : [ "turn" ]
       }
@@ -491,6 +1199,120 @@
         "tags" : [ "elevator" ]
       }
     },
+    "/api/kiosks/me/qr-token" : {
+      "get" : {
+        "description" : "El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.",
+        "operationId" : "qrToken",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QrTokenResponse"
+                }
+              }
+            },
+            "description" : "Token vigente"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Sin credencial de kiosco, inválida o revocada"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados pedidos; Retry-After dice cuántos segundos esperar",
+            "headers" : {
+              "Retry-After" : {
+                "schema" : {
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "kioskAuth" : [ ]
+        } ],
+        "summary" : "Token del QR del ascensor del kiosco",
+        "tags" : [ "kiosk" ]
+      }
+    },
+    "/api/me/no-shows" : {
+      "get" : {
+        "description" : "Falta = NO_SHOW o CANCELLED_LATE. threshold faltas en windowDays días suspenden suspensionHours horas: mientras tanto, reservar responde NO_SHOW_SUSPENDED. Con prioridad vigente, exempt = true y nunca hay suspensión.",
+        "operationId" : "mine_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NoShowStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Mis faltas recientes y si estoy suspendido",
+        "tags" : [ "turn" ]
+      }
+    },
     "/api/ping" : {
       "get" : {
         "operationId" : "ping",
@@ -529,6 +1351,233 @@
         "summary" : "Verifica que la API responde",
         "tags" : [ "ping" ]
       }
+    },
+    "/api/reservations" : {
+      "post" : {
+        "description" : "El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND, NO_SHOW_SUSPENDED. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría. NO_SHOW_SUSPENDED mientras dura la suspensión por faltas (GET /api/me/no-shows); a los prioritarios no se aplica.",
+        "operationId" : "reserve",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReserveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "La salida no existe (DEPARTURE_NOT_FOUND)"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Salida llena (TURN_FULL), fuera de ventana, límite de reservas alcanzado o suspensión por faltas (NO_SHOW_SUSPENDED)"
+          },
+          "422" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Pisos o ascensor no válidos para la reserva"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Reserva un lugar en una salida",
+        "tags" : [ "turn" ]
+      }
+    },
+    "/api/reservations/me" : {
+      "get" : {
+        "description" : "Ordenadas por salida, la más tardía primero.",
+        "operationId" : "mine",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReservationResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Lista mis reservas de hoy en adelante (activas y canceladas)",
+        "tags" : [ "turn" ]
+      }
+    },
+    "/api/reservations/{id}" : {
+      "delete" : {
+        "description" : "Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda CANCELLED; después, CANCELLED_LATE (cuenta como falta).",
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cancela una reserva mía y libera el lugar",
+        "tags" : [ "turn" ]
+      }
+    },
+    "/api/users/me" : {
+      "get" : {
+        "description" : "El rol se lee de la base y la prioridad es la vigente ahora (ADR 0009): ninguno sale de un claim del JWT. Sin token o con uno inválido responde 401.",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Devuelve el usuario de la sesión",
+        "tags" : [ "users" ]
+      }
     }
   },
   "components" : {
@@ -537,6 +1586,11 @@
         "type" : "object",
         "description" : "Error estándar de la API",
         "properties" : {
+          "code" : {
+            "type" : "string",
+            "description" : "Código estable de los errores de dominio, para que el cliente decida qué mostrar",
+            "example" : "TURN_FULL"
+          },
           "error" : {
             "type" : "string",
             "example" : "Not Found"
@@ -567,6 +1621,17 @@
           }
         },
         "required" : [ "error", "message", "path", "status", "timestamp" ]
+      },
+      "AssignRoleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "role" : {
+            "type" : "string",
+            "enum" : [ "USER", "REVIEWER", "ADMIN" ],
+            "example" : "REVIEWER"
+          }
+        },
+        "required" : [ "role" ]
       },
       "BuildingResponse" : {
         "type" : "object",
@@ -600,6 +1665,67 @@
         },
         "required" : [ "code", "cores", "maxFloor", "minFloor", "name" ]
       },
+      "CheckInRequest" : {
+        "type" : "object",
+        "description" : "Check-in: el token leído del QR del ascensor. El usuario sale de la sesión, no del body.",
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "description" : "Contenido del QR, tal cual se leyó",
+            "maxLength" : 512,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "token" ]
+      },
+      "CheckInResponse" : {
+        "type" : "object",
+        "description" : "Check-in registrado",
+        "properties" : {
+          "checkedInAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-13T15:57:40Z"
+          },
+          "departureAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Hora estimada de salida, en UTC",
+            "example" : "2026-10-13T15:58:00Z"
+          },
+          "elevator" : {
+            "type" : "string",
+            "description" : "Ascensor escaneado",
+            "example" : "34"
+          },
+          "outcome" : {
+            "type" : "string",
+            "description" : "ON_TIME (cumplida), OTHER_ELEVATOR o LATE (fuera de hora: cuenta como falta)",
+            "enum" : [ "ON_TIME", "OTHER_ELEVATOR", "LATE" ]
+          },
+          "reservationId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 55
+          },
+          "reservationStatus" : {
+            "type" : "string",
+            "description" : "Estado de la reserva después del check-in: USED, o NO_SHOW si fue LATE",
+            "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE", "USED", "NO_SHOW" ]
+          },
+          "reservedElevator" : {
+            "type" : "string",
+            "description" : "Ascensor de la reserva",
+            "example" : "33"
+          },
+          "source" : {
+            "type" : "string",
+            "description" : "SIMULATED si el QR vino del simulador de admin",
+            "enum" : [ "REAL", "SIMULATED" ]
+          }
+        },
+        "required" : [ "checkedInAt", "departureAt", "elevator", "outcome", "reservationId", "reservationStatus", "reservedElevator", "source" ]
+      },
       "CoreResponse" : {
         "type" : "object",
         "properties" : {
@@ -613,6 +1739,51 @@
           }
         },
         "required" : [ "code", "name" ]
+      },
+      "CreateKioskRequest" : {
+        "type" : "object",
+        "description" : "Alta de un kiosco del QR para un ascensor",
+        "properties" : {
+          "elevatorId" : {
+            "type" : "string",
+            "description" : "Código del ascensor",
+            "example" : "33",
+            "maxLength" : 8,
+            "minLength" : 0
+          },
+          "simulated" : {
+            "type" : "boolean",
+            "description" : "Kiosco del simulador de admin. Solo con APP_KIOSK_SIMULATOR_ENABLED; default false"
+          }
+        },
+        "required" : [ "elevatorId" ]
+      },
+      "CreatedKioskResponse" : {
+        "type" : "object",
+        "description" : "Kiosco recién creado. Es la única vez que la API devuelve el secreto",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "elevatorId" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "secret" : {
+            "type" : "string",
+            "description" : "Credencial del kiosco (Authorization: Bearer <secret>). No se puede volver a consultar",
+            "example" : "q3Jx0b5yT9mV2cK8pL4wZ7nR1sA6dF0hG3jE5uI8oYk"
+          },
+          "simulated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "elevatorId", "id", "secret", "simulated" ]
       },
       "DepartureResponse" : {
         "type" : "object",
@@ -645,8 +1816,8 @@
           "remainingSeats" : {
             "type" : "integer",
             "format" : "int32",
-            "description" : "Lugares libres",
-            "example" : 10
+            "description" : "Lugares que puede tomar el usuario: a uno común no se le cuentan los reservados a prioritarios",
+            "example" : 8
           },
           "status" : {
             "type" : "string",
@@ -707,6 +1878,67 @@
         },
         "required" : [ "field", "message" ]
       },
+      "ForgotPasswordRequest" : {
+        "type" : "object",
+        "description" : "Cuenta que olvidó su contraseña",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "jmartinez@uade.edu.ar",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email" ]
+      },
+      "KioskListResponse" : {
+        "type" : "object",
+        "description" : "Kioscos dados de alta y si el simulador está habilitado",
+        "properties" : {
+          "kiosks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KioskResponse"
+            }
+          },
+          "simulatorEnabled" : {
+            "type" : "boolean",
+            "description" : "APP_KIOSK_SIMULATOR_ENABLED: si es false no se pueden crear kioscos simulados"
+          }
+        },
+        "required" : [ "kiosks", "simulatorEnabled" ]
+      },
+      "KioskResponse" : {
+        "type" : "object",
+        "description" : "Kiosco del QR, sin su secreto",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "elevatorId" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastSeenAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Último pedido de token. Null si nunca se conectó"
+          },
+          "revokedAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Null mientras está activo"
+          },
+          "simulated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "elevatorId", "id", "simulated" ]
+      },
       "LoginRequest" : {
         "type" : "object",
         "description" : "Credenciales de inicio de sesión",
@@ -725,6 +1957,73 @@
         },
         "required" : [ "email", "password" ]
       },
+      "NoShowStatusResponse" : {
+        "type" : "object",
+        "description" : "Faltas recientes y suspensión (turnos.md §5). Falta = NO_SHOW o CANCELLED_LATE",
+        "properties" : {
+          "exempt" : {
+            "type" : "boolean",
+            "description" : "Prioridad vigente: las faltas se registran pero no suspenden"
+          },
+          "recentNoShows" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Faltas de los últimos windowDays días, sin las de check-in simulado. Si no está suspendido ni exento, solo las que cuentan para la próxima suspensión (desde el fin de la última)",
+            "example" : 2
+          },
+          "suspendedUntil" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Hasta cuándo no puede reservar, en UTC. Null si no está suspendido",
+            "example" : "2026-10-14T15:58:00Z"
+          },
+          "suspensionHours" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 24
+          },
+          "threshold" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Faltas que suspenden",
+            "example" : 3
+          },
+          "windowDays" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 7
+          }
+        },
+        "required" : [ "exempt", "recentNoShows", "suspendedUntil", "suspensionHours", "threshold", "windowDays" ]
+      },
+      "PendingTeacherResponse" : {
+        "type" : "object",
+        "description" : "Docente declarado que espera la aprobación de un ADMIN",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          },
+          "registeredAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Alta de la cuenta, en UTC"
+          }
+        },
+        "required" : [ "email", "fullName", "id", "legajo", "registeredAt" ]
+      },
       "PingResponse" : {
         "type" : "object",
         "properties" : {
@@ -734,6 +2033,57 @@
           }
         },
         "required" : [ "status" ]
+      },
+      "PriorityUserResponse" : {
+        "type" : "object",
+        "description" : "Usuario con prioridad vigente",
+        "properties" : {
+          "category" : {
+            "type" : "string",
+            "description" : "TEACHER o REDUCED_MOBILITY",
+            "enum" : [ "NONE", "TEACHER", "REDUCED_MOBILITY" ]
+          },
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          }
+        },
+        "required" : [ "category", "email", "fullName", "id", "legajo" ]
+      },
+      "QrTokenResponse" : {
+        "type" : "object",
+        "description" : "Token firmado que el kiosco muestra como QR",
+        "properties" : {
+          "elevatorId" : {
+            "type" : "string",
+            "description" : "Ascensor de la credencial: el kiosco avisa si no coincide con el de su URL",
+            "example" : "33"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Vencimiento en UTC: a esta hora el kiosco pide el siguiente",
+            "example" : "2026-10-14T15:40:30Z"
+          },
+          "token" : {
+            "type" : "string",
+            "description" : "Contenido del QR (opaco para el kiosco)",
+            "example" : "MzN8NmY5ZTRkM2EtM2I0Ny00YTVmLWI5ZjEtM2Q1ZTZmN2E4YjljfDE3NjA0NTYwMzA.c2lnbmF0dXJl"
+          }
+        },
+        "required" : [ "elevatorId", "expiresAt", "token" ]
       },
       "RefreshRequest" : {
         "type" : "object",
@@ -776,9 +2126,9 @@
           "password" : {
             "type" : "string",
             "format" : "password",
-            "description" : "Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). Sin otras reglas",
+            "description" : "Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes",
             "example" : "una-clave-larga",
-            "maxLength" : 72,
+            "maxLength" : 64,
             "minLength" : 8
           }
         },
@@ -795,6 +2145,162 @@
           }
         },
         "required" : [ "email" ]
+      },
+      "ReservationResponse" : {
+        "type" : "object",
+        "description" : "Reserva de un lugar en una salida",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-13T15:40:00Z"
+          },
+          "departureAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Hora estimada de salida, en UTC",
+            "example" : "2026-10-13T15:58:00Z"
+          },
+          "departureId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "destinationFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "elevator" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 55
+          },
+          "originFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 0
+          },
+          "seatNumber" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32",
+            "description" : "Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.",
+            "example" : 3
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE", "USED", "NO_SHOW" ]
+          }
+        },
+        "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]
+      },
+      "ReserveRequest" : {
+        "type" : "object",
+        "description" : "Pedido de reserva. El usuario sale del token, no del body.",
+        "properties" : {
+          "departureId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1234
+          },
+          "destinationFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "originFloor" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 0
+          }
+        },
+        "required" : [ "departureId", "destinationFloor", "originFloor" ]
+      },
+      "ResetPasswordRequest" : {
+        "type" : "object",
+        "description" : "Token del link del mail y la contraseña nueva",
+        "properties" : {
+          "newPassword" : {
+            "type" : "string",
+            "format" : "password",
+            "description" : "Misma política que el registro. Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes",
+            "example" : "una-clave-nueva",
+            "maxLength" : 64,
+            "minLength" : 8
+          },
+          "token" : {
+            "type" : "string",
+            "example" : "Zk3pQ1x9...",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "newPassword", "token" ]
+      },
+      "TokenResponse" : {
+        "type" : "object",
+        "description" : "Par de tokens de la sesión. El access token no lleva rol ni prioridad",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string",
+            "description" : "JWT corto, va en Authorization: Bearer"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Segundos de vida del access token",
+            "example" : 900
+          },
+          "refreshToken" : {
+            "type" : "string",
+            "description" : "Opaco y de un solo uso: cada refresh devuelve uno nuevo"
+          },
+          "tokenType" : {
+            "type" : "string",
+            "example" : "Bearer"
+          }
+        },
+        "required" : [ "accessToken", "expiresIn", "refreshToken", "tokenType" ]
+      },
+      "UserResponse" : {
+        "type" : "object",
+        "description" : "Usuario de la sesión. Rol y prioridad salen del servidor, nunca del token",
+        "properties" : {
+          "declaredUserType" : {
+            "type" : "string",
+            "description" : "Lo que declaró al registrarse. Informativo: no da rol ni prioridad",
+            "enum" : [ "STUDENT", "TEACHER" ]
+          },
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          },
+          "priority" : {
+            "type" : "string",
+            "description" : "Prioridad vigente, solo para mostrar: se vuelve a evaluar al reservar",
+            "enum" : [ "NONE", "TEACHER", "REDUCED_MOBILITY" ]
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "USER", "REVIEWER", "ADMIN" ]
+          }
+        },
+        "required" : [ "declaredUserType", "email", "fullName", "id", "legajo", "priority", "role" ]
       },
       "VerifyEmailRequest" : {
         "type" : "object",
@@ -813,6 +2319,11 @@
       "bearerAuth" : {
         "bearerFormat" : "JWT",
         "description" : "Access token del login: Authorization: Bearer <accessToken>",
+        "scheme" : "bearer",
+        "type" : "http"
+      },
+      "kioskAuth" : {
+        "description" : "Credencial del kiosco (ADR 0020): Authorization: Bearer <secret>, el secreto que devolvió el alta del kiosco",
         "scheme" : "bearer",
         "type" : "http"
       }

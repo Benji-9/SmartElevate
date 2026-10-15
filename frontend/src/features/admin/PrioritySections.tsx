@@ -1,8 +1,10 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
+import { ConfirmAction } from '../../components/ConfirmAction';
 import { errorMessage, useResource } from '../../hooks/useResource';
 import {
+  ApiError,
   approveTeacher,
   getPendingTeachers,
   getPriorityUsers,
@@ -11,49 +13,6 @@ import {
 } from '../../services/api';
 import { formatRegisteredAt } from './format';
 import './priority.css';
-
-/** Botón que pide confirmación en la misma fila antes de ejecutar (rechazar / revocar). */
-function ConfirmAction({
-  label,
-  name,
-  question,
-  confirmLabel,
-  onConfirm,
-}: {
-  label: string;
-  /** Nombre accesible completo ("Rechazar a Ana"). */
-  name: string;
-  question: string;
-  confirmLabel: string;
-  onConfirm: () => void;
-}) {
-  const [asking, setAsking] = useState(false);
-  if (!asking) {
-    return (
-      <Button variant="secondary" block={false} aria-label={name} onClick={() => setAsking(true)}>
-        {label}
-      </Button>
-    );
-  }
-  return (
-    <div role="group" aria-label={question} className="priority-confirm">
-      <p>{question}</p>
-      <Button
-        block={false}
-        onClick={() => {
-          setAsking(false);
-          onConfirm();
-        }}
-      >
-        {confirmLabel}
-      </Button>
-      {/* El foco empieza en la opción segura. */}
-      <Button variant="secondary" block={false} autoFocus onClick={() => setAsking(false)}>
-        Cancelar
-      </Button>
-    </div>
-  );
-}
 
 /** Tarjeta con título, estados de carga / error / vacío y una tabla de personas. */
 function Section<T extends { id: string }>({
@@ -84,7 +43,15 @@ function Section<T extends { id: string }>({
         list.reload();
         onDone?.();
       },
-      (error: unknown) => setActionError(errorMessage(error)),
+      (error: unknown) => {
+        // 404 / 409: la fila quedó vieja (otro admin ya la resolvió). Se vuelve a pedir la lista.
+        if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+          setActionError(`${error.message}. Actualizamos la lista.`);
+          list.reload();
+        } else {
+          setActionError(errorMessage(error));
+        }
+      },
     );
   };
 
@@ -191,11 +158,9 @@ export function PriorityUsers() {
           <td>{u.email}</td>
           <td>{u.legajo}</td>
           <td>
-            {u.category === 'TEACHER' ? (
-              <Chip tone="docentes">Docente</Chip>
-            ) : (
-              <Chip>Movilidad reducida</Chip>
-            )}
+            {/* El contrato admite NONE, pero esta lista solo trae prioridades vigentes. */}
+            {u.category === 'TEACHER' && <Chip tone="docentes">Docente</Chip>}
+            {u.category === 'REDUCED_MOBILITY' && <Chip>Movilidad reducida</Chip>}
           </td>
           <td>
             <ConfirmAction

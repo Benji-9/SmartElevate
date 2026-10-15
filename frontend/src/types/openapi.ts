@@ -4,6 +4,149 @@
  */
 
 export interface paths {
+  '/api/admin/kiosks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Kioscos dados de alta (sin secretos) y si el simulador está habilitado */
+    get: operations['listKiosks'];
+    put?: never;
+    /**
+     * Da de alta un kiosco para un ascensor
+     * @description Devuelve la credencial del kiosco una sola vez: en la base queda solo su hash.
+     */
+    post: operations['createKiosk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/kiosks/{id}/revoke': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Revoca un kiosco: deja de funcionar en el acto y sus QR dejan de validar
+     * @description Revocar uno ya revocado no hace nada.
+     */
+    post: operations['revokeKiosk'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/priority-users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Usuarios con prioridad vigente */
+    get: operations['priorityUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/priority-users/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Quita la prioridad vigente de un usuario */
+    delete: operations['revoke'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/teachers/pending': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Docentes declarados que esperan aprobación */
+    get: operations['pendingTeachers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/teachers/{id}/approve': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Aprueba a un docente: pasa a tener prioridad TEACHER */
+    post: operations['approve'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/teachers/{id}/reject': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Rechaza a un docente: sigue como usuario común */
+    post: operations['reject'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/users/{id}/role': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Asigna el rol de un usuario (USER, REVIEWER, ADMIN) */
+    put: operations['assignRole'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/login': {
     parameters: {
       query?: never;
@@ -15,7 +158,7 @@ export interface paths {
     put?: never;
     /**
      * Inicia sesión y devuelve access y refresh token
-     * @description Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403.
+     * @description Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).
      */
     post: operations['login'];
     delete?: never;
@@ -38,6 +181,46 @@ export interface paths {
      * @description Idempotente: un token desconocido tampoco da error.
      */
     post: operations['logout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/password/forgot': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Pide el link para restablecer la contraseña
+     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.
+     */
+    post: operations['forgotPassword'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/password/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Elige una contraseña nueva con el token del link
+     * @description El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh tokens del usuario (se cierran todas sus sesiones).
+     */
+    post: operations['resetPassword'];
     delete?: never;
     options?: never;
     head?: never;
@@ -141,6 +324,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/check-ins': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Hace check-in con el QR del ascensor
+     * @description El usuario sale de la sesión; el ascensor y el kiosco, del token firmado. Se acepta desde check_in_opens_before antes hasta check_in_closes_after después de la salida (hoy −1 min a +2 min), una sola vez por reserva. Pasado no_show_after (+60 s) el resultado es LATE y la reserva queda NO_SHOW. Los rechazos traen un code estable: INVALID_QR_TOKEN, NO_ACTIVE_RESERVATION, OUTSIDE_CHECK_IN_WINDOW, ALREADY_CHECKED_IN.
+     */
+    post: operations['checkIn'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/departures': {
     parameters: {
       query?: never;
@@ -150,7 +353,7 @@ export interface paths {
     };
     /**
      * Lista las salidas reservables ahora (ventana de reserva) con su cupo restante
-     * @description Excluye los ascensores dedicados. Genera las salidas que falten de forma idempotente.
+     * @description Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.
      */
     get: operations['bookable'];
     put?: never;
@@ -178,6 +381,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/kiosks/me/qr-token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Token del QR del ascensor del kiosco
+     * @description El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.
+     */
+    get: operations['qrToken'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/no-shows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Mis faltas recientes y si estoy suspendido
+     * @description Falta = NO_SHOW o CANCELLED_LATE. threshold faltas en windowDays días suspenden suspensionHours horas: mientras tanto, reservar responde NO_SHOW_SUSPENDED. Con prioridad vigente, exempt = true y nunca hay suspensión.
+     */
+    get: operations['mine_1'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ping': {
     parameters: {
       query?: never;
@@ -195,12 +438,97 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reservations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reserva un lugar en una salida
+     * @description El usuario sale del token y su prioridad se evalúa en el servidor. Los errores de regla traen un code estable: TURN_FULL, OUTSIDE_BOOKING_WINDOW, ACTIVE_LIMIT_REACHED, DAILY_LIMIT_REACHED, ELEVATOR_NOT_BOOKABLE, SAME_FLOOR, FLOOR_OUT_OF_RANGE, FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION, DEPARTURE_NOT_FOUND, NO_SHOW_SUSPENDED. TURN_FULL también cuando los lugares libres están reservados a prioritarios; ELEVATOR_NOT_BOOKABLE también en un ascensor dedicado a otra categoría. NO_SHOW_SUSPENDED mientras dura la suspensión por faltas (GET /api/me/no-shows); a los prioritarios no se aplica.
+     */
+    post: operations['reserve'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reservations/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Lista mis reservas de hoy en adelante (activas y canceladas)
+     * @description Ordenadas por salida, la más tardía primero.
+     */
+    get: operations['mine'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reservations/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Cancela una reserva mía y libera el lugar
+     * @description Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda CANCELLED; después, CANCELLED_LATE (cuenta como falta).
+     */
+    delete: operations['cancel'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Devuelve el usuario de la sesión
+     * @description El rol se lee de la base y la prioridad es la vigente ahora (ADR 0009): ninguno sale de un claim del JWT. Sin token o con uno inválido responde 401.
+     */
+    get: operations['me'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /** @description Error estándar de la API */
     ApiError: {
+      /**
+       * @description Código estable de los errores de dominio, para que el cliente decida qué mostrar
+       * @example TURN_FULL
+       */
+      code?: string;
       /** @example Not Found */
       error: string;
       /** @example Recurso no encontrado */
@@ -216,6 +544,13 @@ export interface components {
       timestamp: string;
       /** @description Solo en errores de validación */
       violations?: components['schemas']['FieldViolation'][];
+    };
+    AssignRoleRequest: {
+      /**
+       * @example REVIEWER
+       * @enum {string}
+       */
+      role: 'USER' | 'REVIEWER' | 'ADMIN';
     };
     /** @description Edificio con su rango de pisos y sus núcleos */
     BuildingResponse: {
@@ -236,11 +571,85 @@ export interface components {
       /** @example Lima */
       name: string;
     };
+    /** @description Check-in: el token leído del QR del ascensor. El usuario sale de la sesión, no del body. */
+    CheckInRequest: {
+      /** @description Contenido del QR, tal cual se leyó */
+      token: string;
+    };
+    /** @description Check-in registrado */
+    CheckInResponse: {
+      /**
+       * Format: date-time
+       * @example 2026-10-13T15:57:40Z
+       */
+      checkedInAt: string;
+      /**
+       * Format: date-time
+       * @description Hora estimada de salida, en UTC
+       * @example 2026-10-13T15:58:00Z
+       */
+      departureAt: string;
+      /**
+       * @description Ascensor escaneado
+       * @example 34
+       */
+      elevator: string;
+      /**
+       * @description ON_TIME (cumplida), OTHER_ELEVATOR o LATE (fuera de hora: cuenta como falta)
+       * @enum {string}
+       */
+      outcome: 'ON_TIME' | 'OTHER_ELEVATOR' | 'LATE';
+      /**
+       * Format: int64
+       * @example 55
+       */
+      reservationId: number;
+      /**
+       * @description Estado de la reserva después del check-in: USED, o NO_SHOW si fue LATE
+       * @enum {string}
+       */
+      reservationStatus: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE' | 'USED' | 'NO_SHOW';
+      /**
+       * @description Ascensor de la reserva
+       * @example 33
+       */
+      reservedElevator: string;
+      /**
+       * @description SIMULATED si el QR vino del simulador de admin
+       * @enum {string}
+       */
+      source: 'REAL' | 'SIMULATED';
+    };
     CoreResponse: {
       /** @example L3 */
       code: string;
       /** @example Lima 3 */
       name: string;
+    };
+    /** @description Alta de un kiosco del QR para un ascensor */
+    CreateKioskRequest: {
+      /**
+       * @description Código del ascensor
+       * @example 33
+       */
+      elevatorId: string;
+      /** @description Kiosco del simulador de admin. Solo con APP_KIOSK_SIMULATOR_ENABLED; default false */
+      simulated?: boolean;
+    };
+    /** @description Kiosco recién creado. Es la única vez que la API devuelve el secreto */
+    CreatedKioskResponse: {
+      /** Format: date-time */
+      createdAt: string;
+      /** @example 33 */
+      elevatorId: string;
+      /** Format: uuid */
+      id: string;
+      /**
+       * @description Credencial del kiosco (Authorization: Bearer <secret>). No se puede volver a consultar
+       * @example q3Jx0b5yT9mV2cK8pL4wZ7nR1sA6dF0hG3jE5uI8oYk
+       */
+      secret: string;
+      simulated: boolean;
     };
     /** @description Salida de un ascensor reservable ahora, con su cupo restante */
     DepartureResponse: {
@@ -266,8 +675,8 @@ export interface components {
       id: number;
       /**
        * Format: int32
-       * @description Lugares libres
-       * @example 10
+       * @description Lugares que puede tomar el usuario: a uno común no se le cuentan los reservados a prioritarios
+       * @example 8
        */
       remainingSeats: number;
       /** @enum {string} */
@@ -307,6 +716,37 @@ export interface components {
       field: string;
       message: string;
     };
+    /** @description Cuenta que olvidó su contraseña */
+    ForgotPasswordRequest: {
+      /** @example jmartinez@uade.edu.ar */
+      email: string;
+    };
+    /** @description Kioscos dados de alta y si el simulador está habilitado */
+    KioskListResponse: {
+      kiosks: components['schemas']['KioskResponse'][];
+      /** @description APP_KIOSK_SIMULATOR_ENABLED: si es false no se pueden crear kioscos simulados */
+      simulatorEnabled: boolean;
+    };
+    /** @description Kiosco del QR, sin su secreto */
+    KioskResponse: {
+      /** Format: date-time */
+      createdAt: string;
+      /** @example 33 */
+      elevatorId: string;
+      /** Format: uuid */
+      id: string;
+      /**
+       * Format: date-time
+       * @description Último pedido de token. Null si nunca se conectó
+       */
+      lastSeenAt?: string | null;
+      /**
+       * Format: date-time
+       * @description Null mientras está activo
+       */
+      revokedAt?: string | null;
+      simulated: boolean;
+    };
     /** @description Credenciales de inicio de sesión */
     LoginRequest: {
       /** @example jmartinez@uade.edu.ar */
@@ -317,9 +757,93 @@ export interface components {
        */
       password: string;
     };
+    /** @description Faltas recientes y suspensión (turnos.md §5). Falta = NO_SHOW o CANCELLED_LATE */
+    NoShowStatusResponse: {
+      /** @description Prioridad vigente: las faltas se registran pero no suspenden */
+      exempt: boolean;
+      /**
+       * Format: int32
+       * @description Faltas de los últimos windowDays días, sin las de check-in simulado. Si no está suspendido ni exento, solo las que cuentan para la próxima suspensión (desde el fin de la última)
+       * @example 2
+       */
+      recentNoShows: number;
+      /**
+       * Format: date-time
+       * @description Hasta cuándo no puede reservar, en UTC. Null si no está suspendido
+       * @example 2026-10-14T15:58:00Z
+       */
+      suspendedUntil: string | null;
+      /**
+       * Format: int64
+       * @example 24
+       */
+      suspensionHours: number;
+      /**
+       * Format: int32
+       * @description Faltas que suspenden
+       * @example 3
+       */
+      threshold: number;
+      /**
+       * Format: int64
+       * @example 7
+       */
+      windowDays: number;
+    };
+    /** @description Docente declarado que espera la aprobación de un ADMIN */
+    PendingTeacherResponse: {
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * Format: date-time
+       * @description Alta de la cuenta, en UTC
+       */
+      registeredAt: string;
+    };
     PingResponse: {
       /** @example ok */
       status: string;
+    };
+    /** @description Usuario con prioridad vigente */
+    PriorityUserResponse: {
+      /**
+       * @description TEACHER o REDUCED_MOBILITY
+       * @enum {string}
+       */
+      category: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+    };
+    /** @description Token firmado que el kiosco muestra como QR */
+    QrTokenResponse: {
+      /**
+       * @description Ascensor de la credencial: el kiosco avisa si no coincide con el de su URL
+       * @example 33
+       */
+      elevatorId: string;
+      /**
+       * Format: date-time
+       * @description Vencimiento en UTC: a esta hora el kiosco pide el siguiente
+       * @example 2026-10-14T15:40:30Z
+       */
+      expiresAt: string;
+      /**
+       * @description Contenido del QR (opaco para el kiosco)
+       * @example MzN8NmY5ZTRkM2EtM2I0Ny00YTVmLWI5ZjEtM2Q1ZTZmN2E4YjljfDE3NjA0NTYwMzA.c2lnbmF0dXJl
+       */
+      token: string;
     };
     /** @description Refresh token vigente de la sesión */
     RefreshRequest: {
@@ -344,7 +868,7 @@ export interface components {
       legajo: string;
       /**
        * Format: password
-       * @description Entre 8 y 72 caracteres, y hasta 72 bytes (la ñ y las tildes ocupan 2). Sin otras reglas
+       * @description Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes
        * @example una-clave-larga
        */
       password: string;
@@ -353,6 +877,117 @@ export interface components {
     ResendVerificationRequest: {
       /** @example jmartinez@uade.edu.ar */
       email: string;
+    };
+    /** @description Reserva de un lugar en una salida */
+    ReservationResponse: {
+      /**
+       * Format: date-time
+       * @example 2026-10-13T15:40:00Z
+       */
+      createdAt: string;
+      /**
+       * Format: date-time
+       * @description Hora estimada de salida, en UTC
+       * @example 2026-10-13T15:58:00Z
+       */
+      departureAt: string;
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      departureId: number;
+      /**
+       * Format: int32
+       * @example 8
+       */
+      destinationFloor: number;
+      /** @example 33 */
+      elevator: string;
+      /**
+       * Format: int64
+       * @example 55
+       */
+      id: number;
+      /**
+       * Format: int32
+       * @example 0
+       */
+      originFloor: number;
+      /**
+       * Format: int32
+       * @description Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.
+       * @example 3
+       */
+      seatNumber?: number | null;
+      /** @enum {string} */
+      status: 'ACTIVE' | 'CANCELLED' | 'CANCELLED_LATE' | 'USED' | 'NO_SHOW';
+    };
+    /** @description Pedido de reserva. El usuario sale del token, no del body. */
+    ReserveRequest: {
+      /**
+       * Format: int64
+       * @example 1234
+       */
+      departureId: number;
+      /**
+       * Format: int32
+       * @example 8
+       */
+      destinationFloor: number;
+      /**
+       * Format: int32
+       * @example 0
+       */
+      originFloor: number;
+    };
+    /** @description Token del link del mail y la contraseña nueva */
+    ResetPasswordRequest: {
+      /**
+       * Format: password
+       * @description Misma política que el registro. Entre 8 y 64 caracteres (se cuentan caracteres, no bytes, tras normalizar con NFKC). Sin reglas de composición; se rechazan las contraseñas comunes
+       * @example una-clave-nueva
+       */
+      newPassword: string;
+      /** @example Zk3pQ1x9... */
+      token: string;
+    };
+    /** @description Par de tokens de la sesión. El access token no lleva rol ni prioridad */
+    TokenResponse: {
+      /** @description JWT corto, va en Authorization: Bearer */
+      accessToken: string;
+      /**
+       * Format: int64
+       * @description Segundos de vida del access token
+       * @example 900
+       */
+      expiresIn: number;
+      /** @description Opaco y de un solo uso: cada refresh devuelve uno nuevo */
+      refreshToken: string;
+      /** @example Bearer */
+      tokenType: string;
+    };
+    /** @description Usuario de la sesión. Rol y prioridad salen del servidor, nunca del token */
+    UserResponse: {
+      /**
+       * @description Lo que declaró al registrarse. Informativo: no da rol ni prioridad
+       * @enum {string}
+       */
+      declaredUserType: 'STUDENT' | 'TEACHER';
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * @description Prioridad vigente, solo para mostrar: se vuelve a evaluar al reservar
+       * @enum {string}
+       */
+      priority: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /** @enum {string} */
+      role: 'USER' | 'REVIEWER' | 'ADMIN';
     };
     /** @description Token del link que llegó por mail */
     VerifyEmailRequest: {
@@ -368,6 +1003,446 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  listKiosks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KioskListResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  createKiosk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateKioskRequest'];
+      };
+    };
+    responses: {
+      /** @description Kiosco creado, con su secreto */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreatedKioskResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Ascensor inexistente (code ELEVATOR_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Kiosco simulado con APP_KIOSK_SIMULATOR_ENABLED apagado (code SIMULATOR_DISABLED) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  revokeKiosk: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Kiosco inexistente (code KIOSK_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  priorityUsers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PriorityUserResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  revoke: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description El usuario no tiene una prioridad vigente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  pendingTeachers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PendingTeacherResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  approve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se declaró docente o ya está aprobado */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  reject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se declaró docente o ya tiene la prioridad aprobada */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  assignRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssignRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se puede cambiar el rol propio */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   login: {
     parameters: {
       query?: never;
@@ -381,6 +1456,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Par de tokens nuevo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -401,6 +1485,15 @@ export interface operations {
       };
       /** @description El email institucional todavía no se verificó */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Demasiados intentos fallidos; Retry-After dice cuántos segundos esperar */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -459,6 +1552,86 @@ export interface operations {
       };
     };
   };
+  forgotPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ForgotPasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  resetPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResetPasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Token inválido, usado o vencido, o contraseña fuera de política */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   refresh: {
     parameters: {
       query?: never;
@@ -472,6 +1645,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Par de tokens nuevo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -677,6 +1859,57 @@ export interface operations {
       };
     };
   };
+  checkIn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckInRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckInResponse'];
+        };
+      };
+      /** @description Body inválido, o QR inválido, vencido o de un kiosco revocado (INVALID_QR_TOKEN, sin decir cuál) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Sin turno (NO_ACTIVE_RESERVATION), fuera de la ventana (OUTSIDE_CHECK_IN_WINDOW) o check-in ya registrado (ALREADY_CHECKED_IN) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   bookable: {
     parameters: {
       query?: {
@@ -775,6 +2008,101 @@ export interface operations {
       };
     };
   };
+  qrToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Token vigente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QrTokenResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Sin credencial de kiosco, inválida o revocada */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Demasiados pedidos; Retry-After dice cuántos segundos esperar */
+      429: {
+        headers: {
+          'Retry-After'?: number;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  mine_1: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NoShowStatusResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   ping: {
     parameters: {
       query?: never;
@@ -791,6 +2119,198 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['PingResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  reserve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReserveRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La salida no existe (DEPARTURE_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Salida llena (TURN_FULL), fuera de ventana, límite de reservas alcanzado o suspensión por faltas (NO_SHOW_SUSPENDED) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Pisos o ascensor no válidos para la reserva */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  mine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  cancel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
         };
       };
       /** @description Bad Request */
