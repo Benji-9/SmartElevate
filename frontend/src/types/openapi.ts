@@ -4,6 +4,63 @@
  */
 
 export interface paths {
+  '/api/admin/elevators': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Todos los ascensores, en servicio o no, con las reservas que se cancelarían */
+    get: operations['list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/elevators/{code}/in-service': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reactiva un ascensor: vuelve a ofrecerse y a aceptar reservas
+     * @description Las reservas ya canceladas no se restauran. Reactivar uno en servicio no hace nada.
+     */
+    post: operations['inService'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/elevators/{code}/out-of-service': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Marca un ascensor fuera de servicio por avería
+     * @description Cancela sin falta sus reservas activas de salidas futuras (devuelve el cupo diario) y avisa por mail a cada persona. Deja de ofrecerse y de aceptar reservas. Todo o nada. Marcarlo dos veces no hace nada.
+     */
+    post: operations['outOfService'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/kiosks': {
     parameters: {
       query?: never;
@@ -641,6 +698,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** @description Ascensor en el panel de admin, esté o no en servicio */
+    AdminElevatorResponse: {
+      /** @description false = fuera de servicio */
+      active: boolean;
+      /** @example INDEPENDENCIA */
+      building: string;
+      /** @example 33 */
+      code: string;
+      /** @example Independencia 2 */
+      coreName: string;
+      /**
+       * Format: int32
+       * @description Reservas activas de salidas futuras: las que se cancelan al marcarlo fuera de servicio
+       * @example 4
+       */
+      upcomingReservations: number;
+      /** @enum {string} */
+      usage: 'COMMON' | 'TEACHERS' | 'REDUCED_MOBILITY';
+    };
     /** @description KPIs de congestión del período (docs/reglas/kpis.md), sin las reservas con check-in simulado. Check-ins y ocupación cuentan solo las salidas ya resueltas (pasado el umbral de no-show) */
     AdminKpisResponse: {
       /**
@@ -1099,6 +1175,14 @@ export interface components {
        */
       elevatorOutOfService: boolean;
     };
+    /** @description Datos opcionales al marcar un ascensor fuera de servicio */
+    OutOfServiceRequest: {
+      /**
+       * @description Motivo corto, solo para la auditoría
+       * @example Avería del motor
+       */
+      reason?: string;
+    };
     /** @description Docente declarado que espera la aprobación de un ADMIN */
     PendingTeacherResponse: {
       /** @example ana@uade.edu.ar */
@@ -1376,6 +1460,128 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminElevatorResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  inService: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        code: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Ascensor inexistente (code ELEVATOR_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  outOfService: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        code: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['OutOfServiceRequest'];
+      };
+    };
+    responses: {
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Ascensor inexistente (code ELEVATOR_NOT_FOUND) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   listKiosks: {
     parameters: {
       query?: never;

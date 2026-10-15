@@ -10,6 +10,9 @@
     "description" : "Mismo origen"
   } ],
   "tags" : [ {
+    "description" : "Ascensores fuera de servicio (solo ADMIN)",
+    "name" : "admin-elevator"
+  }, {
     "description" : "Alta de cuentas y sesión (login, refresh, logout)",
     "name" : "auth"
   }, {
@@ -38,6 +41,162 @@
     "name" : "turn"
   } ],
   "paths" : {
+    "/api/admin/elevators" : {
+      "get" : {
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AdminElevatorResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Todos los ascensores, en servicio o no, con las reservas que se cancelarían",
+        "tags" : [ "admin-elevator" ]
+      }
+    },
+    "/api/admin/elevators/{code}/in-service" : {
+      "post" : {
+        "description" : "Las reservas ya canceladas no se restauran. Reactivar uno en servicio no hace nada.",
+        "operationId" : "inService",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Ascensor inexistente (code ELEVATOR_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Reactiva un ascensor: vuelve a ofrecerse y a aceptar reservas",
+        "tags" : [ "admin-elevator" ]
+      }
+    },
+    "/api/admin/elevators/{code}/out-of-service" : {
+      "post" : {
+        "description" : "Cancela sin falta sus reservas activas de salidas futuras (devuelve el cupo diario) y avisa por mail a cada persona. Deja de ofrecerse y de aceptar reservas. Todo o nada. Marcarlo dos veces no hace nada.",
+        "operationId" : "outOfService",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OutOfServiceRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Ascensor inexistente (code ELEVATOR_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Marca un ascensor fuera de servicio por avería",
+        "tags" : [ "admin-elevator" ]
+      }
+    },
     "/api/admin/kiosks" : {
       "get" : {
         "operationId" : "listKiosks",
@@ -2016,6 +2175,39 @@
   },
   "components" : {
     "schemas" : {
+      "AdminElevatorResponse" : {
+        "type" : "object",
+        "description" : "Ascensor en el panel de admin, esté o no en servicio",
+        "properties" : {
+          "active" : {
+            "type" : "boolean",
+            "description" : "false = fuera de servicio"
+          },
+          "building" : {
+            "type" : "string",
+            "example" : "INDEPENDENCIA"
+          },
+          "code" : {
+            "type" : "string",
+            "example" : "33"
+          },
+          "coreName" : {
+            "type" : "string",
+            "example" : "Independencia 2"
+          },
+          "upcomingReservations" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Reservas activas de salidas futuras: las que se cancelan al marcarlo fuera de servicio",
+            "example" : 4
+          },
+          "usage" : {
+            "type" : "string",
+            "enum" : [ "COMMON", "TEACHERS", "REDUCED_MOBILITY" ]
+          }
+        },
+        "required" : [ "active", "building", "code", "coreName", "upcomingReservations", "usage" ]
+      },
       "AdminKpisResponse" : {
         "type" : "object",
         "description" : "KPIs de congestión del período (docs/reglas/kpis.md), sin las reservas con check-in simulado. Check-ins y ocupación cuentan solo las salidas ya resueltas (pasado el umbral de no-show)",
@@ -2705,6 +2897,19 @@
           }
         },
         "required" : [ "departureReminder", "elevatorOutOfService" ]
+      },
+      "OutOfServiceRequest" : {
+        "type" : "object",
+        "description" : "Datos opcionales al marcar un ascensor fuera de servicio",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "description" : "Motivo corto, solo para la auditoría",
+            "example" : "Avería del motor",
+            "maxLength" : 64,
+            "minLength" : 0
+          }
+        }
       },
       "PendingTeacherResponse" : {
         "type" : "object",

@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Registro de una acción de administración: quién, sobre qué, qué y cuándo. Sin datos sensibles. El destino es un
- * usuario (cambios de rol o prioridad) o un kiosco (alta y revocación, V15), nunca los dos.
+ * usuario (cambios de rol o prioridad) un kiosco (alta y revocación, V15) o un ascensor (fuera de servicio, V21): exactamente uno.
  */
 @Entity
 @Table(name = "priority_audit")
@@ -35,6 +35,9 @@ public class PriorityAudit {
     @Column(name = "target_kiosk_id")
     private UUID targetKioskId;
 
+    @Column(name = "target_elevator_code")
+    private String targetElevatorCode;
+
     private String action;
 
     private String detail;
@@ -48,6 +51,13 @@ public class PriorityAudit {
         this.action = action;
         this.detail = detail;
         this.createdAt = createdAt;
+    }
+
+    public static PriorityAudit forElevator(UUID actorId, String elevatorCode, String action, String detail,
+                                            Instant createdAt) {
+        PriorityAudit audit = new PriorityAudit(actorId, null, action, detail, createdAt);
+        audit.targetElevatorCode = elevatorCode;
+        return audit;
     }
 
     public static PriorityAudit forKiosk(UUID actorId, UUID kioskId, String action, String detail, Instant createdAt) {

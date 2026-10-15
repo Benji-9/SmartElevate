@@ -88,6 +88,14 @@ public class Reservation {
         seatNumber = null;
     }
 
+    /** Cancelación del sistema (ascensor fuera de servicio, #134): nunca es falta. Libera el lugar. */
+    public void cancelByOutage() {
+        if (status == ReservationStatus.ACTIVE) {
+            status = ReservationStatus.CANCELLED;
+            seatNumber = null;
+        }
+    }
+
     /** Cancelar en {@code now} cuenta como falta: pasó {@code deadline} antes de la salida. */
     public boolean cancelIsLate(Instant now, Duration deadline) {
         return now.isAfter(departure.getDepartureAt().minus(deadline));
