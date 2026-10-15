@@ -14,6 +14,7 @@ type State =
   | { kind: 'loading' }
   | { kind: 'ready'; token: string }
   | { kind: 'unauthorized' }
+  | { kind: 'mismatch'; credentialElevator: string }
   | { kind: 'retrying'; message: string };
 
 /** QR en SVG: un `path` con un cuadrado por módulo oscuro, con margen de 4 módulos. */
@@ -44,7 +45,8 @@ function QrImage({ text, label }: { text: string; label: string }) {
 /**
  * Kiosco del QR (SCREENS.md §10): pide el token con la credencial del kiosco, lo muestra y pide
  * el siguiente al llegar a `expiresAt`. Con 401 (credencial inválida o revocada) deja de pedir;
- * con 429 espera lo que diga `Retry-After`. Lo usan `/qr/:ascensor` y el simulador del admin.
+ * con 429 espera lo que diga `Retry-After`. Si la credencial es de otro ascensor que `elevator`,
+ * avisa y deja de pedir: no muestra un QR que registraría el viaje en otro ascensor. Lo usan `/qr/:ascensor` y el simulador del admin.
  * Montarlo con `key={secret}`: al cambiar de credencial no tiene que verse el QR anterior.
  */
 export function KioskQr({
@@ -54,9 +56,9 @@ export function KioskQr({
   footer,
 }: {
   secret: string;
-  /** Código del ascensor, solo para el texto: el que vale es el de la credencial. */
+  /** Ascensor esperado (el de la URL): si la credencial es de otro, no se muestra el QR. */
   elevator: string;
-  /** Qué ofrecer si la credencial ya no sirve (borrarla, crear otra). */
+  /** Qué ofrecer si la credencial ya no sirve o es de otro ascensor (borrarla, crear otra). */
   unauthorizedAction?: ReactNode;
   /** Debajo del QR mientras la credencial sirve. */
   footer?: ReactNode;
@@ -71,8 +73,13 @@ export function KioskQr({
       timer = setTimeout(() => setCycle((c) => c + 1), ms);
     };
     getKioskQrToken(secret).then(
-      ({ token, msLeft }) => {
+      ({ token, msLeft, elevatorId }) => {
         if (!alive) return;
+        // Credencial de otro ascensor: su QR registraría el check-in en ese otro. Deja de pedir.
+        if (elevatorId !== elevator) {
+          setState({ kind: 'mismatch', credentialElevator: elevatorId });
+          return;
+        }
         setState({ kind: 'ready', token });
         nextIn(Math.max(msLeft, MIN_DELAY_MS));
       },
@@ -97,7 +104,21 @@ export function KioskQr({
       alive = false;
       clearTimeout(timer);
     };
-  }, [secret, cycle]);
+  }, [secret, elevator, cycle]);
+
+  if (state.kind === 'mismatch') {
+    return (
+      <div role="alert" className="kiosk-alert">
+        <p className="text-heading">Esta credencial es de otro ascensor</p>
+        <p>
+          La credencial es del ascensor {state.credentialElevator} y esta pantalla es del ascensor{' '}
+          {elevator}. Para no registrar viajes en otro ascensor, no mostramos el QR. Cargá la
+          credencial del ascensor {elevator}.
+        </p>
+        {unauthorizedAction}
+      </div>
+    );
+  }
 
   if (state.kind === 'unauthorized') {
     return (

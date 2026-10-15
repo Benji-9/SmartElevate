@@ -11,5 +11,9 @@ public record QrTokenResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
                 description = "Vencimiento en UTC: a esta hora el kiosco pide el siguiente",
                 example = "2026-10-14T15:40:30Z")
-        Instant expiresAt) {
+        Instant expiresAt,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
+                description = "Ascensor de la credencial: el kiosco avisa si no coincide con el de su URL",
+                example = "33")
+        String elevatorId) {
 }

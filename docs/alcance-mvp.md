@@ -24,6 +24,7 @@ Qué entra en el MVP de SmartElevate y qué queda para una Fase 2, con el porqu�
 | **Lista de espera** | Suma estados, asignación automática y avisos en tiempo real. El cupo que libera una cancelación a tiempo, más la notificación, cubre parte del caso. |
 | **Edificio alternativo** ([#213](https://github.com/Benji-9/SmartElevate/issues/213)) | Necesita los tiempos de caminata por tramo y saber qué conexiones son accesibles, y todavía no están medidos. A lo sumo, un aviso informativo. |
 | **Tolerancia X** (cancelar sin falta si la espera real supera la estimada + X) | Hace falta el check-in y medir la espera real antes de elegir un valor. |
+| **Ingreso manual del código de check-in** ([#238](https://github.com/Benji-9/SmartElevate/issues/238), [ADR 0021](adr/0021-check-in-sin-ingreso-manual.md)) | El token del QR tiene unos 80 caracteres opacos y rota cada ~30 s: no se puede tipear. Tampoco cubría la caída del kiosco, que sin red no tiene token para mostrar. Limitación aceptada: si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in. |
 | **MFA** | Fuera del alcance de un MVP universitario. Con un segundo factor, la contraseña de 8 caracteres cumple NIST tal cual ([ADR 0015](adr/0015-politica-de-contrasenas-nist-800-63b.md)). |
 
 Los parámetros de lo que queda afuera (`cancellation_wait_tolerance`, `priority_aging`) siguen en NULL en `app_config` y el código no los usa.

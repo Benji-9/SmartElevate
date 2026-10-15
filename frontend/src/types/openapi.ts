@@ -829,6 +829,11 @@ export interface components {
     /** @description Token firmado que el kiosco muestra como QR */
     QrTokenResponse: {
       /**
+       * @description Ascensor de la credencial: el kiosco avisa si no coincide con el de su URL
+       * @example 33
+       */
+      elevatorId: string;
+      /**
        * Format: date-time
        * @description Vencimiento en UTC: a esta hora el kiosco pide el siguiente
        * @example 2026-10-14T15:40:30Z
