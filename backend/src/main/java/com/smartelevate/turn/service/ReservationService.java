@@ -18,11 +18,16 @@ import com.smartelevate.elevator.model.Building;
 import com.smartelevate.elevator.model.Elevator;
 import com.smartelevate.priority.model.PriorityCategory;
 import com.smartelevate.priority.service.PriorityService;
+import com.smartelevate.turn.dto.ReservationPageResponse;
 import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
+import com.smartelevate.turn.model.CheckIn;
+import com.smartelevate.turn.model.CheckInOutcome;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.DepartureStatus;
 import com.smartelevate.turn.model.Reservation;
+import com.smartelevate.turn.model.ReservationStatus;
+import com.smartelevate.turn.repository.CheckInRepository;
 import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.repository.UserRepository;
@@ -32,11 +37,17 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Reserva de un lugar en una salida (ADR 0007 y 0010).
@@ -62,7 +73,10 @@ public class ReservationService {
     private final CampusTime time;
     private final PriorityService priorities;
     private final NoShowService noShows;
+    private final CheckInRepository checkIns;
 
+    static final int HISTORY_PAGE_SIZE = 20;
+    private static final String CURSOR_SEPARATOR = "_";
     private static final DateTimeFormatter SUSPENSION_END = DateTimeFormatter.ofPattern("dd/MM 'a las' HH:mm");
 
     // Un rechazo no deshace la suspensión que acaba de guardar NoShowService: antes de los rechazos no se escribe
@@ -102,7 +116,7 @@ public class ReservationService {
             seat++;
         }
         return toResponse(reservations.saveAndFlush(new Reservation(userId, departure, seat, request.originFloor(),
-                request.destinationFloor(), now, priorityUser)));
+                request.destinationFloor(), now, priorityUser)), now, null);
     }
 
     /**
@@ -124,18 +138,73 @@ public class ReservationService {
         reservation.cancel(time.now(), config.cancellationDeadlineBefore());
     }
 
-    /** Reservas del usuario (activas y canceladas) con salida desde el inicio de hoy, la más tardía primero. */
+    /**
+     * La reserva activa del usuario mientras se puede hacer check-in: salida hasta {@code check_in_closes_after}
+     * atrás, así Inicio y Check-in la siguen mostrando un rato después de la hora de salida. Si hay más de una, la
+     * más próxima (la que toca escanear).
+     */
     @Transactional(readOnly = true)
-    public List<ReservationResponse> mine(UUID userId) {
-        return reservations.findMine(userId, time.toInstant(time.today(), LocalTime.MIDNIGHT)).stream()
-                .map(ReservationService::toResponse)
-                .toList();
+    public Optional<ReservationResponse> active(UUID userId) {
+        Instant now = time.now();
+        return reservations.findActiveFrom(userId, now.minus(config.checkInClosesAfter())).stream()
+                .findFirst()
+                .map(r -> toResponse(r, now, null));
     }
 
-    private static ReservationResponse toResponse(Reservation r) {
+    /** Una reserva del usuario. Una ajena responde igual que una inexistente (404), como {@link #cancel}. */
+    @Transactional(readOnly = true)
+    public ReservationResponse get(UUID userId, long reservationId) {
+        Reservation reservation = reservations.findById(reservationId)
+                .filter(r -> r.getUserId().equals(userId))
+                .orElseThrow(() -> new ReservationRejectedException(RESERVATION_NOT_FOUND, "La reserva no existe."));
+        return toResponse(reservation, time.now(),
+                checkIns.findByReservationId(reservationId).map(CheckIn::getOutcome).orElse(null));
+    }
+
+    /**
+     * Historial del usuario en cualquier estado, de la salida más reciente a la más vieja, paginado por cursor
+     * (keyset sobre salida e id: estable aunque entren reservas nuevas). Incluye las de check-in simulado: es su
+     * propio uso; solo los KPIs y las faltas las excluyen.
+     */
+    @Transactional(readOnly = true)
+    public ReservationPageResponse history(UUID userId, String cursor) {
+        PageRequest page = PageRequest.ofSize(HISTORY_PAGE_SIZE + 1);
+        List<Reservation> found;
+        if (cursor == null || cursor.isBlank()) {
+            found = reservations.history(userId, page);
+        } else {
+            int sep = cursor.lastIndexOf(CURSOR_SEPARATOR);
+            Instant at;
+            long id;
+            try {
+                at = Instant.parse(cursor.substring(0, sep));
+                id = Long.parseLong(cursor.substring(sep + 1));
+            } catch (RuntimeException e) { // DateTimeParseException, NumberFormatException o sin separador
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El cursor no es válido.");
+            }
+            found = reservations.historyBefore(userId, at, id, page);
+        }
+        boolean more = found.size() > HISTORY_PAGE_SIZE;
+        List<Reservation> items = more ? found.subList(0, HISTORY_PAGE_SIZE) : found;
+        Map<Long, CheckInOutcome> outcomes = items.isEmpty() ? Map.of()
+                : checkIns.findByReservationIdIn(items.stream().map(Reservation::getId).toList()).stream()
+                        .collect(Collectors.toMap(CheckIn::getReservationId, CheckIn::getOutcome));
+        Instant now = time.now();
+        String next = more
+                ? items.getLast().getDeparture().getDepartureAt() + CURSOR_SEPARATOR + items.getLast().getId()
+                : null;
+        return new ReservationPageResponse(
+                items.stream().map(r -> toResponse(r, now, outcomes.get(r.getId()))).toList(), next);
+    }
+
+    private ReservationResponse toResponse(Reservation r, Instant now, CheckInOutcome outcome) {
         Departure d = r.getDeparture();
-        return new ReservationResponse(r.getId(), d.getId(), d.getElevator().getCode(), d.getDepartureAt(),
-                r.getSeatNumber(), r.getOriginFloor(), r.getDestinationFloor(), r.getStatus(), r.getCreatedAt());
+        Elevator e = d.getElevator();
+        boolean lateCancel = r.getStatus() == ReservationStatus.ACTIVE
+                && r.cancelIsLate(now, config.cancellationDeadlineBefore());
+        return new ReservationResponse(r.getId(), d.getId(), e.getCode(), e.getCore().getName(),
+                e.getCore().getBuilding().getName(), d.getDepartureAt(), r.getSeatNumber(), r.getOriginFloor(),
+                r.getDestinationFloor(), r.getStatus(), r.getCreatedAt(), lateCancel, outcome);
     }
 
     private void checkDeparture(Departure departure, Instant now, PriorityCategory priority) {

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -18,11 +19,16 @@ import com.smartelevate.elevator.model.Elevator;
 import com.smartelevate.elevator.model.ElevatorUsage;
 import com.smartelevate.priority.model.PriorityCategory;
 import com.smartelevate.priority.service.PriorityService;
+import com.smartelevate.turn.dto.ReservationPageResponse;
 import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
+import com.smartelevate.turn.model.CheckIn;
+import com.smartelevate.turn.model.CheckInOutcome;
+import com.smartelevate.turn.model.CheckInSource;
 import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.Reservation;
 import com.smartelevate.turn.model.ReservationStatus;
+import com.smartelevate.turn.repository.CheckInRepository;
 import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.model.User;
@@ -45,6 +51,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class ReservationServiceTest {
@@ -66,6 +73,8 @@ class ReservationServiceTest {
     private PriorityService priorities;
     @Mock
     private NoShowService noShows;
+    @Mock
+    private CheckInRepository checkIns;
 
     private ReservationService service;
     private Elevator elevator;
@@ -73,7 +82,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         CampusTime time = new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, time, priorities, noShows);
+        service = new ReservationService(reservations, departures, users, config, time, priorities, noShows, checkIns);
         // Ascensor 33 de Independencia: -4 a 11 sin el 1.
         Building building = new Building("INDEPENDENCIA", "Independencia", -4, 11);
         Core core = new Core("IND2", building, "Independencia 2");
@@ -87,6 +96,8 @@ class ReservationServiceTest {
         lenient().when(config.maxActiveBookingsPerUser()).thenReturn(1);
         lenient().when(config.maxDailyBookingsPerUser()).thenReturn(8);
         lenient().when(config.lowFloorsThreshold()).thenReturn(4);
+        lenient().when(config.cancellationDeadlineBefore()).thenReturn(Duration.ofMinutes(1));
+        lenient().when(config.checkInClosesAfter()).thenReturn(Duration.ofMinutes(2));
         lenient().when(config.prioritySeatsPerDeparture()).thenReturn(2);
         lenient().when(config.prioritySeatsReleaseBefore()).thenReturn(Duration.ofMinutes(3));
         lenient().when(priorities.currentPriority(USER)).thenReturn(PriorityCategory.NONE);
@@ -212,7 +223,7 @@ class ReservationServiceTest {
         // 23:50 en Buenos Aires: faltan 20 min para la salida de las 00:10 del día siguiente.
         CampusTime late = new CampusTime(Clock.fixed(Instant.parse("2026-10-14T02:50:00Z"), ZoneOffset.UTC),
                 ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, late, priorities, noShows);
+        service = new ReservationService(reservations, departures, users, config, late, priorities, noShows, checkIns);
         departureAt(Instant.parse("2026-10-14T03:10:00Z"));
 
         assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.OUTSIDE_BOOKING_WINDOW);
@@ -460,19 +471,115 @@ class ReservationServiceTest {
         assertThat(r.getSeatNumber()).isEqualTo(3);
     }
 
+    // --- Activa, detalle e historial (#214) ---
+
     @Test
-    void mineListsFromTheStartOfTheCampusDay() {
-        Reservation r = reservationOf(USER, NOW.plusSeconds(600));
-        // 00:00 de Buenos Aires = 03:00 UTC.
-        given(reservations.findMine(USER, Instant.parse("2026-10-13T03:00:00Z"))).willReturn(List.of(r));
+    void activeLooksBackUntilTheCheckInWindowCloses() {
+        Reservation r = reservationOf(USER, NOW.minusSeconds(30));
+        // check_in_closes_after = 2 min: sigue activa hasta 2 min después de la salida.
+        given(reservations.findActiveFrom(USER, NOW.minus(Duration.ofMinutes(2)))).willReturn(List.of(r));
 
-        List<ReservationResponse> mine = service.mine(USER);
-
-        assertThat(mine).singleElement().satisfies(res -> {
+        assertThat(service.active(USER)).hasValueSatisfying(res -> {
             assertThat(res.id()).isEqualTo(55L);
             assertThat(res.elevator()).isEqualTo("33");
-            assertThat(res.seatNumber()).isEqualTo(3);
+            assertThat(res.coreName()).isEqualTo("Independencia 2");
+            assertThat(res.buildingName()).isEqualTo("Independencia");
             assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+            assertThat(res.cancelCountsAsNoShow()).isTrue();
+            assertThat(res.checkInOutcome()).isNull();
         });
+    }
+
+    @Test
+    void noActiveReservationIsEmpty() {
+        assertThat(service.active(USER)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"61, false", "60, false", "59, true"})
+    void cancelCountsAsNoShowPastTheDeadline(long secondsBefore, boolean countsAsNoShow) {
+        reservationOf(USER, NOW.plusSeconds(secondsBefore));
+
+        assertThat(service.get(USER, 55L).cancelCountsAsNoShow()).isEqualTo(countsAsNoShow);
+    }
+
+    @Test
+    void aClosedReservationNeverCountsCancellingAsNoShowAndBringsItsCheckIn() {
+        Reservation r = reservationOf(USER, NOW.minusSeconds(600));
+        r.markUsed();
+        given(checkIns.findByReservationId(55L)).willReturn(Optional.of(checkIn(55L, CheckInOutcome.OTHER_ELEVATOR)));
+
+        ReservationResponse res = service.get(USER, 55L);
+
+        assertThat(res.status()).isEqualTo(ReservationStatus.USED);
+        assertThat(res.cancelCountsAsNoShow()).isFalse();
+        assertThat(res.checkInOutcome()).isEqualTo(CheckInOutcome.OTHER_ELEVATOR);
+    }
+
+    @Test
+    void getOnlyShowsMyOwnReservations() {
+        reservationOf(UUID.randomUUID(), NOW.plusSeconds(600));
+
+        assertRejected(() -> service.get(USER, 55L), ReservationRejectedException.Reason.RESERVATION_NOT_FOUND);
+        assertRejected(() -> service.get(USER, 99L), ReservationRejectedException.Reason.RESERVATION_NOT_FOUND);
+    }
+
+    private List<Reservation> history(int count) {
+        return IntStream.range(0, count).mapToObj(i -> {
+            Departure d = new Departure(elevator, NOW.minus(Duration.ofMinutes(i)), 10);
+            ReflectionTestUtils.setField(d, "id", 500L - i);
+            Reservation r = new Reservation(USER, d, 1, 0, 8, NOW);
+            ReflectionTestUtils.setField(r, "id", 1000L - i);
+            return r;
+        }).toList();
+    }
+
+    @Test
+    void historyPageWithOneMoreThanThePageSizeHasANextCursor() {
+        int size = ReservationService.HISTORY_PAGE_SIZE;
+        List<Reservation> found = history(size + 1);
+        given(reservations.history(eq(USER), any())).willReturn(found);
+        given(checkIns.findByReservationIdIn(any())).willReturn(List.of(checkIn(1000L, CheckInOutcome.LATE)));
+
+        ReservationPageResponse page = service.history(USER, null);
+
+        assertThat(page.items()).hasSize(size);
+        assertThat(page.items().getFirst().checkInOutcome()).isEqualTo(CheckInOutcome.LATE);
+        assertThat(page.items().get(1).checkInOutcome()).isNull();
+        Reservation last = found.get(size - 1);
+        assertThat(page.nextCursor()).isEqualTo(last.getDeparture().getDepartureAt() + "_" + last.getId());
+    }
+
+    @Test
+    void lastHistoryPageHasNoCursorAndTheCursorPicksUpWhereItLeft() {
+        given(reservations.historyBefore(eq(USER), eq(Instant.parse("2026-10-13T15:00:00Z")), eq(981L), any()))
+                .willReturn(history(ReservationService.HISTORY_PAGE_SIZE));
+
+        ReservationPageResponse page = service.history(USER, "2026-10-13T15:00:00Z_981");
+
+        assertThat(page.items()).hasSize(ReservationService.HISTORY_PAGE_SIZE);
+        assertThat(page.nextCursor()).isNull();
+    }
+
+    @Test
+    void emptyHistoryDoesNotLookForCheckIns() {
+        ReservationPageResponse page = service.history(USER, "");
+
+        assertThat(page.items()).isEmpty();
+        assertThat(page.nextCursor()).isNull();
+        verify(checkIns, never()).findByReservationIdIn(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"basura", "2026-10-13T15:00:00Z_x", "x_55", "_"})
+    void anInvalidCursorIsABadRequest(String cursor) {
+        assertThatThrownBy(() -> service.history(USER, cursor))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode().value()).isEqualTo(400));
+        verify(reservations, never()).historyBefore(any(), any(), anyLong(), any());
+    }
+
+    private static CheckIn checkIn(long reservationId, CheckInOutcome outcome) {
+        return new CheckIn(reservationId, outcome, "33", CheckInSource.REAL, UUID.randomUUID(), NOW);
     }
 }

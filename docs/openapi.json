@@ -1273,7 +1273,7 @@
     "/api/me/no-shows" : {
       "get" : {
         "description" : "Falta = NO_SHOW o CANCELLED_LATE. threshold faltas en windowDays días suspenden suspensionHours horas: mientras tanto, reservar responde NO_SHOW_SUSPENDED. Con prioridad vigente, exempt = true y nunca hay suspensión.",
-        "operationId" : "mine_1",
+        "operationId" : "mine",
         "responses" : {
           "200" : {
             "content" : {
@@ -1435,23 +1435,23 @@
         "tags" : [ "turn" ]
       }
     },
-    "/api/reservations/me" : {
+    "/api/reservations/active" : {
       "get" : {
-        "description" : "Ordenadas por salida, la más tardía primero.",
-        "operationId" : "mine",
+        "description" : "La reserva ACTIVE mientras se le puede hacer check-in (salida hasta check_in_closes_after atrás). Si hay más de una, la más próxima.",
+        "operationId" : "active",
         "responses" : {
           "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/ReservationResponse"
-                  }
+                  "$ref" : "#/components/schemas/ReservationResponse"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "La reserva activa"
+          },
+          "204" : {
+            "description" : "No tengo una reserva activa"
           },
           "400" : {
             "content" : {
@@ -1477,7 +1477,58 @@
         "security" : [ {
           "bearerAuth" : [ ]
         } ],
-        "summary" : "Lista mis reservas de hoy en adelante (activas y canceladas)",
+        "summary" : "Mi reserva activa",
+        "tags" : [ "turn" ]
+      }
+    },
+    "/api/reservations/history" : {
+      "get" : {
+        "description" : "En cualquier estado, de la salida más reciente a la más vieja, con el resultado del check-in si hubo. Sin cursor trae la primera página; para la siguiente, mandar el nextCursor de la anterior.",
+        "operationId" : "history",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReservationPageResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Cursor inválido"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Mi historial de reservas, paginado por cursor",
         "tags" : [ "turn" ]
       }
     },
@@ -1533,6 +1584,65 @@
           "bearerAuth" : [ ]
         } ],
         "summary" : "Cancela una reserva mía y libera el lugar",
+        "tags" : [ "turn" ]
+      },
+      "get" : {
+        "operationId" : "getReservation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description" : "La reserva, con el resultado del check-in si hubo"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND)"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Una reserva mía, en cualquier estado",
         "tags" : [ "turn" ]
       }
     },
@@ -2146,10 +2256,47 @@
         },
         "required" : [ "email" ]
       },
+      "ReservationPageResponse" : {
+        "type" : "object",
+        "description" : "Página del historial de reservas, de la salida más reciente a la más vieja",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReservationResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ],
+            "description" : "Cursor opaco para pedir la página siguiente. Null si no hay más.",
+            "example" : "2026-10-13T15:58:00Z_55"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "ReservationResponse" : {
         "type" : "object",
         "description" : "Reserva de un lugar en una salida",
         "properties" : {
+          "buildingName" : {
+            "type" : "string",
+            "description" : "Nombre visible del edificio",
+            "example" : "Independencia"
+          },
+          "cancelCountsAsNoShow" : {
+            "type" : "boolean",
+            "description" : "Si está ACTIVE y cancelarla ahora contaría como falta (pasado cancellation_deadline_before). Lo calcula el servidor al responder."
+          },
+          "checkInOutcome" : {
+            "type" : [ "string", "null" ],
+            "description" : "Resultado del check-in, si hubo: ON_TIME, OTHER_ELEVATOR o LATE (cuenta como falta). Incluye los del simulador de admin.",
+            "enum" : [ "ON_TIME", "OTHER_ELEVATOR", "LATE" ]
+          },
+          "coreName" : {
+            "type" : "string",
+            "description" : "Nombre visible del núcleo del ascensor",
+            "example" : "Independencia 2"
+          },
           "createdAt" : {
             "type" : "string",
             "format" : "date-time",
@@ -2196,7 +2343,7 @@
             "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE", "USED", "NO_SHOW" ]
           }
         },
-        "required" : [ "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]
+        "required" : [ "buildingName", "cancelCountsAsNoShow", "coreName", "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]
       },
       "ReserveRequest" : {
         "type" : "object",

@@ -188,7 +188,7 @@ abstract class ReservationConcurrencyTestBase {
 
         ReservationResponse third = booked.get(2);
         UUID owner = people.get(2);
-        assertThat(service.mine(late)).isEmpty();
+        assertThat(service.history(late, null).items()).isEmpty();
         assertThatThrownBy(() -> service.cancel(late, third.id()))
                 .isInstanceOfSatisfying(ReservationRejectedException.class, e -> assertThat(e.getReason())
                         .isEqualTo(ReservationRejectedException.Reason.RESERVATION_NOT_FOUND));
@@ -196,7 +196,7 @@ abstract class ReservationConcurrencyTestBase {
         service.cancel(owner, third.id());
         service.cancel(owner, third.id());
 
-        assertThat(service.mine(owner)).singleElement().satisfies(r -> {
+        assertThat(service.history(owner, null).items()).singleElement().satisfies(r -> {
             assertThat(r.status()).isEqualTo(ReservationStatus.CANCELLED);
             assertThat(r.seatNumber()).isNull();
         });
