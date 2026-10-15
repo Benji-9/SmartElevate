@@ -83,6 +83,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     int markNoShows(@Param("cutoff") Instant cutoff);
 
     /**
+     * Recordatorio (#221): ACTIVE sin recordatorio reclamado con salida en ({@code after}, {@code until}], con lo
+     * que necesita el mail cargado.
+     */
+    @Query("select r from Reservation r join fetch r.departure d join fetch d.elevator e join fetch e.core c "
+            + "join fetch c.building where r.status = 'ACTIVE' and r.reminderSentAt is null "
+            + "and d.departureAt > :after and d.departureAt <= :until order by d.departureAt, r.id")
+    List<Reservation> findDueForReminder(@Param("after") Instant after, @Param("until") Instant until);
+
+    /** Reclama el recordatorio de la reserva: 1 si lo reclamó ahora, 0 si ya estaba reclamado o dejó de estar ACTIVE. */
+    @Transactional
+    @Modifying
+    @Query("update Reservation r set r.reminderSentAt = :now where r.id = :id and r.reminderSentAt is null "
+            + "and r.status = 'ACTIVE'")
+    int claimReminder(@Param("id") long id, @Param("now") Instant now);
+
+    /**
      * Horas de salida de las faltas del usuario con salida desde {@code from} inclusive, la más vieja primero.
      * Sin las reservas con check-in simulado ({@link #NOT_SIMULATED}).
      */
