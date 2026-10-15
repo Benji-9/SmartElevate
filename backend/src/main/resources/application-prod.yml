@@ -12,6 +12,15 @@ spring:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
       mail.smtp.starttls.required: true
+      # Sin timeouts, un SMTP colgado bloquea el hilo para siempre (ADR 0017: técnico, override por variable).
+      mail.smtp.connectiontimeout: ${APP_MAIL_SMTP_CONNECTION_TIMEOUT:5000}
+      mail.smtp.timeout: ${APP_MAIL_SMTP_TIMEOUT:10000}
+      mail.smtp.writetimeout: ${APP_MAIL_SMTP_WRITE_TIMEOUT:10000}
+  task:
+    scheduling:
+      # Dos hilos: un mail lento del job de recordatorios no frena el de no-shows.
+      pool:
+        size: 2
 
 # Render atiende detrás de un proxy: sin esto getRemoteAddr() es la IP del proxy y el límite de logins por IP
 # (ADR 0015) sería uno solo para todos. "native" usa X-Forwarded-For solo si viene de un proxy interno.

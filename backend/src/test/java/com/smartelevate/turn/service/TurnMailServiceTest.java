@@ -39,6 +39,7 @@ class TurnMailServiceTest {
     private TurnMailService service;
     private User user;
     private Reservation reservation;
+    private TurnMailService.OutOfServiceNotice notice;
 
     @BeforeEach
     void setUp() {
@@ -56,12 +57,14 @@ class TurnMailServiceTest {
         Departure departure = new Departure(elevator, DEPARTURE_AT, 10);
         UUID userId = UUID.randomUUID();
         reservation = new Reservation(userId, departure, 3, 0, 8, DEPARTURE_AT.minusSeconds(1200), true);
+        notice = new TurnMailService.OutOfServiceNotice(userId, DEPARTURE_AT, "33", "Independencia 2",
+                "Independencia");
         given(users.findById(userId)).willReturn(Optional.of(user));
     }
 
     @Test
     void outOfServiceMailSaysItIsNotAFaultAndHasNoPriorityOrHealthData() {
-        assertThat(service.sendElevatorOutOfService(reservation)).isTrue();
+        assertThat(service.sendElevatorOutOfService(notice)).isTrue();
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(emailSender).send(org.mockito.ArgumentMatchers.eq("ana@uade.edu.ar"),
@@ -75,7 +78,7 @@ class TurnMailServiceTest {
     void outOfServiceMailRespectsThePreference() {
         user.setNotificationPreferences(true, false);
 
-        assertThat(service.sendElevatorOutOfService(reservation)).isFalse();
+        assertThat(service.sendElevatorOutOfService(notice)).isFalse();
         verifyNoInteractions(emailSender);
     }
 
@@ -84,7 +87,7 @@ class TurnMailServiceTest {
         user.setNotificationPreferences(false, true);
 
         assertThat(service.sendDepartureReminder(reservation)).isFalse();
-        assertThat(service.sendElevatorOutOfService(reservation)).isTrue();
+        assertThat(service.sendElevatorOutOfService(notice)).isTrue();
         verify(emailSender).send(any(), any(), any());
     }
 }

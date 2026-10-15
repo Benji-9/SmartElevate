@@ -99,6 +99,9 @@ export DATABASE_PASSWORD=smartelevate
 | `DATABASE_PASSWORD` | — | Solo `prod` |
 | `APP_MAIL_ENABLED` | `false` en dev, `true` en `prod` | `true` manda los mails por SMTP; `false` solo los loguea (el link de verificación aparece en el log) |
 | `APP_MAIL_FROM` | `no-reply@localhost` | Remitente de los mails |
+| `APP_MAIL_SMTP_CONNECTION_TIMEOUT` | `5000` | Solo `prod`. Milisegundos para conectar al SMTP |
+| `APP_MAIL_SMTP_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de lectura del SMTP |
+| `APP_MAIL_SMTP_WRITE_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de escritura al SMTP |
 | `SPRING_MAIL_HOST` | — | Solo con mail activo. Brevo: `smtp-relay.brevo.com` |
 | `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
