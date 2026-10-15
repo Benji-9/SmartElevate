@@ -30,6 +30,7 @@ class ConfigServiceTest {
         v.put("cancellation_wait_tolerance", null);
         v.put("check_in_opens_before", "PT1M");
         v.put("check_in_closes_after", "PT2M");
+        v.put("departure_reminder_before", "PT5M");
         v.put("no_show_after", "PT60S");
         v.put("no_show_suspension_threshold", "3");
         v.put("no_show_suspension_window", "P7D");

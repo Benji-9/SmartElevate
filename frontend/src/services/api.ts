@@ -16,6 +16,7 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   NoShowStatus,
+  NotificationPreferences,
   PendingTeacher,
   PingResponse,
   PriorityUser,
@@ -33,11 +34,7 @@ import type {
   User,
   VerifyEmailRequest,
 } from '../types/api';
-import type {
-  NotificationPreferences,
-  PriorityRequest,
-  PriorityUploadRules,
-} from '../types/pending';
+import type { PriorityRequest, PriorityUploadRules } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 

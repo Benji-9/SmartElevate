@@ -76,6 +76,14 @@ Si un ADMIN marca un ascensor fuera de servicio y tiene reservas activas ([#134]
 - Se **avisa** a cada persona.
 - Si otro ascensor tiene lugar, se le **ofrece** reubicarse. No se la mueve automáticamente.
 
+## 9. Notificaciones por email
+
+([#221](https://github.com/Benji-9/SmartElevate/issues/221)) Salen por el `EmailSender` (Brevo, ADR 0013). Las preferencias del usuario son `GET`/`PUT /api/me/notification-preferences`: `departureReminder` y `elevatorOutOfService`, **activas por defecto**. Los mails no llevan datos de salud ni de prioridad: solo ascensor, edificio y hora.
+
+- **Recordatorio de salida:** un job manda **un solo mail por reserva activa** cuando la salida cae dentro de `departure_reminder_before` (5 min, a calibrar). La reserva se marca (`reminder_sent_at`) antes de mandar: si el mail falla no se reintenta. No lo reciben las canceladas, usadas ni no-show, ni quien reservó dentro de esa ventana (acaba de reservar). Las reservas con check-in simulado lo reciben como cualquier otra.
+- **Ascensor fuera de servicio** (sección 8): el mail y su plantilla están listos (`TurnMailService.sendElevatorOutOfService`) pero **sin consumidor** hasta que se implemente #134, que tiene que llamarlo por cada reserva cancelada.
+- **Lugar liberado:** **no se implementa.** Sin lista de espera (sección 7, fuera del MVP) no hay a quién avisarle: nadie se anota para una salida llena. Se retoma con la lista de espera.
+
 ## Decisiones tomadas
 
 Resueltas en [#113](https://github.com/Benji-9/SmartElevate/issues/113):

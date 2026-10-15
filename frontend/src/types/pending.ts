@@ -24,11 +24,3 @@ export type PriorityUploadRules = {
   /** MIME aceptados, p. ej. `application/pdf`. */
   acceptedTypes: string[];
 };
-
-/** Qué avisos quiere recibir el usuario. */
-export type NotificationPreferences = {
-  departureReminder: boolean;
-  spotReleased: boolean;
-  delayCancellation: boolean;
-  priorityAccess: boolean;
-};

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  NotificationPreferences,
-  PriorityUploadRules,
-} from '../types/pending';
+import type { PriorityUploadRules } from '../types/pending';
 import type {
   Building,
   CheckIn,
@@ -11,6 +8,7 @@ import type {
   Elevator,
   KioskList,
   NoShowStatus,
+  NotificationPreferences,
   QrToken,
   Reservation,
   ReservationPage,
@@ -320,10 +318,10 @@ describe('mocks', () => {
 
   it('las preferencias de notificaciones se guardan', async () => {
     const prefs = await call<NotificationPreferences>('GET', '/me/notification-preferences');
-    await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: true });
+    await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: false });
 
     expect(await call('GET', '/me/notification-preferences')).toMatchObject({
-      departureReminder: true,
+      departureReminder: false,
     });
   });
 

@@ -55,6 +55,10 @@ public class Reservation {
     @Column(name = "priority_user")
     private boolean priorityUser;
 
+    /** Cuándo se reclamó el recordatorio por email (V20); null = todavía no. */
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt;
+
     public Reservation(UUID userId, Departure departure, int seatNumber, int originFloor, int destinationFloor,
                        Instant createdAt) {
         this(userId, departure, seatNumber, originFloor, destinationFloor, createdAt, false);

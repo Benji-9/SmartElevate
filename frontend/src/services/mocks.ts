@@ -19,6 +19,7 @@ import type {
   KioskList,
   LoginRequest,
   NoShowStatus,
+  NotificationPreferences,
   PendingTeacher,
   Role,
   PriorityUser,
@@ -34,11 +35,7 @@ import type {
   User,
 } from '../types/api';
 import { ApiError } from './api';
-import type {
-  NotificationPreferences,
-  PriorityRequest,
-  PriorityUploadRules,
-} from '../types/pending';
+import type { PriorityRequest, PriorityUploadRules } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
 const DEPARTURE_MINUTES = 2;
@@ -456,10 +453,9 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
 let lastCheckedIn: number | null = null;
 let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
-  departureReminder: false,
-  spotReleased: false,
-  delayCancellation: false,
-  priorityAccess: false,
+  // Como el servidor: todos los avisos activos por defecto.
+  departureReminder: true,
+  elevatorOutOfService: true,
 };
 
 // Historial de ejemplo: dos viajes por día hacia atrás, con todos los estados y resultados.

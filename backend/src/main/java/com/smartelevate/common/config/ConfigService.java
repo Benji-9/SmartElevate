@@ -87,6 +87,11 @@ public class ConfigService {
         return get("check_in_closes_after", Duration::parse);
     }
 
+    /** Cuánto antes de la salida se manda el recordatorio por email (#221). */
+    public Duration departureReminderBefore() {
+        return get("departure_reminder_before", Duration::parse);
+    }
+
     public Duration noShowAfter() {
         return get("no_show_after", Duration::parse);
     }
@@ -175,6 +180,8 @@ public class ConfigService {
         check(checkInClosesAfter().isPositive(), "check_in_closes_after tiene que ser mayor a 0");
         check(noShowAfter().isPositive() && noShowAfter().compareTo(checkInClosesAfter()) <= 0,
                 "no_show_after tiene que ser mayor a 0 y no superar check_in_closes_after");
+        check(departureReminderBefore().isPositive() && departureReminderBefore().compareTo(bookingOpensBefore()) < 0,
+                "departure_reminder_before tiene que ser mayor a 0 y menor que booking_opens_before");
         check(noShowSuspensionThreshold() > 0, "no_show_suspension_threshold tiene que ser mayor a 0");
         check(noShowSuspensionWindow().isPositive(), "no_show_suspension_window tiene que ser mayor a 0");
         check(noShowSuspensionDuration().isPositive(), "no_show_suspension_duration tiene que ser mayor a 0");

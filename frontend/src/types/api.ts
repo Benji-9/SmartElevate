@@ -76,6 +76,9 @@ export type ReservationPage = Schemas['ReservationPageResponse'];
 /** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
 export type NoShowStatus = Schemas['NoShowStatusResponse'];
 
+/** Avisos por email que quiere recibir el usuario (`GET`/`PUT /me/notification-preferences`). */
+export type NotificationPreferences = Schemas['NotificationPreferences'];
+
 /**
  * Salida reservable de un ascensor (`GET /departures`). La lista ya viene filtrada por usuario
  * (ascensores que puede usar) y `remainingSeats` son los lugares que él puede tomar.
