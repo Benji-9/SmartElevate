@@ -23,7 +23,7 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Tipo | Dónde vive | Ejemplos |
 | --- | --- | --- |
 | Regla de negocio | `app_config` | Cupo por salida, ventanas de reserva y check-in, `boarding_time` (tiempo de carga), `time_per_floor` (tiempo por piso) |
-| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), rotación del QR (`app.kiosk.qr-ttl`, movido de `app_config` en [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
+| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), rotación del QR (`app.kiosk.qr-ttl`, movido de `app_config` en [#229](https://github.com/Benji-9/SmartElevate/issues/229)), job de recordatorios (`app.reminder-job.interval` 30 s y `app.reminder-job.enabled`, `APP_REMINDER_JOB_INTERVAL` y `APP_REMINDER_JOB_ENABLED`, [#221](https://github.com/Benji-9/SmartElevate/issues/221)) |
 | Dato del despliegue | Variable de entorno, **obligatoria en `prod`** (sin default); el default `localhost` vive solo en `application-dev.yml` | `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` |
 | Secreto | Solo variable de entorno, **obligatoria en `prod`** | `JWT_SECRET`, `APP_KIOSK_QR_SECRET` (clave HMAC del QR, [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
 | Constante en el código | El código: cambia solo por PR | Parámetros de Argon2id ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)), `maxAge` de CORS (1 h) |
@@ -44,6 +44,7 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Límite de cancelación sin falta | 10 min antes | Decidido el 14/10, calibrable en el piloto (`cancellation_deadline_before`, `V18`). La reserva lo expone como `cancelFreeUntil`. Desde la salida no se puede cancelar |
 | Tolerancia de espera para cancelar sin falta (X) | — | **Fuera del MVP** ([alcance](../alcance-mvp.md)). `cancellation_wait_tolerance` queda en NULL y no se usa |
 | Ventana de check-in | −1 min a +2 min | |
+| Recordatorio de salida por email | 5 min antes | **Propuesto, a calibrar en el piloto** (`departure_reminder_before`, `V20`). Mayor a 0 y menor que la apertura de reserva. Ver [turnos §9](turnos.md#9-notificaciones-por-email) |
 | Umbral de no-show | +60 s | Entre +60 s y +2 min el escaneo es *fuera de hora* y cuenta como no-show |
 | Suspensión por no-show | 3 en 7 días → 24 h | No aplica a prioritarios |
 | Lugares reservados para prioritarios | 2 de 10 | En ascensores comunes |
