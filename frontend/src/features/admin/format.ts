@@ -1,4 +1,4 @@
-import type { AdminShift } from '../../types/pending';
+import type { AdminShift } from '../../types/api';
 import { TIME_ZONE } from '../turn/format';
 
 const decimal = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
@@ -18,6 +18,9 @@ export const formatNumber = (n: number) => decimal.format(n);
 
 /** `"43,5 %"`. */
 export const formatPercent = (n: number) => `${decimal.format(n)}${NBSP}%`;
+
+/** Lo que se muestra en lugar de un KPI que el servidor manda en `null`. */
+export const NO_DATA = 'Sin datos';
 
 /** `"3,5 min"` a partir de segundos. */
 export const formatMinutes = (seconds: number) => `${decimal.format(seconds / 60)} min`;

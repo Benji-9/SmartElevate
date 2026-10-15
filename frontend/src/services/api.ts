@@ -1,6 +1,10 @@
 import type {
+  AdminKpis,
+  AdminKpisQuery,
+  AdminShift,
   ApiErrorBody,
   Building,
+  CongestionSnapshot,
   CheckIn,
   CheckInRequest,
   CreatedKiosk,
@@ -30,10 +34,6 @@ import type {
   VerifyEmailRequest,
 } from '../types/api';
 import type {
-  AdminKpis,
-  AdminKpisQuery,
-  AdminShift,
-  CongestionSnapshot,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,

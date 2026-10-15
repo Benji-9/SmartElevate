@@ -10,6 +10,7 @@ import type {
   Building,
   CheckIn,
   CheckInRequest,
+  CongestionLevel,
   CreatedKiosk,
   CreateKioskRequest,
   Departure,
@@ -34,11 +35,6 @@ import type {
 } from '../types/api';
 import { ApiError } from './api';
 import type {
-  AdminKpis,
-  AdminPeriod,
-  AdminShift,
-  CongestionLevel,
-  CongestionSnapshot,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
@@ -50,7 +46,6 @@ const CAPACITY = 10;
 const WINDOW_MINUTES = 30;
 /** La ventana de reserva cierra 2 min antes de la salida. */
 const BOOKING_CLOSES_MS = 2 * 60_000;
-const CONGESTION_REFRESH_SECONDS = 60;
 /** Pisos bajos (`low_floors_threshold`): sin reserva con destino del 1 a este piso. */
 const LOW_FLOORS_THRESHOLD = 4;
 /** Se puede cancelar sin falta hasta este tiempo antes de la salida (`cancellation_deadline_before` del mock). */
@@ -64,8 +59,6 @@ const UPLOAD_RULES: PriorityUploadRules = {
 };
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
-const DAY_MS = 86_400_000;
-const BA_OFFSET_MS = 3 * 3_600_000;
 /** `app.kiosk.qr-ttl` del backend (ADR 0020). */
 const QR_TTL_MS = 30_000;
 /** Lugares de cada salida común guardados para prioritarios (turnos.md §6). */
@@ -164,29 +157,6 @@ let priorityUsers: PriorityUser[] = [
     category: 'TEACHER',
   },
 ];
-
-const PERIOD_DAYS: Record<AdminPeriod, number> = { TODAY: 1, WEEK: 7, MONTH: 30 };
-// Turnos de cursada (kpis.md#filtros): el turno mañana cubre las cursadas 7:45–11:45 y 8:15–12:15.
-const SHIFTS: AdminShift[] = [
-  { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '12:15' },
-];
-const minutesOf = (hhmm: string) => {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
-};
-// Reservas de un día típico por hora (7 a 22 h), con picos en los cambios de clase.
-const FIRST_HOUR = 7;
-const HOURLY_RESERVATIONS = [28, 18, 42, 25, 12, 30, 22, 15, 20, 38, 16, 10, 34, 26, 12, 6];
-// Parte de las reservas, ocupación y espera promedio de cada núcleo (panel admin).
-const CORE_STATS: Record<string, { share: number; occupancyPercent: number; waitSeconds: number }> =
-  {
-    L1: { share: 0.32, occupancyPercent: 92, waitSeconds: 420 },
-    L2: { share: 0.26, occupancyPercent: 70, waitSeconds: 260 },
-    L3: { share: 0.14, occupancyPercent: 41, waitSeconds: 90 },
-    // Solo ascensores dedicados (docentes y movilidad reducida): pocas reservas.
-    IND1: { share: 0.04, occupancyPercent: 35, waitSeconds: 60 },
-    IND2: { share: 0.24, occupancyPercent: 58, waitSeconds: 180 },
-  };
 
 // Usuarios de ejemplo: cualquier contraseña sirve, salvo "incorrecta".
 const users: User[] = [
@@ -683,21 +653,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ],
   [
     'GET',
-    /^\/congestion$/,
-    () =>
-      ({
-        updatedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
-        refreshAfterSeconds: CONGESTION_REFRESH_SECONDS,
-        cores: cores.map((c) => ({
-          coreId: c.id,
-          name: c.name,
-          level: c.congestion,
-          estimatedWaitMinutes: c.estimatedWaitMinutes,
-        })),
-      }) satisfies CongestionSnapshot,
-  ],
-  [
-    'GET',
     /^\/reservations\/history$/,
     (_, __, query) => {
       const start = Number(query.get('cursor') ?? 0);
@@ -839,7 +794,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/me\/notification-preferences$/,
     (body) => (notificationPreferences = body as NotificationPreferences),
   ],
-  ['GET', /^\/admin\/shifts$/, () => SHIFTS],
   ['GET', /^\/admin\/teachers\/pending$/, () => pendingTeachers],
   [
     'POST',
@@ -940,57 +894,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       }
       priorityUsers = priorityUsers.filter((u) => u.id !== id);
       return undefined;
-    },
-  ],
-  [
-    'GET',
-    /^\/admin\/kpis$/,
-    (_, __, query) => {
-      const days = PERIOD_DAYS[query.get('period') as AdminPeriod];
-      if (!days) throw new ApiError(400, 'Período inválido');
-      const buildingId = query.get('buildingId');
-      const selected = cores.filter((c) => !buildingId || c.buildingId === buildingId);
-      if (!selected.length) throw new ApiError(404, 'La sede no existe');
-      const shiftId = query.get('shiftId');
-      const shift = SHIFTS.find((s) => s.id === shiftId);
-      if (shiftId && !shift) throw new ApiError(404, 'El turno no existe');
-      // Horas que se solapan con el turno (con 12:15 entra la hora de las 12).
-      const inShift = (hour: number) =>
-        !shift ||
-        (hour * 60 < minutesOf(shift.endsAt) && (hour + 1) * 60 > minutesOf(shift.startsAt));
-
-      const share = selected.reduce((sum, c) => sum + CORE_STATS[c.id].share, 0);
-      const reservationsByHour = HOURLY_RESERVATIONS.map((n, i) => ({
-        hour: FIRST_HOUR + i,
-        reservations: Math.round(n * days * share),
-      })).filter((h) => inShift(h.hour));
-      const reservations = reservationsByHour.reduce((sum, h) => sum + h.reservations, 0);
-      const checkIns = Math.round(reservations * 0.81);
-      // ponytail: Buenos Aires fijo en UTC-3 (hoy no tiene horario de verano).
-      const to = Math.floor((Date.now() - BA_OFFSET_MS) / DAY_MS + 1) * DAY_MS + BA_OFFSET_MS;
-      return {
-        from: new Date(to - days * DAY_MS).toISOString(),
-        to: new Date(to).toISOString(),
-        avgWaitSeconds: Math.round(
-          selected.reduce((sum, c) => sum + CORE_STATS[c.id].waitSeconds, 0) / selected.length,
-        ),
-        wait5To10Percent: 18,
-        baselinePercent: 43.5,
-        reservations,
-        checkIns,
-        checkInPercent: reservations ? Math.round((checkIns / reservations) * 100) : 0,
-        avgOccupancy: 6.8,
-        capacity: CAPACITY,
-        reservationsByHour,
-        cores: selected.map((c) => ({
-          coreId: c.id,
-          name: c.name,
-          reservations: Math.round((reservations * CORE_STATS[c.id].share) / share),
-          occupancyPercent: CORE_STATS[c.id].occupancyPercent,
-          avgWaitSeconds: CORE_STATS[c.id].waitSeconds,
-          congestion: c.congestion,
-        })),
-      } satisfies AdminKpis;
     },
   ],
 ];

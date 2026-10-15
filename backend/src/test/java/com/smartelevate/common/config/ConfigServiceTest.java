@@ -41,6 +41,10 @@ class ConfigServiceTest {
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");
         v.put("low_floors_threshold", "4");
+        v.put("congestion_medium_from", "60");
+        v.put("congestion_high_from", "85");
+        v.put("morning_shift_start", "07:00");
+        v.put("morning_shift_end", "12:15");
         return v;
     }
 
@@ -90,6 +94,10 @@ class ConfigServiceTest {
             "time_per_floor, PT0S",
             "cancellation_wait_tolerance, PT0S",
             "priority_aging, PT-1M",
+            "congestion_medium_from, 0",
+            "congestion_medium_from, 85",
+            "congestion_high_from, 101",
+            "morning_shift_start, 12:15",
     })
     void outOfRangeValuesPreventStartup(String key, String value) {
         assertThatThrownBy(() -> load(with(key, value)))

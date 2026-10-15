@@ -32,4 +32,12 @@ public class KpiEvents {
     public List<Reservation> noShows(Instant from, Instant to) {
         return reservations.findRealNoShowsBetween(from, to);
     }
+
+    /**
+     * Reservas no canceladas (ACTIVE, USED, NO_SHOW) por hora de salida, sin las que tienen un check-in simulado.
+     * USED es el check-in cumplido (a tiempo, en su ascensor o en otro).
+     */
+    public List<Reservation> reservations(Instant from, Instant to) {
+        return reservations.findRealNotCancelledBetween(from, to);
+    }
 }

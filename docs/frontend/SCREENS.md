@@ -166,7 +166,7 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9" (14 px `--ink-muted`; la sede queda **pospuesta**: no hay de dónde sacarla, [#86](https://github.com/Benji-9/SmartElevate/issues/86)); a la derecha, avatar circular de 44 px (`--surface-subtle`).
 2. **Tarjeta "Próxima clase"** — **pospuesta**: todavía no hay fuente del horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)); no implementar por ahora. (pad 18, gap 6, `--radius-xl`, fondo `--accent`): rótulo `.text-overline` "PRÓXIMA CLASE" en `--on-dark-muted`; nombre de la materia 17 px / 700 `--on-accent`: "Seminario de Gestión de Tecnología"; detalle 14 px "Aula 705 · Piso 7 · Lima 3 · 7:45 hs" en `--on-dark-muted`; separación 6; botón interno blanco (pad 10/14, `--radius-sm`, texto 14 px / 600 `--accent`) "Reservar turno para esta clase" → `/reservar`.
 3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; cuenta regresiva 18 px / 700 `--accent` "Sale en 6 min" (con el `departsAt` de la API, se actualiza cada ~30 s; "Sale ahora" al llegar la hora. El destacado por límite de cancelación espera que la API exponga ese instante, [#155](https://github.com/Benji-9/SmartElevate/issues/155)); línea 15 px / 500 "7:25 hs · Lima 3 · Ascensor 33 · Piso 7" (`departureAt`, `coreName`, `elevator`: la reserva no trae la duración de la franja, [#214](https://github.com/Benji-9/SmartElevate/issues/214)); ayuda 13 px `--ink-muted` "Escaneá el QR de la pantalla del ascensor al subir."; `Button` primary "Hacer check-in" → `/check-in`. Si no hay turno, ocultar la tarjeta.
-4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`); debajo un `CongestionRow` por núcleo:
+4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`); debajo un `CongestionRow` por núcleo (`GET /api/congestion`: `value` = `occupancyPercent / 100`, detalle "62,5 % de los lugares reservados"; se vuelve a pedir cada `refreshAfterSeconds`):
 
 | Núcleo | level | value |
 |---|---|---|
@@ -298,9 +298,11 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 | Etiqueta | Cifra | Detalle |
 |---|---|---|
 | Espera promedio | 4,1 min | % que espera 5–10 min y la línea base de [`kpis.md`](../reglas/kpis.md); debajo, un `Chip` con la variación en puntos: "▼ 25,5 pts · mejor que la línea base" (tono `baja`), "▲ … peor que la línea base" (tono `alta`) o "Igual que la línea base" (`neutral`). Flecha, color **y** texto ([#158](https://github.com/Benji-9/SmartElevate/issues/158)); el "−38 %" del wireframe era de ejemplo |
-| Turnos reservados | 1.284 | hoy (la comparación con el período anterior espera que la API la exponga, #158) |
+| Turnos reservados | 1.284 | hoy |
 | Check-ins realizados | 87% | de los turnos reservados |
 | Ocupación promedio | 7,6 / 10 | personas por franja |
+
+Turnos, check-ins y ocupación llevan debajo un `Chip` `neutral` contra el período anterior (`previous`, [#180](https://github.com/Benji-9/SmartElevate/issues/180)): "▲ Subió 8 % vs. ayer" / "los 7 días anteriores" / "los 30 días anteriores" (check-ins, en puntos), o "Igual que ayer"; sin `previous` no se muestra. Un KPI en `null` muestra **"Sin datos"** como cifra y no se compara; hoy la espera siempre (necesita la encuesta, fuera del MVP), y check-ins u ocupación mientras no haya salidas resueltas. En la tabla por núcleo, igual: "Sin datos" en la celda y en el `Chip` de estado.
 
 3. **Fila de dos tarjetas** (gap 16, mismo ancho):
    - **Gráfico "Reservas por franja (turno mañana)"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (11 px `--ink-muted`). Datos de ejemplo (alto en px): 7:15 → 120 · 7:25 → 170 · 7:35 → 150 · 7:45 → 60 · 9:30 → 90 · 9:45 → 140 · 11:30 → 80 · 11:45 → 160. Barras de las franjas más cargadas (≥ 140) en `--accent` sólido, el resto en `--accent` al 45 %.

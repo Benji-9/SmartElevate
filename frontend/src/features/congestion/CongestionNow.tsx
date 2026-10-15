@@ -2,13 +2,10 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { CongestionRow } from '../../components/CongestionRow';
 import { ApiError, getCongestion } from '../../services/api';
-import type { CongestionLevel, CongestionSnapshot } from '../../types/pending';
+import type { CongestionSnapshot } from '../../types/api';
+import { formatPercent } from '../admin/format';
 import './CongestionNow.css';
 import { Skeleton } from '../../components/Skeleton';
-
-// ponytail: `CoreCongestion` no trae ocupación; el largo de la barra sale del nivel.
-// Cuando la API exponga la ocupación del núcleo (0–1), pasarla directo a `value`.
-const levelValue: Record<CongestionLevel, number> = { LOW: 1 / 3, MEDIUM: 2 / 3, HIGH: 1 };
 
 const minutesAgo = new Intl.RelativeTimeFormat('es-AR', { style: 'short', numeric: 'always' });
 
@@ -85,8 +82,8 @@ export function CongestionNow() {
               <CongestionRow
                 label={core.name}
                 level={core.level}
-                value={levelValue[core.level]}
-                detail={`~${core.estimatedWaitMinutes} min de espera`}
+                value={core.occupancyPercent / 100}
+                detail={`${formatPercent(core.occupancyPercent)} de los lugares reservados`}
               />
             </li>
           ))}

@@ -95,4 +95,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("select r from Reservation r join fetch r.departure d where r.status = 'NO_SHOW' "
             + "and d.departureAt >= :from and d.departureAt < :to and " + NOT_SIMULATED)
     List<Reservation> findRealNoShowsBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /**
+     * Para {@code KpiEvents}: reservas no canceladas con salida en [from, to), con su ascensor, núcleo y edificio;
+     * sin las que tienen un check-in simulado.
+     */
+    @Query("select r from Reservation r join fetch r.departure d join fetch d.elevator e join fetch e.core c "
+            + "join fetch c.building where r.status in ('ACTIVE', 'USED', 'NO_SHOW') "
+            + "and d.departureAt >= :from and d.departureAt < :to and " + NOT_SIMULATED)
+    List<Reservation> findRealNotCancelledBetween(@Param("from") Instant from, @Param("to") Instant to);
 }
