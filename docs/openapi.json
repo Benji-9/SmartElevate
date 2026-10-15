@@ -928,7 +928,7 @@
                 }
               }
             },
-            "description" : "Par de tokens nuevo"
+            "description" : "Access token; Set-Cookie con el refresh"
           },
           "400" : {
             "content" : {
@@ -981,27 +981,17 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Inicia sesión y devuelve access y refresh token",
+        "summary" : "Inicia sesión y devuelve el access token y setea el refresh en una cookie HttpOnly",
         "tags" : [ "auth" ]
       }
     },
     "/api/auth/logout" : {
       "post" : {
-        "description" : "Idempotente: un token desconocido tampoco da error.",
+        "description" : "Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header X-Requested-With: SmartElevate (ADR 0023).",
         "operationId" : "logout",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RefreshRequest"
-              }
-            }
-          },
-          "required" : true
-        },
         "responses" : {
           "204" : {
-            "description" : "No Content"
+            "description" : "Sesión cerrada; Set-Cookie expira la cookie"
           },
           "400" : {
             "content" : {
@@ -1012,6 +1002,16 @@
               }
             },
             "description" : "Bad Request"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Falta el header CSRF o el Origin no está permitido"
           },
           "500" : {
             "content" : {
@@ -1024,7 +1024,7 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Cierra la sesión revocando el refresh token",
+        "summary" : "Cierra la sesión: revoca el refresh token de la cookie y la expira",
         "tags" : [ "auth" ]
       }
     },
@@ -1116,18 +1116,8 @@
     },
     "/api/auth/refresh" : {
       "post" : {
-        "description" : "El refresh token es de un solo uso: si uno ya canjeado se vuelve a presentar, se revoca toda la sesión.",
+        "description" : "El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header X-Requested-With: SmartElevate (defensa CSRF, ADR 0023); sin él, o con un Origin no permitido, responde 403.",
         "operationId" : "refresh",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RefreshRequest"
-              }
-            }
-          },
-          "required" : true
-        },
         "responses" : {
           "200" : {
             "content" : {
@@ -1137,7 +1127,7 @@
                 }
               }
             },
-            "description" : "Par de tokens nuevo"
+            "description" : "Access token nuevo; Set-Cookie con el refresh rotado"
           },
           "400" : {
             "content" : {
@@ -1157,7 +1147,17 @@
                 }
               }
             },
-            "description" : "Refresh token inválido, vencido, revocado o ya usado"
+            "description" : "Sin cookie, o refresh token inválido, vencido, revocado o ya usado"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Falta el header CSRF o el Origin no está permitido"
           },
           "500" : {
             "content" : {
@@ -1170,7 +1170,7 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Canjea un refresh token por un par nuevo (rotación)",
+        "summary" : "Canjea el refresh token de la cookie por un access token nuevo (rotación)",
         "tags" : [ "auth" ]
       }
     },
@@ -3080,18 +3080,6 @@
         },
         "required" : [ "elevatorId", "expiresAt", "token" ]
       },
-      "RefreshRequest" : {
-        "type" : "object",
-        "description" : "Refresh token vigente de la sesión",
-        "properties" : {
-          "refreshToken" : {
-            "type" : "string",
-            "example" : "b0Yq3k...",
-            "minLength" : 1
-          }
-        },
-        "required" : [ "refreshToken" ]
-      },
       "RegisterRequest" : {
         "type" : "object",
         "description" : "Datos para crear una cuenta. No lleva rol ni prioridad: todo usuario nace común",
@@ -3280,7 +3268,7 @@
       },
       "TokenResponse" : {
         "type" : "object",
-        "description" : "Par de tokens de la sesión. El access token no lleva rol ni prioridad",
+        "description" : "Access token de la sesión (el refresh va en una cookie HttpOnly, ADR 0019). No lleva rol ni prioridad",
         "properties" : {
           "accessToken" : {
             "type" : "string",
@@ -3292,16 +3280,12 @@
             "description" : "Segundos de vida del access token",
             "example" : 900
           },
-          "refreshToken" : {
-            "type" : "string",
-            "description" : "Opaco y de un solo uso: cada refresh devuelve uno nuevo"
-          },
           "tokenType" : {
             "type" : "string",
             "example" : "Bearer"
           }
         },
-        "required" : [ "accessToken", "expiresIn", "refreshToken", "tokenType" ]
+        "required" : [ "accessToken", "expiresIn", "tokenType" ]
       },
       "UserResponse" : {
         "type" : "object",

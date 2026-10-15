@@ -10,6 +10,7 @@ import com.smartelevate.turn.service.TurnFullException;
 import com.smartelevate.priority.service.InvalidPriorityOperationException;
 import com.smartelevate.priority.service.PriorityNotFoundException;
 import com.smartelevate.user.service.DuplicateUserException;
+import com.smartelevate.common.security.CsrfRejectedException;
 import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
@@ -123,6 +124,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({InvalidCredentialsException.class, InvalidRefreshTokenException.class})
     public ResponseEntity<ApiError> handleBadSession(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(CsrfRejectedException.class)
+    public ResponseEntity<ApiError> handleCsrf(CsrfRejectedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, List.of());
     }
 
     @ExceptionHandler(EmailNotVerifiedException.class)

@@ -3,7 +3,8 @@ import { stubApi, testUser, tokens } from '../test/stubApi';
 import { ApiError, getMe, login, logout, onSessionExpired, restoreSession } from './api';
 
 const auth = (init?: RequestInit) => (init?.headers as Record<string, string>)?.Authorization;
-const body = (init?: RequestInit) => JSON.parse(init!.body as string);
+const header = (init: RequestInit | undefined, name: string) =>
+  (init?.headers as Record<string, string>)?.[name];
 
 /** `/users/me` solo acepta el token indicado. */
 const meAccepting = (token: string) => (init?: RequestInit) =>
@@ -31,7 +32,7 @@ describe('sesión en services/api', () => {
     await expect(getMe()).resolves.toEqual(testUser);
   });
 
-  it('ante un 401 renueva con el refresh token, lo rota y reintenta', async () => {
+  it('ante un 401 renueva con la cookie del refresh y reintenta', async () => {
     await signIn();
     const fetchMock = stubApi({
       'POST /auth/refresh': { body: tokens(2) },
@@ -42,8 +43,10 @@ describe('sesión en services/api', () => {
 
     const calls = fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${url}`);
     expect(calls).toEqual(['GET /api/users/me', 'POST /api/auth/refresh', 'GET /api/users/me']);
-    expect(body(fetchMock.mock.calls[1][1])).toEqual({ refreshToken: 'refresh-1' });
-    expect(sessionStorage.getItem('smartelevate.refresh')).toBe('refresh-2');
+    const refresh = fetchMock.mock.calls[1][1];
+    expect(refresh?.credentials).toBe('include');
+    expect(header(refresh, 'X-Requested-With')).toBe('SmartElevate');
+    expect(refresh?.body).toBeUndefined();
   });
 
   it('requests simultáneos con el access vencido comparten un único refresh', async () => {
@@ -73,7 +76,6 @@ describe('sesión en services/api', () => {
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(401);
     expect(expired).toHaveBeenCalledOnce();
-    expect(sessionStorage.getItem('smartelevate.refresh')).toBeNull();
     unsubscribe();
   });
 
@@ -86,7 +88,7 @@ describe('sesión en services/api', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it('al recargar la pestaña recupera la sesión con el refresh token guardado', async () => {
+  it('al recargar la pestaña recupera la sesión con la cookie del refresh', async () => {
     await signIn();
     const fetchMock = stubApi({
       'POST /auth/refresh': { body: tokens(2) },
@@ -94,23 +96,27 @@ describe('sesión en services/api', () => {
     });
 
     await expect(restoreSession()).resolves.toEqual(testUser);
-    expect(body(fetchMock.mock.calls[0][1])).toEqual({ refreshToken: 'refresh-1' });
+    expect(fetchMock.mock.calls[0][1]?.credentials).toBe('include');
   });
 
-  it('sin refresh token guardado no hay sesión que recuperar', async () => {
-    const fetchMock = stubApi({});
+  it('sin cookie el refresh da 401 y no hay sesión que recuperar', async () => {
+    const fetchMock = stubApi({
+      'POST /auth/refresh': { status: 401, body: { message: 'Sin sesión' } },
+    });
 
     await expect(restoreSession()).resolves.toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it('logout revoca el refresh token en el servidor y borra lo guardado', async () => {
+  it('logout manda la cookie con el header CSRF y borra el access token', async () => {
     await signIn();
     const fetchMock = stubApi({ 'POST /auth/logout': { status: 204 } });
 
     await logout();
 
-    expect(body(fetchMock.mock.calls[0][1])).toEqual({ refreshToken: 'refresh-1' });
-    expect(sessionStorage.getItem('smartelevate.refresh')).toBeNull();
+    const init = fetchMock.mock.calls[0][1];
+    expect(init?.credentials).toBe('include');
+    expect(header(init, 'X-Requested-With')).toBe('SmartElevate');
+    await expect(getMe()).rejects.toBeInstanceOf(ApiError);
   });
 });

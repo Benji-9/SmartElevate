@@ -16,7 +16,6 @@ export type FieldViolation = Schemas['FieldViolation'];
 export type Building = Schemas['BuildingResponse'];
 
 export type LoginRequest = Schemas['LoginRequest'];
-export type RefreshRequest = Schemas['RefreshRequest'];
 /** Token del link de verificación de email. */
 export type VerifyEmailRequest = Schemas['VerifyEmailRequest'];
 export type ResendVerificationRequest = Schemas['ResendVerificationRequest'];

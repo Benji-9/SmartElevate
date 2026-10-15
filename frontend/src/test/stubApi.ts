@@ -9,14 +9,6 @@ type Routes = Record<string, Reply | ((init?: RequestInit) => Reply)>;
  * Lo que no está en `routes` responde 404.
  */
 export function stubApi(routes: Routes) {
-  // Si el stub atiende /auth/refresh, simula una pestaña con un refresh token ya guardado.
-  try {
-    if (routes['POST /auth/refresh'] && !sessionStorage.getItem('smartelevate.refresh')) {
-      sessionStorage.setItem('smartelevate.refresh', 'refresh-0');
-    }
-  } catch {
-    // Un test que bloquea el storage a propósito.
-  }
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const route = routes[`${init?.method ?? 'GET'} ${url.replace(/^\/api/, '')}`];
     const {
@@ -67,12 +59,11 @@ export const testReservation: Reservation = {
 /** Respuesta de login/refresh del backend (`TokenResponse`). */
 export const tokens = (n = 1) => ({
   accessToken: `token-${n}`,
-  refreshToken: `refresh-${n}`,
   tokenType: 'Bearer',
   expiresIn: 900,
 });
 
-/** Rutas para arrancar con sesión (refresh válido; `stubApi` deja el refresh token guardado). */
+/** Rutas para arrancar con sesión (la cookie del refresh la simula el stub de `/auth/refresh`). */
 export const signedIn = (user: User = testUser): Routes => ({
   'POST /auth/refresh': { body: tokens() },
   'GET /users/me': { body: user },

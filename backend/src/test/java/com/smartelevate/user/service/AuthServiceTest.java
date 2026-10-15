@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.smartelevate.common.security.JwtProperties;
+import com.smartelevate.user.dto.SessionTokens;
 import com.smartelevate.user.dto.TokenResponse;
 import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.RefreshToken;
@@ -88,19 +89,20 @@ class AuthServiceTest {
 
     @Test
     void loginReturnsAccessAndRefreshAndStoresOnlyTheRefreshHash() {
-        TokenResponse response = service.login(" Ana@UADE.edu.ar ", "una-clave-larga", IP);
+        SessionTokens session = service.login(" Ana@UADE.edu.ar ", "una-clave-larga", IP);
+        TokenResponse response = session.response();
 
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.expiresIn()).isEqualTo(900);
         RefreshToken stored = savedToken();
         assertThat(stored.getUserId()).isEqualTo(user.getId());
-        assertThat(stored.getTokenHash()).hasSize(64).isNotEqualTo(response.refreshToken());
+        assertThat(stored.getTokenHash()).hasSize(64).isNotEqualTo(session.refreshToken());
         assertThat(stored.getExpiresAt()).isEqualTo(NOW.plus(REFRESH_TTL));
     }
 
     @Test
     void accessTokenCarriesOnlySubjectAndTimestamps_noRoleNorPriority() {
-        TokenResponse response = service.login("ana@uade.edu.ar", "una-clave-larga", IP);
+        TokenResponse response = service.login("ana@uade.edu.ar", "una-clave-larga", IP).response();
 
         Jwt jwt = decoder.decode(response.accessToken());
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
@@ -216,7 +218,7 @@ class AuthServiceTest {
         // Registrada con la "ñ" compuesta (U+00F1), escrita al entrar con n + tilde combinable (U+0303).
         user.changePasswordHash(encoder.encode("contraseña-larga"));
 
-        assertThat(service.login("ana@uade.edu.ar", "contraseña-larga", IP).accessToken()).isNotBlank();
+        assertThat(service.login("ana@uade.edu.ar", "contraseña-larga", IP).response().accessToken()).isNotBlank();
     }
 
     // ---- refresh
@@ -224,7 +226,7 @@ class AuthServiceTest {
     private String lastRaw;
 
     private RefreshToken issueAndGetStored() {
-        TokenResponse first = service.login("ana@uade.edu.ar", "una-clave-larga", IP);
+        SessionTokens first = service.login("ana@uade.edu.ar", "una-clave-larga", IP);
         RefreshToken stored = savedToken();
         given(refreshTokens.findByTokenHash(stored.getTokenHash())).willReturn(Optional.of(stored));
         given(users.findById(user.getId())).willReturn(Optional.of(user));
@@ -237,7 +239,7 @@ class AuthServiceTest {
         RefreshToken stored = issueAndGetStored();
         given(refreshTokens.markUsed(stored.getId(), NOW)).willReturn(1);
 
-        TokenResponse next = service.refresh(lastRaw);
+        SessionTokens next = service.refresh(lastRaw);
 
         assertThat(next.refreshToken()).isNotEqualTo(lastRaw);
         ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);

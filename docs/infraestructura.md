@@ -112,7 +112,7 @@ Los define `frontend/vercel.json` (sección `headers`, todas las rutas). Decisi�
 
 | Header | Valor | Por qué |
 | --- | --- | --- |
-| `Content-Security-Policy` | `default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `style-src-attr 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`, `media-src 'self' blob:`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` | Mitiga XSS (el refresh vive en `sessionStorage`, ADR 0014) y clickjacking |
+| `Content-Security-Policy` | `default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `style-src-attr 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`, `media-src 'self' blob:`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` | Mitiga XSS (el refresh vive en una cookie HttpOnly, ADR 0019) y clickjacking |
 | `X-Content-Type-Options` | `nosniff` | Evita que el navegador adivine tipos MIME |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | No filtra rutas a otros orígenes |
 | `Permissions-Policy` | `camera=(self)` y el resto denegado | El check-in escanea con la cámara |

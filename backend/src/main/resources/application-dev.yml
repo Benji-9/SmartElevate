@@ -19,6 +19,9 @@ management:
 
 # Defaults locales de las variables que en prod son obligatorias (RequiredProdProperties, #222).
 app:
+  security:
+    refresh-cookie:
+      secure: ${APP_REFRESH_COOKIE_SECURE:false}
   verification:
     frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
   cors:
