@@ -52,8 +52,11 @@ const BOOKING_CLOSES_MS = 2 * 60_000;
 const CONGESTION_REFRESH_SECONDS = 60;
 /** Pisos bajos (`low_floors_threshold`): sin reserva con destino del 1 a este piso. */
 const LOW_FLOORS_THRESHOLD = 4;
-/** Se puede cancelar sin falta hasta este tiempo antes de la salida. */
+/** Se puede cancelar sin falta hasta este tiempo antes de la salida (`cancellation_deadline_before` del mock). */
 const CANCEL_DEADLINE_MS = 60_000;
+/** `cancelFreeUntil` de la reserva: salida − plazo, como lo calcula el backend. */
+const cancelFreeUntil = (departureAt: string) =>
+  new Date(Date.parse(departureAt) - CANCEL_DEADLINE_MS).toISOString();
 const UPLOAD_RULES: PriorityUploadRules = {
   maxSizeBytes: 5 * 1024 * 1024,
   acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
@@ -406,6 +409,7 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
     departureId,
     elevator: e.code,
     departureAt: departure.departureAt,
+    cancelFreeUntil: cancelFreeUntil(departure.departureAt),
     seatNumber: occupied(departureId) + 1,
     originFloor,
     destinationFloor,
@@ -462,6 +466,7 @@ function toPending(r: Reservation): PendingReservation {
       departureId,
       elevator: '33',
       departureAt: new Date(at).toISOString(),
+      cancelFreeUntil: cancelFreeUntil(new Date(at).toISOString()),
       seatNumber: occupied(departureId) + 1,
       originFloor: 0,
       destinationFloor: 7,
