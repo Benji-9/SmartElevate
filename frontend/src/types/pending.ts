@@ -42,14 +42,6 @@ export type PriorityUploadRules = {
   acceptedTypes: string[];
 };
 
-/** Qué avisos quiere recibir el usuario. */
-export type NotificationPreferences = {
-  departureReminder: boolean;
-  spotReleased: boolean;
-  delayCancellation: boolean;
-  priorityAccess: boolean;
-};
-
 /** Período del panel admin; el servidor lo resuelve en hora de Buenos Aires. */
 export type AdminPeriod = 'TODAY' | 'WEEK' | 'MONTH';
 /**

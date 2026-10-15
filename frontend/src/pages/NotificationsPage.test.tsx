@@ -1,23 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { signedIn, stubApi } from '../test/stubApi';
-import type { NotificationPreferences } from '../types/pending';
+import type { NotificationPreferences } from '../types/api';
 import { NotificationsPage } from './NotificationsPage';
 
-const prefs: NotificationPreferences = {
-  departureReminder: false,
-  spotReleased: false,
-  delayCancellation: false,
-  priorityAccess: true,
-};
-
-function stubNotification(permission: NotificationPermission, answer = permission) {
-  const requestPermission = vi.fn(async () => answer);
-  vi.stubGlobal('Notification', { permission, requestPermission });
-  return requestPermission;
-}
+const prefs: NotificationPreferences = { departureReminder: false, elevatorOutOfService: true };
 
 function renderPage() {
   render(
@@ -38,14 +27,12 @@ describe('NotificationsPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Notificaciones' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Cargando');
     expect(await screen.findByRole('switch', { name: 'Recordatorio de salida' })).not.toBeChecked();
-    // Sin lista de espera en la UI, no se ofrece el aviso de lugar liberado (#157).
-    expect(screen.queryByRole('switch', { name: 'Lugar liberado' })).not.toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: 'Cancelación por demora' })).not.toBeChecked();
-    expect(screen.getByRole('switch', { name: 'Acceso prioritario' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Ascensor fuera de servicio' })).toBeChecked();
+    // Sin lista de espera no hay aviso de lugar liberado, y los mails no llevan datos de prioridad.
+    expect(screen.getAllByRole('switch')).toHaveLength(2);
   });
 
-  it('al activar pide permiso y guarda la preferencia', async () => {
-    const requestPermission = stubNotification('default', 'granted');
+  it('al activar guarda la preferencia, sin pedir permiso del navegador', async () => {
     const fetchMock = stubApi({
       ...signedIn(),
       'GET /me/notification-preferences': { body: prefs },
@@ -58,42 +45,11 @@ describe('NotificationsPage', () => {
 
     expect(toggle).toBeChecked();
     expect(await screen.findByRole('status')).toHaveTextContent('Guardamos tu preferencia.');
-    expect(requestPermission).toHaveBeenCalledOnce();
     const [[, init]] = putCalls(fetchMock);
     expect(JSON.parse(String(init?.body))).toEqual({ ...prefs, departureReminder: true });
   });
 
-  it('si el permiso está denegado, no activa y explica cómo habilitarlo', async () => {
-    const requestPermission = stubNotification('default', 'denied');
-    const fetchMock = stubApi({
-      ...signedIn(),
-      'GET /me/notification-preferences': { body: prefs },
-    });
-    renderPage();
-
-    const toggle = await screen.findByRole('switch', { name: 'Recordatorio de salida' });
-    await userEvent.click(toggle);
-
-    expect(requestPermission).toHaveBeenCalledOnce();
-    expect(toggle).not.toBeChecked();
-    expect(screen.getByRole('alert')).toHaveTextContent(/configuración del sitio/);
-    expect(putCalls(fetchMock)).toHaveLength(0);
-  });
-
-  it('si el navegador no admite notificaciones, no activa y lo avisa', async () => {
-    vi.stubGlobal('Notification', undefined);
-    stubApi({ ...signedIn(), 'GET /me/notification-preferences': { body: prefs } });
-    renderPage();
-
-    const toggle = await screen.findByRole('switch', { name: 'Recordatorio de salida' });
-    await userEvent.click(toggle);
-
-    expect(toggle).not.toBeChecked();
-    expect(screen.getByRole('alert')).toHaveTextContent(/no admite notificaciones/);
-  });
-
-  it('desactivar guarda sin pedir permiso', async () => {
-    const requestPermission = stubNotification('default');
+  it('desactivar guarda el valor nuevo', async () => {
     const fetchMock = stubApi({
       ...signedIn(),
       'GET /me/notification-preferences': { body: prefs },
@@ -101,17 +57,15 @@ describe('NotificationsPage', () => {
     });
     renderPage();
 
-    const toggle = await screen.findByRole('switch', { name: 'Acceso prioritario' });
+    const toggle = await screen.findByRole('switch', { name: 'Ascensor fuera de servicio' });
     await userEvent.click(toggle);
 
     expect(toggle).not.toBeChecked();
-    expect(requestPermission).not.toHaveBeenCalled();
     const [[, init]] = putCalls(fetchMock);
-    expect(JSON.parse(String(init?.body))).toEqual({ ...prefs, priorityAccess: false });
+    expect(JSON.parse(String(init?.body))).toEqual({ ...prefs, elevatorOutOfService: false });
   });
 
   it('si falla el guardado, vuelve el interruptor atrás y muestra el error', async () => {
-    stubNotification('granted');
     stubApi({
       ...signedIn(),
       'GET /me/notification-preferences': { body: prefs },
@@ -119,7 +73,7 @@ describe('NotificationsPage', () => {
     });
     renderPage();
 
-    const toggle = await screen.findByRole('switch', { name: 'Cancelación por demora' });
+    const toggle = await screen.findByRole('switch', { name: 'Recordatorio de salida' });
     await userEvent.click(toggle);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');

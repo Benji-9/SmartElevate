@@ -421,6 +421,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/notification-preferences': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Preferencias de aviso por email
+     * @description Por defecto todos los avisos están activos. Sin token responde 401.
+     */
+    get: operations['get'];
+    /**
+     * Guarda las preferencias de aviso por email
+     * @description Reemplaza las dos preferencias; faltar alguna o mandar null responde 400.
+     */
+    put: operations['update'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ping': {
     parameters: {
       query?: never;
@@ -810,6 +834,19 @@ export interface components {
        * @example 7
        */
       windowDays: number;
+    };
+    /** @description Avisos por email que el usuario quiere recibir */
+    NotificationPreferences: {
+      /**
+       * @description Recordatorio un rato antes de la salida de su turno
+       * @example true
+       */
+      departureReminder: boolean;
+      /**
+       * @description Aviso si su reserva se cancela porque el ascensor sale de servicio
+       * @example true
+       */
+      elevatorOutOfService: boolean;
     };
     /** @description Docente declarado que espera la aprobación de un ADMIN */
     PendingTeacherResponse: {
@@ -2134,6 +2171,86 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['NoShowStatusResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NotificationPreferences'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationPreferences'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NotificationPreferences'];
         };
       };
       /** @description Bad Request */

@@ -4,44 +4,25 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { Switch } from '../components/Switch';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { getNotificationPreferences, saveNotificationPreferences } from '../services/api';
-import type { NotificationPreferences } from '../types/pending';
+import type { NotificationPreferences } from '../types/api';
 import './NotificationsPage.css';
 
+// Los avisos salen por email desde el servidor (#221): no hace falta permiso del navegador. "Lugar
+// liberado" no existe: sin lista de espera (fuera del MVP, turnos.md §7) no hay a quién avisarle.
+// Tampoco hay aviso de prioridad: el mail no lleva datos de prioridad ni de salud.
 const options: { key: keyof NotificationPreferences; label: string; description: string }[] = [
   {
     key: 'departureReminder',
     label: 'Recordatorio de salida',
-    description: 'Te avisamos un rato antes de que salga tu ascensor.',
-  },
-  // "Lugar liberado" (`spotReleased`) queda oculto: avisa de la lista de espera, que la UI todavía
-  // no tiene (docs/reglas/turnos.md §7, fuera de la Fase 2 #105). Volver a mostrarlo cuando se
-  // implemente la lista de espera (#157). El valor del servidor se reenvía sin cambios al guardar.
-  {
-    key: 'delayCancellation',
-    label: 'Cancelación por demora',
-    description: 'Si tu salida se demora y podés cancelar sin que cuente como falta.',
+    description: 'Te mandamos un email un rato antes de que salga tu ascensor.',
   },
   {
-    key: 'priorityAccess',
-    label: 'Acceso prioritario',
-    description: 'Cuando se aprueba o vence tu prioridad.',
+    key: 'elevatorOutOfService',
+    label: 'Ascensor fuera de servicio',
+    description:
+      'Si cancelamos tu turno porque el ascensor sale de servicio (no cuenta como falta).',
   },
 ];
-
-const DENIED =
-  'Las notificaciones están bloqueadas en este navegador. Para activarlas, habilitalas en la configuración del sitio (el ícono junto a la dirección) y volvé a intentar.';
-const UNSUPPORTED =
-  'Este navegador no admite notificaciones. Probá desde otro navegador actualizado.';
-
-/** Pide permiso solo si todavía no se respondió. Devuelve el mensaje si no se puede avisar. */
-async function notificationBlocker(): Promise<string | null> {
-  if (typeof Notification === 'undefined') return UNSUPPORTED;
-  const permission =
-    Notification.permission === 'default'
-      ? await Notification.requestPermission()
-      : Notification.permission;
-  return permission === 'granted' ? null : DENIED;
-}
 
 export function NotificationsPage() {
   const { data, error, loading, reload } = useResource(getNotificationPreferences);
@@ -55,13 +36,6 @@ export function NotificationsPage() {
     if (!prefs) return;
     setMessage(null);
     setSaved(false);
-    if (value) {
-      const blocker = await notificationBlocker();
-      if (blocker) {
-        setMessage(blocker);
-        return;
-      }
-    }
     setEdited({ ...prefs, [key]: value });
     try {
       await saveNotificationPreferences({ ...prefs, [key]: value });
@@ -93,10 +67,7 @@ export function NotificationsPage() {
   } else {
     content = (
       <>
-        <p className="notifications__intro">
-          Elegí qué avisos querés recibir. Te pedimos permiso del navegador recién cuando actives el
-          primero.
-        </p>
+        <p className="notifications__intro">Elegí qué avisos querés recibir en tu email.</p>
         {message && (
           <p role="alert" className="notifications__alert">
             {message}
@@ -118,7 +89,7 @@ export function NotificationsPage() {
           ))}
         </div>
         <p className="notifications__intro">
-          Los avisos llegan como notificaciones del navegador. Podés desactivarlos cuando quieras.
+          Los mails no incluyen datos de salud ni de prioridad. Podés desactivarlos cuando quieras.
         </p>
       </>
     );

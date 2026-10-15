@@ -12,6 +12,7 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   NoShowStatus,
+  NotificationPreferences,
   PendingTeacher,
   PingResponse,
   PriorityUser,
@@ -32,7 +33,6 @@ import type {
   AdminKpisQuery,
   AdminShift,
   CongestionSnapshot,
-  NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
 } from '../types/pending';

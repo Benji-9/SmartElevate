@@ -3,7 +3,6 @@ import type {
   AdminKpis,
   AdminShift,
   CongestionSnapshot,
-  NotificationPreferences,
   PriorityUploadRules,
 } from '../types/pending';
 import type {
@@ -14,6 +13,7 @@ import type {
   Elevator,
   KioskList,
   NoShowStatus,
+  NotificationPreferences,
   QrToken,
   Reservation,
   ReservationPage,
@@ -326,10 +326,10 @@ describe('mocks', () => {
 
   it('las preferencias de notificaciones se guardan', async () => {
     const prefs = await call<NotificationPreferences>('GET', '/me/notification-preferences');
-    await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: true });
+    await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: false });
 
     expect(await call('GET', '/me/notification-preferences')).toMatchObject({
-      departureReminder: true,
+      departureReminder: false,
     });
   });
 

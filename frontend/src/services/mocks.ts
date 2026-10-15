@@ -16,6 +16,7 @@ import type {
   KioskList,
   LoginRequest,
   NoShowStatus,
+  NotificationPreferences,
   PendingTeacher,
   PriorityUser,
   QrToken,
@@ -36,7 +37,6 @@ import type {
   AdminShift,
   CongestionLevel,
   CongestionSnapshot,
-  NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
 } from '../types/pending';
@@ -459,10 +459,9 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
 let lastCheckedIn: number | null = null;
 let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
-  departureReminder: false,
-  spotReleased: false,
-  delayCancellation: false,
-  priorityAccess: false,
+  // Como el servidor: todos los avisos activos por defecto.
+  departureReminder: true,
+  elevatorOutOfService: true,
 };
 
 // Historial de ejemplo: dos viajes por día hacia atrás, con todos los estados y resultados.
