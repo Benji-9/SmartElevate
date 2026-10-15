@@ -39,6 +39,11 @@ app:
     window: ${APP_LOGIN_THROTTLE_WINDOW:PT15M}
     max-failures-per-account: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT:10}
     max-failures-per-ip: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP:100}
+  admin:
+    user-search:
+      # Buscador de usuarios del panel admin (#215): mínimo de caracteres para no listar a todos, y tamaño de página.
+      min-query-length: ${APP_ADMIN_USER_SEARCH_MIN_QUERY_LENGTH:3}
+      page-size: ${APP_ADMIN_USER_SEARCH_PAGE_SIZE:20}
   verification:
     token-ttl: ${APP_VERIFICATION_TOKEN_TTL:PT24H}
     resend-cooldown: ${APP_VERIFICATION_RESEND_COOLDOWN:PT1M}

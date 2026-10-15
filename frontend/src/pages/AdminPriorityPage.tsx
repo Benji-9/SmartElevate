@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PendingTeachers, PriorityUsers } from '../features/admin/PrioritySections';
+import { RoleSearch } from '../features/admin/RoleSearch';
 import '../features/admin/admin.css';
 
 /** Figma-less 09b · Usuarios prioritarios: cola de docentes y prioridades vigentes (#140). */
@@ -14,6 +15,7 @@ export function AdminPriorityPage() {
       </header>
       <PendingTeachers onApproved={() => setVersion((v) => v + 1)} />
       <PriorityUsers key={version} />
+      <RoleSearch />
     </>
   );
 }

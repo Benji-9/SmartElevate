@@ -3,10 +3,12 @@ package com.smartelevate.priority.controller;
 import com.smartelevate.common.config.OpenApiConfig;
 import com.smartelevate.common.error.ApiError;
 import com.smartelevate.common.security.CurrentUser;
+import com.smartelevate.priority.dto.AdminUserPage;
 import com.smartelevate.priority.dto.AssignRoleRequest;
 import com.smartelevate.priority.dto.PendingTeacherResponse;
 import com.smartelevate.priority.dto.PriorityUserResponse;
 import com.smartelevate.priority.service.PriorityService;
+import com.smartelevate.priority.service.UserSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminPriorityController {
 
     private final PriorityService service;
+    private final UserSearchService userSearch;
 
     @GetMapping("/teachers/pending")
     @Operation(summary = "Docentes declarados que esperan aprobación")
@@ -82,6 +86,14 @@ public class AdminPriorityController {
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void revoke(@AuthenticationPrincipal CurrentUser admin, @PathVariable UUID id) {
         service.revoke(admin.id(), id);
+    }
+
+    @GetMapping("/users")
+    @Operation(summary = "Busca usuarios por email, nombre o legajo (contiene, paginado por cursor)")
+    @ApiResponse(responseCode = "400", description = "Búsqueda demasiado corta o cursor inválido",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public AdminUserPage searchUsers(@RequestParam(defaultValue = "") String query, @RequestParam(required = false) UUID cursor) {
+        return userSearch.search(query, cursor);
     }
 
     @PutMapping("/users/{id}/role")

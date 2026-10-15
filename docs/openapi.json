@@ -593,6 +593,65 @@
         "tags" : [ "admin-priority" ]
       }
     },
+    "/api/admin/users" : {
+      "get" : {
+        "operationId" : "searchUsers",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : ""
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminUserPage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Búsqueda demasiado corta o cursor inválido"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Busca usuarios por email, nombre o legajo (contiene, paginado por cursor)",
+        "tags" : [ "admin-priority" ]
+      }
+    },
     "/api/admin/users/{id}/role" : {
       "put" : {
         "operationId" : "assignRole",
@@ -2067,6 +2126,52 @@
           }
         },
         "required" : [ "endsAt", "id", "name", "startsAt" ]
+      },
+      "AdminUserPage" : {
+        "type" : "object",
+        "description" : "Página de usuarios; pedir la siguiente con cursor=nextCursor",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AdminUserResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid",
+            "description" : "Cursor de la página siguiente; null si no hay más"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "AdminUserResponse" : {
+        "type" : "object",
+        "description" : "Usuario encontrado por el buscador del panel admin (sin datos sensibles)",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "ana@uade.edu.ar"
+          },
+          "fullName" : {
+            "type" : "string",
+            "example" : "Ana Pérez"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "legajo" : {
+            "type" : "string",
+            "example" : "1234567"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "Rol actual",
+            "enum" : [ "USER", "REVIEWER", "ADMIN" ]
+          }
+        },
+        "required" : [ "email", "fullName", "id", "legajo", "role" ]
       },
       "ApiError" : {
         "type" : "object",
