@@ -20,6 +20,8 @@ public class ReservationRejectedException extends RuntimeException {
         LOW_FLOOR_DESTINATION(HttpStatus.UNPROCESSABLE_ENTITY),
         // Suspensión por faltas (#231, turnos.md §5)
         NO_SHOW_SUSPENDED(HttpStatus.CONFLICT),
+        // Cancelar con la salida ya pasada, o una reserva en no-show (#218, turnos.md §4)
+        DEPARTURE_ALREADY_PASSED(HttpStatus.CONFLICT),
         // Check-in (#230)
         NO_ACTIVE_RESERVATION(HttpStatus.CONFLICT),
         OUTSIDE_CHECK_IN_WINDOW(HttpStatus.CONFLICT),

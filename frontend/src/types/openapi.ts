@@ -490,7 +490,7 @@ export interface paths {
     post?: never;
     /**
      * Cancela una reserva mía y libera el lugar
-     * @description Idempotente. Hasta 1 min antes de la salida (cancellation_deadline_before) queda CANCELLED; después, CANCELLED_LATE (cuenta como falta).
+     * @description Idempotente con una ya cancelada. Hasta cancelFreeUntil de la reserva (la salida menos cancellation_deadline_before) queda CANCELLED y devuelve el lugar en el tope diario; después, CANCELLED_LATE (cuenta como falta y no lo devuelve). Desde la salida no se puede.
      */
     delete: operations['cancel'];
     options?: never;
@@ -880,6 +880,12 @@ export interface components {
     };
     /** @description Reserva de un lugar en una salida */
     ReservationResponse: {
+      /**
+       * Format: date-time
+       * @description Hasta este instante (inclusive, UTC) se cancela sin falta: la salida menos cancellation_deadline_before. Después, cancelar es tardío y cuenta como falta; desde la salida ya no se puede cancelar.
+       * @example 2026-10-13T15:48:00Z
+       */
+      cancelFreeUntil: string;
       /**
        * Format: date-time
        * @example 2026-10-13T15:40:00Z
@@ -2277,6 +2283,15 @@ export interface operations {
       };
       /** @description La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND) */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La salida ya pasó o la reserva es un no-show (DEPARTURE_ALREADY_PASSED), o ya tiene check-in (ALREADY_CHECKED_IN) */
+      409: {
         headers: {
           [name: string]: unknown;
         };

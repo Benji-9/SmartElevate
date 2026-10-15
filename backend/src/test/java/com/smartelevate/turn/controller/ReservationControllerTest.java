@@ -60,8 +60,8 @@ class ReservationControllerTest {
     @Test
     void createsTheReservationForTheAuthenticatedUser() throws Exception {
         given(service.reserve(USER, new ReserveRequest(7L, 0, 8))).willReturn(new ReservationResponse(55, 7, "33",
-                Instant.parse("2026-10-13T15:58:00Z"), 3, 0, 8, ReservationStatus.ACTIVE,
-                Instant.parse("2026-10-13T15:55:00Z")));
+                Instant.parse("2026-10-13T15:58:00Z"), Instant.parse("2026-10-13T15:48:00Z"), 3, 0, 8,
+                ReservationStatus.ACTIVE, Instant.parse("2026-10-13T15:55:00Z")));
 
         mockMvc.perform(post("/api/reservations").with(asUser()).contentType(MediaType.APPLICATION_JSON)
                         .content(BODY))
@@ -70,12 +70,13 @@ class ReservationControllerTest {
                 .andExpect(jsonPath("$.departureId").value(7))
                 .andExpect(jsonPath("$.elevator").value("33"))
                 .andExpect(jsonPath("$.seatNumber").value(3))
+                .andExpect(jsonPath("$.cancelFreeUntil").value("2026-10-13T15:48:00Z"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
     @Test
     void ignoresAUserIdSentInTheBody() throws Exception {
-        given(service.reserve(any(), any())).willReturn(new ReservationResponse(1, 7, "33", Instant.EPOCH, 1, 0, 8,
+        given(service.reserve(any(), any())).willReturn(new ReservationResponse(1, 7, "33", Instant.EPOCH, Instant.EPOCH, 1, 0, 8,
                 ReservationStatus.ACTIVE, Instant.EPOCH));
 
         mockMvc.perform(post("/api/reservations").with(asUser()).contentType(MediaType.APPLICATION_JSON)
@@ -134,12 +135,14 @@ class ReservationControllerTest {
     @Test
     void listsMyReservationsIncludingCancelledOnesWithoutSeat() throws Exception {
         given(service.mine(USER)).willReturn(List.of(new ReservationResponse(55, 7, "33",
-                Instant.parse("2026-10-13T15:58:00Z"), null, 0, 8, ReservationStatus.CANCELLED_LATE, Instant.EPOCH)));
+                Instant.parse("2026-10-13T15:58:00Z"), Instant.parse("2026-10-13T15:48:00Z"), null, 0, 8,
+                ReservationStatus.CANCELLED_LATE, Instant.EPOCH)));
 
         mockMvc.perform(get("/api/reservations/me").with(asUser()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(55))
                 .andExpect(jsonPath("$[0].departureAt").value("2026-10-13T15:58:00Z"))
+                .andExpect(jsonPath("$[0].cancelFreeUntil").value("2026-10-13T15:48:00Z"))
                 .andExpect(jsonPath("$[0].seatNumber").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$[0].status").value("CANCELLED_LATE"));
     }
@@ -160,6 +163,17 @@ class ReservationControllerTest {
         mockMvc.perform(delete("/api/reservations/56").with(asUser()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RESERVATION_NOT_FOUND"));
+    }
+
+    @Test
+    void cancellingAfterTheDepartureReturns409WithCode() throws Exception {
+        willThrow(new ReservationRejectedException(ReservationRejectedException.Reason.DEPARTURE_ALREADY_PASSED,
+                "La salida ya pasó: la reserva no se puede cancelar.")).given(service).cancel(USER, 55L);
+
+        mockMvc.perform(delete("/api/reservations/55").with(asUser()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DEPARTURE_ALREADY_PASSED"))
+                .andExpect(jsonPath("$.path").value("/api/reservations/55"));
     }
 
     @Test

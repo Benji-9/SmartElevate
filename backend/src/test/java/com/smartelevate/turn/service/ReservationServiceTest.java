@@ -89,6 +89,7 @@ class ReservationServiceTest {
         lenient().when(config.lowFloorsThreshold()).thenReturn(4);
         lenient().when(config.prioritySeatsPerDeparture()).thenReturn(2);
         lenient().when(config.prioritySeatsReleaseBefore()).thenReturn(Duration.ofMinutes(3));
+        lenient().when(config.cancellationDeadlineBefore()).thenReturn(Duration.ofMinutes(10));
         lenient().when(priorities.currentPriority(USER)).thenReturn(PriorityCategory.NONE);
         lenient().when(reservations.saveAndFlush(any(Reservation.class))).thenAnswer(i -> {
             Reservation r = i.getArgument(0);
@@ -123,6 +124,8 @@ class ReservationServiceTest {
         assertThat(response.originFloor()).isZero();
         assertThat(response.destinationFloor()).isEqualTo(8);
         assertThat(response.createdAt()).isEqualTo(NOW);
+        // Salida a las 13:05 de Buenos Aires: sin falta hasta las 12:55, el plazo de app_config antes.
+        assertThat(response.cancelFreeUntil()).isEqualTo(NOW);
     }
 
     @Test
@@ -356,8 +359,9 @@ class ReservationServiceTest {
         // Día de Buenos Aires: 03:00Z a 03:00Z del día siguiente.
         Instant from = Instant.parse("2026-10-13T03:00:00Z");
         Instant to = Instant.parse("2026-10-14T03:00:00Z");
-        given(reservations.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(USER, from, to))
-                .willReturn(7L, 8L);
+        // Las CANCELLED (sin falta) devuelven el lugar: el conteo las excluye; las CANCELLED_LATE cuentan.
+        given(reservations.countByUserIdAndStatusNotAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(USER,
+                ReservationStatus.CANCELLED, from, to)).willReturn(7L, 8L);
 
         assertThatCode(() -> reserve(0, 8)).doesNotThrowAnyException();
         assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.DAILY_LIMIT_REACHED);
@@ -423,12 +427,12 @@ class ReservationServiceTest {
         Reservation r = new Reservation(owner, d, 3, 0, 8, NOW.minus(Duration.ofMinutes(10)));
         ReflectionTestUtils.setField(r, "id", 55L);
         lenient().when(reservations.findById(55L)).thenReturn(Optional.of(r));
-        lenient().when(config.cancellationDeadlineBefore()).thenReturn(Duration.ofMinutes(1));
         return r;
     }
 
+    // Plazo de 10 min: a 10:00 de la salida todavía es sin falta; a 9:59, tardía; hasta 1 s antes se puede.
     @ParameterizedTest
-    @CsvSource({"61, CANCELLED", "60, CANCELLED", "59, CANCELLED_LATE", "-30, CANCELLED_LATE"})
+    @CsvSource({"601, CANCELLED", "600, CANCELLED", "599, CANCELLED_LATE", "1, CANCELLED_LATE"})
     void cancelBeforeTheDeadlineIsFreeAndAfterItIsLate(long secondsBefore, ReservationStatus expected) {
         Reservation r = reservationOf(USER, NOW.plusSeconds(secondsBefore));
 
@@ -440,9 +444,42 @@ class ReservationServiceTest {
         verify(departures).findByIdForUpdate(DEPARTURE_ID);
     }
 
+    @ParameterizedTest
+    @CsvSource({"0", "-1", "-30"})
+    void cannotCancelOnceTheDepartureTimeArrives(long secondsBefore) {
+        Reservation r = reservationOf(USER, NOW.plusSeconds(secondsBefore));
+
+        assertRejected(() -> service.cancel(USER, 55L), ReservationRejectedException.Reason.DEPARTURE_ALREADY_PASSED);
+
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.ACTIVE);
+        assertThat(r.getSeatNumber()).isEqualTo(3);
+    }
+
+    @Test
+    void usedAndNoShowReservationsCannotBeCancelled() {
+        Reservation used = reservationOf(USER, NOW.plusSeconds(30)); // check-in antes de la salida
+        used.markUsed();
+        assertRejected(() -> service.cancel(USER, 55L), ReservationRejectedException.Reason.ALREADY_CHECKED_IN);
+        assertThat(used.getStatus()).isEqualTo(ReservationStatus.USED);
+
+        Reservation noShow = reservationOf(USER, NOW.minusSeconds(120));
+        noShow.markNoShow();
+        assertRejected(() -> service.cancel(USER, 55L), ReservationRejectedException.Reason.DEPARTURE_ALREADY_PASSED);
+        assertThat(noShow.getStatus()).isEqualTo(ReservationStatus.NO_SHOW);
+    }
+
+    @Test
+    void anAlreadyCancelledReservationStaysIdempotentAfterTheDeparture() {
+        Reservation r = reservationOf(USER, NOW.minusSeconds(60));
+        r.cancel(NOW.minus(Duration.ofMinutes(20)), Duration.ofMinutes(10));
+
+        assertThatCode(() -> service.cancel(USER, 55L)).doesNotThrowAnyException();
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
+    }
+
     @Test
     void cancellingTwiceKeepsTheFirstOutcome() {
-        Reservation r = reservationOf(USER, NOW.plusSeconds(61));
+        Reservation r = reservationOf(USER, NOW.plusSeconds(601));
         service.cancel(USER, 55L);
         given(config.cancellationDeadlineBefore()).willReturn(Duration.ofHours(1));
 
@@ -473,6 +510,7 @@ class ReservationServiceTest {
             assertThat(res.elevator()).isEqualTo("33");
             assertThat(res.seatNumber()).isEqualTo(3);
             assertThat(res.status()).isEqualTo(ReservationStatus.ACTIVE);
+            assertThat(res.cancelFreeUntil()).isEqualTo(NOW); // salida en 10 min, plazo de 10 min
         });
     }
 }
