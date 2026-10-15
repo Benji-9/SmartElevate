@@ -288,6 +288,10 @@ class AdminPriorityApiTest {
         mockMvc.perform(as(admin, get("/api/admin/users").param("query", "ab"))).andExpect(status().isBadRequest());
         mockMvc.perform(as(admin, get("/api/admin/users").param("query", "  a "))).andExpect(status().isBadRequest());
         mockMvc.perform(as(admin, get("/api/admin/users"))).andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "a".repeat(101))))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "a".repeat(100))))
+                .andExpect(status().isOk());
         mockMvc.perform(as(admin, get("/api/admin/users").param("query", "usuario").param("cursor", "x")))
                 .andExpect(status().isBadRequest());
     }

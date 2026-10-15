@@ -19,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class UserSearchService {
 
+    /** Tope técnico: un email o nombre real no lo pasa; evita patrones LIKE enormes. */
+    static final int MAX_QUERY_LENGTH = 100;
     private static final UUID START = new UUID(0, 0);
 
     private final UserRepository users;
@@ -31,6 +33,10 @@ public class UserSearchService {
         if (q.length() < props.minQueryLength()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La búsqueda necesita al menos " + props.minQueryLength() + " caracteres");
+        }
+        if (q.length() > MAX_QUERY_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La búsqueda admite como máximo " + MAX_QUERY_LENGTH + " caracteres");
         }
         String pattern = "%" + q.toLowerCase(Locale.ROOT).replaceAll("[!%_]", "!$0") + "%";
         // Se pide uno de más para saber si hay página siguiente.

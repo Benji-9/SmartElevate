@@ -327,7 +327,6 @@ export const approveTeacher = (id: string) =>
   api.post<void>(`/admin/teachers/${encodeURIComponent(id)}/approve`, {});
 export const rejectTeacher = (id: string) =>
   api.post<void>(`/admin/teachers/${encodeURIComponent(id)}/reject`, {});
-/** Usuarios con prioridad vigente. */
 /** Busca usuarios por nombre, email o legajo (mínimo 3 caracteres). Solo ADMIN. */
 export const searchUsers = (query: string, cursor?: string) =>
   api.get<AdminUserPage>(
@@ -336,6 +335,7 @@ export const searchUsers = (query: string, cursor?: string) =>
 /** Cambia el rol de otro usuario (el servidor rechaza con 409 el propio). Solo ADMIN. */
 export const assignRole = (id: string, role: Role) =>
   api.put<void>(`/admin/users/${encodeURIComponent(id)}/role`, { role });
+/** Usuarios con prioridad vigente. */
 export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
 export const revokePriority = (id: string) =>
   api.delete<void>(`/admin/priority-users/${encodeURIComponent(id)}`);

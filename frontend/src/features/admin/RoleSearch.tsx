@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
 import { Input } from '../../components/Input';
@@ -21,10 +21,13 @@ const ROLES: Record<Role, string> = {
 function RoleRow({
   user,
   isSelf,
+  busy,
   onChange,
 }: {
   user: AdminUser;
   isSelf: boolean;
+  /** Hay un cambio de rol en vuelo para esta fila. */
+  busy: boolean;
   onChange: (role: Role) => void;
 }) {
   const [picked, setPicked] = useState<Role>();
@@ -56,6 +59,7 @@ function RoleRow({
       <select
         className="priority-select"
         aria-label={`Rol de ${user.fullName}`}
+        disabled={busy}
         value={user.role}
         onChange={(e) => setPicked(e.target.value as Role)}
       >
@@ -95,6 +99,15 @@ function Results({
   const [more, setMore] = useState<{ items: AdminUser[]; next: string | null }>();
   const [roles, setRoles] = useState<Record<string, Role>>({});
   const [loadingMore, setLoadingMore] = useState(false);
+  const [saving, setSaving] = useState<string[]>([]);
+  // La búsqueda cambió (o se desmontó): las respuestas de pedidos viejos se ignoran.
+  const ignore = useRef(false);
+  useEffect(() => {
+    ignore.current = false;
+    return () => {
+      ignore.current = true;
+    };
+  }, []);
   const [actionError, setActionError] = useState<string>();
 
   if (first.error) {
@@ -122,9 +135,15 @@ function Results({
 
   const change = (user: AdminUser, role: Role) => {
     setActionError(undefined);
+    setSaving((ids) => [...ids, user.id]);
+    const done = () => setSaving((ids) => ids.filter((id) => id !== user.id));
     assignRole(user.id, role).then(
-      () => setRoles((r) => ({ ...r, [user.id]: role })),
+      () => {
+        done();
+        setRoles((r) => ({ ...r, [user.id]: role }));
+      },
       (error: unknown) => {
+        done();
         if (error instanceof ApiError && error.status === 404) {
           setActionError(`${error.message}. Actualizamos la lista.`);
           onStale();
@@ -139,10 +158,12 @@ function Results({
     setLoadingMore(true);
     searchUsers(term, next).then(
       (page) => {
+        if (ignore.current) return;
         setMore({ items: [...(more?.items ?? []), ...page.items], next: page.nextCursor ?? null });
         setLoadingMore(false);
       },
       (error: unknown) => {
+        if (ignore.current) return;
         setActionError(errorMessage(error));
         setLoadingMore(false);
       },
@@ -173,6 +194,7 @@ function Results({
                 key={u.id}
                 user={{ ...u, role: roles[u.id] ?? u.role }}
                 isSelf={u.id === me?.id}
+                busy={saving.includes(u.id)}
                 onChange={(role) => change(u, role)}
               />
             ))}
