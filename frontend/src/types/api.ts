@@ -42,6 +42,10 @@ export type PendingTeacher = Schemas['PendingTeacherResponse'];
 /** Usuario con prioridad vigente (`TEACHER` o `REDUCED_MOBILITY`). */
 export type PriorityUser = Schemas['PriorityUserResponse'];
 
+/** Buscador de usuarios del panel admin (#215): sin datos sensibles; `nextCursor` null en la última página. */
+export type AdminUser = Schemas['AdminUserResponse'];
+export type AdminUserPage = Schemas['AdminUserPage'];
+
 /** Ascensor con sus pisos (`GET /elevators`). */
 export type Elevator = Schemas['ElevatorResponse'];
 
