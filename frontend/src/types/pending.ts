@@ -9,19 +9,6 @@ import type { PriorityCategory } from './api';
 /** Nivel de congestión de un núcleo. */
 export type CongestionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
-/** Núcleo de ascensores (L1, IND2…) con su congestión actual. */
-export type Core = {
-  id: string;
-  /** Código del edificio (`Building.code`). */
-  buildingId: string;
-  name: string;
-  floors: number[];
-  congestion: CongestionLevel;
-  estimatedWaitMinutes: number;
-  /** Dónde esperar el ascensor (p. ej. "Hall Lima, planta baja"). */
-  hall: string;
-};
-
 export type CoreCongestion = {
   coreId: string;
   name: string;
@@ -35,24 +22,6 @@ export type CongestionSnapshot = {
   refreshAfterSeconds: number;
   cores: CoreCongestion[];
 };
-
-/**
- * Piso de destino posible para un origen dado. La elegibilidad (regla de pisos bajos,
- * exención por movilidad reducida) la decide el servidor; `reason` explica por qué no.
- */
-export type FloorOption = { floor: number; eligible: boolean; reason: string | null };
-
-/** Salida de ascensor (la franja que se reserva). `departsAt` en UTC (ISO 8601). */
-export type Departure = {
-  id: string;
-  coreId: string;
-  departsAt: string;
-  durationMinutes: number;
-  capacity: number;
-  occupied: number;
-};
-
-export type ReserveRequest = { departureId: string; originFloor: number; destinationFloor: number };
 
 export type PriorityRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type PriorityRequest = {

@@ -5,6 +5,7 @@ import type {
   CheckInRequest,
   CreatedKiosk,
   CreateKioskRequest,
+  Departure,
   Elevator,
   FieldViolation,
   KioskList,
@@ -16,9 +17,10 @@ import type {
   PriorityUser,
   QrToken,
   RefreshRequest,
+  RegisterRequest,
   Reservation,
   ReservationPage,
-  RegisterRequest,
+  ReserveRequest,
   ResendVerificationRequest,
   ResetPasswordRequest,
   TokenResponse,
@@ -30,13 +32,9 @@ import type {
   AdminKpisQuery,
   AdminShift,
   CongestionSnapshot,
-  Core,
-  Departure,
-  FloorOption,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
-  ReserveRequest,
 } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -257,23 +255,29 @@ export async function logout(): Promise<void> {
     clearTokens();
   }
 }
+/** Edificios con su rango de pisos y sus núcleos (código y nombre visible). */
 export const getBuildings = () => api.get<Building[]>('/buildings');
-export const getCores = () => api.get<Core[]>('/cores');
-export const getDepartures = (coreId: string) =>
-  api.get<Departure[]>(`/cores/${encodeURIComponent(coreId)}/departures`);
+/**
+ * Salidas reservables ahora de un edificio. Ya vienen filtradas para el usuario (solo los
+ * ascensores que puede usar) y `remainingSeats` es lo que él puede tomar: el front no decide.
+ */
+export const getDepartures = (building: string) =>
+  api.get<Departure[]>(`/departures?building=${encodeURIComponent(building)}`);
 export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
-/** Pisos de destino desde `origin`, con su elegibilidad para el usuario actual. */
-export const getDestinationFloors = (coreId: string, origin: number) =>
-  api.get<FloorOption[]>(`/cores/${encodeURIComponent(coreId)}/floors?origin=${origin}`);
 /** Reserva activa (mientras se le puede hacer check-in); el backend responde 204 si no hay. */
 export const getActiveReservation = () =>
   api.get<Reservation | undefined>('/reservations/active').then((r) => r ?? null);
 /** Una reserva propia en cualquier estado; 404 `RESERVATION_NOT_FOUND` si no existe o es de otro. */
 export const getReservation = (id: string) =>
   api.get<Reservation>(`/reservations/${encodeURIComponent(id)}`);
+/**
+ * Reserva un lugar. Rechazos por `code`: TURN_FULL (también si lo que queda es de prioritarios),
+ * ELEVATOR_NOT_BOOKABLE, OUTSIDE_BOOKING_WINDOW, DEPARTURE_NOT_FOUND, ACTIVE_LIMIT_REACHED,
+ * DAILY_LIMIT_REACHED, NO_SHOW_SUSPENDED y los de pisos (SAME_FLOOR, FLOOR_OUT_OF_RANGE,
+ * FLOOR_NOT_SERVED, LOW_FLOOR_DESTINATION).
+ */
 export const reserve = (body: ReserveRequest) => api.post<Reservation>('/reservations', body);
-export const cancelReservation = (id: string) =>
-  api.delete<void>(`/reservations/${encodeURIComponent(id)}`);
+export const cancelReservation = (id: number) => api.delete<void>(`/reservations/${id}`);
 /**
  * Check-in con el token leído del QR. Rechazos por `code`: `INVALID_QR_TOKEN` (400),
  * `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).

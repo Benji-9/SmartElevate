@@ -51,10 +51,11 @@ export function TurnPage() {
   }, [id]);
 
   async function confirmCancel() {
+    if (!reservation) return;
     setCancelling(true);
     setCancelError(null);
     try {
-      await cancelReservation(id);
+      await cancelReservation(reservation.id);
       navigate('/', { replace: true, state: { notice: 'Cancelaste tu turno.' } });
     } catch (error) {
       setCancelError(errorMessage(error));
