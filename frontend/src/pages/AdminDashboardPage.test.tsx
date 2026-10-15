@@ -110,9 +110,10 @@ describe('AdminDashboardPage', () => {
     const nav = await screen.findByRole('navigation', { name: 'Administración' });
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/admin');
     // Sin `simulatorEnabled` del servidor no aparece el simulador de kiosco.
-    expect(within(nav).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(nav).getAllByRole('listitem')).toHaveLength(4);
     expect(within(nav).getByRole('link', { name: 'Usuarios prioritarios' })).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: 'Kioscos' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Ascensores' })).toBeInTheDocument();
     expect(within(nav).queryByText('Próximamente')).not.toBeInTheDocument();
   });
 

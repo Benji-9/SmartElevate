@@ -76,12 +76,21 @@ Si un ADMIN marca un ascensor fuera de servicio y tiene reservas activas ([#134]
 - Se **avisa** a cada persona.
 - Si otro ascensor tiene lugar, se le **ofrece** reubicarse. No se la mueve automáticamente.
 
+Cómo se aplica ([#134](https://github.com/Benji-9/SmartElevate/issues/134)):
+
+- `POST /api/admin/elevators/{code}/out-of-service` (motivo opcional de hasta 64 caracteres) y `/in-service`; `GET /api/admin/elevators` lista todos con las reservas que se cancelarían. Solo ADMIN. Cada cambio real queda en `priority_audit` (quién, qué ascensor, cuándo; `V21`); repetir el pedido no hace nada.
+- Se cancelan, **todas o ninguna** (una transacción), las reservas `ACTIVE` de salidas **futuras** de ese ascensor: pasan a `CANCELLED` (no `CANCELLED_LATE`), liberan el lugar y no cuentan en el tope diario. `USED`, `NO_SHOW` y las de salidas que ya pasaron no se tocan.
+- Concurrencia: se bloquean el ascensor y sus salidas futuras (por id) antes de leer las reservas. Una reserva que entra a la vez o termina antes (y se cancela) o ve el ascensor inactivo y recibe `ELEVATOR_NOT_BOOKABLE` (422).
+- Las salidas no se borran: un ascensor inactivo no se ofrece (`GET /api/departures`), no recibe reservas ni se le generan salidas nuevas. Al reactivarlo vuelve todo solo; las reservas canceladas no se restauran.
+- El mail ([sección 9](#9-notificaciones-por-email)) sale después del commit y es el aviso simple "reservá otra salida desde la app". **Fuera del MVP:** calcular y listar en el mail las salidas alternativas con lugar (hoy la reubicación se ofrece como "reservá de nuevo": hay que respetar dedicados y accesibilidad por usuario, y el mail no puede llevar datos de prioridad).
+- Los kioscos del ascensor no cambian: el QR sigue emitiéndose, pero no hay reservas con las que hacer check-in.
+
 ## 9. Notificaciones por email
 
 ([#221](https://github.com/Benji-9/SmartElevate/issues/221)) Salen por el `EmailSender` (Brevo, ADR 0013). Las preferencias del usuario son `GET`/`PUT /api/me/notification-preferences`: `departureReminder` y `elevatorOutOfService`, **activas por defecto**: son avisos del servicio (qué pasó con tu turno), no marketing, y sin ellos la persona pierde información que necesita; se apagan cuando quiera. Los mails no llevan datos de salud ni de prioridad: solo ascensor, edificio y hora.
 
 - **Recordatorio de salida:** un job manda **un solo mail por reserva activa** cuando la salida cae dentro de `departure_reminder_before` (5 min, a calibrar). La reserva se marca (`reminder_sent_at`) antes de mandar: si el mail falla no se reintenta. No lo reciben las canceladas, usadas ni no-show, ni quien reservó dentro de esa ventana (acaba de reservar). Las reservas con check-in simulado lo reciben como cualquier otra.
-- **Ascensor fuera de servicio** (sección 8): el mail y su plantilla están listos (`TurnMailService.sendElevatorOutOfService`) pero **sin consumidor** hasta que se implemente #134, que tiene que llamarlo por cada reserva cancelada, **después del commit** de la cancelación (p. ej. `@TransactionalEventListener(phase = AFTER_COMMIT)`): dentro de la transacción un SMTP lento retiene la conexión y un rollback dejaría el mail ya enviado. Recibe un record plano (`OutOfServiceNotice`: usuario, hora, ascensor, núcleo y edificio), que el llamador arma antes del commit.
+- **Ascensor fuera de servicio** (sección 8): el mail y su plantilla están listos (`TurnMailService.sendElevatorOutOfService`) y lo llama #134 por cada reserva cancelada, **después del commit** (`@TransactionalEventListener` en `OutOfServiceMailListener`): dentro de la transacción un SMTP lento retiene la conexión y un rollback dejaría el mail ya enviado. Recibe un record plano (`OutOfServiceNotice`: usuario, hora, ascensor, núcleo y edificio), que se arma antes del commit. Un mail que falla se loguea y no frena a los demás.
 - **Lugar liberado:** **no se implementa.** Sin lista de espera (sección 7, fuera del MVP) no hay a quién avisarle: nadie se anota para una salida llena. Se retoma con la lista de espera.
 
 ## Decisiones tomadas

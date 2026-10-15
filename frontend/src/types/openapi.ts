@@ -1072,6 +1072,18 @@ export interface components {
        */
       usage: 'COMMON' | 'TEACHERS' | 'REDUCED_MOBILITY';
     };
+    /** @description Estado de servicio de un ascensor después del cambio */
+    ElevatorServiceResponse: {
+      active: boolean;
+      /**
+       * Format: int32
+       * @description Reservas canceladas por este pedido (0 si ya estaba en ese estado o al reactivar)
+       * @example 4
+       */
+      cancelledReservations: number;
+      /** @example 33 */
+      code: string;
+    };
     FieldViolation: {
       field: string;
       message: string;
@@ -1509,6 +1521,15 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
+      /** @description Estado resultante */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ElevatorServiceResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {
@@ -1553,6 +1574,15 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Estado resultante */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ElevatorServiceResponse'];
+        };
+      };
       /** @description Bad Request */
       400: {
         headers: {

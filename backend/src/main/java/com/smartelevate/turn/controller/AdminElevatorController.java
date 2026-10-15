@@ -47,6 +47,8 @@ public class AdminElevatorController {
             description = "Cancela sin falta sus reservas activas de salidas futuras (devuelve el cupo diario) y "
                     + "avisa por mail a cada persona. Deja de ofrecerse y de aceptar reservas. Todo o nada. "
                     + "Marcarlo dos veces no hace nada.")
+    @ApiResponse(responseCode = "200", description = "Estado resultante",
+            content = @Content(schema = @Schema(implementation = ElevatorServiceResponse.class)))
     @ApiResponse(responseCode = "404", description = "Ascensor inexistente (code ELEVATOR_NOT_FOUND)",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public ElevatorServiceResponse outOfService(@AuthenticationPrincipal CurrentUser admin,
@@ -58,6 +60,8 @@ public class AdminElevatorController {
     @PostMapping("/{code}/in-service")
     @Operation(summary = "Reactiva un ascensor: vuelve a ofrecerse y a aceptar reservas",
             description = "Las reservas ya canceladas no se restauran. Reactivar uno en servicio no hace nada.")
+    @ApiResponse(responseCode = "200", description = "Estado resultante",
+            content = @Content(schema = @Schema(implementation = ElevatorServiceResponse.class)))
     @ApiResponse(responseCode = "404", description = "Ascensor inexistente (code ELEVATOR_NOT_FOUND)",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public ElevatorServiceResponse inService(@AuthenticationPrincipal CurrentUser admin, @PathVariable String code) {

@@ -99,6 +99,16 @@
           }
         } ],
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ElevatorServiceResponse"
+                }
+              }
+            },
+            "description" : "Estado resultante"
+          },
           "400" : {
             "content" : {
               "application/json" : {
@@ -159,6 +169,16 @@
           }
         },
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ElevatorServiceResponse"
+                }
+              }
+            },
+            "description" : "Estado resultante"
+          },
           "400" : {
             "content" : {
               "application/json" : {
@@ -2734,6 +2754,26 @@
           }
         },
         "required" : [ "active", "building", "code", "core", "coreName", "floors", "usage" ]
+      },
+      "ElevatorServiceResponse" : {
+        "type" : "object",
+        "description" : "Estado de servicio de un ascensor después del cambio",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "cancelledReservations" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Reservas canceladas por este pedido (0 si ya estaba en ese estado o al reactivar)",
+            "example" : 4
+          },
+          "code" : {
+            "type" : "string",
+            "example" : "33"
+          }
+        },
+        "required" : [ "active", "cancelledReservations", "code" ]
       },
       "FieldViolation" : {
         "type" : "object",

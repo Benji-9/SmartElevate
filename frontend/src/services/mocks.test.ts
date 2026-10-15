@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PriorityUploadRules } from '../types/pending';
 import type {
+  AdminElevator,
   Building,
   CheckIn,
   CreatedKiosk,
   Departure,
   Elevator,
+  ElevatorServiceResult,
   KioskList,
   NoShowStatus,
   NotificationPreferences,
@@ -351,5 +353,27 @@ describe('mocks', () => {
     await expect(call('POST', '/admin/kiosks', { elevatorId: '99' })).rejects.toMatchObject({
       status: 404,
     });
+  });
+
+  it('ascensor fuera de servicio: cancela sin falta, deja de ofrecerse y se reactiva', async () => {
+    await loginAna();
+    const before = await call<AdminElevator[]>('GET', '/admin/elevators');
+    const count = before.find((e) => e.code === '33')!.upcomingReservations;
+
+    const out = await call<ElevatorServiceResult>('POST', '/admin/elevators/33/out-of-service');
+    expect(out).toEqual({ code: '33', active: false, cancelledReservations: count });
+    const after = await call<AdminElevator[]>('GET', '/admin/elevators');
+    expect(after.find((e) => e.code === '33')).toMatchObject({
+      active: false,
+      upcomingReservations: 0,
+    });
+    expect((await call<Elevator[]>('GET', '/elevators')).some((e) => e.code === '33')).toBe(false);
+    expect((await call<Departure[]>('GET', '/departures?elevator=33')).length).toBe(0);
+    await expect(call('POST', '/admin/elevators/99/out-of-service')).rejects.toMatchObject({
+      status: 404,
+    });
+
+    await call('POST', '/admin/elevators/33/in-service');
+    expect((await call<Elevator[]>('GET', '/elevators')).some((e) => e.code === '33')).toBe(true);
   });
 });
