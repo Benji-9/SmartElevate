@@ -121,6 +121,26 @@ public class ConfigService {
         return get("low_floors_threshold", Integer::parseInt);
     }
 
+    /** Ocupación (%) desde la que un núcleo tiene congestión media. A calibrar en el piloto. */
+    public int congestionMediumFrom() {
+        return get("congestion_medium_from", Integer::parseInt);
+    }
+
+    /** Ocupación (%) desde la que un núcleo tiene congestión alta. A calibrar en el piloto. */
+    public int congestionHighFrom() {
+        return get("congestion_high_from", Integer::parseInt);
+    }
+
+    /** Turno mañana de cursada (kpis.md#filtros), hora de Buenos Aires. */
+    public LocalTime morningShiftStart() {
+        return get("morning_shift_start", LocalTime::parse);
+    }
+
+    /** Fin exclusivo del turno mañana de cursada. */
+    public LocalTime morningShiftEnd() {
+        return get("morning_shift_end", LocalTime::parse);
+    }
+
     // Cada accessor parsea su valor, así que llamarlos acá también detecta claves faltantes y formatos inválidos.
     private void validate() {
         check(operatingHoursStart().isBefore(operatingHoursEnd()),
@@ -152,6 +172,11 @@ public class ConfigService {
         check(boardingTime().isPositive(), "boarding_time tiene que ser mayor a 0");
         check(timePerFloor().isPositive(), "time_per_floor tiene que ser mayor a 0");
         check(lowFloorsThreshold() >= 0, "low_floors_threshold no puede ser negativo");
+        check(congestionMediumFrom() > 0 && congestionMediumFrom() < congestionHighFrom()
+                        && congestionHighFrom() <= 100,
+                "congestion_medium_from y congestion_high_from tienen que cumplir 0 < media < alta <= 100");
+        check(morningShiftStart().isBefore(morningShiftEnd()),
+                "morning_shift_start tiene que ser anterior a morning_shift_end");
         // Los parámetros a definir solo tienen que existir; si ya tienen valor, se valida.
         if (isDefined("cancellation_wait_tolerance")) {
             check(cancellationWaitTolerance().isPositive(), "cancellation_wait_tolerance tiene que ser mayor a 0");

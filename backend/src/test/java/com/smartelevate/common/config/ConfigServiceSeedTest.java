@@ -46,6 +46,10 @@ class ConfigServiceSeedTest {
         assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
+        assertThat(config.congestionMediumFrom()).isEqualTo(60);
+        assertThat(config.congestionHighFrom()).isEqualTo(85);
+        assertThat(config.morningShiftStart()).isEqualTo(LocalTime.of(7, 0));
+        assertThat(config.morningShiftEnd()).isEqualTo(LocalTime.of(12, 15));
     }
 
     @Test
