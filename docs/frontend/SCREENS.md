@@ -335,7 +335,16 @@ Sin frame de Figma: se arma con los componentes del panel (tarjeta `.admin-card`
 
 **Endpoints** (tag `admin-priority` de `docs/openapi.json`): `GET /api/admin/teachers/pending`, `POST /api/admin/teachers/{id}/approve` y `/reject`, `GET /api/admin/priority-users`, `DELETE /api/admin/priority-users/{id}`.
 
-**Fuera de alcance por ahora**: asignar rol `REVIEWER`/`ADMIN` a otro usuario. El contrato ya tiene `PUT /api/admin/users/{id}/role`, pero no hay endpoint para buscar o listar usuarios ni para leer su rol actual: sin eso la UI solo podría ofrecerlo a quien ya está en estas listas o pedir un UUID a mano. Se agrega cuando el backend exponga la búsqueda de usuarios.
+**Cambiar roles**: tercera tarjeta, **"Roles de usuarios"** (mismo patrón que las anteriores; el rol solo lo cambia un `ADMIN`).
+
+- **Buscador**: `Input` "Buscar usuario" con ayuda "Por nombre, email o legajo (mínimo 3 caracteres)". Busca solo después de una pausa de ~300 ms sin tipear (debounce) y con 3 o más caracteres (el servidor exige el mismo mínimo: 400 si no). Con menos, no pide nada y muestra la ayuda.
+- **Resultados**: tabla **Nombre · Email · Legajo · Rol · Acciones**. Rol = `Chip` con texto ("Usuario", "Revisor", "Administrador"). Acciones: `select` nativo "Rol de {nombre}" con las tres opciones (el valor actual preseleccionado) y, al elegir otro, la confirmación en la misma fila: "¿Cambiar a {nombre} de {rol actual} a {rol nuevo}?" con "Sí, cambiar" (primary) y "Cancelar" (secondary, con el foco, que además restaura el valor del select). Nunca se cambia el rol sin confirmar.
+- **Uno mismo**: la fila de la persona logueada no ofrece el selector (texto "Es tu cuenta"); el servidor igual responde 409 si se intenta.
+- Paginación por cursor: si el servidor devuelve `nextCursor`, botón secondary "Ver más resultados" que agrega la página siguiente.
+- Al confirmar, la fila se actualiza con el rol nuevo sin recargar; si falla, `role="alert"` con el mensaje del servidor y el rol queda como estaba. Con 404 (usuario borrado) se agrega "Actualizamos la lista." y se vuelve a buscar.
+- **Estados**: sin búsqueda, la tarjeta solo muestra la ayuda; cargando "Buscando…" (`role="status"`); sin resultados "No encontramos usuarios para «{texto}»."; error del servidor en `role="alert"` con "Reintentar".
+
+**Endpoints** (tag `admin-priority` de `docs/openapi.json`): `GET /api/admin/teachers/pending`, `POST /api/admin/teachers/{id}/approve` y `/reject`, `GET /api/admin/priority-users`, `DELETE /api/admin/priority-users/{id}`, `GET /api/admin/users?query=&cursor=` y `PUT /api/admin/users/{id}/role` (#215).
 
 ### 09c · Kioscos del QR — `/admin/kioscos`
 

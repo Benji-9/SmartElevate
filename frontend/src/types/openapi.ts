@@ -167,6 +167,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Busca usuarios por email, nombre o legajo (contiene, paginado por cursor) */
+    get: operations['searchUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/users/{id}/role': {
     parameters: {
       query?: never;
@@ -704,6 +721,31 @@ export interface components {
       name: string;
       /** @example 07:00 */
       startsAt: string;
+    };
+    /** @description Página de usuarios; pedir la siguiente con cursor=nextCursor */
+    AdminUserPage: {
+      items: components['schemas']['AdminUserResponse'][];
+      /**
+       * Format: uuid
+       * @description Cursor de la página siguiente; null si no hay más
+       */
+      nextCursor?: string | null;
+    };
+    /** @description Usuario encontrado por el buscador del panel admin (sin datos sensibles) */
+    AdminUserResponse: {
+      /** @example ana@uade.edu.ar */
+      email: string;
+      /** @example Ana Pérez */
+      fullName: string;
+      /** Format: uuid */
+      id: string;
+      /** @example 1234567 */
+      legajo: string;
+      /**
+       * @description Rol actual
+       * @enum {string}
+       */
+      role: 'USER' | 'REVIEWER' | 'ADMIN';
     };
     /** @description Error estándar de la API */
     ApiError: {
@@ -1784,6 +1826,47 @@ export interface operations {
       };
       /** @description No se declaró docente o ya tiene la prioridad aprobada */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  searchUsers: {
+    parameters: {
+      query?: {
+        query?: string;
+        cursor?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserPage'];
+        };
+      };
+      /** @description Búsqueda demasiado corta o cursor inválido */
+      400: {
         headers: {
           [name: string]: unknown;
         };

@@ -28,3 +28,22 @@
     min-width: 0;
   }
 }
+
+/* Roles de usuarios (SCREENS.md 09b): buscador + resultados. */
+.role-search {
+  display: grid;
+  gap: 16px;
+}
+
+.priority-select {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.priority-question {
+  font-weight: var(--font-semibold);
+  white-space: normal;
+}
