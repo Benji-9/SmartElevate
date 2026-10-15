@@ -45,6 +45,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/kpis': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * KPIs del período, con los del período anterior de igual largo
+     * @description Período en días de Buenos Aires que terminan hoy (TODAY = hoy, WEEK = últimos 7, MONTH = últimos 30). Sin las reservas con check-in simulado.
+     */
+    get: operations['kpis'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/priority-users': {
     parameters: {
       query?: never;
@@ -74,6 +94,23 @@ export interface paths {
     post?: never;
     /** Quita la prioridad vigente de un usuario */
     delete: operations['revoke'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/shifts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Turnos de cursada para filtrar los KPIs */
+    get: operations['shifts'];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -344,6 +381,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/congestion': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Congestión ahora por núcleo
+     * @description Lugares reservados / capacidad de las salidas de la ventana de reserva. El nivel sale de los umbrales congestion_medium_from y congestion_high_from de app_config.
+     */
+    get: operations['now'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/departures': {
     parameters: {
       query?: never;
@@ -567,6 +624,87 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** @description KPIs de congestión del período (docs/reglas/kpis.md), sin las reservas con check-in simulado. Check-ins y ocupación cuentan solo las salidas ya resueltas (pasado el umbral de no-show) */
+    AdminKpisResponse: {
+      /**
+       * Format: double
+       * @description Personas con check-in cumplido por salida resuelta con reservas. Null sin salidas resueltas
+       * @example 7.6
+       */
+      avgOccupancy: number | null;
+      /**
+       * Format: double
+       * @description Espera real promedio en segundos. Null: no se mide todavía (necesita la encuesta, fuera del MVP)
+       */
+      avgWaitSeconds: number | null;
+      /**
+       * Format: double
+       * @description Línea base de la encuesta inicial: % que esperaba 5–10 min
+       * @example 43.5
+       */
+      baselinePercent: number;
+      /**
+       * Format: int32
+       * @description Lugares por salida
+       * @example 10
+       */
+      capacity: number;
+      /**
+       * Format: double
+       * @description Check-ins cumplidos / reservas no canceladas de las salidas resueltas, en %. Null sin salidas resueltas
+       * @example 86.7
+       */
+      checkInPercent: number | null;
+      /**
+       * Format: int64
+       * @description Check-ins cumplidos (en su ascensor o en otro) de las salidas resueltas
+       * @example 1100
+       */
+      checkIns: number;
+      /** @description Núcleos con reservas en el período */
+      cores: components['schemas']['CoreKpis'][];
+      /**
+       * Format: date-time
+       * @description Inicio del período, en UTC
+       * @example 2026-10-13T03:00:00Z
+       */
+      from: string;
+      /** @description Mismos totales del período anterior de igual largo y mismos filtros. Null si no hubo reservas */
+      previous: components['schemas']['PreviousKpis'] | null;
+      /**
+       * Format: int64
+       * @description Reservas no canceladas
+       * @example 1284
+       */
+      reservations: number;
+      /** @description Reservas por hora de salida (Buenos Aires), de cada hora del horario de operación o del turno, en orden */
+      reservationsByHour: components['schemas']['HourReservations'][];
+      /**
+       * Format: date-time
+       * @description Fin exclusivo del período, en UTC
+       * @example 2026-10-14T03:00:00Z
+       */
+      to: string;
+      /**
+       * Format: double
+       * @description % que espera 5–10 min según la encuesta. Null: la encuesta está fuera del MVP
+       */
+      wait5To10Percent: number | null;
+    };
+    /** @description Turno de cursada para filtrar los KPIs (kpis.md#filtros). Horas HH:mm de Buenos Aires */
+    AdminShiftResponse: {
+      /**
+       * @description Exclusivo
+       * @example 12:15
+       */
+      endsAt: string;
+      /** @example MORNING */
+      id: string;
+      /** @example Turno mañana */
+      name: string;
+      /** @example 07:00 */
+      startsAt: string;
+    };
     /** @description Error estándar de la API */
     ApiError: {
       /**
@@ -664,6 +802,65 @@ export interface components {
        * @enum {string}
        */
       source: 'REAL' | 'SIMULATED';
+    };
+    /** @description Congestión ahora por núcleo, a partir de las salidas y reservas próximas (sin datos personales) */
+    CongestionResponse: {
+      cores: components['schemas']['CoreCongestion'][];
+      /**
+       * Format: int64
+       * @description Cada cuánto volver a consultar: una franja (salida de ascensor)
+       * @example 120
+       */
+      refreshAfterSeconds: number;
+      /**
+       * Format: date-time
+       * @description Momento del cálculo, en UTC
+       * @example 2026-10-13T15:56:00Z
+       */
+      updatedAt: string;
+    };
+    /** @description Congestión de un núcleo */
+    CoreCongestion: {
+      /** @example L1 */
+      coreId: string;
+      /** @enum {string} */
+      level: 'LOW' | 'MEDIUM' | 'HIGH';
+      /** @example Lima 1 */
+      name: string;
+      /**
+       * Format: double
+       * @description Lugares reservados / capacidad de las salidas de la ventana de reserva, en % (0 si no hay salidas)
+       * @example 62.5
+       */
+      occupancyPercent: number;
+    };
+    /** @description Estado de un núcleo en el período */
+    CoreKpis: {
+      /**
+       * Format: double
+       * @description Null: la espera real no se mide todavía
+       */
+      avgWaitSeconds: number | null;
+      /**
+       * @description Nivel según la ocupación. Null sin salidas resueltas
+       * @enum {string|null}
+       */
+      congestion: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+      /** @example L1 */
+      coreId: string;
+      /** @example Lima 1 */
+      name: string;
+      /**
+       * Format: double
+       * @description Personas con check-in cumplido / capacidad de sus salidas resueltas, en %. Null sin salidas resueltas
+       * @example 58
+       */
+      occupancyPercent: number | null;
+      /**
+       * Format: int64
+       * @example 212
+       */
+      reservations: number;
     };
     CoreResponse: {
       /** @example L3 */
@@ -766,6 +963,18 @@ export interface components {
       /** @example jmartinez@uade.edu.ar */
       email: string;
     };
+    HourReservations: {
+      /**
+       * Format: int32
+       * @example 8
+       */
+      hour: number;
+      /**
+       * Format: int64
+       * @example 120
+       */
+      reservations: number;
+    };
     /** @description Kioscos dados de alta y si el simulador está habilitado */
     KioskListResponse: {
       kiosks: components['schemas']['KioskResponse'][];
@@ -867,6 +1076,38 @@ export interface components {
     PingResponse: {
       /** @example ok */
       status: string;
+    };
+    /** @description Totales del período anterior, para comparar */
+    PreviousKpis: {
+      /**
+       * Format: double
+       * @example 7.1
+       */
+      avgOccupancy: number | null;
+      /** Format: double */
+      avgWaitSeconds: number | null;
+      /**
+       * Format: double
+       * @example 84.2
+       */
+      checkInPercent: number | null;
+      /**
+       * Format: date-time
+       * @example 2026-10-12T03:00:00Z
+       */
+      from: string;
+      /**
+       * Format: int64
+       * @example 1190
+       */
+      reservations: number;
+      /**
+       * Format: date-time
+       * @example 2026-10-13T03:00:00Z
+       */
+      to: string;
+      /** Format: double */
+      wait5To10Percent: number | null;
     };
     /** @description Usuario con prioridad vigente */
     PriorityUserResponse: {
@@ -1238,6 +1479,56 @@ export interface operations {
       };
     };
   };
+  kpis: {
+    parameters: {
+      query: {
+        period: 'TODAY' | 'WEEK' | 'MONTH';
+        /**
+         * @description Código del edificio; sin él, todas las sedes
+         * @example LIMA
+         */
+        buildingId?: string;
+        /**
+         * @description Turno de cursada (GET /api/admin/shifts); sin él, todo el día
+         * @example MORNING
+         */
+        shiftId?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminKpisResponse'];
+        };
+      };
+      /** @description Período, sede o turno de cursada inválidos */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
   priorityUsers: {
     parameters: {
       query?: never;
@@ -1305,6 +1596,44 @@ export interface operations {
       };
       /** @description El usuario no tiene una prioridad vigente */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  shifts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminShiftResponse'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
         headers: {
           [name: string]: unknown;
         };
@@ -1982,6 +2311,44 @@ export interface operations {
       };
       /** @description Sin turno (NO_ACTIVE_RESERVATION), fuera de la ventana (OUTSIDE_CHECK_IN_WINDOW) o check-in ya registrado (ALREADY_CHECKED_IN) */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  now: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CongestionResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
         headers: {
           [name: string]: unknown;
         };

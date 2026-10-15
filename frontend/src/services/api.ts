@@ -1,6 +1,10 @@
 import type {
+  AdminKpis,
+  AdminKpisQuery,
+  AdminShift,
   ApiErrorBody,
   Building,
+  CongestionSnapshot,
   CheckIn,
   CheckInRequest,
   CreatedKiosk,
@@ -28,14 +32,7 @@ import type {
   User,
   VerifyEmailRequest,
 } from '../types/api';
-import type {
-  AdminKpis,
-  AdminKpisQuery,
-  AdminShift,
-  CongestionSnapshot,
-  PriorityRequest,
-  PriorityUploadRules,
-} from '../types/pending';
+import type { PriorityRequest, PriorityUploadRules } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 

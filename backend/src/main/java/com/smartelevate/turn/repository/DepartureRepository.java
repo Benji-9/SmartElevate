@@ -22,4 +22,9 @@ public interface DepartureRepository extends JpaRepository<Departure, Long> {
 
     List<Departure> findByElevatorInAndStatusAndDepartureAtBetweenOrderByDepartureAtAscElevatorCodeAsc(
             Collection<Elevator> elevators, DepartureStatus status, Instant from, Instant to);
+
+    /** Salidas programadas de todos los ascensores en [from, to], con su ascensor y núcleo (congestión, #220). */
+    @Query("select d from Departure d join fetch d.elevator e join fetch e.core where d.status = 'SCHEDULED' "
+            + "and d.departureAt >= :from and d.departureAt <= :to")
+    List<Departure> findScheduledBetween(@Param("from") Instant from, @Param("to") Instant to);
 }

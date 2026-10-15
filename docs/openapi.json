@@ -16,6 +16,9 @@
     "description" : "Verificación de conectividad",
     "name" : "ping"
   }, {
+    "description" : "KPIs de congestión del panel (solo ADMIN)",
+    "name" : "admin-kpis"
+  }, {
     "description" : "Edificios, núcleos y ascensores (solo lectura)",
     "name" : "elevator"
   }, {
@@ -203,6 +206,76 @@
         "tags" : [ "admin-kiosk" ]
       }
     },
+    "/api/admin/kpis" : {
+      "get" : {
+        "description" : "Período en días de Buenos Aires que terminan hoy (TODAY = hoy, WEEK = últimos 7, MONTH = últimos 30). Sin las reservas con check-in simulado.",
+        "operationId" : "kpis",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "period",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "TODAY", "WEEK", "MONTH" ]
+          }
+        }, {
+          "description" : "Código del edificio; sin él, todas las sedes",
+          "example" : "LIMA",
+          "in" : "query",
+          "name" : "buildingId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Turno de cursada (GET /api/admin/shifts); sin él, todo el día",
+          "example" : "MORNING",
+          "in" : "query",
+          "name" : "shiftId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminKpisResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Período, sede o turno de cursada inválidos"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "KPIs del período, con los del período anterior de igual largo",
+        "tags" : [ "admin-kpis" ]
+      }
+    },
     "/api/admin/priority-users" : {
       "get" : {
         "operationId" : "priorityUsers",
@@ -300,6 +373,51 @@
         } ],
         "summary" : "Quita la prioridad vigente de un usuario",
         "tags" : [ "admin-priority" ]
+      }
+    },
+    "/api/admin/shifts" : {
+      "get" : {
+        "operationId" : "shifts",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AdminShiftResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Turnos de cursada para filtrar los KPIs",
+        "tags" : [ "admin-kpis" ]
       }
     },
     "/api/admin/teachers/pending" : {
@@ -1072,6 +1190,49 @@
         "tags" : [ "turn" ]
       }
     },
+    "/api/congestion" : {
+      "get" : {
+        "description" : "Lugares reservados / capacidad de las salidas de la ventana de reserva. El nivel sale de los umbrales congestion_medium_from y congestion_high_from de app_config.",
+        "operationId" : "now",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CongestionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Congestión ahora por núcleo",
+        "tags" : [ "turn" ]
+      }
+    },
     "/api/departures" : {
       "get" : {
         "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.",
@@ -1796,6 +1957,117 @@
   },
   "components" : {
     "schemas" : {
+      "AdminKpisResponse" : {
+        "type" : "object",
+        "description" : "KPIs de congestión del período (docs/reglas/kpis.md), sin las reservas con check-in simulado. Check-ins y ocupación cuentan solo las salidas ya resueltas (pasado el umbral de no-show)",
+        "properties" : {
+          "avgOccupancy" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "description" : "Personas con check-in cumplido por salida resuelta con reservas. Null sin salidas resueltas",
+            "example" : 7.6
+          },
+          "avgWaitSeconds" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "description" : "Espera real promedio en segundos. Null: no se mide todavía (necesita la encuesta, fuera del MVP)"
+          },
+          "baselinePercent" : {
+            "type" : "number",
+            "format" : "double",
+            "description" : "Línea base de la encuesta inicial: % que esperaba 5–10 min",
+            "example" : 43.5
+          },
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Lugares por salida",
+            "example" : 10
+          },
+          "checkInPercent" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "description" : "Check-ins cumplidos / reservas no canceladas de las salidas resueltas, en %. Null sin salidas resueltas",
+            "example" : 86.7
+          },
+          "checkIns" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Check-ins cumplidos (en su ascensor o en otro) de las salidas resueltas",
+            "example" : 1100
+          },
+          "cores" : {
+            "type" : "array",
+            "description" : "Núcleos con reservas en el período",
+            "items" : {
+              "$ref" : "#/components/schemas/CoreKpis"
+            }
+          },
+          "from" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Inicio del período, en UTC",
+            "example" : "2026-10-13T03:00:00Z"
+          },
+          "previous" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PreviousKpis"
+            }, {
+              "type" : "null"
+            } ],
+            "description" : "Mismos totales del período anterior de igual largo y mismos filtros. Null si no hubo reservas"
+          },
+          "reservations" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Reservas no canceladas",
+            "example" : 1284
+          },
+          "reservationsByHour" : {
+            "type" : "array",
+            "description" : "Reservas por hora de salida (Buenos Aires), de cada hora del horario de operación o del turno, en orden",
+            "items" : {
+              "$ref" : "#/components/schemas/HourReservations"
+            }
+          },
+          "to" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Fin exclusivo del período, en UTC",
+            "example" : "2026-10-14T03:00:00Z"
+          },
+          "wait5To10Percent" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "description" : "% que espera 5–10 min según la encuesta. Null: la encuesta está fuera del MVP"
+          }
+        },
+        "required" : [ "avgOccupancy", "avgWaitSeconds", "baselinePercent", "capacity", "checkInPercent", "checkIns", "cores", "from", "previous", "reservations", "reservationsByHour", "to", "wait5To10Percent" ]
+      },
+      "AdminShiftResponse" : {
+        "type" : "object",
+        "description" : "Turno de cursada para filtrar los KPIs (kpis.md#filtros). Horas HH:mm de Buenos Aires",
+        "properties" : {
+          "endsAt" : {
+            "type" : "string",
+            "description" : "Exclusivo",
+            "example" : "12:15"
+          },
+          "id" : {
+            "type" : "string",
+            "example" : "MORNING"
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "Turno mañana"
+          },
+          "startsAt" : {
+            "type" : "string",
+            "example" : "07:00"
+          }
+        },
+        "required" : [ "endsAt", "id", "name", "startsAt" ]
+      },
       "ApiError" : {
         "type" : "object",
         "description" : "Error estándar de la API",
@@ -1939,6 +2211,92 @@
           }
         },
         "required" : [ "checkedInAt", "departureAt", "elevator", "outcome", "reservationId", "reservationStatus", "reservedElevator", "source" ]
+      },
+      "CongestionResponse" : {
+        "type" : "object",
+        "description" : "Congestión ahora por núcleo, a partir de las salidas y reservas próximas (sin datos personales)",
+        "properties" : {
+          "cores" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CoreCongestion"
+            }
+          },
+          "refreshAfterSeconds" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Cada cuánto volver a consultar: una franja (salida de ascensor)",
+            "example" : 120
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Momento del cálculo, en UTC",
+            "example" : "2026-10-13T15:56:00Z"
+          }
+        },
+        "required" : [ "cores", "refreshAfterSeconds", "updatedAt" ]
+      },
+      "CoreCongestion" : {
+        "type" : "object",
+        "description" : "Congestión de un núcleo",
+        "properties" : {
+          "coreId" : {
+            "type" : "string",
+            "example" : "L1"
+          },
+          "level" : {
+            "type" : "string",
+            "enum" : [ "LOW", "MEDIUM", "HIGH" ]
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "Lima 1"
+          },
+          "occupancyPercent" : {
+            "type" : "number",
+            "format" : "double",
+            "description" : "Lugares reservados / capacidad de las salidas de la ventana de reserva, en % (0 si no hay salidas)",
+            "example" : 62.5
+          }
+        },
+        "required" : [ "coreId", "level", "name", "occupancyPercent" ]
+      },
+      "CoreKpis" : {
+        "type" : "object",
+        "description" : "Estado de un núcleo en el período",
+        "properties" : {
+          "avgWaitSeconds" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "description" : "Null: la espera real no se mide todavía"
+          },
+          "congestion" : {
+            "type" : [ "string", "null" ],
+            "description" : "Nivel según la ocupación. Null sin salidas resueltas",
+            "enum" : [ "LOW", "MEDIUM", "HIGH" ]
+          },
+          "coreId" : {
+            "type" : "string",
+            "example" : "L1"
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "Lima 1"
+          },
+          "occupancyPercent" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "description" : "Personas con check-in cumplido / capacidad de sus salidas resueltas, en %. Null sin salidas resueltas",
+            "example" : 58
+          },
+          "reservations" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 212
+          }
+        },
+        "required" : [ "avgWaitSeconds", "congestion", "coreId", "name", "occupancyPercent", "reservations" ]
       },
       "CoreResponse" : {
         "type" : "object",
@@ -2104,6 +2462,22 @@
         },
         "required" : [ "email" ]
       },
+      "HourReservations" : {
+        "type" : "object",
+        "properties" : {
+          "hour" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 8
+          },
+          "reservations" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 120
+          }
+        },
+        "required" : [ "hour", "reservations" ]
+      },
       "KioskListResponse" : {
         "type" : "object",
         "description" : "Kioscos dados de alta y si el simulador está habilitado",
@@ -2264,6 +2638,46 @@
           }
         },
         "required" : [ "status" ]
+      },
+      "PreviousKpis" : {
+        "type" : "object",
+        "description" : "Totales del período anterior, para comparar",
+        "properties" : {
+          "avgOccupancy" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "example" : 7.1
+          },
+          "avgWaitSeconds" : {
+            "type" : [ "number", "null" ],
+            "format" : "double"
+          },
+          "checkInPercent" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "example" : 84.2
+          },
+          "from" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-12T03:00:00Z"
+          },
+          "reservations" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1190
+          },
+          "to" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-13T03:00:00Z"
+          },
+          "wait5To10Percent" : {
+            "type" : [ "number", "null" ],
+            "format" : "double"
+          }
+        },
+        "required" : [ "avgOccupancy", "avgWaitSeconds", "checkInPercent", "from", "reservations", "to", "wait5To10Percent" ]
       },
       "PriorityUserResponse" : {
         "type" : "object",
