@@ -1,6 +1,6 @@
 # 0014. Refresh token del frontend en sessionStorage
 
-- **Estado:** Aceptado
+- **Estado:** Reemplazado por [0019](0019-refresh-token-en-cookie-httponly.md)
 - **Fecha:** 2026-10-13
 - **Issues:** [#192](https://github.com/Benji-9/SmartElevate/issues/192), [#120](https://github.com/Benji-9/SmartElevate/issues/120)
 - **Autores:** @Benji-9

@@ -1,8 +1,8 @@
 # 0019. Refresh token en cookie HttpOnly con proxy del mismo origen
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-14
-- **Issues:** [#204](https://github.com/Benji-9/SmartElevate/issues/204). Cuando se implemente, reemplaza el [ADR 0014](0014-refresh-token-en-sessionstorage.md).
+- **Issues:** [#204](https://github.com/Benji-9/SmartElevate/issues/204). Reemplaza el [ADR 0014](0014-refresh-token-en-sessionstorage.md).
 - **Autores:** @Benji-9
 
 ## Contexto
@@ -24,4 +24,4 @@ Opción **3**: el backend manda el refresh en una cookie **`HttpOnly; Secure; Sa
 - Un XSS ya no puede leer el refresh. `SameSite=Lax` frena el envío de la cookie desde otros sitios en pedidos `POST`.
 - Cambia el contrato de `/api/auth/login`, `/refresh` y `/logout` (el refresh deja de viajar en el body) y el front deja de usar `sessionStorage`.
 - En dev, el proxy de Vite cumple el mismo papel que el rewrite de Vercel. Llamar a Render directo (sin proxy) deja de mantener la sesión.
-- Al implementarse, el ADR 0014 pasa a "Reemplazado por 0019".
+- La defensa CSRF de los endpoints que leen la cookie está en el [ADR 0023](0023-defensa-csrf-del-refresh-por-cookie.md).

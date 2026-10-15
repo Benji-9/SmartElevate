@@ -86,7 +86,9 @@ export DATABASE_PASSWORD=smartelevate
 | `APP_TIME_ZONE` | `America/Argentina/Buenos_Aires` | Zona del campus para franjas y horario. No depende de la zona del servidor (Render corre en UTC) |
 | `JWT_SECRET` | — | Secreto de firma de los access tokens (HS256), mínimo 32 caracteres. **Obligatorio en `prod`** (la app no arranca sin él); en dev, si falta, se usa una clave efímera. Generalo con `openssl rand -base64 48`. Nunca en el repo |
 | `JWT_ACCESS_TTL` | `PT15M` | Vida del access token (duración ISO-8601) |
-| `JWT_REFRESH_TTL` | `P7D` | Vida del refresh token (duración ISO-8601) |
+| `JWT_REFRESH_TTL` | `P7D` | Vida del refresh token (duración ISO-8601); también el `Max-Age` de su cookie |
+| `APP_REFRESH_COOKIE_SECURE` | `true` (`false` en dev) | Atributo `Secure` de la cookie del refresh; solo se apaga para `http://localhost` |
+| `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | `refresh_token` / `Lax` / `/api/auth` | Nombre y atributos de la cookie del refresh (ADR 0019, 0023) |
 | `APP_LOGIN_THROTTLE_WINDOW` | `PT15M` | Ventana deslizante del límite de logins fallidos (duración ISO-8601) |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` | `10` | Logins fallidos por cuenta dentro de la ventana; entre 1 y 100 (NIST), si no la app no arranca |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` | `100` | Logins fallidos por IP dentro de la ventana |
@@ -125,7 +127,7 @@ Con el mail activo (default en `prod`) también hacen falta las `SPRING_MAIL_*`.
 
 #### Autenticación y endpoints protegidos
 
-`POST /api/auth/login` devuelve un access token (JWT, 15 min, solo con `sub`: **sin rol ni prioridad**) y un refresh token opaco de un solo uso (se guarda hasheado). `POST /api/auth/refresh` lo rota; si un refresh ya rotado reaparece, se revoca toda la sesión. `POST /api/auth/logout` lo revoca. El rol se lee de la base en cada request y la prioridad se consulta al reservar (ADR 0009). No se puede loguear una cuenta con el email sin verificar.
+`POST /api/auth/login` devuelve un access token (JWT, 15 min, solo con `sub`: **sin rol ni prioridad**) y un refresh token opaco de un solo uso (se guarda hasheado) que va **solo** en una cookie `HttpOnly; Secure; SameSite=Lax` (`Path=/api/auth`), no en el body (ADR 0019). `POST /api/auth/refresh` lo lee de la cookie y lo rota; si un refresh ya rotado reaparece, se revoca toda la sesión. `POST /api/auth/logout` lo revoca y expira la cookie. Ambos exigen el header `X-Requested-With: SmartElevate` y, si viene `Origin`, que esté en `CORS_ALLOWED_ORIGINS` (defensa CSRF, ADR 0023). El rol se lee de la base en cada request y la prioridad se consulta al reservar (ADR 0009). No se puede loguear una cuenta con el email sin verificar.
 
 Públicos: `/api/ping`, `/api/auth/**`, `GET /api/elevators`, `GET /api/buildings`, la documentación (`/v3/api-docs`, `/swagger-ui.html`) y `/actuator/health`. **Todo lo demás exige `Authorization: Bearer <accessToken>`**. Para agregar un endpoint:
 
@@ -348,7 +350,7 @@ En el repo → **Settings → Secrets and variables → Actions**:
 
 En el proyecto → **Settings → Environment Variables** (para *Production* y *Preview*):
 
-- `VITE_API_URL` = `/api` (usa el rewrite de `vercel.json`). Alternativa: la URL absoluta del backend, pero ahí hay que agregar el dominio de Vercel a `CORS_ALLOWED_ORIGINS` del backend.
+- `VITE_API_URL` = `/api` (usa el rewrite de `vercel.json`; **hace falta** para que la cookie del refresh sea del mismo origen, ADR 0019). Con la URL absoluta del backend la sesión no se mantiene (cookie cross-site descartada).
 
 `vercel pull` las baja en cada deploy y Vite las embebe en el build.
 
