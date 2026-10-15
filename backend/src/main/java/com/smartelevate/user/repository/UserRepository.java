@@ -34,4 +34,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                                    or p.expiresAt is null or p.expiresAt > :now))
             order by u.createdAt""")
     List<User> findPendingTeachers(@org.springframework.data.repository.query.Param("now") java.time.Instant now);
+
+    /**
+     * Búsqueda del panel admin: contiene, sin distinguir mayúsculas, por email, nombre o legajo. Paginada por
+     * cursor (id mayor al último visto). {@code pattern} ya viene en minúsculas y con {@code %_!} escapados con '!'.
+     */
+    @Query("""
+            select u from User u
+            where u.id > :after
+              and (lower(u.email) like :pattern escape '!' or lower(u.fullName) like :pattern escape '!'
+                   or lower(u.legajo) like :pattern escape '!')
+            order by u.id""")
+    List<User> search(@org.springframework.data.repository.query.Param("pattern") String pattern,
+                      @org.springframework.data.repository.query.Param("after") UUID after,
+                      org.springframework.data.domain.Pageable page);
 }

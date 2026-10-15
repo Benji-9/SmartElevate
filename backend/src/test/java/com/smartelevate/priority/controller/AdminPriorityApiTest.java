@@ -43,7 +43,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /** Endpoints de ADMIN de punta a punta (H2 + migraciones): seguridad por endpoint, flujo y auditoría. */
-@SpringBootTest
+@SpringBootTest(properties = "app.admin.user-search.page-size=2")
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Import(AdminPriorityApiTest.FixedClockConfig.class)
@@ -120,6 +120,7 @@ class AdminPriorityApiTest {
                 post("/api/admin/teachers/" + id + "/approve"),
                 post("/api/admin/teachers/" + id + "/reject"),
                 get("/api/admin/priority-users"),
+                get("/api/admin/users?query=usuario"),
                 delete("/api/admin/priority-users/" + id),
                 put("/api/admin/users/" + id + "/role").content("{\"role\":\"ADMIN\"}")
         };
@@ -234,5 +235,69 @@ class AdminPriorityApiTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(as(admin, put("/api/admin/users/" + admin.getId() + "/role").content("{\"role\":\"USER\"}")))
                 .andExpect(status().isConflict());
+    }
+
+    private String search(String query) throws Exception {
+        return mockMvc.perform(as(admin, get("/api/admin/users").param("query", query)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
+
+    @Test
+    void searchFindsByEmailNameOrLegajoIgnoringCase() throws Exception {
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "COMUN@")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(common.getId().toString()))
+                .andExpect(jsonPath("$.items[0].role").value("USER"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "1000002")))
+                .andExpect(jsonPath("$.items[0].email").value("rev@uade.edu.ar"))
+                .andExpect(jsonPath("$.items[0].role").value("REVIEWER"));
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "USUARIO 1000004")))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(teacher.getId().toString()));
+    }
+
+    @Test
+    void searchTreatsWildcardsAsText() throws Exception {
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "%%%")))
+                .andExpect(jsonPath("$.items.length()").value(0));
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "___")))
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void searchPaginatesByCursor() throws Exception {
+        String first = search("usuario");
+        var json = new tools.jackson.databind.ObjectMapper().readTree(first);
+        assertThat(json.get("items")).hasSize(2);
+        String cursor = json.get("nextCursor").asString();
+
+        var second = new tools.jackson.databind.ObjectMapper().readTree(
+                mockMvc.perform(as(admin, get("/api/admin/users").param("query", "usuario").param("cursor", cursor)))
+                        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(second.get("items")).hasSize(2);
+        assertThat(second.get("nextCursor").isNull()).isTrue();
+        assertThat(second.get("items").get(0).get("id").asString())
+                .isNotEqualTo(json.get("items").get(0).get("id").asString())
+                .isNotEqualTo(json.get("items").get(1).get("id").asString());
+    }
+
+    @Test
+    void searchNeedsMinimumLengthAndValidCursor() throws Exception {
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "ab"))).andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "  a "))).andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, get("/api/admin/users"))).andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "usuario").param("cursor", "x")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void searchDoesNotExposeSensitiveFields() throws Exception {
+        String body = search("usuario");
+        assertThat(body).doesNotContain("passwordHash", "password", "declaredUserType", "certificate", "priority");
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "comun@")))
+                .andExpect(jsonPath("$.items[0].keys()").value(
+                        org.hamcrest.Matchers.containsInAnyOrder("id", "fullName", "email", "legajo", "role")));
     }
 }
