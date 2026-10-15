@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import com.smartelevate.common.time.CampusTime;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,15 +17,25 @@ import org.springframework.stereotype.Service;
  * Se leen y validan una sola vez al arrancar: si falta un valor o está fuera de rango, la app no levanta.
  * Un cambio en la tabla se aplica reiniciando la app.
  */
+@Slf4j
 @Service
 public class ConfigService {
 
     private final Map<String, String> values = new HashMap<>();
 
-    public ConfigService(ConfigEntryRepository repository) {
+    public ConfigService(ConfigEntryRepository repository, CampusTime time) {
         // Sin Collectors.toMap: no acepta los valores NULL de los parámetros a definir.
         repository.findAll().forEach(entry -> values.put(entry.getKey(), entry.getValue()));
         validate();
+        warnIfNoSemesterEndAhead(time.today());
+    }
+
+    // No frena el arranque: solo la aprobación de docentes depende de esto, y falla con su propio mensaje.
+    private void warnIfNoSemesterEndAhead(LocalDate today) {
+        if (semesterEndDates().stream().allMatch(end -> end.isBefore(today))) {
+            log.warn("semester_end_dates no tiene ningún cierre de cuatrimestre desde hoy ({}): no se van a poder "
+                    + "aprobar docentes hasta cargar el próximo en app_config y reiniciar la app", today);
+        }
     }
 
     public LocalTime operatingHoursStart() {

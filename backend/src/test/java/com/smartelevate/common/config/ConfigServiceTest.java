@@ -49,7 +49,9 @@ class ConfigServiceTest {
         when(repository.findAll()).thenReturn(values.entrySet().stream()
                 .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
                 .toList());
-        return new ConfigService(repository);
+        return new ConfigService(repository, new com.smartelevate.common.time.CampusTime(java.time.Clock.fixed(
+                java.time.Instant.parse("2026-10-13T15:00:00Z"), java.time.ZoneOffset.UTC),
+                java.time.ZoneId.of("America/Argentina/Buenos_Aires")));
     }
 
     private static Map<String, String> with(String key, String value) {
@@ -113,6 +115,12 @@ class ConfigServiceTest {
                 .hasMessageContaining("semester_end_dates").hasMessageContaining("valor inválido");
         assertThatThrownBy(() -> load(with("semester_end_dates", null)))
                 .hasMessageContaining("'semester_end_dates' todavía no está definido");
+    }
+
+    @Test
+    void semesterEndsAllInThePastStillLoad() {
+        // Solo avisa con un WARN: la aprobación de docentes es la que falla.
+        assertThatNoException().isThrownBy(() -> load(with("semester_end_dates", "2026-07-31")));
     }
 
     @Test

@@ -11,11 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
+import com.smartelevate.common.time.CampusTime;
+import com.smartelevate.common.time.ClockConfig;
 
 /** El seed de V1__init.sql, aplicado por Flyway sobre H2, carga y pasa la validación con los valores de las reglas. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(ConfigService.class)
+@Import({ConfigService.class, CampusTime.class, ClockConfig.class})
 class ConfigServiceSeedTest {
 
     @Autowired
