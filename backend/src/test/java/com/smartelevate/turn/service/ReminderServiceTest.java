@@ -165,6 +165,20 @@ class ReminderServiceTest {
 
         assertThat(job.sendDueReminders()).isZero();
         verifyNoInteractions(emailSender);
+        // Igual queda reclamada: no se reintenta cada pasada ni se manda si la activa después.
+        Reservation r = reservations.findAll().getFirst();
+        assertThat(r.getReminderSentAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void claimReminderReturnsZeroIfCancelledBetweenSelectAndUpdate() {
+        Reservation r = reservation(user, Duration.ofMinutes(4));
+        assertThat(reservations.findDueForReminder(NOW, NOW.plus(BEFORE))).hasSize(1);
+        r.cancel(NOW, Duration.ofMinutes(10));
+        reservations.save(r);
+
+        assertThat(reservations.claimReminder(r.getId(), NOW)).isZero();
+        assertThat(reservations.findById(r.getId()).orElseThrow().getReminderSentAt()).isNull();
     }
 
     @Test

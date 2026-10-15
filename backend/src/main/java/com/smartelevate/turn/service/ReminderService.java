@@ -48,7 +48,8 @@ public class ReminderService {
                     sent++;
                 }
             } catch (RuntimeException e) {
-                log.error("No se pudo mandar el recordatorio de la reserva {}", r.getId(), e);
+                // Sin la excepción entera: MailSendException trae el email del destinatario.
+                log.error("No se pudo mandar el recordatorio de la reserva {}: {}", r.getId(), e.getClass().getName());
             }
         }
         return sent;
