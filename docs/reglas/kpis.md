@@ -32,7 +32,7 @@ Lo implementa [#220](https://github.com/Benji-9/SmartElevate/issues/220) (`GET /
 
 ## Congestión
 
-`GET /api/congestion` (Inicio y el estado por núcleo del panel) da un nivel por núcleo a partir de la **ocupación**: en Inicio, lugares reservados / capacidad de las salidas de la ventana de reserva (los próximos 30 min); en el panel, la ocupación del período. **Media** desde el 60 % y **alta** desde el 85 % (`congestion_medium_from` y `congestion_high_from` en `app_config`). Las reglas no los fijaban: son una propuesta que cuadra con los ejemplos del diseño, **a calibrar en el piloto**.
+`GET /api/congestion` (Inicio y el estado por núcleo del panel) da un nivel por núcleo a partir de la **ocupación**: en Inicio, lugares reservados / capacidad de las salidas de la ventana de reserva (los próximos 30 min); en el panel, la ocupación del período. Son medidas distintas: la de Inicio se calcula con **reservas** (una reserva con check-in simulado sigue ocupando su lugar) y la del panel con **check-ins reales** (sin simulados). En el panel la ocupación se mide solo sobre las salidas **con reservas**, así que tiende a sobreestimar la de todas las salidas, y un núcleo sin reservas en el período no aparece en la tabla. **Media** desde el 60 % y **alta** desde el 85 % (`congestion_medium_from` y `congestion_high_from` en `app_config`). Las reglas no los fijaban: son una propuesta que cuadra con los ejemplos del diseño, **a calibrar en el piloto**.
 
 ## Filtros
 

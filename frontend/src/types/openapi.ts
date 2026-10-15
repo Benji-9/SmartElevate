@@ -469,7 +469,7 @@ export interface paths {
      * Mis faltas recientes y si estoy suspendido
      * @description Falta = NO_SHOW o CANCELLED_LATE. threshold faltas en windowDays días suspenden suspensionHours horas: mientras tanto, reservar responde NO_SHOW_SUSPENDED. Con prioridad vigente, exempt = true y nunca hay suspensión.
      */
-    get: operations['mine_1'];
+    get: operations['mine'];
     put?: never;
     post?: never;
     delete?: never;
@@ -515,7 +515,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/reservations/me': {
+  '/api/reservations/active': {
     parameters: {
       query?: never;
       header?: never;
@@ -523,10 +523,30 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Lista mis reservas de hoy en adelante (activas y canceladas)
-     * @description Ordenadas por salida, la más tardía primero.
+     * Mi reserva activa
+     * @description La reserva ACTIVE mientras se le puede hacer check-in (salida hasta check_in_closes_after atrás). Si hay más de una, la más próxima.
      */
-    get: operations['mine'];
+    get: operations['active'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reservations/history': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Mi historial de reservas, paginado por cursor
+     * @description En cualquier estado, de la salida más reciente a la más vieja, con el resultado del check-in si hubo. Sin cursor trae la primera página; para la siguiente, mandar el nextCursor de la anterior.
+     */
+    get: operations['history'];
     put?: never;
     post?: never;
     delete?: never;
@@ -542,7 +562,8 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /** Una reserva mía, en cualquier estado */
+    get: operations['getReservation'];
     put?: never;
     post?: never;
     /**
@@ -1119,8 +1140,34 @@ export interface components {
       /** @example jmartinez@uade.edu.ar */
       email: string;
     };
+    /** @description Página del historial de reservas, de la salida más reciente a la más vieja */
+    ReservationPageResponse: {
+      items: components['schemas']['ReservationResponse'][];
+      /**
+       * @description Cursor opaco para pedir la página siguiente. Null si no hay más.
+       * @example 2026-10-13T15:58:00Z_55
+       */
+      nextCursor?: string | null;
+    };
     /** @description Reserva de un lugar en una salida */
     ReservationResponse: {
+      /**
+       * @description Nombre visible del edificio
+       * @example Independencia
+       */
+      buildingName: string;
+      /** @description Si está ACTIVE y cancelarla ahora contaría como falta (pasado cancellation_deadline_before). Lo calcula el servidor al responder. */
+      cancelCountsAsNoShow: boolean;
+      /**
+       * @description Resultado del check-in, si hubo: ON_TIME, OTHER_ELEVATOR o LATE (cuenta como falta). Incluye los del simulador de admin.
+       * @enum {string|null}
+       */
+      checkInOutcome?: 'ON_TIME' | 'OTHER_ELEVATOR' | 'LATE' | null;
+      /**
+       * @description Nombre visible del núcleo del ascensor
+       * @example Independencia 2
+       */
+      coreName: string;
       /**
        * Format: date-time
        * @example 2026-10-13T15:40:00Z
@@ -2432,7 +2479,7 @@ export interface operations {
       };
     };
   };
-  mine_1: {
+  mine: {
     parameters: {
       query?: never;
       header?: never;
@@ -2577,9 +2624,56 @@ export interface operations {
       };
     };
   };
-  mine: {
+  active: {
     parameters: {
       query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La reserva activa */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'];
+        };
+      };
+      /** @description No tengo una reserva activa */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  history: {
+    parameters: {
+      query?: {
+        cursor?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2592,11 +2686,60 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ReservationResponse'][];
+          'application/json': components['schemas']['ReservationPageResponse'];
+        };
+      };
+      /** @description Cursor inválido */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  getReservation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La reserva, con el resultado del check-in si hubo */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReservationResponse'];
         };
       };
       /** @description Bad Request */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description La reserva no existe o es de otro usuario (RESERVATION_NOT_FOUND) */
+      404: {
         headers: {
           [name: string]: unknown;
         };

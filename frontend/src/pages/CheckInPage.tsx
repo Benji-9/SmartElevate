@@ -5,7 +5,7 @@ import { Chip } from '../components/Chip';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { createQrReader } from '../features/check-in/qrReader';
 import '../features/check-in/check-in.css';
-import { formatFloor, formatSlot } from '../features/turn/format';
+import { formatFloor, formatTime } from '../features/turn/format';
 import '../features/turn/turn.css';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { errorMessage, useResource } from '../hooks/useResource';
@@ -174,7 +174,8 @@ export function CheckInPage() {
   } else {
     turnContent = (
       <p className="check-in__route text-body-sm">
-        {reservation.core.name} · Piso {formatFloor(reservation.destinationFloor)}
+        {reservation.coreName} · Ascensor {reservation.elevator} · Piso{' '}
+        {formatFloor(reservation.destinationFloor)}
       </p>
     );
   }
@@ -218,11 +219,7 @@ export function CheckInPage() {
           <h2 id={turnTitleId} className="text-card-title">
             Tu turno
           </h2>
-          {reservation && (
-            <Chip>
-              {formatSlot(reservation.departure.departsAt, reservation.departure.durationMinutes)}
-            </Chip>
-          )}
+          {reservation && <Chip>{formatTime(reservation.departureAt)} hs</Chip>}
         </div>
         {turnContent}
       </section>

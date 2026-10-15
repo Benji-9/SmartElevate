@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type {
   NotificationPreferences,
   PriorityUploadRules,
-  Reservation as PendingReservation,
-  TripPage,
 } from '../types/pending';
 import type {
   Building,
@@ -15,6 +13,7 @@ import type {
   NoShowStatus,
   QrToken,
   Reservation,
+  ReservationPage,
 } from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
@@ -34,9 +33,7 @@ const loginAna = () =>
   call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
 /** Cancela el turno activo, si hay, para poder reservar otro. */
 async function cancelActive() {
-  const active = (await call<Reservation[]>('GET', '/reservations/me')).find(
-    (r) => r.status === 'ACTIVE',
-  );
+  const active = await call<Reservation | undefined>('GET', '/reservations/active');
   if (active) await call('DELETE', `/reservations/${active.id}`);
 }
 const freeDeparture = async (building = 'INDEPENDENCIA') =>
@@ -69,18 +66,20 @@ describe('mocks', () => {
     expect(new Set(departures.map((d) => d.elevator))).toEqual(new Set(['33', '34']));
   });
 
-  it('arranca con un turno activo en el 33, también en la forma vieja', async () => {
+  it('arranca con un turno activo en el 33 con su núcleo y la regla de cancelación', async () => {
     await loginAna();
-    const [active] = await call<Reservation[]>('GET', '/reservations/me');
+    const active = await call<Reservation>('GET', '/reservations/active');
 
-    expect(active).toMatchObject({ id: expect.any(Number), status: 'ACTIVE', elevator: '33' });
-    const pending = await call<PendingReservation>('GET', '/reservations/active');
-    expect(pending).toMatchObject({
-      id: String(active.id),
-      core: { id: 'IND2', buildingName: 'Independencia', hall: expect.any(String) },
+    expect(active).toMatchObject({
+      id: expect.any(Number),
+      status: 'ACTIVE',
+      elevator: '33',
+      coreName: 'Independencia 2',
+      buildingName: 'Independencia',
       cancelCountsAsNoShow: false,
+      checkInOutcome: null,
     });
-    expect(await call('GET', `/reservations/${active.id}`)).toEqual(pending);
+    expect(await call('GET', `/reservations/${active.id}`)).toEqual(active);
     await expect(call('GET', '/reservations/no-existe')).rejects.toMatchObject({ status: 404 });
   });
 
@@ -163,18 +162,18 @@ describe('mocks', () => {
       seatNumber: expect.any(Number),
       status: 'ACTIVE',
     });
-    expect(await call<Reservation[]>('GET', '/reservations/me')).toContainEqual(created);
+    expect(await call<Reservation>('GET', '/reservations/active')).toEqual(created);
     const after = (await call<Departure[]>('GET', '/departures?building=INDEPENDENCIA')).find(
       (d) => d.id === free.id,
     )!;
     expect(after.remainingSeats).toBe(free.remainingSeats - 1);
 
     await call('DELETE', `/reservations/${created.id}`);
-    expect(await call('GET', '/reservations/active')).toBeNull();
-    const [cancelled] = await call<Reservation[]>('GET', '/reservations/me').then((list) =>
-      list.filter((r) => r.id === created.id),
-    );
-    expect(cancelled).toMatchObject({ status: 'CANCELLED', seatNumber: null });
+    expect(await call('GET', '/reservations/active')).toBeUndefined(); // 204
+    expect(await call<Reservation>('GET', `/reservations/${created.id}`)).toMatchObject({
+      status: 'CANCELLED',
+      seatNumber: null,
+    });
   });
 
   it('edificios y ascensores usan los pisos del relevamiento', async () => {
@@ -297,11 +296,21 @@ describe('mocks', () => {
   it('historial paginado y faltas recientes con los parámetros de la regla', async () => {
     await call('POST', '/auth/login', { email: 'ana.perez@uade.edu.ar', password: 'x' });
 
-    const first = await call<TripPage>('GET', '/reservations/history');
-    const second = await call<TripPage>('GET', `/reservations/history?cursor=${first.nextCursor}`);
+    const first = await call<ReservationPage>('GET', '/reservations/history');
+    const second = await call<ReservationPage>(
+      'GET',
+      `/reservations/history?cursor=${first.nextCursor}`,
+    );
     expect(first.items).toHaveLength(10);
     expect(second.items[0].id).not.toBe(first.items[0].id);
-    expect(new Set(first.items.map((t) => t.result)).size).toBe(5);
+    expect(first.items.map((t) => t.departureAt)).toEqual(
+      first.items
+        .map((t) => t.departureAt)
+        .sort()
+        .reverse(),
+    );
+    const results = new Set(first.items.map((t) => `${t.status} ${t.checkInOutcome}`));
+    expect(results.size).toBeGreaterThanOrEqual(6);
 
     const noShows = await call<NoShowStatus>('GET', '/me/no-shows');
     expect(noShows).toMatchObject({ threshold: 3, windowDays: 7, exempt: false });

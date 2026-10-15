@@ -80,9 +80,13 @@ public class Reservation {
         if (status != ReservationStatus.ACTIVE) {
             return;
         }
-        status = now.isAfter(departure.getDepartureAt().minus(deadline))
-                ? ReservationStatus.CANCELLED_LATE : ReservationStatus.CANCELLED;
+        status = cancelIsLate(now, deadline) ? ReservationStatus.CANCELLED_LATE : ReservationStatus.CANCELLED;
         seatNumber = null;
+    }
+
+    /** Cancelar en {@code now} cuenta como falta: pasó {@code deadline} antes de la salida. */
+    public boolean cancelIsLate(Instant now, Duration deadline) {
+        return now.isAfter(departure.getDepartureAt().minus(deadline));
     }
 
     /** Check-in a tiempo (#230). Conserva el lugar. */

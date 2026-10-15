@@ -21,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Congestión ahora (#220): por núcleo, lugares reservados / capacidad de las salidas programadas de la ventana de
  * reserva (de ahora a {@code booking_opens_before}). Solo conteos: ningún dato personal.
+ * <p>
+ * Usa {@code countActiveByDeparture} directo y no {@link KpiEvents}, a propósito: mide lugares ocupados, y una
+ * reserva con check-in simulado sigue ocupando el suyo.
  */
 // ponytail: las salidas se generan al consultarlas (DepartureService), así que un núcleo sin salidas generadas
 // cuenta como 0 %. Si hiciera falta la capacidad "teórica", calcularla con el horario y slot_duration.
@@ -50,9 +53,11 @@ public class CongestionService {
         List<CongestionResponse.Core> result = cores.findAll(Sort.by("name")).stream()
                 .map(core -> {
                     long[] seats = byCore.getOrDefault(core.getCode(), new long[2]);
-                    double percent = seats[1] == 0 ? 0 : AdminKpiService.round1(100.0 * seats[0] / seats[1]);
-                    return new CongestionResponse.Core(core.getCode(), core.getName(), CongestionLevel.of(percent,
-                            config.congestionMediumFrom(), config.congestionHighFrom()), percent);
+                    double exact = seats[1] == 0 ? 0 : 100.0 * seats[0] / seats[1];
+                    // El nivel sale del valor sin redondear: 84,96 % no es HIGH aunque se muestre como 85.
+                    return new CongestionResponse.Core(core.getCode(), core.getName(), CongestionLevel.of(exact,
+                            config.congestionMediumFrom(), config.congestionHighFrom()),
+                            AdminKpiService.round1(exact));
                 })
                 .toList();
         return new CongestionResponse(now, config.slotDuration().toSeconds(), result);

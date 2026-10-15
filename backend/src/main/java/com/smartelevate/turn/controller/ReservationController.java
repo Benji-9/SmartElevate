@@ -3,6 +3,7 @@ package com.smartelevate.turn.controller;
 import com.smartelevate.common.config.OpenApiConfig;
 import com.smartelevate.common.error.ApiError;
 import com.smartelevate.common.security.CurrentUser;
+import com.smartelevate.turn.dto.ReservationPageResponse;
 import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
 import com.smartelevate.turn.service.ReservationService;
@@ -13,9 +14,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -59,11 +61,37 @@ public class ReservationController {
         return service.reserve(user.id(), request);
     }
 
-    @GetMapping("/me")
-    @Operation(summary = "Lista mis reservas de hoy en adelante (activas y canceladas)",
-            description = "Ordenadas por salida, la más tardía primero.")
-    public List<ReservationResponse> mine(@AuthenticationPrincipal CurrentUser user) {
-        return service.mine(user.id());
+    @GetMapping("/active")
+    @Operation(summary = "Mi reserva activa",
+            description = "La reserva ACTIVE mientras se le puede hacer check-in (salida hasta "
+                    + "check_in_closes_after atrás). Si hay más de una, la más próxima.")
+    @ApiResponse(responseCode = "200", description = "La reserva activa")
+    @ApiResponse(responseCode = "204", description = "No tengo una reserva activa", content = @Content)
+    public ResponseEntity<ReservationResponse> active(@AuthenticationPrincipal CurrentUser user) {
+        return service.active(user.id())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/history")
+    @Operation(summary = "Mi historial de reservas, paginado por cursor",
+            description = "En cualquier estado, de la salida más reciente a la más vieja, con el resultado del "
+                    + "check-in si hubo. Sin cursor trae la primera página; para la siguiente, mandar el "
+                    + "nextCursor de la anterior.")
+    @ApiResponse(responseCode = "400", description = "Cursor inválido",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public ReservationPageResponse history(@AuthenticationPrincipal CurrentUser user,
+                                           @RequestParam(required = false) String cursor) {
+        return service.history(user.id(), cursor);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Una reserva mía, en cualquier estado")
+    @ApiResponse(responseCode = "200", description = "La reserva, con el resultado del check-in si hubo")
+    @ApiResponse(responseCode = "404", description = "La reserva no existe o es de otro usuario "
+            + "(RESERVATION_NOT_FOUND)", content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public ReservationResponse getReservation(@AuthenticationPrincipal CurrentUser user, @PathVariable long id) {
+        return service.get(user.id(), id);
     }
 
     @DeleteMapping("/{id}")

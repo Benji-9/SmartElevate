@@ -51,6 +51,32 @@ class CongestionServiceTest {
     }
 
     @Test
+    void thresholdsCompareTheUnroundedValue() {
+        when(config.bookingOpensBefore()).thenReturn(Duration.ofMinutes(30));
+        when(config.slotDuration()).thenReturn(Duration.ofMinutes(2));
+        when(config.congestionMediumFrom()).thenReturn(60);
+        when(config.congestionHighFrom()).thenReturn(85);
+        when(cores.findAll(any(Sort.class))).thenReturn(List.of(L1));
+        List<Departure> found = new java.util.ArrayList<>();
+        List<Object[]> counts = new java.util.ArrayList<>();
+        // 235 salidas = 2350 lugares.
+        for (long id = 1; id <= 235; id++) {
+            found.add(departure(id, L1));
+            counts.add(new Object[] {id, id <= 199 ? 10L : (id == 200 ? 9L : 0L), 0L});
+        }
+        // Reservados: 199 * 10 + 9 = 1999 de 2350 = 85,06 %.
+        when(departures.findScheduledBetween(NOW, NOW.plus(Duration.ofMinutes(30)))).thenReturn(found);
+        when(reservations.countActiveByDeparture(found.stream().map(Departure::getId).toList())).thenReturn(counts);
+        assertThat(service.now().cores().getFirst().level()).isEqualTo(CongestionLevel.HIGH);
+
+        // 1997 / 2350 = 84,98 %: se muestra como 85,0 pero no llega al umbral, es MEDIUM.
+        counts.set(199, new Object[] {200L, 7L, 0L});
+        CongestionResponse.Core core = service.now().cores().getFirst();
+        assertThat(core.occupancyPercent()).isEqualTo(85.0);
+        assertThat(core.level()).isEqualTo(CongestionLevel.MEDIUM);
+    }
+
+    @Test
     void levelComesFromReservedSeatsOverCapacityOfTheBookingWindow() {
         when(config.bookingOpensBefore()).thenReturn(Duration.ofMinutes(30));
         when(config.slotDuration()).thenReturn(Duration.ofMinutes(2));

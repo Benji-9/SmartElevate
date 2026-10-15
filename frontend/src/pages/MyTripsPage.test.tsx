@@ -3,27 +3,32 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
-import { signedIn, stubApi } from '../test/stubApi';
+import { signedIn, stubApi, testReservation } from '../test/stubApi';
 import type { NoShowStatus } from '../types/api';
-import type { Trip, TripPage } from '../types/pending';
+import type { Reservation, ReservationPage } from '../types/api';
 
 // 29/9 17:04 UTC = 14:04 en Buenos Aires; 30/9 01:30 UTC sigue siendo el 29/9 (22:30) allá.
-const trip = (id: string, departsAt: string, result: Trip['result']): Trip => ({
+const trip = (
+  id: number,
+  departureAt: string,
+  status: Reservation['status'],
+  checkInOutcome: Reservation['checkInOutcome'] = null,
+): Reservation => ({
+  ...testReservation,
   id,
-  departsAt,
-  durationMinutes: 2,
-  coreName: 'Lima 1',
-  originFloor: 0,
+  departureAt,
   destinationFloor: 7,
-  result,
+  status,
+  checkInOutcome,
 });
 
-const trips: Trip[] = [
-  trip('t-1', '2026-09-30T01:30:00Z', 'COMPLETED'),
-  trip('t-2', '2026-09-29T17:04:00Z', 'OTHER_ELEVATOR'),
-  trip('t-3', '2026-09-28T13:00:00Z', 'LATE'),
-  trip('t-4', '2026-09-28T12:00:00Z', 'CANCELLED'),
-  trip('t-5', '2026-09-27T12:00:00Z', 'NO_SHOW'),
+const trips: Reservation[] = [
+  trip(1, '2026-09-30T01:30:00Z', 'USED', 'ON_TIME'),
+  trip(2, '2026-09-29T17:04:00Z', 'USED', 'OTHER_ELEVATOR'),
+  trip(3, '2026-09-28T13:00:00Z', 'NO_SHOW', 'LATE'),
+  trip(4, '2026-09-28T12:00:00Z', 'CANCELLED'),
+  trip(5, '2026-09-28T11:00:00Z', 'CANCELLED_LATE'),
+  trip(6, '2026-09-27T12:00:00Z', 'NO_SHOW'),
 ];
 
 const noShows = (status: Partial<NoShowStatus> = {}): NoShowStatus => ({
@@ -37,7 +42,7 @@ const noShows = (status: Partial<NoShowStatus> = {}): NoShowStatus => ({
 });
 
 function renderTrips(
-  page: TripPage = { items: trips, nextCursor: null },
+  page: ReservationPage = { items: trips, nextCursor: null },
   status: NoShowStatus = noShows(),
   extra = {},
 ) {
@@ -62,13 +67,17 @@ describe('MyTripsPage', () => {
     expect(await screen.findByText('Cargando tus viajes…')).toBeInTheDocument();
     const today = await screen.findByRole('region', { name: 'martes, 29 de septiembre' });
     expect(within(today).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(today).getByText('22:30 – 22:32')).toBeInTheDocument();
+    expect(within(today).getByText('22:30 hs')).toBeInTheDocument();
     expect(within(today).getByText('Cumplido')).toBeInTheDocument();
     expect(within(today).getByText('Otro ascensor')).toBeInTheDocument();
 
     const monday = screen.getByRole('region', { name: 'lunes, 28 de septiembre' });
     const late = within(monday).getByText('Falta (fuera de hora)');
     expect(within(monday).getByText('Cancelado')).toBeInTheDocument();
+    // Cancelar tarde también es falta (turnos.md §5).
+    expect(within(monday).getByText('Cancelado tarde (falta)')).toHaveClass(late.className, {
+      exact: true,
+    });
 
     const sunday = screen.getByRole('region', { name: 'domingo, 27 de septiembre' });
     // Fuera de hora cuenta como falta: mismo tono que "Falta" (#154).
@@ -123,7 +132,7 @@ describe('MyTripsPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Ver más' }));
 
     expect(await screen.findByText('Falta')).toBeInTheDocument();
-    expect(screen.getAllByText(/Lima 1/)).toHaveLength(5);
+    expect(screen.getAllByText(/Lima 1/)).toHaveLength(6);
     const days = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
     expect(days).toEqual([
       'martes, 29 de septiembre',

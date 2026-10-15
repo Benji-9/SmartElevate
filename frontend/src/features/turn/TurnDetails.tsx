@@ -1,24 +1,25 @@
-import type { Reservation } from '../../types/pending';
-import { formatFloor, formatSlot } from './format';
+import type { Reservation } from '../../types/api';
+import { formatFloor, formatTime } from './format';
 
-/** Detalle de una reserva: edificio, ascensor, recorrido, franja y ocupación. */
+/**
+ * Detalle de una reserva: edificio, ascensor, recorrido y salida. La franja es la salida
+ * (ADR 0007): la API da su hora, no una duración.
+ */
 export function TurnDetails({ reservation }: { reservation: Reservation }) {
-  const { core, departure, originFloor, destinationFloor } = reservation;
-  const floors = core.floors.length
-    ? `pisos ${formatFloor(Math.min(...core.floors))} a ${formatFloor(Math.max(...core.floors))}`
-    : null;
+  const { buildingName, coreName, elevator, departureAt, originFloor, destinationFloor } =
+    reservation;
 
   return (
     <dl className="turn-details">
       <div>
         <dt>Edificio</dt>
-        <dd>{core.buildingName}</dd>
+        <dd>{buildingName}</dd>
       </div>
       <div>
         <dt>Ascensor</dt>
         <dd>
-          {core.name}
-          {floors && <span className="turn-details__muted"> · {floors}</span>}
+          {elevator}
+          <span className="turn-details__muted"> · {coreName}</span>
         </dd>
       </div>
       <div>
@@ -29,14 +30,8 @@ export function TurnDetails({ reservation }: { reservation: Reservation }) {
         </dd>
       </div>
       <div>
-        <dt>Franja</dt>
-        <dd>{formatSlot(departure.departsAt, departure.durationMinutes)}</dd>
-      </div>
-      <div>
-        <dt>Ocupación</dt>
-        <dd>
-          {departure.occupied} / {departure.capacity} personas
-        </dd>
+        <dt>Salida</dt>
+        <dd>{formatTime(departureAt)} hs</dd>
       </div>
     </dl>
   );
