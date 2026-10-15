@@ -106,6 +106,34 @@ Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ve
 - La variable de GitHub **`BACKEND_URL`** = `https://smartelevate.onrender.com`. El workflow la escribe en el rewrite de `vercel.json` antes de buildear.
 - Si cambia `BACKEND_URL`, el front recién la toma **en el próximo deploy de producción**.
 
+### Headers de seguridad (CSP)
+
+Los define `frontend/vercel.json` (sección `headers`, todas las rutas). Decisión y justificación: [ADR 0022](adr/0022-csp-y-headers-de-seguridad-en-vercel.md).
+
+| Header | Valor | Por qué |
+| --- | --- | --- |
+| `Content-Security-Policy` | `default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `style-src-attr 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`, `media-src 'self' blob:`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` | Mitiga XSS (el refresh vive en `sessionStorage`, ADR 0014) y clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Evita que el navegador adivine tipos MIME |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | No filtra rutas a otros orígenes |
+| `Permissions-Policy` | `camera=(self)` y el resto denegado | El check-in escanea con la cámara |
+
+HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay que agregarlo a la CSP. Si #204 mantiene el proxy del mismo origen, `connect-src` queda en `'self'`.
+
+**Verificar en un preview** (checklist mínimo):
+
+- [ ] Consola sin `Refused to ...` en cada pantalla (login, Inicio, Reservar, Mis viajes, 404).
+- [ ] Headers presentes en el documento, en un asset (`/assets/*.js`) y en una ruta profunda recargada.
+- [ ] Inter y los logos se ven.
+- [ ] Check-in con cámara, en un navegador sin `BarcodeDetector`, para que cargue el chunk de jsQR.
+- [ ] Kiosco con el QR visible.
+- [ ] Panel admin con las barras.
+- [ ] Una llamada a `/api` con 200.
+
+Notas:
+
+- La Vercel Toolbar y los comentarios de preview inyectan scripts de `vercel.live`: solo en previews vas a ver `Refused to load script`. Ignorarlo; no agregar `vercel.live` a la CSP.
+- `style-src-attr` lo soportan Safari 15.4+ y los navegadores actuales (aceptable para el MVP).
+
 ## Cómo llega un cambio a producción
 
 1. PR a `develop` → CI. El front se deploya como preview y el backend no se deploya.
