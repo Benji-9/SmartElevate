@@ -62,3 +62,13 @@ export type CheckInOutcome = CheckIn['outcome'];
 
 /** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
 export type NoShowStatus = Schemas['NoShowStatusResponse'];
+
+/**
+ * Salida reservable de un ascensor (`GET /departures`). La lista ya viene filtrada por usuario
+ * (ascensores que puede usar) y `remainingSeats` son los lugares que él puede tomar.
+ */
+export type Departure = Schemas['DepartureResponse'];
+export type ReserveRequest = Schemas['ReserveRequest'];
+/** Reserva (`POST /reservations`, `GET /reservations/me`). `id` y `departureId` son numéricos. */
+export type Reservation = Schemas['ReservationResponse'];
+export type ReservationStatus = Reservation['status'];
