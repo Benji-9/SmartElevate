@@ -8,6 +8,7 @@ import { ViewModeProvider } from './features/view-mode/ViewModeProvider';
 import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminKioskSimulatorPage } from './pages/AdminKioskSimulatorPage';
+import { AdminElevatorsPage } from './pages/AdminElevatorsPage';
 import { AdminKiosksPage } from './pages/AdminKiosksPage';
 import { AdminPriorityPage } from './pages/AdminPriorityPage';
 import { KioskPage } from './pages/KioskPage';
@@ -65,6 +66,7 @@ export function App() {
                 <Route index element={<AdminDashboardPage />} />
                 <Route path="prioritarios" element={<AdminPriorityPage />} />
                 <Route path="kioscos" element={<AdminKiosksPage />} />
+                <Route path="ascensores" element={<AdminElevatorsPage />} />
                 <Route path="simulador" element={<AdminKioskSimulatorPage />} />
               </Route>
             </Route>

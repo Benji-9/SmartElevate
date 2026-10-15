@@ -28,6 +28,7 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/admin` | Layout del panel (`AdminLayout`); su índice es 09 Panel de administración | — (escritorio) | rol administrador |
 | `/admin/prioritarios` | 09b Usuarios prioritarios, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/kioscos` | 09c Kioscos del QR, dentro del layout de `/admin` | — (escritorio) | rol administrador |
+| `/admin/ascensores` | 09e Ascensores fuera de servicio, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/simulador` | 09d Simulador de kiosco, dentro del layout de `/admin` (solo si el servidor lo habilita) | — (escritorio) | rol administrador |
 | `/qr/:ascensor` | 10 Kiosco QR del hall ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)) | no | público, con la credencial del kiosco |
 | `*` | 404 | no | público |
@@ -357,6 +358,22 @@ Sin frame de Figma: mismos componentes que 09b. Ítem **"Kioscos"** en la barra 
 2. **"Kioscos"**: tabla **Ascensor · Tipo · Alta · Última conexión · Estado · Acciones**. Tipo: "Tablet" o "Simulador". Alta y Última conexión en Buenos Aires ("14/10/2026, 15:40"; "Nunca" si no se conectó). Estado: `Chip` accent "Activo" o neutral "Revocado". Acción en los activos: secondary "Revocar" (nombre accesible "Revocar el kiosco del ascensor 33"), con confirmación en la fila: "¿Revocar el kiosco del ascensor 33?" · "Sí, revocar" / "Cancelar" (con el foco). Revocar corta el kiosco en el acto. Vacía: "Todavía no hay kioscos."
 
 Estados de carga y error como 09b.
+
+### 09e · Ascensores fuera de servicio — `/admin/ascensores`
+
+Sin frame de Figma: mismos componentes que 09c. Ítem **"Ascensores"** en la barra lateral. Contrato en `docs/openapi.json` (`GET /api/admin/elevators`, `POST /api/admin/elevators/{code}/out-of-service` y `/in-service`; [turnos.md §8](../reglas/turnos.md#8-ascensor-fuera-de-servicio), #134).
+
+`h1` "Ascensores" y debajo (14 px `--ink-muted`) "Si un ascensor se rompe, marcalo fuera de servicio: sus reservas de hoy se cancelan solas, sin falta, y avisamos a cada persona por mail." Una tarjeta **"Ascensores"** con la tabla **Ascensor · Núcleo · Reservas de hoy · Estado · Acciones**:
+
+- Ascensor = código ("33"); Núcleo = nombre visible ("Independencia 2"); Reservas de hoy = `upcomingReservations` (reservas activas de salidas que todavía no pasaron), el número que se cancelaría.
+- Estado: `Chip` accent "En servicio" o neutral "Fuera de servicio" (texto, nunca solo color).
+- Acciones: en servicio, secondary "Marcar fuera de servicio" (nombre accesible "Marcar fuera de servicio el ascensor 33"); fuera de servicio, secondary "Reactivar" (nombre "Reactivar el ascensor 33"). Ambas con `ConfirmAction` en la fila:
+  - Marcar: "¿Marcar el ascensor 33 fuera de servicio? Se cancelan 4 reservas sin falta y se avisa a cada persona." (con 0: "No hay reservas para cancelar."; con 1: "Se cancela 1 reserva sin falta y se avisa a la persona.") · "Sí, marcar" / "Cancelar" (con el foco).
+  - Reactivar: "¿Reactivar el ascensor 33? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran." · "Sí, reactivar" / "Cancelar".
+- El conteo viene de la última lista cargada y puede haber cambiado: al confirmar, el resultado real (`cancelledReservations`) se muestra arriba de la tabla en `role="status"`: "Ascensor 33 fuera de servicio. Se cancelaron 4 reservas." y la lista se recarga.
+- Error del servidor: `role="alert"` con el mensaje; con 404 (ascensor borrado) se agrega "Actualizamos la lista." y se recarga.
+- Los kioscos de un ascensor fuera de servicio no cambian: el QR se sigue emitiendo, pero nadie tiene reserva para hacer check-in.
+- Estados de carga y error como 09c. Sin ascensores: "No hay ascensores para mostrar."
 
 ### 09d · Simulador de kiosco — `/admin/simulador`
 

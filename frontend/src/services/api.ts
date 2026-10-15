@@ -1,4 +1,5 @@
 import type {
+  AdminElevator,
   AdminKpis,
   AdminKpisQuery,
   AdminShift,
@@ -11,6 +12,7 @@ import type {
   CreateKioskRequest,
   Departure,
   Elevator,
+  ElevatorServiceResult,
   FieldViolation,
   KioskList,
   ForgotPasswordRequest,
@@ -322,6 +324,17 @@ export const revokePriority = (id: string) =>
   api.delete<void>(`/admin/priority-users/${encodeURIComponent(id)}`);
 
 export const getElevators = () => api.get<Elevator[]>('/elevators');
+
+/** Todos los ascensores con su estado de servicio y las reservas que se cancelarían. Solo ADMIN. */
+export const getAdminElevators = () => api.get<AdminElevator[]>('/admin/elevators');
+/** Marca un ascensor fuera de servicio: cancela sus reservas sin falta y avisa por mail. Solo ADMIN. */
+export const markElevatorOutOfService = (code: string) =>
+  api.post<ElevatorServiceResult>(
+    `/admin/elevators/${encodeURIComponent(code)}/out-of-service`,
+    {},
+  );
+export const markElevatorInService = (code: string) =>
+  api.post<ElevatorServiceResult>(`/admin/elevators/${encodeURIComponent(code)}/in-service`, {});
 
 /** Kioscos del QR (ADR 0020) y si el servidor habilita el simulador. Solo ADMIN. */
 export const getKiosks = () => api.get<KioskList>('/admin/kiosks');

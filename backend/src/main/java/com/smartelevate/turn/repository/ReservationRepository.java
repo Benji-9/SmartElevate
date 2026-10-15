@@ -37,6 +37,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             + "from Reservation r where r.departure.id in :ids and r.status = 'ACTIVE' group by r.departure.id")
     List<Object[]> countActiveByDeparture(@Param("ids") Collection<Long> ids);
 
+    /** Reservas ACTIVE de salidas futuras del ascensor, con lo que necesita el mail cargado (#134). */
+    @Query("select r from Reservation r join fetch r.departure d join fetch d.elevator e join fetch e.core c "
+            + "join fetch c.building where e.code = :code and r.status = 'ACTIVE' and d.departureAt > :now "
+            + "order by r.id")
+    List<Reservation> findActiveByElevatorFrom(@Param("code") String code, @Param("now") Instant now);
+
+    /** Filas [código de ascensor, reservas ACTIVE con salida futura]; los que no tienen no aparecen (#134). */
+    @Query("select d.elevator.code, count(r) from Reservation r join r.departure d "
+            + "where r.status = 'ACTIVE' and d.departureAt > :now group by d.elevator.code")
+    List<Object[]> countActiveFromByElevator(@Param("now") Instant now);
+
     /** Reservas activas cuya salida todavía no pasó. */
     @Query("select count(r) from Reservation r where r.userId = :userId and r.status = 'ACTIVE' "
             + "and r.departure.departureAt > :now")
