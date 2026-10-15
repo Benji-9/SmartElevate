@@ -17,3 +17,8 @@ ALTER TABLE app_config ALTER COLUMN config_value SET DATA TYPE VARCHAR(255);
 INSERT INTO app_config (config_key, config_value, description) VALUES
     ('semester_end_dates', '2026-12-31',
      'Cierres de cuatrimestre (yyyy-MM-dd, separados por coma): la prioridad de docente vence al fin de ese día');
+
+-- Backfill: las aprobaciones de docente previas no vencían (expires_at NULL). Vencen al fin del primer cierre de
+-- arriba: fin del 2026-12-31 en Buenos Aires = 2027-01-01 03:00 UTC.
+UPDATE user_priority SET expires_at = TIMESTAMP WITH TIME ZONE '2027-01-01 03:00:00+00'
+    WHERE category = 'TEACHER' AND status = 'APPROVED' AND expires_at IS NULL;
