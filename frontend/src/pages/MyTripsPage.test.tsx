@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
 import { signedIn, stubApi } from '../test/stubApi';
-import type { NoShowStatus, Trip, TripPage } from '../types/pending';
+import type { NoShowStatus } from '../types/api';
+import type { Trip, TripPage } from '../types/pending';
 
 // 29/9 17:04 UTC = 14:04 en Buenos Aires; 30/9 01:30 UTC sigue siendo el 29/9 (22:30) allá.
 const trip = (id: string, departsAt: string, result: Trip['result']): Trip => ({

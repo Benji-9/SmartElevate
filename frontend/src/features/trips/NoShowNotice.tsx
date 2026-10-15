@@ -1,4 +1,4 @@
-import type { NoShowStatus } from '../../types/pending';
+import type { NoShowStatus } from '../../types/api';
 import { formatDate, formatTime } from '../turn/format';
 
 const faltas = (n: number) => `${n} ${n === 1 ? 'falta' : 'faltas'}`;

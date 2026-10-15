@@ -6,13 +6,19 @@ import type {
   Core,
   Departure,
   FloorOption,
-  NoShowStatus,
   NotificationPreferences,
   PriorityUploadRules,
   Reservation,
   TripPage,
 } from '../types/pending';
-import type { Building, CheckIn, CreatedKiosk, KioskList, QrToken } from '../types/api';
+import type {
+  Building,
+  CheckIn,
+  CreatedKiosk,
+  KioskList,
+  NoShowStatus,
+  QrToken,
+} from '../types/api';
 import { ApiError } from './api';
 import { mockRequest } from './mocks';
 

@@ -59,3 +59,6 @@ export type CheckInRequest = Schemas['CheckInRequest'];
 /** Resultado del check-in con el ascensor escaneado y el reservado (docs/reglas/check-in-qr.md). */
 export type CheckIn = Schemas['CheckInResponse'];
 export type CheckInOutcome = CheckIn['outcome'];
+
+/** Faltas recientes (`GET /me/no-shows`, turnos.md §5). Los prioritarios no se suspenden: `exempt`. */
+export type NoShowStatus = Schemas['NoShowStatusResponse'];
