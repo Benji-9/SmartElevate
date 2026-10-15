@@ -7,7 +7,7 @@
 
 ## Contexto
 
-El [ADR 0014](0014-refresh-token-en-sessionstorage.md) dejó la CSP como mitigación pendiente ante un XSS que lea el refresh token de `sessionStorage`. Auditoría del front (`npm run build`): el HTML no tiene scripts ni `<style>` inline, no hay orígenes externos (Inter sale de `@fontsource-variable/inter`, empaquetada en `dist/assets`), el QR del kiosco es un `<svg>` inline y el logo se carga como `data:image/svg+xml`. El navegador solo habla con el mismo origen: `/api/*` lo reenvía Vercel al backend con un rewrite. React usa atributos `style=` (anchos de barras, `--value`).
+El [ADR 0014](0014-refresh-token-en-sessionstorage.md) dejó la CSP como mitigación pendiente ante un XSS que lea el refresh token de `sessionStorage`. Auditoría del front (`npm run build`): el HTML no tiene scripts ni `<style>` inline, no hay orígenes externos (Inter sale de `@fontsource-variable/inter`, empaquetada en `dist/assets`), el QR del kiosco es un `<svg>` inline y los `smartelevate-logo*.svg` (~19 KB) salen como `/assets/*.svg` del mismo origen y solo `uade-logo.svg` (1,9 KB) queda inlineado como `data:image/svg+xml`; ambos pasan con `img-src 'self' data:`. El navegador solo habla con el mismo origen: `/api/*` lo reenvía Vercel al backend con un rewrite. React usa atributos `style=` (anchos de barras, `--value`).
 
 ## Decisión
 

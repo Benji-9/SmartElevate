@@ -119,7 +119,20 @@ Los define `frontend/vercel.json` (sección `headers`, todas las rutas). Decisi�
 
 HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay que agregarlo a la CSP. Si #204 mantiene el proxy del mismo origen, `connect-src` queda en `'self'`.
 
-**Verificar en un preview:** abrir la URL del preview con DevTools > Console y confirmar que no hay mensajes `Refused to ...`, y en Network > Headers que la respuesta trae los headers. Recorrer: login y registro, Inicio, Reservar, Mis viajes, check-in (pide cámara y escanea), kiosco con el QR visible, panel admin con gráficos, 404.
+**Verificar en un preview** (checklist mínimo):
+
+- [ ] Consola sin `Refused to ...` en cada pantalla (login, Inicio, Reservar, Mis viajes, 404).
+- [ ] Headers presentes en el documento, en un asset (`/assets/*.js`) y en una ruta profunda recargada.
+- [ ] Inter y los logos se ven.
+- [ ] Check-in con cámara, en un navegador sin `BarcodeDetector`, para que cargue el chunk de jsQR.
+- [ ] Kiosco con el QR visible.
+- [ ] Panel admin con las barras.
+- [ ] Una llamada a `/api` con 200.
+
+Notas:
+
+- La Vercel Toolbar y los comentarios de preview inyectan scripts de `vercel.live`: solo en previews vas a ver `Refused to load script`. Ignorarlo; no agregar `vercel.live` a la CSP.
+- `style-src-attr` lo soportan Safari 15.4+ y los navegadores actuales (aceptable para el MVP).
 
 ## Cómo llega un cambio a producción
 
