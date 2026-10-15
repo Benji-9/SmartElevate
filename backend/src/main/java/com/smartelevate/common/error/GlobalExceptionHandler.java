@@ -29,6 +29,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -69,6 +70,15 @@ public class GlobalExceptionHandler {
                                                        HttpServletRequest request) {
         List<ApiError.FieldViolation> violations =
                 List.of(new ApiError.FieldViolation(ex.getName(), "Tiene un valor inválido"));
+        return build(HttpStatus.BAD_REQUEST, "La solicitud tiene parámetros inválidos", request, violations);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException ex,
+                                                           HttpServletRequest request) {
+        List<ApiError.FieldViolation> violations =
+                List.of(new ApiError.FieldViolation(ex.getParameterName(), "Es obligatorio"));
         return build(HttpStatus.BAD_REQUEST, "La solicitud tiene parámetros inválidos", request, violations);
     }
 
