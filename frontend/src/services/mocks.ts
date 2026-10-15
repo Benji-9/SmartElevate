@@ -5,6 +5,7 @@
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
 import type {
+  AdminElevator,
   AdminUser,
   AdminUserPage,
   Building,
@@ -15,6 +16,7 @@ import type {
   CreateKioskRequest,
   Departure,
   Elevator,
+  ElevatorServiceResult,
   Kiosk,
   KioskList,
   LoginRequest,
@@ -95,6 +97,8 @@ const ELEVATORS: Elevator[] = [
   ...['33', '34'].map((code) => elevator(code, 'IND2', [...range(-4, 0), ...range(2, 11)])),
 ];
 let kiosks: Kiosk[] = [];
+// Ascensores fuera de servicio (#134): no se ofrecen ni figuran en la lista pública.
+const outOfService = new Set<string>();
 // Cola de docentes y prioritarios del panel admin (#140). Ids UUID y mensajes de error como los
 // del backend (PriorityService): 404 PriorityNotFoundException, 409 InvalidPriorityOperation.
 let pendingTeachers: PendingTeacher[] = [
@@ -291,6 +295,35 @@ function placeOf(elevatorCode: string) {
   };
 }
 
+/** `GET /admin/elevators`: todos, con las reservas activas que se cancelarían. */
+function adminElevators(): AdminElevator[] {
+  return ELEVATORS.map((e) => ({
+    code: e.code,
+    coreName: e.coreName,
+    building: e.building,
+    usage: e.usage,
+    active: !outOfService.has(e.code),
+    upcomingReservations: reservations.filter((r) => r.status === 'ACTIVE' && r.elevator === e.code)
+      .length,
+  }));
+}
+
+/** Marcar / reactivar: lo mismo que el backend (idempotente, cancela sin falta y libera el lugar). */
+function setService(code: string, active: boolean): ElevatorServiceResult {
+  if (!ELEVATORS.some((e) => e.code === code)) throw new ApiError(404, 'Ascensor inexistente');
+  let cancelled = 0;
+  if (!active && !outOfService.has(code)) {
+    reservations = reservations.map((r) => {
+      if (r.status !== 'ACTIVE' || r.elevator !== code) return r;
+      cancelled += 1;
+      return { ...r, status: 'CANCELLED', seatNumber: null };
+    });
+  }
+  if (active) outOfService.delete(code);
+  else outOfService.add(code);
+  return { code, active, cancelledReservations: cancelled };
+}
+
 /** El servidor calcula si cancelar ya cuenta como falta; acá se recalcula en cada lectura. */
 const view = (r: Reservation): Reservation => ({
   ...r,
@@ -337,6 +370,7 @@ function bookable(user: User, building: string | null, elevatorCode: string | nu
     .filter((at) => at <= Date.now() + WINDOW_MINUTES * 60_000);
   return times.flatMap((at) =>
     ELEVATORS.flatMap((e, index) =>
+      !outOfService.has(e.code) &&
       canUse(e, user) &&
       (!building || e.building === building.toUpperCase()) &&
       (!elevatorCode || e.code === elevatorCode)
@@ -630,7 +664,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ],
   ['GET', /^\/users\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
-  ['GET', /^\/elevators$/, () => ELEVATORS],
+  ['GET', /^\/elevators$/, () => ELEVATORS.filter((e) => !outOfService.has(e.code))],
+  ['GET', /^\/admin\/elevators$/, () => adminElevators()],
+  ['POST', /^\/admin\/elevators\/([^/]+)\/out-of-service$/, (_, [code]) => setService(code, false)],
+  ['POST', /^\/admin\/elevators\/([^/]+)\/in-service$/, (_, [code]) => setService(code, true)],
   [
     'GET',
     /^\/departures$/,

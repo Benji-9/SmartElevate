@@ -8,6 +8,7 @@ import com.smartelevate.elevator.repository.ElevatorRepository;
 import com.smartelevate.priority.model.PriorityCategory;
 import com.smartelevate.priority.model.PriorityStatus;
 import com.smartelevate.priority.model.UserPriority;
+import com.smartelevate.priority.repository.PriorityAuditRepository;
 import com.smartelevate.priority.repository.UserPriorityRepository;
 import com.smartelevate.turn.dto.ReservationResponse;
 import com.smartelevate.turn.dto.ReserveRequest;
@@ -71,9 +72,18 @@ abstract class ReservationConcurrencyTestBase {
     private UserRepository users;
     @Autowired
     private UserPriorityRepository priorities;
+    @Autowired
+    private ElevatorOutageService outage;
+    @Autowired
+    private PriorityAuditRepository audit;
 
     @AfterEach
     void clean() {
+        audit.deleteAll();
+        elevators.findAll().forEach(e -> {
+            e.setActive(true);
+            elevators.save(e);
+        });
         reservations.deleteAll();
         departures.deleteAll();
         priorities.deleteAll();
@@ -224,6 +234,33 @@ abstract class ReservationConcurrencyTestBase {
         assertThat(winners).isLessThanOrEqualTo(1);
         assertThat(reservations.activeSeats(departure.getId())).doesNotHaveDuplicates()
                 .hasSize(CAPACITY - 1 + (int) winners);
+    }
+
+    @Test
+    void reservesRacingWithAnOutageNeverLeaveAnActiveReservationOnTheDeadElevator() throws Exception {
+        // Una salida por usuario (1 reserva activa por usuario) en el ascensor que se marca, más una en el 34.
+        List<UUID> people = newUsers(8);
+        List<Departure> onDead = IntStream.range(0, people.size()).mapToObj(i -> departure(4 + i)).toList();
+        List<Callable<Object>> tasks = new ArrayList<>();
+        for (int i = 0; i < people.size(); i++) {
+            UUID id = people.get(i);
+            long departureId = onDead.get(i).getId();
+            tasks.add(() -> attempt(id, departureId));
+        }
+        tasks.add(() -> outage.markOutOfService(people.getFirst(), "33", "carrera"));
+
+        List<Object> results = runAtOnce(tasks);
+
+        // Cada reserva o entró antes y la cancelaron, o entró después y la rechazaron: ninguna queda viva.
+        assertThat(onDead).allSatisfy(d -> assertThat(reservations.activeSeats(d.getId())).isEmpty());
+        long entered = results.stream().filter(r -> r instanceof Integer).count();
+        assertThat(reservations.findAll().stream().filter(r -> r.getStatus() == ReservationStatus.CANCELLED).count())
+                .isEqualTo(entered);
+        assertThat(results.stream().filter(r -> r instanceof ReservationRejectedException))
+                .hasSize(people.size() - (int) entered)
+                .allSatisfy(r -> assertThat(((ReservationRejectedException) r).getReason())
+                        .isEqualTo(ReservationRejectedException.Reason.ELEVATOR_NOT_BOOKABLE));
+        assertThat(elevators.findById("33").orElseThrow().isActive()).isFalse();
     }
 
     private Object attempt(UUID userId, long departureId) {

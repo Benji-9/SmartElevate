@@ -48,6 +48,10 @@ export type AdminUserPage = Schemas['AdminUserPage'];
 /** Ascensor con sus pisos (`GET /elevators`). */
 export type Elevator = Schemas['ElevatorResponse'];
 
+/** Ascensores del panel admin (#134): todos, con las reservas que se cancelarían al marcarlos fuera de servicio. */
+export type AdminElevator = Schemas['AdminElevatorResponse'];
+export type ElevatorServiceResult = Schemas['ElevatorServiceResponse'];
+
 /** Kioscos del QR (#229, ADR 0020). La lista nunca trae secretos. */
 export type KioskList = Schemas['KioskListResponse'];
 export type Kiosk = Schemas['KioskResponse'];

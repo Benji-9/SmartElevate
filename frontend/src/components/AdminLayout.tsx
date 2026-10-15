@@ -33,6 +33,11 @@ export function AdminLayout() {
                   Kioscos
                 </NavLink>
               </li>
+              <li>
+                <NavLink to="/admin/ascensores" className="admin__link">
+                  Ascensores
+                </NavLink>
+              </li>
               {/* El flag lo manda el servidor (APP_KIOSK_SIMULATOR_ENABLED); sin respuesta, no va. */}
               {kiosks.data?.simulatorEnabled && (
                 <li>

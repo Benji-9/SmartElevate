@@ -15,6 +15,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Ascensor, identificado por su código de cartel (01, 33...). Sirve su propia lista de pisos, no un rango. */
 @Entity
@@ -34,6 +35,7 @@ public class Elevator {
     @Column(name = "usage_type")
     private ElevatorUsage usage;
 
+    @Setter
     private boolean active;
 
     // Eager: son pocos pisos y así se pueden leer fuera de una transacción.
