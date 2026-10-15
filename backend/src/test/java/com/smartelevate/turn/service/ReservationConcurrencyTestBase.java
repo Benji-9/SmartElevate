@@ -196,8 +196,9 @@ abstract class ReservationConcurrencyTestBase {
         service.cancel(owner, third.id());
         service.cancel(owner, third.id());
 
+        // A 3 min de la salida ya pasó el plazo sin falta (10 min, V18): es tardía, pero libera el lugar igual.
         assertThat(service.mine(owner)).singleElement().satisfies(r -> {
-            assertThat(r.status()).isEqualTo(ReservationStatus.CANCELLED);
+            assertThat(r.status()).isEqualTo(ReservationStatus.CANCELLED_LATE);
             assertThat(r.seatNumber()).isNull();
         });
         assertThat(attempt(late, departure.getId())).isEqualTo(third.seatNumber());

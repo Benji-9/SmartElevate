@@ -1,10 +1,12 @@
 package com.smartelevate.common.config;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
@@ -102,10 +104,10 @@ public class ConfigService {
         return get("priority_aging", Duration::parse);
     }
 
-    /** A definir: vacío = la prioridad de docente aprobada no vence. */
-    public Optional<Duration> priorityTeacherValidity() {
-        return isDefined("priority_teacher_validity")
-                ? Optional.of(get("priority_teacher_validity", Duration::parse)) : Optional.empty();
+    /** Cierres de cuatrimestre, fechas del campus en orden: la prioridad de docente vence al fin del vigente. */
+    public List<LocalDate> semesterEndDates() {
+        return get("semester_end_dates", raw -> Arrays.stream(raw.split(",")).map(String::trim)
+                .map(LocalDate::parse).toList());
     }
 
     public Duration boardingTime() {
@@ -152,12 +154,13 @@ public class ConfigService {
         check(boardingTime().isPositive(), "boarding_time tiene que ser mayor a 0");
         check(timePerFloor().isPositive(), "time_per_floor tiene que ser mayor a 0");
         check(lowFloorsThreshold() >= 0, "low_floors_threshold no puede ser negativo");
+        List<LocalDate> semesterEnds = semesterEndDates();
+        check(semesterEnds.equals(semesterEnds.stream().distinct().sorted().toList()),
+                "semester_end_dates tiene que estar en orden y sin fechas repetidas");
         // Los parámetros a definir solo tienen que existir; si ya tienen valor, se valida.
         if (isDefined("cancellation_wait_tolerance")) {
             check(cancellationWaitTolerance().isPositive(), "cancellation_wait_tolerance tiene que ser mayor a 0");
         }
-        check(priorityTeacherValidity().map(Duration::isPositive).orElse(true),
-                "priority_teacher_validity tiene que ser mayor a 0");
         if (isDefined("priority_aging")) {
             check(priorityAging().isPositive(), "priority_aging tiene que ser mayor a 0");
         }

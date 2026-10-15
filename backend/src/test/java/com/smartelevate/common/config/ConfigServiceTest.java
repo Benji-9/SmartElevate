@@ -26,7 +26,7 @@ class ConfigServiceTest {
         v.put("booking_closes_before", "PT2M");
         v.put("max_active_bookings_per_user", "1");
         v.put("max_daily_bookings_per_user", "8");
-        v.put("cancellation_deadline_before", "PT1M");
+        v.put("cancellation_deadline_before", "PT10M");
         v.put("cancellation_wait_tolerance", null);
         v.put("check_in_opens_before", "PT1M");
         v.put("check_in_closes_after", "PT2M");
@@ -37,7 +37,7 @@ class ConfigServiceTest {
         v.put("priority_seats_per_departure", "2");
         v.put("priority_seats_release_before", "PT3M");
         v.put("priority_aging", null);
-        v.put("priority_teacher_validity", null);
+        v.put("semester_end_dates", "2026-07-31, 2026-12-19");
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");
         v.put("low_floors_threshold", "4");
@@ -94,6 +94,25 @@ class ConfigServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Configuración inválida")
                 .hasMessageContaining(key);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"semester_end_dates; 2026-12-19,2026-07-31",
+            "semester_end_dates; 2026-12-19,2026-12-19"})
+    void semesterEndsMustBeOrderedAndDistinct(String key, String value) {
+        assertThatThrownBy(() -> load(with(key, value)))
+                .hasMessageContaining("Configuración inválida")
+                .hasMessageContaining(key);
+    }
+
+    @Test
+    void semesterEndsAreIsoDatesAndRequired() {
+        assertThat(load(valid()).semesterEndDates())
+                .containsExactly(java.time.LocalDate.of(2026, 7, 31), java.time.LocalDate.of(2026, 12, 19));
+        assertThatThrownBy(() -> load(with("semester_end_dates", "19/12/2026")))
+                .hasMessageContaining("semester_end_dates").hasMessageContaining("valor inválido");
+        assertThatThrownBy(() -> load(with("semester_end_dates", null)))
+                .hasMessageContaining("'semester_end_dates' todavía no está definido");
     }
 
     @Test

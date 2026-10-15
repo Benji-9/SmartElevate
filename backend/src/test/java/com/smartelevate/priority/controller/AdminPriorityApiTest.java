@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.model.PriorityStatus;
+import com.smartelevate.priority.model.UserPriority;
 import com.smartelevate.priority.repository.PriorityAuditRepository;
 import com.smartelevate.priority.repository.UserPriorityRepository;
 import com.smartelevate.priority.service.PriorityService;
@@ -16,14 +18,20 @@ import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.Role;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.UserRepository;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -38,7 +46,20 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
+@Import(AdminPriorityApiTest.FixedClockConfig.class)
 class AdminPriorityApiTest {
+
+    // Martes 2026-10-13 12:00 en Buenos Aires: en el cuatrimestre que cierra el 2026-12-31 (seed de V18).
+    private static final Instant NOW = Instant.parse("2026-10-13T15:00:00Z");
+
+    @TestConfiguration
+    static class FixedClockConfig {
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(NOW, ZoneOffset.UTC);
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -137,6 +158,9 @@ class AdminPriorityApiTest {
                 .andExpect(status().isNoContent());
 
         assertThat(priorityService.currentPriority(teacher.getId())).isEqualTo(PriorityCategory.TEACHER);
+        // Vence al fin del cierre del cuatrimestre (31/12 en Buenos Aires = 01/01 03:00 UTC).
+        assertThat(priorities.findByUserIdAndCategory(teacher.getId(), PriorityCategory.TEACHER).orElseThrow()
+                .getExpiresAt()).isEqualTo(Instant.parse("2027-01-01T03:00:00Z"));
         mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
                 .andExpect(jsonPath("$.length()").value(0));
         mockMvc.perform(as(admin, get("/api/admin/priority-users")))
@@ -155,6 +179,22 @@ class AdminPriorityApiTest {
                 .extracting("action", "actorId")
                 .containsExactly(org.assertj.core.api.Assertions.tuple("TEACHER_APPROVED", admin.getId()),
                         org.assertj.core.api.Assertions.tuple("PRIORITY_REVOKED", admin.getId()));
+    }
+
+    @Test
+    void anExpiredTeacherReturnsToTheQueueAndCanBeRenewed() throws Exception {
+        UserPriority expired = new UserPriority(teacher.getId(), PriorityCategory.TEACHER);
+        expired.decide(PriorityStatus.APPROVED, NOW, NOW.minusSeconds(3600), admin.getId());
+        priorities.saveAndFlush(expired);
+
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(teacher.getId().toString()));
+        mockMvc.perform(as(admin, post("/api/admin/teachers/" + teacher.getId() + "/approve")))
+                .andExpect(status().isNoContent());
+
+        assertThat(priorityService.currentPriority(teacher.getId())).isEqualTo(PriorityCategory.TEACHER);
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending"))).andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

@@ -34,7 +34,7 @@ class ConfigServiceSeedTest {
         assertThat(config.bookingClosesBefore()).isEqualTo(Duration.ofMinutes(2));
         assertThat(config.maxActiveBookingsPerUser()).isEqualTo(1);
         assertThat(config.maxDailyBookingsPerUser()).isEqualTo(8);
-        assertThat(config.cancellationDeadlineBefore()).isEqualTo(Duration.ofMinutes(1));
+        assertThat(config.cancellationDeadlineBefore()).isEqualTo(Duration.ofMinutes(10));
         assertThat(config.checkInOpensBefore()).isEqualTo(Duration.ofMinutes(1));
         assertThat(config.checkInClosesAfter()).isEqualTo(Duration.ofMinutes(2));
         assertThat(config.noShowAfter()).isEqualTo(Duration.ofSeconds(60));
@@ -46,6 +46,13 @@ class ConfigServiceSeedTest {
         assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
+        assertThat(config.semesterEndDates()).isNotEmpty();
+    }
+
+    @Test
+    void teacherValidityWasReplacedBySemesterEnds() {
+        // V18 (#218): la prioridad de docente vence al cierre del cuatrimestre, no tras una duración.
+        assertThat(repository.findById("priority_teacher_validity")).isEmpty();
     }
 
     @Test
