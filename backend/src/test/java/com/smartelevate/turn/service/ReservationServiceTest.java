@@ -64,6 +64,8 @@ class ReservationServiceTest {
     private ConfigService config;
     @Mock
     private PriorityService priorities;
+    @Mock
+    private NoShowService noShows;
 
     private ReservationService service;
     private Elevator elevator;
@@ -71,7 +73,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         CampusTime time = new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, time, priorities);
+        service = new ReservationService(reservations, departures, users, config, time, priorities, noShows);
         // Ascensor 33 de Independencia: -4 a 11 sin el 1.
         Building building = new Building("INDEPENDENCIA", "Independencia", -4, 11);
         Core core = new Core("IND2", building, "Independencia 2");
@@ -180,12 +182,37 @@ class ReservationServiceTest {
         }
     }
 
+    // --- suspensión por faltas (#231) ---
+
+    @Test
+    void aSuspendedUserCannotReserveUntilTheSuspensionEnds() {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        // 2026-10-14 12:00 en Buenos Aires.
+        given(noShows.suspendedUntil(USER, NOW)).willReturn(Optional.of(Instant.parse("2026-10-14T15:00:00Z")));
+
+        assertThatThrownBy(() -> reserve(0, 8))
+                .isInstanceOfSatisfying(ReservationRejectedException.class, e -> {
+                    assertThat(e.getReason()).isEqualTo(ReservationRejectedException.Reason.NO_SHOW_SUSPENDED);
+                    assertThat(e.getMessage()).contains("14/10 a las 12:00");
+                });
+        verify(reservations, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void aPriorityUserIsNeverSuspended() {
+        departureAt(NOW.plus(Duration.ofMinutes(10)));
+        given(priorities.currentPriority(USER)).willReturn(PriorityCategory.REDUCED_MOBILITY);
+
+        assertThatCode(() -> reserve(0, 8)).doesNotThrowAnyException();
+        verify(noShows, never()).suspendedUntil(any(), any());
+    }
+
     @Test
     void aDepartureOnAnotherDayIsOutsideTheWindowEvenIfInsideTheOffsets() {
         // 23:50 en Buenos Aires: faltan 20 min para la salida de las 00:10 del día siguiente.
         CampusTime late = new CampusTime(Clock.fixed(Instant.parse("2026-10-14T02:50:00Z"), ZoneOffset.UTC),
                 ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, late, priorities);
+        service = new ReservationService(reservations, departures, users, config, late, priorities, noShows);
         departureAt(Instant.parse("2026-10-14T03:10:00Z"));
 
         assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.OUTSIDE_BOOKING_WINDOW);

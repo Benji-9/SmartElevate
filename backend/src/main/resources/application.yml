@@ -59,6 +59,12 @@ app:
     # Tope de pedidos de token por kiosco (se espera ~1 cada 30 s): 10 por minuto deja margen para recargas.
     rate-limit-max-requests: ${APP_KIOSK_RATE_LIMIT_MAX_REQUESTS:10}
     rate-limit-window: ${APP_KIOSK_RATE_LIMIT_WINDOW:PT1M}
+  scheduling:
+    # Jobs @Scheduled (no-shows). Los tests lo apagan (src/test/resources/config/application.properties).
+    enabled: ${APP_SCHEDULING_ENABLED:true}
+  no-show-job:
+    # Cada cuánto se marcan los no-shows (#231). Técnico: el umbral de negocio es no_show_after en app_config.
+    interval: ${APP_NO_SHOW_JOB_INTERVAL:PT15S}
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app". Obligatoria en
     # prod; el default localhost vive solo en application-dev.yml.

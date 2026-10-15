@@ -6,14 +6,18 @@
 // halls y ocupación siguen siendo de ejemplo.
 import type {
   Building,
+  CheckIn,
+  CheckInRequest,
   CreatedKiosk,
   CreateKioskRequest,
   Elevator,
   Kiosk,
   KioskList,
   LoginRequest,
+  NoShowStatus,
   PendingTeacher,
   PriorityUser,
+  QrToken,
   RefreshRequest,
   RegisterRequest,
   ResetPasswordRequest,
@@ -25,13 +29,10 @@ import type {
   AdminKpis,
   AdminPeriod,
   AdminShift,
-  CheckInRequest,
-  CheckInResult,
   CongestionSnapshot,
   Core,
   Departure,
   FloorOption,
-  NoShowStatus,
   NotificationPreferences,
   PriorityRequest,
   PriorityUploadRules,
@@ -40,7 +41,6 @@ import type {
   Trip,
   TripPage,
   TripResult,
-  WaitFeedbackRequest,
 } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
@@ -332,9 +332,11 @@ const withCancelRule = (r: Reservation): Reservation => ({
 
 // Estado en memoria: se reinicia al recargar la página.
 let activeReservation: Reservation | null = newReservation('r-1', departuresFor('L2')[3], 0, 7);
-/** Turno del último check-in, para "ya escaneado" y la encuesta de espera. */
+/** Turno del último check-in, para "ya escaneado". */
 let lastCheckedIn: string | null = null;
-const answeredFeedback = new Set<string>();
+/** El turno de los mocks no dice su ascensor (Reservation sigue en pending.ts): es el 33. */
+const RESERVED_ELEVATOR = '33';
+let checkInCount = 0;
 let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
   departureReminder: false,
@@ -370,20 +372,33 @@ const trips: Trip[] = Array.from({ length: 24 }, (_, i) => {
 });
 
 /**
- * Códigos de prueba del check-in: "VENCIDO" es inválido, "OTRO" da otro ascensor y
- * "TARDE" fuera de hora; cualquier otro código no vacío sale cumplido.
+ * Tokens de prueba del check-in: los del kiosco simulado (`mock-qr-<ascensor>-…`) traen su
+ * ascensor; "VENCIDO" es inválido, "OTRO" da el ascensor 34 y "TARDE" fuera de hora. Cualquier
+ * otro token no vacío (p. ej. el "DEMO" del modo demo) es del ascensor del turno.
  */
-function checkInOutcome(code: string): CheckInResult['outcome'] {
-  const normalized = code.trim().toUpperCase();
+function scanned(token: string) {
+  const normalized = token.trim().toUpperCase();
   if (!normalized || normalized.includes('VENCIDO')) {
-    throw new ApiError(400, 'El código es inválido o ya venció. Escaneá el QR de nuevo.');
+    throw new ApiError(
+      400,
+      'El QR no es válido o ya venció. Escaneá el que está en pantalla.',
+      [],
+      undefined,
+      'INVALID_QR_TOKEN',
+    );
   }
-  if (normalized.includes('OTRO')) return 'OTHER_ELEVATOR';
-  if (normalized.includes('TARDE')) return 'LATE';
-  return 'ON_TIME';
+  const elevator =
+    /^mock-qr-([^-]+)-/.exec(token)?.[1] ??
+    (normalized.includes('OTRO') ? '34' : RESERVED_ELEVATOR);
+  return { elevator, late: normalized.includes('TARDE') };
 }
 
-type Handler = (body: unknown, params: string[], query: URLSearchParams) => unknown;
+type Handler = (
+  body: unknown,
+  params: string[],
+  query: URLSearchParams,
+  headers: Headers,
+) => unknown;
 
 const routes: [method: string, path: RegExp, handler: Handler][] = [
   [
@@ -593,42 +608,38 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'POST',
     /^\/check-ins$/,
     (body) => {
-      const { code } = body as CheckInRequest;
+      const { elevator, late } = scanned((body as CheckInRequest).token);
       if (!activeReservation) {
-        throw new ApiError(
-          409,
-          lastCheckedIn
-            ? 'Ya registraste el check-in de este turno.'
-            : 'No tenés un turno activo para hacer check-in.',
-        );
+        throw lastCheckedIn
+          ? new ApiError(
+              409,
+              'Ya registraste el check-in de este turno.',
+              [],
+              undefined,
+              'ALREADY_CHECKED_IN',
+            )
+          : new ApiError(
+              409,
+              'No tenés un turno para hacer check-in.',
+              [],
+              undefined,
+              'NO_ACTIVE_RESERVATION',
+            );
       }
-      const outcome = checkInOutcome(code);
-      const { id, core, departure } = activeReservation;
-      const result: CheckInResult = {
-        reservationId: id,
+      const outcome = late ? 'LATE' : elevator === RESERVED_ELEVATOR ? 'ON_TIME' : 'OTHER_ELEVATOR';
+      const result: CheckIn = {
+        reservationId: ++checkInCount,
         outcome,
+        reservationStatus: late ? 'NO_SHOW' : 'USED',
+        elevator,
+        reservedElevator: RESERVED_ELEVATOR,
+        departureAt: activeReservation.departure.departsAt,
         checkedInAt: new Date().toISOString(),
-        waitDeltaSeconds: outcome === 'LATE' ? 95 : 45,
-        elevatorName: outcome === 'OTHER_ELEVATOR' ? 'Ascensor 3' : 'Ascensor 1',
-        coreName: core.name,
-        departsAt: departure.departsAt,
-        durationMinutes: departure.durationMinutes,
+        source: 'SIMULATED',
       };
+      lastCheckedIn = activeReservation.id;
       activeReservation = null;
-      lastCheckedIn = id;
       return result;
-    },
-  ],
-  [
-    'POST',
-    /^\/check-ins\/([^/]+)\/wait-feedback$/,
-    (body, [reservationId]) => {
-      if (reservationId !== lastCheckedIn) throw new ApiError(404, 'No encontramos ese check-in');
-      if (answeredFeedback.has(reservationId)) {
-        throw new ApiError(409, 'Ya respondiste la encuesta de este viaje.');
-      }
-      if (!(body as WaitFeedbackRequest).range) throw new ApiError(400, 'Elegí un rango');
-      answeredFeedback.add(reservationId);
     },
   ],
   ['GET', /^\/priority-requests\/me$/, () => priorityRequest],
@@ -710,7 +721,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         throw new ApiError(404, 'El ascensor no existe');
       }
       const kiosk = { id: crypto.randomUUID(), elevatorId, simulated };
-      const created = { ...kiosk, createdAt: new Date().toISOString(), secret: `mock-${kiosk.id}` };
+      const created = {
+        ...kiosk,
+        createdAt: new Date().toISOString(),
+        secret: `mock-${elevatorId}-${kiosk.id}`,
+      };
       kiosks = [...kiosks, { ...kiosk, createdAt: created.createdAt, lastSeenAt: null }];
       return created satisfies CreatedKiosk;
     },
@@ -724,13 +739,28 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       return undefined;
     },
   ],
-  // Los mocks no ven headers: cualquier credencial sirve. Ciclos de 30 s alineados al reloj.
+  // El ascensor sale de la credencial: sirve cualquier `mock-<ascensor>-…` (como las del alta).
+  // Ciclos de 30 s alineados al reloj.
   [
     'GET',
     /^\/kiosks\/me\/qr-token$/,
-    () => {
+    (_body, _params, _query, headers) => {
+      const elevatorId = /^Bearer mock-([^-]+)-/.exec(headers.get('Authorization') ?? '')?.[1];
+      if (!elevatorId) {
+        throw new ApiError(
+          401,
+          'Credencial de kiosco inválida',
+          [],
+          undefined,
+          'KIOSK_UNAUTHORIZED',
+        );
+      }
       const expiresAt = Math.floor(Date.now() / QR_TTL_MS + 1) * QR_TTL_MS;
-      return { token: `mock-qr-${expiresAt}`, expiresAt: new Date(expiresAt).toISOString() };
+      return {
+        token: `mock-qr-${elevatorId}-${expiresAt}`,
+        expiresAt: new Date(expiresAt).toISOString(),
+        elevatorId,
+      } satisfies QrToken;
     },
   ],
   ['GET', /^\/admin\/priority-users$/, () => priorityUsers],
@@ -809,6 +839,7 @@ export async function mockRequest(
   path: string,
   body?: BodyInit | null,
   latencyMs = 300 + Math.random() * 500,
+  headers?: HeadersInit,
 ): Promise<{ data: unknown } | undefined> {
   const [pathname, search] = path.split('?');
   for (const [routeMethod, pattern, handler] of routes) {
@@ -818,7 +849,7 @@ export async function mockRequest(
     // JSON como string; FormData (subida de archivos) pasa tal cual.
     const parsed: unknown = typeof body === 'string' ? JSON.parse(body) : (body ?? undefined);
     const params = match.slice(1).map(decodeURIComponent);
-    return { data: handler(parsed, params, new URLSearchParams(search)) };
+    return { data: handler(parsed, params, new URLSearchParams(search), new Headers(headers)) };
   }
   return undefined;
 }

@@ -39,5 +39,11 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 
 - *Cumplida* (`ON_TIME`) y *otro ascensor* (`OTHER_ELEVATOR`): la reserva pasa a usada (`USED`). Hasta +60 s inclusive cuenta como a tiempo.
 - *Fuera de hora* (`LATE`): queda el check-in y la reserva pasa a no-show (`NO_SHOW`), la haya marcado ya el job de no-shows ([#231](https://github.com/Benji-9/SmartElevate/issues/231)) o no. Si además fue en otro ascensor, gana `LATE`; el ascensor escaneado queda guardado igual.
-- Rechazos con `code`: `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW`, `ALREADY_CHECKED_IN`.
+- Rechazos con `code`: `INVALID_QR_TOKEN` (400), `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).
 - `USED` y `NO_SHOW` conservan el lugar de la reserva; solo cancelar lo libera.
+- `GET /api/kiosks/me/qr-token` devuelve también el `elevatorId` de la credencial: si no coincide con el ascensor de la URL del kiosco, el kiosco avisa y no muestra el QR ([#238](https://github.com/Benji-9/SmartElevate/issues/238)).
+
+## Limitaciones del MVP
+
+- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)).
+- **Kiosco caído:** si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in mientras dure la caída.

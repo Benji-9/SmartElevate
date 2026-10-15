@@ -58,7 +58,6 @@ export function App() {
               </Route>
               <Route element={<ScreenLayout bleed topBar />}>
                 <Route path="check-in" element={<CheckInPage />} />
-                <Route path="check-in/codigo" element={<CheckInPage manual />} />
               </Route>
             </Route>
             <Route element={<RequireSession role="ADMIN" />}>

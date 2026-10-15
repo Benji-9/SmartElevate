@@ -18,7 +18,11 @@ function renderKiosk(reply?: (n: number) => Reply | undefined) {
       n += 1;
       return (
         reply?.(n) ?? {
-          body: { token: `token-${n}`, expiresAt: new Date(Date.now() + 30_000).toISOString() },
+          body: {
+            token: `token-${n}`,
+            expiresAt: new Date(Date.now() + 30_000).toISOString(),
+            elevatorId: '33',
+          },
         }
       );
     },
@@ -86,12 +90,41 @@ describe('KioskPage', () => {
     // El reloj de la tablet va 20 s atrasado: al token le quedan 10 s, no 30.
     const { qrCalls } = renderKiosk(() => ({
       headers: { Date: new Date(Date.now() + 20_000).toUTCString() },
-      body: { token: 'token', expiresAt: new Date(Date.now() + 30_000).toISOString() },
+      body: {
+        token: 'token',
+        expiresAt: new Date(Date.now() + 30_000).toISOString(),
+        elevatorId: '33',
+      },
     }));
 
     await qrPath();
     await advance(10_000);
     expect(qrCalls()).toHaveLength(2);
+  });
+
+  it('con una credencial de otro ascensor avisa, no muestra el QR y deja de pedir', async () => {
+    localStorage.setItem(KEY, 'del-34');
+    const { qrCalls } = renderKiosk(() => ({
+      body: {
+        token: 'token',
+        expiresAt: new Date(Date.now() + 30_000).toISOString(),
+        elevatorId: '34',
+      },
+    }));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Esta credencial es de otro ascensor');
+    expect(alert).toHaveTextContent(
+      'La credencial es del ascensor 34 y esta pantalla es del ascensor 33',
+    );
+    expect(screen.queryByRole('img', { name: /Código QR/ })).not.toBeInTheDocument();
+    await advance(5 * 60_000);
+    expect(qrCalls()).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar credencial' }));
+    expect(screen.getByLabelText('Credencial del kiosco')).toBeInTheDocument();
+    expect(localStorage.getItem(KEY)).toBeNull();
   });
 
   it('con la credencial revocada (401) avisa, deja de pedir y permite borrarla', async () => {
