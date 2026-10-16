@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
@@ -50,17 +51,22 @@ class FlywayV21MigrationTest {
         // Destino ascensor: vale solo; ninguno o dos destinos no.
         jdbc.update("INSERT INTO priority_audit (id, actor_id, target_elevator_code, action, created_at)"
                 + " VALUES (?, ?, '33', 'ELEVATOR_OUT_OF_SERVICE', CURRENT_TIMESTAMP)", UUID.randomUUID(), admin);
-        assertThatThrownBy(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, action, created_at)"
-                + " VALUES (?, ?, 'ROLE_CHANGED', CURRENT_TIMESTAMP)", UUID.randomUUID(), admin))
-                .as("cero destinos").isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, target_user_id,"
+        rejected(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, action, created_at)"
+                + " VALUES (?, ?, 'ROLE_CHANGED', CURRENT_TIMESTAMP)", UUID.randomUUID(), admin), "cero destinos");
+        rejected(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, target_user_id, target_kiosk_id,"
+                + " action, created_at) VALUES (?, ?, ?, ?, 'ROLE_CHANGED', CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), admin, target, kiosk), "usuario y kiosco");
+        rejected(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, target_user_id,"
                 + " target_elevator_code, action, created_at) VALUES (?, ?, ?, '33', 'ROLE_CHANGED',"
-                + " CURRENT_TIMESTAMP)", UUID.randomUUID(), admin, target))
-                .as("usuario y ascensor").isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, target_kiosk_id,"
+                + " CURRENT_TIMESTAMP)", UUID.randomUUID(), admin, target), "usuario y ascensor");
+        rejected(() -> jdbc.update("INSERT INTO priority_audit (id, actor_id, target_kiosk_id,"
                 + " target_elevator_code, action, created_at) VALUES (?, ?, ?, '33', 'KIOSK_CREATED',"
-                + " CURRENT_TIMESTAMP)", UUID.randomUUID(), admin, kiosk))
-                .as("kiosco y ascensor").isInstanceOf(Exception.class);
+                + " CURRENT_TIMESTAMP)", UUID.randomUUID(), admin, kiosk), "kiosco y ascensor");
         ds.destroy();
+    }
+
+    private static void rejected(org.assertj.core.api.ThrowableAssert.ThrowingCallable insert, String why) {
+        assertThatThrownBy(insert).as(why).isInstanceOf(DataIntegrityViolationException.class)
+                .satisfies(e -> assertThat(e.getMessage().toLowerCase()).contains("ck_priority_audit_target"));
     }
 }
