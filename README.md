@@ -93,10 +93,10 @@ En producción las carga el equipo en Render; la checklist completa (quién la d
 | `PORT` | `8080` | Puerto HTTP |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` solo en dev | Orígenes permitidos, separados por coma y **exactos**: sin barra final y en minúsculas (`https://smart-elevate.vercel.app`). **Obligatorio en `prod`** (sin default: la app no arranca sin él) |
 | `APP_TIME_ZONE` | `America/Argentina/Buenos_Aires` | Zona del campus para franjas y horario. No depende de la zona del servidor (Render corre en UTC) |
-| `JWT_SECRET` | — | Secreto de firma de los access tokens (HS256), mínimo 32 caracteres. **Obligatorio en `prod`** (la app no arranca sin él); en dev, si falta, se usa una clave efímera. Generalo con `openssl rand -base64 48`. Nunca en el repo |
+| `JWT_SECRET` | — | Secreto de firma de los access tokens (HS256), mínimo 32 caracteres. **Obligatorio en `prod`** (la app no arranca sin él); en dev, si falta, se usa una clave efímera. Generalo con `openssl rand -base64 48`: corré el comando y pegá el **resultado**, nunca el comando. Distinto de `APP_KIOSK_QR_SECRET`; un ejemplo, un placeholder o un valor de baja entropía impide el arranque. Nunca en el repo |
 | `JWT_ACCESS_TTL` | `PT15M` | Vida del access token (duración ISO-8601) |
 | `JWT_REFRESH_TTL` | `P7D` | Vida del refresh token (duración ISO-8601); también el `Max-Age` de su cookie |
-| `APP_REFRESH_COOKIE_SECURE` | `true` (`false` en dev) | Atributo `Secure` de la cookie del refresh; solo se apaga para `http://localhost`. **No ponerlo en `false` en prod**: ningún chequeo de arranque lo impide |
+| `APP_REFRESH_COOKIE_SECURE` | `true` (`false` en dev) | Atributo `Secure` de la cookie del refresh; solo se apaga para `http://localhost`. `false` solo vale en dev: en `prod` con `false` la app no arranca |
 | `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | `refresh_token` / `Lax` / `/api/auth` | Nombre y atributos de la cookie del refresh (ADR 0019, 0023) |
 | `APP_LOGIN_THROTTLE_WINDOW` | `PT15M` | Ventana deslizante del límite de logins fallidos (duración ISO-8601) |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` | `10` | Logins fallidos por cuenta dentro de la ventana; entre 1 y 100 (NIST), si no la app no arranca |
@@ -118,7 +118,7 @@ En producción las carga el equipo en Render; la checklist completa (quién la d
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
 | `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
 | `APP_FRONTEND_URL` | `http://localhost:5173` solo en dev | **Obligatorio en `prod`** (sin default: la app no arranca sin él). Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
-| `APP_KIOSK_QR_SECRET` | — | Clave HMAC-SHA256 del token del QR ([ADR 0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)), mínimo 32 caracteres y distinta de `JWT_SECRET`. **Obligatoria en `prod`** (la app no arranca sin ella); en dev, si falta, se usa una efímera. Generala con `openssl rand -base64 48`. Rotarla invalida los QR en pantalla, que se renuevan solos en el ciclo siguiente. Nunca en el repo |
+| `APP_KIOSK_QR_SECRET` | — | Clave HMAC-SHA256 del token del QR ([ADR 0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)), mínimo 32 caracteres y distinta de `JWT_SECRET`. **Obligatoria en `prod`** (la app no arranca sin ella); en dev, si falta, se usa una efímera. Generala con `openssl rand -base64 48` (el **resultado**, nunca el comando) y que no sea un ejemplo ni baja entropía: si lo es, no arranca. Rotarla invalida los QR en pantalla, que se renuevan solos en el ciclo siguiente. Nunca en el repo |
 | `APP_KIOSK_QR_TTL` | `PT30S` | Vida de cada token del QR (segundos enteros); se acepta también el del ciclo anterior. Reemplaza a `qr_rotation` de `app_config` |
 | `APP_KIOSK_SIMULATOR_ENABLED` | `false` | `true` permite crear kioscos simulados (simulador de admin); sus check-ins cuentan como simulados. **Dejarlo apagado en prod** |
 | `APP_KIOSK_RATE_LIMIT_MAX_REQUESTS` | `10` | Pedidos de token por kiosco dentro de la ventana (se espera ~1 cada 30 s); al pasarse, 429 con `Retry-After` |
@@ -132,14 +132,14 @@ En producción las carga el equipo en Render; la checklist completa (quién la d
 **Checklist de `prod`.** Sin estas variables (o con alguna en blanco) la app no arranca:
 
 - [ ] `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
-- [ ] `JWT_SECRET` (mínimo 32 caracteres)
+- [ ] `JWT_SECRET` (mínimo 32 caracteres; generada con `openssl rand -base64 48`, nunca copiada de un ejemplo)
 - [ ] `APP_FRONTEND_URL` (p. ej. `https://smart-elevate.vercel.app`)
 - [ ] `CORS_ALLOWED_ORIGINS` (al menos el dominio del front)
-- [ ] `APP_KIOSK_QR_SECRET` (mínimo 32 caracteres, distinta de `JWT_SECRET`; clave HMAC del QR, #229)
+- [ ] `APP_KIOSK_QR_SECRET` (mínimo 32 caracteres, **distinta** de `JWT_SECRET` y generada, nunca copiada de un ejemplo; clave HMAC del QR, #229)
 
 - [ ] `SPRING_MAIL_HOST` (con el mail activo, el default en `prod`; más `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` y `APP_MAIL_FROM` para que los mails salgan)
 
-La app no arranca sin `SPRING_MAIL_HOST` si el mail está activo; sin las demás `SPRING_MAIL_*` arranca pero los mails fallan. `JWT_SECRET`, `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` y `APP_KIOSK_QR_SECRET` se validan al arrancar en `RequiredProdProperties` (#222). Después de deployar, correr [`scripts/smoke-test.sh`](scripts/smoke-test.sh) ([guía](docs/infraestructura.md#smoke-test-del-deploy)).
+La app no arranca sin `SPRING_MAIL_HOST` si el mail está activo; sin las demás `SPRING_MAIL_*` arranca pero los mails fallan. `JWT_SECRET`, `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` y `APP_KIOSK_QR_SECRET` se validan al arrancar en `RequiredProdProperties` (#222), que además rechaza las dos claves si son iguales, si son un ejemplo/placeholder (p. ej. el texto `openssl rand -base64 48`) o de baja entropía, y `APP_REFRESH_COOKIE_SECURE=false`. Después de deployar, correr [`scripts/smoke-test.sh`](scripts/smoke-test.sh) ([guía](docs/infraestructura.md#smoke-test-del-deploy)).
 
 #### Autenticación y endpoints protegidos
 

@@ -78,6 +78,49 @@ class RequiredProdPropertiesTest {
                 .run(failsOn("cors.allowedOrigins"));
     }
 
+    private static final String GOOD_JWT =
+            "app.security.jwt.secret=Xk3vQ9mT2pLw8RzY5nB7cD1fG4hJ6sA0uE+iO/qWtMyPbNaV3xZ8kCdFgHjLr2S1";
+    private static final String GOOD_QR =
+            "app.kiosk.qr-secret=Zr7Nw2Qm9Lp4Tb6Yc1Vd8Hf3Jg5Ks0Aa+Ue/OiPxMtWyBnRvCzXlDqEhGjFkS2u";
+
+    @Test
+    void prodStartsWithStrongDistinctSecrets() {
+        prod(GOOD_JWT, GOOD_QR, FRONTEND_URL, CORS).run(ctx -> assertThat(ctx).hasNotFailed());
+    }
+
+    @Test
+    void prodFailsWithEqualSecrets() {
+        prod(GOOD_JWT, GOOD_JWT.replace("security.jwt.secret", "kiosk.qr-secret"), FRONTEND_URL, CORS)
+                .run(failsOn("secretsDistinct"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"openssl rand -base64 48", "$(openssl rand -base64 48)", "OPENSSL-RAND-BASE64-48-xxxxxxxxxxxxxxxxxxxx",
+            "change-me-change-me-change-me-change-me", "<pon-aca-un-secreto-largo-de-32-bytes>",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "abcdefghijklmnopqrstuvwxyzabcdefghijkl",
+            "1234512345123451234512345123451234512345"})
+    void prodFailsWithPlaceholderOrLowEntropySecrets(String value) {
+        prod("app.security.jwt.secret=" + value, GOOD_QR, FRONTEND_URL, CORS).run(failsOn("jwtSecretStrong"));
+        prod(GOOD_JWT, "app.kiosk.qr-secret=" + value, FRONTEND_URL, CORS).run(failsOn("kioskQrSecretStrong"));
+    }
+
+    @Test
+    void prodFailsWithShortSecret() {
+        prod("app.security.jwt.secret=Xk3vQ9mT2pLw", GOOD_QR, FRONTEND_URL, CORS).run(failsOn("jwtSecretStrong"));
+    }
+
+    @Test
+    void prodFailsWithInsecureRefreshCookie() {
+        prod(GOOD_JWT, GOOD_QR, FRONTEND_URL, CORS, "app.security.refresh-cookie.secure=false")
+                .run(failsOn("refreshCookie.secure"));
+    }
+
+    @Test
+    void devAllowsInsecureCookieAndWeakSecrets() {
+        runner.withPropertyValues("spring.profiles.active=dev", "app.security.jwt.secret=openssl rand -base64 48",
+                "app.kiosk.qr-secret=openssl rand -base64 48").run(ctx -> assertThat(ctx).hasNotFailed());
+    }
+
     /** Falla por la validación de ese campo (ruta del record, en camelCase), no por otra cosa. */
     private static ContextConsumer<AssertableApplicationContext> failsOn(String property) {
         return ctx -> assertThat(ctx).getFailure()
