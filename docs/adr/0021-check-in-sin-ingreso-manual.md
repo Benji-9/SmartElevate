@@ -1,6 +1,6 @@
 # 0021. Check-in sin ingreso manual del código en el MVP
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-14
 - **Issues:** [#238](https://github.com/Benji-9/SmartElevate/issues/238), parte de [#219](https://github.com/Benji-9/SmartElevate/issues/219). Aclara el [ADR 0016](0016-qr-firmado-con-hmac-y-kiosco-web.md).
 - **Autores:** @Benji-9

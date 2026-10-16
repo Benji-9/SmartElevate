@@ -2,6 +2,26 @@
 // con VITE_USE_MOCKS (ver api.ts); nunca entran al build de producción.
 // Para apagar un endpoint cuando el real esté listo, borrá su ruta de `routes`:
 // lo que no matchea acá sigue de largo al backend.
+//
+// Reglas del servidor que SÍ emulan (docs/reglas/turnos.md y check-in-qr.md): cancelación sin
+// falta hasta 10 min antes (CANCELLED vs CANCELLED_LATE, `cancelFreeUntil`, `cancelCountsAsNoShow`),
+// cancelar después de la salida (DEPARTURE_ALREADY_PASSED / ALREADY_CHECKED_IN), 2 lugares de
+// prioritarios en ascensores comunes liberados 3 min antes, ELEVATOR_NOT_BOOKABLE, tope de 8
+// reservas por día (la cancelación sin falta lo devuelve), suspensión de 24 h tras 3 faltas en
+// 7 días (NO_SHOW_SUSPENDED; prioritarios exentos) y la ventana de check-in (−1 min a +2 min,
+// ON_TIME hasta +60 s) con los códigos de `POST /check-ins`.
+//
+// Lo que NO emulan (el backend sí):
+// - Job de no-show: una reserva ACTIVE nunca pasa sola a NO_SHOW ni deja de ser "activa".
+// - Concurrencia y cupo atómico; la ocupación de otros usuarios es fija y de ejemplo.
+// - Lugares tomados por prioritarios: el cupo reservado se descuenta siempre completo hasta
+//   su liberación (no se compensa con otros prioritarios que ya reservaron).
+// - Salidas que se generan por horario, `sameDay` de la ventana y los parámetros de `app_config`.
+// - Check-in simulado vs. real (`source`) y que las faltas con check-in simulado no cuentan.
+// - Un solo turno activo por usuario se chequea sin distinguir usuarios (hay un estado global).
+// - Tokens de QR: no se firman; los tokens `DEMO`, `TARDE` y `OTRO` saltean la ventana horaria
+//   para poder probar cada resultado sin esperar la hora de salida.
+// - Certificados de prioridad (#122/#123): el backend todavía no los tiene; se valida por tipo.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
 import type {
@@ -46,8 +66,16 @@ const WINDOW_MINUTES = 30;
 const BOOKING_CLOSES_MS = 2 * 60_000;
 /** Pisos bajos (`low_floors_threshold`): sin reserva con destino del 1 a este piso. */
 const LOW_FLOORS_THRESHOLD = 4;
-/** Se puede cancelar sin falta hasta este tiempo antes de la salida (`cancellation_deadline_before` del mock). */
-const CANCEL_DEADLINE_MS = 60_000;
+/** Se puede cancelar sin falta hasta este tiempo antes de la salida (`cancellation_deadline_before`, V18). */
+const CANCEL_DEADLINE_MS = 10 * 60_000;
+/** Los lugares de prioritarios sin usar se liberan a los comunes este tiempo antes de la salida. */
+const PRIORITY_RELEASE_MS = 3 * 60_000;
+/** `max_daily_bookings_per_user`. */
+const MAX_DAILY_BOOKINGS = 8;
+/** Check-in: desde 1 min antes hasta 2 min después; a tiempo hasta +60 s (`no_show_after`). */
+const CHECK_IN_OPENS_MS = 60_000;
+const CHECK_IN_CLOSES_MS = 2 * 60_000;
+const NO_SHOW_AFTER_MS = 60_000;
 /** `cancelFreeUntil` de la reserva: salida − plazo, como lo calcula el backend. */
 const cancelFreeUntil = (departureAt: string) =>
   new Date(Date.parse(departureAt) - CANCEL_DEADLINE_MS).toISOString();
@@ -331,11 +359,13 @@ const view = (r: Reservation): Reservation => ({
     r.status === 'ACTIVE' && Date.parse(r.departureAt) - Date.now() < CANCEL_DEADLINE_MS,
 });
 
+/** Solo cancelar libera el lugar: `USED` y `NO_SHOW` lo conservan (check-in-qr.md). */
+const holdsSeat = (r: Reservation) =>
+  r.status === 'ACTIVE' || r.status === 'USED' || r.status === 'NO_SHOW';
+
 function occupied(departureId: number) {
   const base = OCCUPANCY[(Math.floor(departureId / 100) + (departureId % 100)) % OCCUPANCY.length];
-  const booked = reservations.filter(
-    (r) => r.departureId === departureId && r.status === 'ACTIVE',
-  ).length;
+  const booked = reservations.filter((r) => r.departureId === departureId && holdsSeat(r)).length;
   return Math.min(CAPACITY, base + booked);
 }
 
@@ -345,17 +375,19 @@ const canUse = (e: Elevator, user: User) =>
   (e.usage === 'TEACHERS' && user.priority === 'TEACHER') ||
   (e.usage === 'REDUCED_MOBILITY' && user.priority === 'REDUCED_MOBILITY');
 
-// ponytail: los 2 lugares de prioritarios se descuentan siempre a los comunes; el backend
-// además los libera 3 min antes y cuenta los ya tomados por prioritarios.
+// ponytail: los 2 lugares de prioritarios se descuentan completos a los comunes hasta que se
+// liberan (3 min antes); el backend además descuenta los que ya tomaron otros prioritarios.
 function departureFor(id: number, user: User): Departure {
   const e = ELEVATORS[id % 100];
   const free = CAPACITY - occupied(id);
-  const held = e.usage === 'COMMON' && user.priority === 'NONE' ? PRIORITY_SEATS : 0;
+  const departureAt = Math.floor(id / 100) * STEP_MS;
+  const released = Date.now() >= departureAt - PRIORITY_RELEASE_MS;
+  const held = e.usage === 'COMMON' && user.priority === 'NONE' && !released ? PRIORITY_SEATS : 0;
   return {
     id,
     elevator: e.code,
     building: e.building,
-    departureAt: new Date(Math.floor(id / 100) * STEP_MS).toISOString(),
+    departureAt: new Date(departureAt).toISOString(),
     capacity: CAPACITY,
     remainingSeats: Math.max(0, free - held),
     status: 'SCHEDULED',
@@ -380,6 +412,57 @@ function bookable(user: User, building: string | null, elevatorCode: string | nu
   );
 }
 
+const CAMPUS_TZ = 'America/Argentina/Buenos_Aires';
+const campusDay = (at: number | string) =>
+  new Date(at).toLocaleDateString('en-CA', { timeZone: CAMPUS_TZ });
+const isToday = (at: string) => campusDay(at) === campusDay(Date.now());
+
+/** "dd/MM a las HH:mm" en hora de Buenos Aires, como el mensaje del servidor. */
+function formatSuspensionEnd(at: number) {
+  const part = Object.fromEntries(
+    new Intl.DateTimeFormat('es-AR', {
+      timeZone: CAMPUS_TZ,
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(at)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${part.day}/${part.month} a las ${part.hour}:${part.minute}`;
+}
+
+/**
+ * Fin de la última suspensión (puede ser futuro). Arranca en el pasado, entre dos faltas del
+ * historial de ejemplo: cuentan 2 de 3 y la próxima suspende. Las anteriores no cuentan
+ * ("cero después de la suspensión", turnos.md §5).
+ */
+let suspensionEnd = Date.now() - 3.5 * 86_400_000;
+
+/** Faltas que cuentan para la próxima suspensión (todas las de 7 días si ya está suspendido). */
+function countedFaults() {
+  const windowStart = Date.now() - NO_SHOW_RULE.windowDays * 86_400_000;
+  const since = suspensionEnd > Date.now() ? windowStart : Math.max(windowStart, suspensionEnd);
+  // Falta = NO_SHOW o CANCELLED_LATE, fechada a la hora de salida (turnos.md §5).
+  return history().filter(
+    (t) =>
+      (t.status === 'NO_SHOW' || t.status === 'CANCELLED_LATE') &&
+      Date.parse(t.departureAt) > since,
+  );
+}
+
+/** Tras una falta nueva: al llegar al umbral suspende 24 h desde esa falta (no a prioritarios). */
+function checkSuspension(user: User) {
+  if (user.priority !== 'NONE' || suspensionEnd > Date.now()) return;
+  const faults = countedFaults();
+  if (faults.length >= NO_SHOW_RULE.threshold) {
+    const last = Math.max(...faults.map((t) => Date.parse(t.departureAt)));
+    suspensionEnd = last + NO_SHOW_RULE.suspensionHours * 3_600_000;
+  }
+}
+
 const rejected = (status: number, code: string, message: string) =>
   new ApiError(status, message, [], undefined, code);
 
@@ -387,6 +470,17 @@ const rejected = (status: number, code: string, message: string) =>
 function book(user: User, { departureId, originFloor, destinationFloor }: ReserveRequest) {
   const e = Number.isInteger(departureId) ? ELEVATORS[departureId % 100] : undefined;
   if (!e) throw rejected(404, 'DEPARTURE_NOT_FOUND', 'La salida no existe.');
+  // Los prioritarios no se suspenden: se evalúa con la prioridad vigente al reservar.
+  if (user.priority === 'NONE' && suspensionEnd > Date.now()) {
+    throw rejected(
+      409,
+      'NO_SHOW_SUSPENDED',
+      `Por tus faltas de los últimos días no podés reservar hasta el ${formatSuspensionEnd(suspensionEnd)}.`,
+    );
+  }
+  if (outOfService.has(e.code)) {
+    throw rejected(422, 'ELEVATOR_NOT_BOOKABLE', 'Esa salida no se puede reservar.');
+  }
   if (!canUse(e, user)) {
     throw rejected(
       422,
@@ -426,6 +520,11 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
   if (activeReservation()) {
     throw rejected(409, 'ACTIVE_LIMIT_REACHED', 'Ya tenés una reserva activa.');
   }
+  // El tope diario cuenta todo menos CANCELLED: una cancelación sin falta devuelve el cupo.
+  const today = reservations.filter((r) => r.status !== 'CANCELLED' && isToday(r.createdAt));
+  if (today.length >= MAX_DAILY_BOOKINGS) {
+    throw rejected(409, 'DAILY_LIMIT_REACHED', 'Llegaste al tope de reservas de hoy.');
+  }
   if (departure.remainingSeats <= 0) {
     throw rejected(
       409,
@@ -453,9 +552,10 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
   return view(reservation);
 }
 
-// Arranca con un turno activo en el ascensor 33 (Independencia 2), PB → 7.
+// Arranca con un turno activo en el ascensor 33 (Independencia 2), PB → 7, a unos 16 min.
 {
-  const at = firstSlot() + 3 * STEP_MS;
+  // A más de 10 min: cancelarlo todavía es sin falta.
+  const at = firstSlot() + 8 * STEP_MS;
   const departureId = departureIdOf(
     at,
     ELEVATORS.findIndex((e) => e.code === '33'),
@@ -526,8 +626,8 @@ const history = () =>
 /**
  * Tokens de prueba del check-in: los del kiosco simulado (`mock-qr-<ascensor>-…`) traen su
  * ascensor; "VENCIDO" es inválido, "OTRO" da otro ascensor (34, o 33 si el turno es del 34) y
- * "TARDE" fuera de hora. Cualquier otro token no vacío (p. ej. el "DEMO" del modo demo) es del
- * ascensor del turno.
+ * "TARDE" fuera de hora. Cualquier otro token no vacío es del ascensor del turno. "DEMO", "OTRO"
+ * y "TARDE" (`forced`) saltean la ventana horaria; el resto la respeta como el servidor.
  */
 function scanned(token: string, reserved: string) {
   const normalized = token.trim().toUpperCase();
@@ -543,7 +643,8 @@ function scanned(token: string, reserved: string) {
   const elevator =
     /^mock-qr-([^-]+)-/.exec(token)?.[1] ??
     (normalized.includes('OTRO') ? (reserved === '34' ? '33' : '34') : reserved);
-  return { elevator, late: normalized.includes('TARDE') };
+  const forced = ['DEMO', 'OTRO', 'TARDE'].some((t) => normalized.includes(t));
+  return { elevator, forced, late: normalized.includes('TARDE') };
 }
 
 type Handler = (
@@ -579,7 +680,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       return tokensFor(email);
     },
   ],
-  ['POST', /^\/auth\/resend-verification$/, () => undefined],
   [
     'POST',
     /^\/auth\/logout$/,
@@ -711,12 +811,28 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (_, [id]) => {
       const found = reservations.find((r) => String(r.id) === id);
       if (!found) throw rejected(404, 'RESERVATION_NOT_FOUND', 'La reserva no existe.');
-      // Idempotente: solo una activa cambia de estado.
-      if (found.status !== 'ACTIVE') return;
-      const late = Date.parse(found.departureAt) - Date.now() < CANCEL_DEADLINE_MS;
+      // Idempotente con una ya cancelada; usada y no-show no se cancelan (turnos.md §4).
+      if (found.status === 'CANCELLED' || found.status === 'CANCELLED_LATE') return;
+      if (found.status === 'USED') {
+        throw rejected(
+          409,
+          'ALREADY_CHECKED_IN',
+          'Ya hiciste el check-in: la reserva no se puede cancelar.',
+        );
+      }
+      const departure = Date.parse(found.departureAt);
+      if (found.status === 'NO_SHOW' || Date.now() >= departure) {
+        throw rejected(
+          409,
+          'DEPARTURE_ALREADY_PASSED',
+          'La salida ya pasó: la reserva no se puede cancelar.',
+        );
+      }
+      const late = departure - Date.now() < CANCEL_DEADLINE_MS;
       reservations = reservations.map((r) =>
         r === found ? { ...r, status: late ? 'CANCELLED_LATE' : 'CANCELLED', seatNumber: null } : r,
       );
+      if (late) checkSuspension(currentUser());
     },
   ],
   [
@@ -724,7 +840,9 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/check-ins$/,
     (body) => {
       const active = activeReservation();
-      const { elevator, late } = scanned((body as CheckInRequest).token, active?.elevator ?? '33');
+      const scan = scanned((body as CheckInRequest).token, active?.elevator ?? '33');
+      const { elevator } = scan;
+      let { late } = scan;
       if (!active) {
         throw lastCheckedIn
           ? new ApiError(
@@ -742,6 +860,18 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
               'NO_ACTIVE_RESERVATION',
             );
       }
+      if (!scan.forced) {
+        // Ventana de check-in: −1 min a +2 min de la salida; a tiempo hasta +60 s inclusive.
+        const sinceDeparture = Date.now() - Date.parse(active.departureAt);
+        if (sinceDeparture < -CHECK_IN_OPENS_MS || sinceDeparture > CHECK_IN_CLOSES_MS) {
+          throw rejected(
+            409,
+            'OUTSIDE_CHECK_IN_WINDOW',
+            'Tu turno no está en horario de check-in.',
+          );
+        }
+        late = sinceDeparture > NO_SHOW_AFTER_MS;
+      }
       const status = late ? 'NO_SHOW' : 'USED';
       const outcome = late ? 'LATE' : elevator === active.elevator ? 'ON_TIME' : 'OTHER_ELEVATOR';
       const result: CheckIn = {
@@ -758,6 +888,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       reservations = reservations.map((r) =>
         r === active ? { ...r, status, checkInOutcome: outcome } : r,
       );
+      if (late) checkSuspension(currentUser());
       return result;
     },
   ],
@@ -796,16 +927,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'GET',
     /^\/me\/no-shows$/,
     () => {
-      const since = Date.now() - NO_SHOW_RULE.windowDays * 86_400_000;
       return {
         ...NO_SHOW_RULE,
-        // Falta = NO_SHOW (con o sin check-in fuera de hora) o CANCELLED_LATE (turnos.md §5).
-        recentNoShows: history().filter(
-          (t) =>
-            (t.status === 'NO_SHOW' || t.status === 'CANCELLED_LATE') &&
-            Date.parse(t.departureAt) >= since,
-        ).length,
-        suspendedUntil: null,
+        recentNoShows: countedFaults().length,
+        suspendedUntil: suspensionEnd > Date.now() ? new Date(suspensionEnd).toISOString() : null,
         exempt: currentUser().priority !== 'NONE',
       } satisfies NoShowStatus;
     },

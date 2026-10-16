@@ -1,6 +1,6 @@
 # 0018. Alcance del MVP en las reglas de turnos
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-14
 - **Issues:** [#218](https://github.com/Benji-9/SmartElevate/issues/218), [#212](https://github.com/Benji-9/SmartElevate/issues/212), [#213](https://github.com/Benji-9/SmartElevate/issues/213), [#134](https://github.com/Benji-9/SmartElevate/issues/134). Reemplaza en parte el [ADR 0007](0007-modelo-de-turnos-y-reservas.md).
 - **Autores:** @Benji-9

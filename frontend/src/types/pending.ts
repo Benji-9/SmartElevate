@@ -1,9 +1,8 @@
-// PROVISORIO: DTOs que todavía no están en docs/openapi.json.
-// Los usan los datos simulados (services/mocks.ts) mientras no exista el backend.
-// Cuando el endpoint real esté, regenerar con `npm run gen:api`, exponer el tipo en
-// types/api.ts y borrarlo de acá.
-// Backend pendiente: turnos #7, ascensores y edificios #22,
-// tipo de usuario declarativo #32, certificados #24 y #26.
+// PROVISORIO: solo lo que todavía NO está en docs/openapi.json. Todo lo demás vive en types/api.ts.
+// Certificados de prioridad por movilidad reducida: los endpoints (`/priority-requests*`) dependen
+// del backend de certificados (#122, #123) y de la decisión sobre datos de salud (#24). Mientras
+// tanto solo los usan los datos simulados (services/mocks.ts). Cuando existan en el contrato:
+// `npm run gen:api`, mover los tipos a types/api.ts y borrar este archivo.
 import type { PriorityCategory } from './api';
 
 export type PriorityRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
