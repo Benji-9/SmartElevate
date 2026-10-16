@@ -1,6 +1,6 @@
 # 0023. Defensa CSRF del refresh por cookie
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-15
 - **Issues:** [#204](https://github.com/Benji-9/SmartElevate/issues/204). Complementa el [ADR 0019](0019-refresh-token-en-cookie-httponly.md).
 - **Autores:** @Benji-9

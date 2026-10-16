@@ -1,6 +1,6 @@
 # 0016. QR firmado con HMAC-SHA256 y kiosco web en el hall
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado; refina el ADR 0008
 - **Fecha:** 2026-10-14
 - **Issues:** [#23](https://github.com/Benji-9/SmartElevate/issues/23), [#219](https://github.com/Benji-9/SmartElevate/issues/219). Completa el [ADR 0008](0008-check-in-con-qr-rotativo.md) (decisiones de reglas en [#113](https://github.com/Benji-9/SmartElevate/issues/113)).
 - **Autores:** @Benji-9

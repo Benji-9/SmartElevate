@@ -1,6 +1,6 @@
 # 0017. Dónde viven los parámetros
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-14
 - **Issues:** [#218](https://github.com/Benji-9/SmartElevate/issues/218). Precisa el punto 4 del [ADR 0010](0010-integridad-de-reservas-tiempo-y-configuracion.md).
 - **Autores:** @Benji-9

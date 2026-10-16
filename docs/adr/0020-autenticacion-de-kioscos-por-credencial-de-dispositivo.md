@@ -1,6 +1,6 @@
 # 0020. Autenticación de kioscos por credencial de dispositivo
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-14
 - **Issues:** [#229](https://github.com/Benji-9/SmartElevate/issues/229), parte de [#219](https://github.com/Benji-9/SmartElevate/issues/219). Complementa los ADR [0008](0008-check-in-con-qr-rotativo.md) y [0016](0016-qr-firmado-con-hmac-y-kiosco-web.md).
 - **Autores:** @Benji-9
