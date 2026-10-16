@@ -2,7 +2,14 @@
 
 App para reducir la congestión de los ascensores del campus de UADE. Los alumnos reservan **turnos por franja horaria** con capacidad limitada (10 personas por turno), hay **usuarios prioritarios** (movilidad reducida, docentes) y una capa de **estadísticas / KPIs de congestión**.
 
-> Estado: **MVP en desarrollo**. Ya hay cuentas, reservas, cancelación y cupo prioritario; falta el check-in con QR, entre otras cosas. Qué entra y qué queda para la Fase 2: [alcance del MVP](docs/alcance-mvp.md).
+> Estado: **MVP casi completo, sin deploy de producción del backend todavía**. Qué entra, qué queda para la Fase 2 y el estado por funcionalidad: [alcance del MVP](docs/alcance-mvp.md).
+
+## Estado del proyecto
+
+- **Hecho** (backend y pantallas contra la API real): cuentas con email institucional, login con refresh en cookie HttpOnly, olvidé mi contraseña, reservas con cupo atómico y prioritario, cancelación, check-in con QR en kiosco web, no-shows y suspensión, notificaciones por email, ascensor fuera de servicio, KPIs y panel de administración (prioritarios, kioscos, ascensores, simulador).
+- **Pendiente**: certificado de movilidad reducida (la UI del perfil corre con datos simulados, [#122](https://github.com/Benji-9/SmartElevate/issues/122), [#123](https://github.com/Benji-9/SmartElevate/issues/123)), deploy del backend en Render ([#222](https://github.com/Benji-9/SmartElevate/issues/222)) y los [bloqueantes](docs/bloqueantes.md) abiertos (conexiones accesibles, datos de salud, calendario de UADE).
+- **Fuera del MVP**: lista de espera, envejecimiento de prioridad, edificio alternativo, tolerancia X, ingreso manual del código y encuesta de espera.
+- Mapa de pantallas y qué está conectado: [docs/frontend/SCREENS.md](docs/frontend/SCREENS.md#estado-por-pantalla).
 
 ## Stack
 
@@ -310,8 +317,10 @@ Detalles:
 
 ## Setup manual pendiente
 
-- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): cargar `APP_KIOSK_QR_SECRET` en Render **antes** de deployar [#229](https://github.com/Benji-9/SmartElevate/issues/229): sin ella el backend no arranca en `prod`.
-- **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)).
+- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): cargar `APP_KIOSK_QR_SECRET` en Render antes del próximo deploy del backend ([#222](https://github.com/Benji-9/SmartElevate/issues/222)): sin ella no arranca en `prod`.
+- **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)); cada una se da de alta en `/admin/kioscos` y abre `/qr/<ascensor>`.
+- **Calendario de cierres de UADE** para `semester_end_dates`, antes del 31/12/2026 ([B-19](docs/bloqueantes.md)).
+- **Primer ADMIN** por SQL: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
 
 Las previews de Vercel no tienen Deployment Protection: cualquiera con la URL las puede abrir ([bloqueantes](docs/bloqueantes.md), B-07).
 
@@ -397,8 +406,9 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 - [docs/frontend/](docs/frontend/README.md) — **specs de UI**: design system (tokens y componentes), pantallas y modos de vista Pantalla/Teléfono; reemplazan consultar Figma
 - [docs/alcance-mvp.md](docs/alcance-mvp.md) — **alcance del MVP**: qué entra y qué queda para la Fase 2, con el porqué
 - [docs/glosario.md](docs/glosario.md) — términos del dominio
+- [docs/infraestructura.md](docs/infraestructura.md) — accesos y operación (Render, Neon, Vercel, Brevo, R2)
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
-- [docs/adr/](docs/adr/) — Architecture Decision Records
+- [docs/adr/](docs/adr/README.md) — Architecture Decision Records (índice con estados)
 - [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)
 - Swagger UI del backend: `/swagger-ui.html`
 

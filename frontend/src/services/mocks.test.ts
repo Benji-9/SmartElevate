@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PriorityUploadRules } from '../types/pending';
 import type {
   AdminElevator,
@@ -36,10 +36,23 @@ async function cancelActive() {
   const active = await call<Reservation | undefined>('GET', '/reservations/active');
   if (active) await call('DELETE', `/reservations/${active.id}`);
 }
-const freeDeparture = async (building = 'INDEPENDENCIA') =>
-  (await call<Departure[]>('GET', `/departures?building=${building}`)).find(
-    (d) => d.remainingSeats > 0,
+const MIN = 60_000;
+/** Con lugar y a más de 10 min: cancelarla todavía es sin falta. */
+const freeDeparture = async (query = 'building=INDEPENDENCIA') =>
+  (await call<Departure[]>('GET', `/departures?${query}`)).find(
+    (d) => d.remainingSeats > 0 && Date.parse(d.departureAt) - Date.now() > 11 * MIN,
   )!;
+const reserveOn = (d: Departure) =>
+  call<Reservation>('POST', '/reservations', {
+    departureId: d.id,
+    originFloor: 0,
+    destinationFloor: 8,
+  });
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.resetModules();
+});
 
 describe('mocks', () => {
   it('deja pasar al backend lo que no tiene mock', async () => {
@@ -239,19 +252,20 @@ describe('mocks', () => {
   it('check-in: token vencido da 400, después otro ascensor y ya escaneado, con su code', async () => {
     await loginAna();
     await cancelActive();
-    const departure = (await call<Departure[]>('GET', '/departures?elevator=33')).find(
-      (d) => d.remainingSeats > 0,
-    )!;
-    const turn = await call<Reservation>('POST', '/reservations', {
-      departureId: departure.id,
-      originFloor: 0,
-      destinationFloor: 8,
-    });
+    const departure = await freeDeparture('elevator=33');
+    const turn = await reserveOn(departure);
 
     await expect(call('POST', '/check-ins', { token: 'VENCIDO-1' })).rejects.toMatchObject({
       status: 400,
       code: 'INVALID_QR_TOKEN',
     });
+    // Fuera de la ventana (−1 min a +2 min) el token del kiosco no sirve.
+    await expect(call('POST', '/check-ins', { token: 'mock-qr-34-1' })).rejects.toMatchObject({
+      status: 409,
+      code: 'OUTSIDE_CHECK_IN_WINDOW',
+    });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse(departure.departureAt) + 30_000);
     const result = await call<CheckIn>('POST', '/check-ins', { token: 'mock-qr-34-1' });
     expect(result).toMatchObject({
       reservationId: turn.id,
