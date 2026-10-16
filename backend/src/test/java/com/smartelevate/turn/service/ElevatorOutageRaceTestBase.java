@@ -1,6 +1,7 @@
 package com.smartelevate.turn.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.smartelevate.elevator.model.Kiosk;
 import com.smartelevate.elevator.repository.ElevatorRepository;
@@ -242,24 +243,26 @@ abstract class ElevatorOutageRaceTestBase {
     }
 
     /**
-     * Espera (acotado) a que el waiter esté bloqueado en el lock. En Postgres se mira {@code pg_stat_activity}; H2 no
-     * lo expone, así que alcanza con que el hilo haya arrancado y el margen extra (menor que el lock timeout de 2 s).
+     * Espera (acotado) a que el waiter esté bloqueado en el lock. En Postgres se mira {@code pg_stat_activity} y, si en
+     * 10 s no aparece una sesión esperando un lock, el test falla. H2 no expone el bloqueo: no hay forma de
+     * observarlo, así que el margen fijo es el límite (y tiene que ser menor que el lock timeout de 2 s de H2).
      */
     private void awaitBlocked(Future<?> waiting) throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        if (isPostgres()) {
-            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-            while (System.nanoTime() < deadline && !waiting.isDone()) {
-                Integer locked = jdbc.queryForObject(
-                        "select count(*) from pg_stat_activity where wait_event_type = 'Lock'", Integer.class);
-                if (locked != null && locked > 0) {
-                    return;
-                }
-                Thread.sleep(20);
-            }
+        if (!isPostgres()) {
+            Thread.sleep(EXTRA_MARGIN_MILLIS);
             return;
         }
-        Thread.sleep(EXTRA_MARGIN_MILLIS);
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline && !waiting.isDone()) {
+            Integer locked = jdbc.queryForObject("select count(*) from pg_stat_activity where datname = "
+                    + "current_database() and pid <> pg_backend_pid() and wait_event_type = 'Lock'", Integer.class);
+            if (locked != null && locked > 0) {
+                return;
+            }
+            Thread.sleep(20);
+        }
+        fail("el waiter no llegó a bloquearse en el lock");
     }
 
     private boolean isPostgres() throws Exception {
