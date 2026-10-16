@@ -41,8 +41,8 @@ app:
     # Executor de los mails masivos (ascensor fuera de servicio, #134): hilos y cola. Si la cola se llena, el envío
     # corre en el hilo que lo pidió (no se pierden avisos).
     async:
-      threads: ${APP_MAIL_ASYNC_THREADS:2}
-      queue: ${APP_MAIL_ASYNC_QUEUE:50}
+      threads: ${APP_MAIL_ASYNC_THREADS:2} # mínimo 1
+      queue: ${APP_MAIL_ASYNC_QUEUE:50} # mínimo 0
   # Parámetros técnicos y de seguridad: acá, con override por variable de entorno. En app_config van solo las
   # reglas de negocio ajustables sin redeploy; los secretos, solo en variables de entorno (#225).
   login-throttle:
