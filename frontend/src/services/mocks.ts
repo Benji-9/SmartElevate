@@ -490,9 +490,6 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
         : 'Ese ascensor es exclusivo para personas con movilidad reducida.',
     );
   }
-  if (outOfService.has(e.code)) {
-    throw rejected(422, 'ELEVATOR_NOT_BOOKABLE', 'Esa salida no se puede reservar.');
-  }
   const departure = departureFor(departureId, user);
   const at = Date.parse(departure.departureAt);
   if (at < Date.now() + BOOKING_CLOSES_MS || at > Date.now() + WINDOW_MINUTES * 60_000) {

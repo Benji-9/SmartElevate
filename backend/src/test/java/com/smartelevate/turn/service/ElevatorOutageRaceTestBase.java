@@ -1,6 +1,7 @@
 package com.smartelevate.turn.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.smartelevate.elevator.model.Kiosk;
 import com.smartelevate.elevator.repository.ElevatorRepository;
@@ -20,7 +21,9 @@ import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.UserRepository;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -28,9 +31,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -43,7 +48,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 abstract class ElevatorOutageRaceTestBase {
 
     private static final Instant NOW = ReservationConcurrencyTestBase.NOW;
-    private static final long BLOCKED_PROBE_MILLIS = 300; // menos que el lock timeout de H2 (2 s)
+    private static final long EXTRA_MARGIN_MILLIS = 300; // menos que el lock timeout de H2 (2 s)
 
     @Autowired
     private ReservationService reservationService;
@@ -70,11 +75,25 @@ abstract class ElevatorOutageRaceTestBase {
     @Autowired
     private PlatformTransactionManager txManager;
 
+    @Autowired
+    private DataSource dataSource;
+
     private final ExecutorService pool = Executors.newCachedThreadPool();
+    private final List<Future<?>> inFlight = new CopyOnWriteArrayList<>();
+    private final List<CountDownLatch> releases = new CopyOnWriteArrayList<>();
     private int counter;
 
     @AfterEach
     void clean() {
+        // Primero se suelta y espera a los hilos (aunque el test haya fallado), recién después se borra.
+        releases.forEach(CountDownLatch::countDown);
+        for (Future<?> f : inFlight) {
+            try {
+                f.get(30, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+                // el test ya reportó su propio fallo
+            }
+        }
         pool.shutdownNow();
         checkIns.deleteAll();
         kiosks.deleteAll();
@@ -186,6 +205,7 @@ abstract class ElevatorOutageRaceTestBase {
     private Object raceHeldBy(Callable<?> holder, Callable<?> waiter) throws Exception {
         CountDownLatch held = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
+        releases.add(release);
         Future<Object> holding = pool.submit(() -> new TransactionTemplate(txManager).execute(status -> {
             try {
                 Object result = holder.call();
@@ -198,15 +218,20 @@ abstract class ElevatorOutageRaceTestBase {
                 held.countDown();
             }
         }));
+        inFlight.add(holding);
         assertThat(held.await(30, TimeUnit.SECONDS)).isTrue();
+        CountDownLatch waiterStarted = new CountDownLatch(1);
         Future<Object> waiting = pool.submit(() -> {
+            waiterStarted.countDown(); // justo antes de llamar al servicio
             try {
                 return waiter.call();
             } catch (ReservationRejectedException | TurnFullException e) {
                 return e;
             }
         });
-        Thread.sleep(BLOCKED_PROBE_MILLIS);
+        inFlight.add(waiting);
+        assertThat(waiterStarted.await(30, TimeUnit.SECONDS)).isTrue();
+        awaitBlocked(waiting);
         assertThat(waiting.isDone()).as("el segundo pedido espera el lock de la salida").isFalse();
         release.countDown();
         holding.get(30, TimeUnit.SECONDS);
@@ -214,6 +239,35 @@ abstract class ElevatorOutageRaceTestBase {
             return waiting.get(30, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             throw e.getCause() instanceof Exception cause ? cause : e;
+        }
+    }
+
+    /**
+     * Espera (acotado) a que el waiter esté bloqueado en el lock. En Postgres se mira {@code pg_stat_activity} y, si en
+     * 10 s no aparece una sesión esperando un lock, el test falla. H2 no expone el bloqueo: no hay forma de
+     * observarlo, así que el margen fijo es el límite (y tiene que ser menor que el lock timeout de 2 s de H2).
+     */
+    private void awaitBlocked(Future<?> waiting) throws Exception {
+        if (!isPostgres()) {
+            Thread.sleep(EXTRA_MARGIN_MILLIS);
+            return;
+        }
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline && !waiting.isDone()) {
+            Integer locked = jdbc.queryForObject("select count(*) from pg_stat_activity where datname = "
+                    + "current_database() and pid <> pg_backend_pid() and wait_event_type = 'Lock'", Integer.class);
+            if (locked != null && locked > 0) {
+                return;
+            }
+            Thread.sleep(20);
+        }
+        fail("el waiter no llegó a bloquearse en el lock");
+    }
+
+    private boolean isPostgres() throws Exception {
+        try (var connection = dataSource.getConnection()) {
+            return connection.getMetaData().getDatabaseProductName().toLowerCase().contains("postgres");
         }
     }
 

@@ -110,6 +110,8 @@ En producción las carga el equipo en Render; la checklist completa (quién la d
 | `DATABASE_PASSWORD` | — | Solo `prod` |
 | `APP_MAIL_ENABLED` | `false` en dev, `true` en `prod` | `true` manda los mails por SMTP; `false` solo los loguea (el link de verificación aparece en el log) |
 | `APP_MAIL_FROM` | `no-reply@localhost` | Remitente de los mails |
+| `APP_MAIL_ASYNC_THREADS` | `2` | Mínimo 1 (si no, la app no arranca). Hilos del executor de los mails masivos (aviso de ascensor fuera de servicio, #134) |
+| `APP_MAIL_ASYNC_QUEUE` | `50` | Mínimo 0. Cola de ese executor. Si se llena, el envío corre en el hilo que lo pidió (no se pierden avisos) |
 | `APP_MAIL_SMTP_CONNECTION_TIMEOUT` | `5000` | Solo `prod`. Milisegundos para conectar al SMTP |
 | `APP_MAIL_SMTP_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de lectura del SMTP |
 | `APP_MAIL_SMTP_WRITE_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de escritura al SMTP |
