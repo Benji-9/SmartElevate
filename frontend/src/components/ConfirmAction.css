@@ -1,0 +1,12 @@
+.confirm-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-action p {
+  margin-right: 4px;
+  font-weight: var(--font-semibold);
+  white-space: normal;
+}

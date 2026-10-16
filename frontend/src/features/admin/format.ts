@@ -1,4 +1,4 @@
-import type { AdminShift } from '../../types/pending';
+import type { AdminShift } from '../../types/api';
 import { TIME_ZONE } from '../turn/format';
 
 const decimal = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
@@ -19,6 +19,9 @@ export const formatNumber = (n: number) => decimal.format(n);
 /** `"43,5 %"`. */
 export const formatPercent = (n: number) => `${decimal.format(n)}${NBSP}%`;
 
+/** Lo que se muestra en lugar de un KPI que el servidor manda en `null`. */
+export const NO_DATA = 'Sin datos';
+
 /** `"3,5 min"` a partir de segundos. */
 export const formatMinutes = (seconds: number) => `${decimal.format(seconds / 60)} min`;
 
@@ -29,3 +32,20 @@ export const formatPeriod = (from: string, to: string) =>
 /** `"Turno mañana (7:00–12:15)"` a partir de las horas `"HH:mm"` que manda el servidor. */
 export const formatShift = ({ name, startsAt, endsAt }: AdminShift) =>
   `${name} (${startsAt.replace(/^0/, '')}–${endsAt.replace(/^0/, '')})`;
+
+const dayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE });
+
+const dateTimeFormat = new Intl.DateTimeFormat('es-AR', {
+  timeZone: TIME_ZONE,
+  day: 'numeric',
+  month: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** `"14/10/2026, 15:40"` en hora de Buenos Aires. */
+export const formatDateTime = (iso: string) => dateTimeFormat.format(new Date(iso));
+
+/** `"29/9/2026"` en hora de Buenos Aires. */
+export const formatRegisteredAt = (iso: string) => dayFormat.format(new Date(iso));

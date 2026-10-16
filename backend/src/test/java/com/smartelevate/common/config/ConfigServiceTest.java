@@ -26,10 +26,11 @@ class ConfigServiceTest {
         v.put("booking_closes_before", "PT2M");
         v.put("max_active_bookings_per_user", "1");
         v.put("max_daily_bookings_per_user", "8");
-        v.put("cancellation_deadline_before", "PT1M");
+        v.put("cancellation_deadline_before", "PT10M");
         v.put("cancellation_wait_tolerance", null);
         v.put("check_in_opens_before", "PT1M");
         v.put("check_in_closes_after", "PT2M");
+        v.put("departure_reminder_before", "PT5M");
         v.put("no_show_after", "PT60S");
         v.put("no_show_suspension_threshold", "3");
         v.put("no_show_suspension_window", "P7D");
@@ -37,10 +38,14 @@ class ConfigServiceTest {
         v.put("priority_seats_per_departure", "2");
         v.put("priority_seats_release_before", "PT3M");
         v.put("priority_aging", null);
-        v.put("qr_rotation", "PT60S");
+        v.put("semester_end_dates", "2026-07-31, 2026-12-19");
         v.put("boarding_time", "PT14S");
         v.put("time_per_floor", "PT3S");
         v.put("low_floors_threshold", "4");
+        v.put("congestion_medium_from", "60");
+        v.put("congestion_high_from", "85");
+        v.put("morning_shift_start", "07:00");
+        v.put("morning_shift_end", "12:15");
         return v;
     }
 
@@ -49,7 +54,9 @@ class ConfigServiceTest {
         when(repository.findAll()).thenReturn(values.entrySet().stream()
                 .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
                 .toList());
-        return new ConfigService(repository);
+        return new ConfigService(repository, new com.smartelevate.common.time.CampusTime(java.time.Clock.fixed(
+                java.time.Instant.parse("2026-10-13T15:00:00Z"), java.time.ZoneOffset.UTC),
+                java.time.ZoneId.of("America/Argentina/Buenos_Aires")));
     }
 
     private static Map<String, String> with(String key, String value) {
@@ -78,22 +85,51 @@ class ConfigServiceTest {
             "no_show_after, PT121S",
             "no_show_after, PT0S",
             "check_in_closes_after, PT0S",
+            "check_in_opens_before, PT3M",
             "priority_seats_per_departure, 11",
             "priority_seats_per_departure, -1",
             "no_show_suspension_threshold, 0",
-            "qr_rotation, PT0S",
             "priority_seats_release_before, PT2M",
             "priority_seats_release_before, PT1M",
             "low_floors_threshold, -1",
             "time_per_floor, PT0S",
             "cancellation_wait_tolerance, PT0S",
             "priority_aging, PT-1M",
+            "congestion_medium_from, 0",
+            "congestion_medium_from, 85",
+            "congestion_high_from, 101",
+            "morning_shift_start, 12:15",
     })
     void outOfRangeValuesPreventStartup(String key, String value) {
         assertThatThrownBy(() -> load(with(key, value)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Configuración inválida")
                 .hasMessageContaining(key);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"semester_end_dates; 2026-12-19,2026-07-31",
+            "semester_end_dates; 2026-12-19,2026-12-19"})
+    void semesterEndsMustBeOrderedAndDistinct(String key, String value) {
+        assertThatThrownBy(() -> load(with(key, value)))
+                .hasMessageContaining("Configuración inválida")
+                .hasMessageContaining(key);
+    }
+
+    @Test
+    void semesterEndsAreIsoDatesAndRequired() {
+        assertThat(load(valid()).semesterEndDates())
+                .containsExactly(java.time.LocalDate.of(2026, 7, 31), java.time.LocalDate.of(2026, 12, 19));
+        assertThatThrownBy(() -> load(with("semester_end_dates", "19/12/2026")))
+                .hasMessageContaining("semester_end_dates").hasMessageContaining("valor inválido");
+        assertThatThrownBy(() -> load(with("semester_end_dates", null)))
+                .hasMessageContaining("'semester_end_dates' todavía no está definido");
+    }
+
+    @Test
+    void semesterEndsAllInThePastStillLoad() {
+        // Solo avisa con un WARN: la aprobación de docentes es la que falla.
+        assertThatNoException().isThrownBy(() -> load(with("semester_end_dates", "2026-07-31")));
     }
 
     @Test

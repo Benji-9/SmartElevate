@@ -4,8 +4,8 @@ import { Link } from 'react-router';
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
 import { ApiError, getActiveReservation } from '../../services/api';
-import type { Reservation } from '../../types/pending';
-import { formatFloor, formatSlot } from './format';
+import type { Reservation } from '../../types/api';
+import { formatFloor, formatTime } from './format';
 import './ActiveTurnCard.css';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -90,7 +90,6 @@ export function ActiveTurnCard() {
     );
   }
 
-  const { departure, core } = reservation;
   return (
     <section className="turn-card" aria-labelledby="turn-card-title">
       <div className="turn-card__header">
@@ -99,13 +98,14 @@ export function ActiveTurnCard() {
         </h2>
         <Chip>Confirmado</Chip>
       </div>
-      <DepartureCountdown departsAt={departure.departsAt} />
+      <DepartureCountdown departsAt={reservation.departureAt} />
       <p className="turn-card__summary">
-        {formatSlot(departure.departsAt, departure.durationMinutes)} · {core.name} · Piso{' '}
-        {formatFloor(reservation.destinationFloor)}
+        {formatTime(reservation.departureAt)} hs · {reservation.coreName} · Ascensor{' '}
+        {reservation.elevator} · Piso {formatFloor(reservation.destinationFloor)}
       </p>
       <p className="turn-card__help">
-        Esperá en {core.hall} y escaneá el QR del ascensor para hacer check-in.
+        Esperá en el hall de {reservation.coreName} y escaneá el QR del ascensor para hacer
+        check-in.
       </p>
       <Link to="/check-in" className="button button--primary button--inline">
         Hacer check-in

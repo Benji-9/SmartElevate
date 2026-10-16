@@ -32,15 +32,6 @@
   background: var(--color-primary-tint);
 }
 
-.reserve__notice ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.reserve__notice-title {
-  font-weight: var(--font-semibold);
-}
-
 .reserve__alert {
   background: var(--color-danger-tint);
   color: var(--color-danger);
@@ -117,6 +108,12 @@
   display: block;
   height: 100%;
   background: var(--color-primary);
+}
+
+.slot__elevator {
+  font-size: var(--text-13);
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
 }
 
 .slot__count {

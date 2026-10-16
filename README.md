@@ -2,7 +2,14 @@
 
 App para reducir la congestión de los ascensores del campus de UADE. Los alumnos reservan **turnos por franja horaria** con capacidad limitada (10 personas por turno), hay **usuarios prioritarios** (movilidad reducida, docentes) y una capa de **estadísticas / KPIs de congestión**.
 
-> Estado: **esqueleto del MVP**. Compila, testea y deploya de punta a punta, pero todavía no tiene lógica de negocio.
+> Estado: **MVP casi completo, sin deploy de producción del backend todavía**. Qué entra, qué queda para la Fase 2 y el estado por funcionalidad: [alcance del MVP](docs/alcance-mvp.md).
+
+## Estado del proyecto
+
+- **Hecho** (backend y pantallas contra la API real): cuentas con email institucional, login con refresh en cookie HttpOnly, olvidé mi contraseña, reservas con cupo atómico y prioritario, cancelación, check-in con QR en kiosco web, no-shows y suspensión, notificaciones por email, ascensor fuera de servicio, KPIs y panel de administración (prioritarios, kioscos, ascensores, simulador).
+- **Pendiente**: certificado de movilidad reducida (la UI del perfil corre con datos simulados, [#122](https://github.com/Benji-9/SmartElevate/issues/122), [#123](https://github.com/Benji-9/SmartElevate/issues/123)), deploy del backend en Render ([#222](https://github.com/Benji-9/SmartElevate/issues/222)) y los [bloqueantes](docs/bloqueantes.md) abiertos (conexiones accesibles, datos de salud, calendario de UADE).
+- **Fuera del MVP**: lista de espera, envejecimiento de prioridad, edificio alternativo, tolerancia X, ingreso manual del código y encuesta de espera.
+- Mapa de pantallas y qué está conectado: [docs/frontend/SCREENS.md](docs/frontend/SCREENS.md#estado-por-pantalla).
 
 ## Stack
 
@@ -19,7 +26,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 .
 ├── backend/                  API REST (Spring Boot)
 │   ├── src/main/java/com/smartelevate/
-│   │   ├── common/           config (CORS, OpenAPI), manejo de errores, /api/ping
+│   │   ├── common/           config, errores, mail, security, time, validation, /api/ping
 │   │   ├── user/             ┐
 │   │   ├── elevator/         │ un paquete por módulo del API contract,
 │   │   ├── turn/             │ con capas: controller / service / repository / dto / model
@@ -78,14 +85,79 @@ export DATABASE_PASSWORD=smartelevate
 
 #### Variables de entorno del backend
 
+En producción las carga el equipo en Render; la checklist completa (quién la define, cómo generar cada secreto, qué pasa si falta) está en [`docs/infraestructura.md`](docs/infraestructura.md#checklist-maestra-de-variables-de-producción).
+
 | Variable | Default | Descripción |
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE` | `dev` | `dev` (H2) o `prod` (Postgres) |
 | `PORT` | `8080` | Puerto HTTP |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos, separados por coma |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` solo en dev | Orígenes permitidos, separados por coma y **exactos**: sin barra final y en minúsculas (`https://smart-elevate.vercel.app`). **Obligatorio en `prod`** (sin default: la app no arranca sin él) |
+| `APP_TIME_ZONE` | `America/Argentina/Buenos_Aires` | Zona del campus para franjas y horario. No depende de la zona del servidor (Render corre en UTC) |
+| `JWT_SECRET` | — | Secreto de firma de los access tokens (HS256), mínimo 32 caracteres. **Obligatorio en `prod`** (la app no arranca sin él); en dev, si falta, se usa una clave efímera. Generalo con `openssl rand -base64 48`: corré el comando y pegá el **resultado**, nunca el comando. Distinto de `APP_KIOSK_QR_SECRET`; un ejemplo, un placeholder o un valor de baja entropía impide el arranque. Nunca en el repo |
+| `JWT_ACCESS_TTL` | `PT15M` | Vida del access token (duración ISO-8601) |
+| `JWT_REFRESH_TTL` | `P7D` | Vida del refresh token (duración ISO-8601); también el `Max-Age` de su cookie |
+| `APP_REFRESH_COOKIE_SECURE` | `true` (`false` en dev) | Atributo `Secure` de la cookie del refresh; solo se apaga para `http://localhost`. `false` solo vale en dev: en `prod` con `false` la app no arranca |
+| `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | `refresh_token` / `Lax` / `/api/auth` | Nombre y atributos de la cookie del refresh (ADR 0019, 0023) |
+| `APP_LOGIN_THROTTLE_WINDOW` | `PT15M` | Ventana deslizante del límite de logins fallidos (duración ISO-8601) |
+| `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` | `10` | Logins fallidos por cuenta dentro de la ventana; entre 1 y 100 (NIST), si no la app no arranca |
+| `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` | `100` | Logins fallidos por IP dentro de la ventana |
+| `APP_VERIFICATION_TOKEN_TTL` | `PT24H` | Vida del link de verificación de email |
+| `APP_VERIFICATION_RESEND_COOLDOWN` | `PT1M` | Espera mínima entre reenvíos del mail de verificación |
+| `APP_PASSWORD_RESET_TOKEN_TTL` | `PT30M` | Vida del link de reset de contraseña |
+| `APP_PASSWORD_RESET_REQUEST_COOLDOWN` | `PT1M` | Espera mínima entre pedidos de reset de contraseña |
 | `DATABASE_URL` | — | Solo `prod`. Formato JDBC: `jdbc:postgresql://host:5432/db` |
 | `DATABASE_USER` | — | Solo `prod` |
 | `DATABASE_PASSWORD` | — | Solo `prod` |
+| `APP_MAIL_ENABLED` | `false` en dev, `true` en `prod` | `true` manda los mails por SMTP; `false` solo los loguea (el link de verificación aparece en el log) |
+| `APP_MAIL_FROM` | `no-reply@localhost` | Remitente de los mails |
+| `APP_MAIL_ASYNC_THREADS` | `2` | Mínimo 1 (si no, la app no arranca). Hilos del executor de los mails masivos (aviso de ascensor fuera de servicio, #134) |
+| `APP_MAIL_ASYNC_QUEUE` | `50` | Mínimo 0. Cola de ese executor. Si se llena, el envío corre en el hilo que lo pidió (no se pierden avisos) |
+| `APP_MAIL_SMTP_CONNECTION_TIMEOUT` | `5000` | Solo `prod`. Milisegundos para conectar al SMTP |
+| `APP_MAIL_SMTP_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de lectura del SMTP |
+| `APP_MAIL_SMTP_WRITE_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de escritura al SMTP |
+| `SPRING_MAIL_HOST` | — | **Obligatoria con el mail activo** (default de `prod`): sin ella la app no arranca. Brevo: `smtp-relay.brevo.com` |
+| `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
+| `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
+| `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
+| `APP_FRONTEND_URL` | `http://localhost:5173` solo en dev | **Obligatorio en `prod`** (sin default: la app no arranca sin él). Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
+| `APP_KIOSK_QR_SECRET` | — | Clave HMAC-SHA256 del token del QR ([ADR 0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)), mínimo 32 caracteres y distinta de `JWT_SECRET`. **Obligatoria en `prod`** (la app no arranca sin ella); en dev, si falta, se usa una efímera. Generala con `openssl rand -base64 48` (el **resultado**, nunca el comando) y que no sea un ejemplo ni baja entropía: si lo es, no arranca. Rotarla invalida los QR en pantalla, que se renuevan solos en el ciclo siguiente. Nunca en el repo |
+| `APP_KIOSK_QR_TTL` | `PT30S` | Vida de cada token del QR (segundos enteros); se acepta también el del ciclo anterior. Reemplaza a `qr_rotation` de `app_config` |
+| `APP_KIOSK_SIMULATOR_ENABLED` | `false` | `true` permite crear kioscos simulados (simulador de admin); sus check-ins cuentan como simulados. **Dejarlo apagado en prod** |
+| `APP_KIOSK_RATE_LIMIT_MAX_REQUESTS` | `10` | Pedidos de token por kiosco dentro de la ventana (se espera ~1 cada 30 s); al pasarse, 429 con `Retry-After` |
+| `APP_KIOSK_RATE_LIMIT_WINDOW` | `PT1M` | Ventana del límite de pedidos por kiosco |
+| `APP_ADMIN_USER_SEARCH_MIN_QUERY_LENGTH` / `_PAGE_SIZE` | `3` / `20` | Buscador de usuarios del panel admin: mínimo de caracteres (≥ 2) y tamaño de página (1 a 100) |
+| `APP_SCHEDULING_ENABLED` | `true` | `false` apaga todos los jobs `@Scheduled` (no-shows y recordatorios); lo usan los tests |
+| `APP_NO_SHOW_JOB_INTERVAL` | `PT15S` | Cada cuánto se marcan los no-shows |
+| `APP_REMINDER_JOB_ENABLED` / `_INTERVAL` | `true` / `PT30S` | Recordatorio de salida por mail; `false` lo desactiva (p. ej. sin SMTP) |
+| `JAVA_OPTS` | `-XX:MaxRAMPercentage=75` | Solo en la imagen Docker. Si Render reinicia por memoria, `-XX:MaxRAMPercentage=60` |
+
+**Checklist de `prod`.** Sin estas variables (o con alguna en blanco) la app no arranca:
+
+- [ ] `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
+- [ ] `JWT_SECRET` (mínimo 32 caracteres; generada con `openssl rand -base64 48`, nunca copiada de un ejemplo)
+- [ ] `APP_FRONTEND_URL` (p. ej. `https://smart-elevate.vercel.app`)
+- [ ] `CORS_ALLOWED_ORIGINS` (al menos el dominio del front)
+- [ ] `APP_KIOSK_QR_SECRET` (mínimo 32 caracteres, **distinta** de `JWT_SECRET` y generada, nunca copiada de un ejemplo; clave HMAC del QR, #229)
+
+- [ ] `SPRING_MAIL_HOST` (con el mail activo, el default en `prod`; más `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` y `APP_MAIL_FROM` para que los mails salgan)
+
+La app no arranca sin `SPRING_MAIL_HOST` si el mail está activo; sin las demás `SPRING_MAIL_*` arranca pero los mails fallan. `JWT_SECRET`, `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` y `APP_KIOSK_QR_SECRET` se validan al arrancar en `RequiredProdProperties` (#222), que además rechaza las dos claves si son iguales, si son un ejemplo/placeholder (p. ej. el texto `openssl rand -base64 48`) o de baja entropía, y `APP_REFRESH_COOKIE_SECURE=false`. Después de deployar, correr [`scripts/smoke-test.sh`](scripts/smoke-test.sh) ([guía](docs/infraestructura.md#smoke-test-del-deploy)).
+
+#### Autenticación y endpoints protegidos
+
+`POST /api/auth/login` devuelve un access token (JWT, 15 min, solo con `sub`: **sin rol ni prioridad**) y un refresh token opaco de un solo uso (se guarda hasheado) que va **solo** en una cookie `HttpOnly; Secure; SameSite=Lax` (`Path=/api/auth`), no en el body (ADR 0019). `POST /api/auth/refresh` lo lee de la cookie y lo rota; si un refresh ya rotado reaparece, se revoca toda la sesión. `POST /api/auth/logout` lo revoca y expira la cookie. Ambos exigen el header `X-Requested-With: SmartElevate` y, si viene `Origin`, que esté en `CORS_ALLOWED_ORIGINS` (defensa CSRF, ADR 0023). `CORS_ALLOWED_ORIGINS` se compara **exacto** con el `Origin`: sin barra final y en minúsculas (`https://smart-elevate.vercel.app`). Un refresh inválido responde 401 y además expira la cookie. El rol se lee de la base en cada request y la prioridad se consulta al reservar (ADR 0009). No se puede loguear una cuenta con el email sin verificar.
+
+Públicos: `/api/ping`, `/api/auth/**`, `GET /api/elevators`, `GET /api/buildings`, la documentación (`/v3/api-docs`, `/swagger-ui.html`) y `/actuator/health`. **Todo lo demás exige `Authorization: Bearer <accessToken>`**. Para agregar un endpoint:
+
+- Protegido: no hay que hacer nada, es el default. Por rol, `@PreAuthorize("hasRole('ADMIN')")` en el método (sin token da 401, con otro rol 403).
+- Usuario actual: parámetro `@AuthenticationPrincipal CurrentUser user` (`common/security`).
+- Documentarlo en OpenAPI: `@SecurityRequirement(name = OpenApiConfig.BEARER)` en el controller.
+- Público: sumarlo a `SecurityConfig.PUBLIC_ANY` / `PUBLIC_GET`, solo con motivo.
+- Tests `@WebMvcTest`: anotar con `@WithAppSecurity` (carga las reglas reales) y usar `jwt()` de `spring-security-test`.
+
+Roles y prioridad (#121): `GET/POST /api/admin/teachers/...`, `GET/DELETE /api/admin/priority-users/...` y `PUT /api/admin/users/{id}/role` son solo ADMIN. La prioridad vigente (aprobada y no vencida) la da `PriorityService.currentPriority(userId)`, el único punto que debe usar la reserva; cada cambio queda en la tabla `priority_audit`. Cómo crear el primer ADMIN: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
+
+Kioscos del QR (#229, [ADR 0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): `GET/POST /api/admin/kiosks` y `POST /api/admin/kiosks/{id}/revoke` son solo ADMIN; el alta devuelve el secreto del kiosco **una sola vez**. `/api/kiosks/**` tiene su propia cadena de seguridad (`KioskSecurityConfig`): se autentica con `Authorization: Bearer <secreto del kiosco>`, no con un JWT. Las altas y revocaciones quedan en `priority_audit`.
 
 #### Migraciones de la base (Flyway)
 
@@ -115,7 +187,12 @@ npm install
 npm run dev                   # http://localhost:5173
 ```
 
-En dev, Vite hace proxy de `/api` a `http://localhost:8080`, así que con el backend levantado la home muestra **"API conectada"**.
+En dev, Vite hace proxy de `/api` a `http://localhost:8080`.
+
+| Variable | Default | Descripción |
+| --- | --- | --- |
+| `VITE_API_URL` | `/api` | Base del cliente HTTP (`services/api.ts`) |
+| `VITE_USE_MOCKS` | `true` en `npm run dev`, `false` en tests | `true` usa datos simulados en lugar del backend (`services/mocks.ts`); con `false`, `npm run dev` le pega al backend real. Nunca aplica al build de producción |
 
 ## Contrato de la API (OpenAPI / Swagger)
 
@@ -221,7 +298,7 @@ Commits chicos y atómicos. El título del PR también sigue la convención.
 
 | Workflow | Cuándo | Qué hace |
 | --- | --- | --- |
-| [`ci-backend.yml`](.github/workflows/ci-backend.yml) | PR y push a `main`/`develop` | Temurin 17 + cache Maven, `./mvnw -B verify`, sube los reportes de tests como artifact |
+| [`ci-backend.yml`](.github/workflows/ci-backend.yml) | PR y push a `main`/`develop` | Temurin 25 + cache Maven, `./mvnw -B verify`, sube los reportes de tests como artifact |
 | [`ci-frontend.yml`](.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, lint, tests, build |
 | [`branch-policy.yml`](.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
@@ -240,9 +317,18 @@ Detalles:
 
 `frontend/vercel.json` tiene un rewrite de `/api/(.*)` hacia `${BACKEND_URL}/api/$1`. Vercel **no** interpola variables en `vercel.json`, así que el workflow reemplaza el placeholder `${BACKEND_URL}` con la variable de GitHub `BACKEND_URL` antes de `vercel build`. Si la variable no está definida, el workflow emite un warning y quita ese rewrite (el front deploya igual, pero sin backend).
 
-## Setup manual pendiente (una sola vez)
+## Setup manual pendiente
 
-Cada bloque tiene su issue con checklist: Vercel [#1](https://github.com/Benji-9/SmartElevate/issues/1) · secrets [#2](https://github.com/Benji-9/SmartElevate/issues/2) · protección de ramas [#3](https://github.com/Benji-9/SmartElevate/issues/3) · primer release [#4](https://github.com/Benji-9/SmartElevate/issues/4).
+- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): cargar `APP_KIOSK_QR_SECRET` en Render antes del próximo deploy del backend ([#222](https://github.com/Benji-9/SmartElevate/issues/222)): sin ella no arranca en `prod`.
+- **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)); cada una se da de alta en `/admin/kioscos` y abre `/qr/<ascensor>`.
+- **Calendario de cierres de UADE** para `semester_end_dates`, antes del 31/12/2026 ([B-19](docs/bloqueantes.md)).
+- **Primer ADMIN** por SQL: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
+
+Las previews de Vercel no tienen Deployment Protection: cualquiera con la URL las puede abrir ([bloqueantes](docs/bloqueantes.md), B-07).
+
+## Setup inicial de Vercel y GitHub (ya hecho)
+
+Quedó hecho en B-02, B-03 y B-09 ([bloqueantes](docs/bloqueantes.md)). Se deja como referencia para rearmarlo. Issues con checklist: Vercel [#1](https://github.com/Benji-9/SmartElevate/issues/1) · secrets [#2](https://github.com/Benji-9/SmartElevate/issues/2) · protección de ramas [#3](https://github.com/Benji-9/SmartElevate/issues/3) · primer release [#4](https://github.com/Benji-9/SmartElevate/issues/4).
 
 ### 1. Vercel: crear el proyecto y linkearlo
 
@@ -284,7 +370,7 @@ En el repo → **Settings → Secrets and variables → Actions**:
 
 En el proyecto → **Settings → Environment Variables** (para *Production* y *Preview*):
 
-- `VITE_API_URL` = `/api` (usa el rewrite de `vercel.json`). Alternativa: la URL absoluta del backend, pero ahí hay que agregar el dominio de Vercel a `CORS_ALLOWED_ORIGINS` del backend.
+- `VITE_API_URL` = `/api` (usa el rewrite de `vercel.json`; **hace falta** para que la cookie del refresh sea del mismo origen, ADR 0019). Con la URL absoluta del backend la sesión no se mantiene (cookie cross-site descartada).
 
 `vercel pull` las baja en cada deploy y Vite las embebe en el build.
 
@@ -320,9 +406,11 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 
 - [docs/reglas/](docs/reglas/) — **reglas de negocio**: turnos, asignación, check-in QR, usuarios y prioridad, KPIs y parámetros configurables
 - [docs/frontend/](docs/frontend/README.md) — **specs de UI**: design system (tokens y componentes), pantallas y modos de vista Pantalla/Teléfono; reemplazan consultar Figma
+- [docs/alcance-mvp.md](docs/alcance-mvp.md) — **alcance del MVP**: qué entra y qué queda para la Fase 2, con el porqué
 - [docs/glosario.md](docs/glosario.md) — términos del dominio
+- [docs/infraestructura.md](docs/infraestructura.md) — accesos y operación (Render, Neon, Vercel, Brevo, R2)
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
-- [docs/adr/](docs/adr/) — Architecture Decision Records
+- [docs/adr/](docs/adr/README.md) — Architecture Decision Records (índice con estados)
 - [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)
 - Swagger UI del backend: `/swagger-ui.html`
 

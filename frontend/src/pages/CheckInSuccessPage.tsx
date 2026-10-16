@@ -1,18 +1,17 @@
 import { Link, Navigate, useLocation } from 'react-router';
 import { OnTimeCard } from '../features/check-in/OnTimeCard';
-import { WaitFeedback } from '../features/check-in/WaitFeedback';
 import '../features/check-in/checkin.css';
 import { formatTime } from '../features/turn/format';
 import { SuccessHero } from '../features/turn/SuccessHero';
 import '../features/turn/turn.css';
-import type { CheckInResult } from '../types/pending';
+import type { CheckIn } from '../types/api';
 
 // El resultado llega por `navigate('/check-in/ok', { state: result })` desde el check-in.
-const isResult = (state: unknown): state is CheckInResult =>
+const isResult = (state: unknown): state is CheckIn =>
   typeof state === 'object' &&
   state !== null &&
-  typeof (state as CheckInResult).reservationId === 'string' &&
-  ['ON_TIME', 'OTHER_ELEVATOR', 'LATE'].includes((state as CheckInResult).outcome);
+  typeof (state as CheckIn).elevator === 'string' &&
+  ['ON_TIME', 'OTHER_ELEVATOR', 'LATE'].includes((state as CheckIn).outcome);
 
 // El hero cierra el flujo: con LATE dice la consecuencia en vez de mostrar éxito (#149).
 const heroes = {
@@ -21,6 +20,10 @@ const heroes = {
   LATE: { title: 'Llegaste fuera de tu franja: cuenta como falta', tone: 'danger' },
 } as const;
 
+/**
+ * 07 · Viaje registrado. La encuesta de espera queda afuera hasta que el backend tenga dónde
+ * guardarla (SCREENS.md §07).
+ */
 export function CheckInSuccessPage() {
   const { state } = useLocation();
   // Entrada directa o recarga: no hay check-in reciente que mostrar.
@@ -30,10 +33,9 @@ export function CheckInSuccessPage() {
   return (
     <div className="success-screen success-screen--check-in">
       <SuccessHero title={hero.title} tone={hero.tone}>
-        {state.elevatorName} · {state.coreName} · {formatTime(state.checkedInAt)} hs
+        Ascensor {state.elevator} · {formatTime(state.checkedInAt)} hs
       </SuccessHero>
       <OnTimeCard result={state} />
-      <WaitFeedback reservationId={state.reservationId} />
       <div className="turn-actions">
         <Link to="/" className="button button--primary">
           Volver al inicio

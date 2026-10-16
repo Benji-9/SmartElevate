@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
-import { signedOut, stubApi, testUser } from '../test/stubApi';
+import { signedOut, stubApi, testUser, tokens } from '../test/stubApi';
 
 const loginOk = {
   ...signedOut,
-  'POST /auth/login': { body: { accessToken: 'token-1' } },
-  'GET /me': { body: testUser },
+  'POST /auth/login': { body: tokens() },
+  'GET /users/me': { body: testUser },
 };
 
 async function renderLogin(path = '/login') {
@@ -123,6 +123,21 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Email o contraseña incorrectos');
     expect(screen.getByLabelText('Email institucional')).toHaveValue('ana.perez');
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
+  });
+
+  it('con demasiados intentos fallidos muestra cuánto esperar', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': {
+        status: 429,
+        body: { message: 'Hubo demasiados intentos fallidos. Probá de nuevo en 15 minutos.' },
+      },
+    });
+    await renderLogin();
+
+    await submit('ana.perez', 'incorrecta');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Probá de nuevo en 15 minutos.');
   });
 
   it('"¿Olvidaste tu contraseña?" lleva a recuperar la contraseña', async () => {

@@ -5,20 +5,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
+import com.smartelevate.common.time.CampusTime;
+import com.smartelevate.common.time.ClockConfig;
 
 /** El seed de V1__init.sql, aplicado por Flyway sobre H2, carga y pasa la validación con los valores de las reglas. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(ConfigService.class)
+@Import({ConfigService.class, CampusTime.class, ClockConfig.class})
 class ConfigServiceSeedTest {
 
     @Autowired
     private ConfigService config;
+
+    @Autowired
+    private ConfigEntryRepository repository;
 
     @Test
     void seedMatchesTheBusinessRules() {
@@ -30,7 +36,7 @@ class ConfigServiceSeedTest {
         assertThat(config.bookingClosesBefore()).isEqualTo(Duration.ofMinutes(2));
         assertThat(config.maxActiveBookingsPerUser()).isEqualTo(1);
         assertThat(config.maxDailyBookingsPerUser()).isEqualTo(8);
-        assertThat(config.cancellationDeadlineBefore()).isEqualTo(Duration.ofMinutes(1));
+        assertThat(config.cancellationDeadlineBefore()).isEqualTo(Duration.ofMinutes(10));
         assertThat(config.checkInOpensBefore()).isEqualTo(Duration.ofMinutes(1));
         assertThat(config.checkInClosesAfter()).isEqualTo(Duration.ofMinutes(2));
         assertThat(config.noShowAfter()).isEqualTo(Duration.ofSeconds(60));
@@ -39,15 +45,32 @@ class ConfigServiceSeedTest {
         assertThat(config.noShowSuspensionDuration()).isEqualTo(Duration.ofHours(24));
         assertThat(config.prioritySeatsPerDeparture()).isEqualTo(2);
         assertThat(config.prioritySeatsReleaseBefore()).isEqualTo(Duration.ofMinutes(3));
-        assertThat(config.qrRotation()).isEqualTo(Duration.ofSeconds(60));
         assertThat(config.lowFloorsThreshold()).isEqualTo(4);
         assertThat(config.boardingTime()).isEqualTo(Duration.ofSeconds(14));
         assertThat(config.timePerFloor()).isEqualTo(Duration.ofSeconds(3));
+        assertThat(config.congestionMediumFrom()).isEqualTo(60);
+        assertThat(config.congestionHighFrom()).isEqualTo(85);
+        assertThat(config.morningShiftStart()).isEqualTo(LocalTime.of(7, 0));
+        assertThat(config.morningShiftEnd()).isEqualTo(LocalTime.of(12, 15));
+        assertThat(config.semesterEndDates()).isNotEmpty();
+    }
+
+    @Test
+    void teacherValidityWasReplacedBySemesterEnds() {
+        // V18 (#218): la prioridad de docente vence al cierre del cuatrimestre, no tras una duración.
+        assertThat(repository.findById("priority_teacher_validity")).isEmpty();
     }
 
     @Test
     void parametersToBeDefinedExistButFailWhenRequested() {
         assertThatThrownBy(config::cancellationWaitTolerance).hasMessageContaining("todavía no está definido");
         assertThatThrownBy(config::priorityAging).hasMessageContaining("todavía no está definido");
+    }
+
+    @Test
+    void securityParametersAreNotInAppConfig() {
+        // V14 (#225): los límites de login viven en application.yml (app.login-throttle.*).
+        assertThat(repository.findAllById(List.of("login_failure_window",
+                "login_max_failures_per_account", "login_max_failures_per_ip"))).isEmpty();
     }
 }

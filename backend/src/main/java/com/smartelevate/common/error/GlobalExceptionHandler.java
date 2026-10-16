@@ -1,5 +1,22 @@
 package com.smartelevate.common.error;
 
+import com.smartelevate.common.security.KioskAuthenticationException;
+import com.smartelevate.elevator.service.InvalidQrTokenException;
+import com.smartelevate.elevator.service.KioskException;
+import com.smartelevate.elevator.service.KioskRateLimitedException;
+import com.smartelevate.turn.service.ReservationRejectedException;
+import com.smartelevate.turn.service.TurnFullException;
+
+import com.smartelevate.priority.service.InvalidPriorityOperationException;
+import com.smartelevate.priority.service.PriorityNotFoundException;
+import com.smartelevate.user.service.DuplicateUserException;
+import com.smartelevate.common.security.CsrfRejectedException;
+import com.smartelevate.user.service.EmailNotVerifiedException;
+import com.smartelevate.user.service.InvalidCredentialsException;
+import com.smartelevate.user.service.InvalidRefreshTokenException;
+import com.smartelevate.user.service.InvalidTokenException;
+import com.smartelevate.user.service.ResendTooSoonException;
+import com.smartelevate.user.service.TooManyLoginAttemptsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -9,8 +26,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -54,6 +74,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "La solicitud tiene parámetros inválidos", request, violations);
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException ex,
+                                                           HttpServletRequest request) {
+        List<ApiError.FieldViolation> violations =
+                List.of(new ApiError.FieldViolation(ex.getParameterName(), "Es obligatorio"));
+        return build(HttpStatus.BAD_REQUEST, "La solicitud tiene parámetros inválidos", request, violations);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
@@ -80,6 +109,105 @@ public class GlobalExceptionHandler {
         return build(status, message, request, List.of());
     }
 
+    // Sin @ResponseStatus a propósito: este 409 solo lo da el registro y se documenta en ese endpoint,
+    // no en todos como los de arriba.
+    @ExceptionHandler(DuplicateUserException.class)
+    public ResponseEntity<ApiError> handleDuplicateUser(DuplicateUserException ex, HttpServletRequest request) {
+        // "email" y "legajo" son masculinos: "Ya hay una cuenta con ese email."
+        List<ApiError.FieldViolation> violations = ex.getFields().stream()
+                .map(field -> new ApiError.FieldViolation(field, "Ya hay una cuenta con ese " + field + "."))
+                .toList();
+        return build(HttpStatus.CONFLICT, "Ya existe una cuenta con esos datos", request, violations);
+    }
+
+    // Sin @ResponseStatus: se documentan en los endpoints de auth (401/403) y por la seguridad en el resto.
+    @ExceptionHandler({InvalidCredentialsException.class, InvalidRefreshTokenException.class})
+    public ResponseEntity<ApiError> handleBadSession(RuntimeException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(CsrfRejectedException.class)
+    public ResponseEntity<ApiError> handleCsrf(CsrfRejectedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ApiError> handleEmailNotVerified(EmailNotVerifiedException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, List.of());
+    }
+
+    /** Sin token, vencido o manipulado: lo lanza el filtro de seguridad (vía el entry point) o un @PreAuthorize. */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleUnauthenticated(AuthenticationException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, "Necesitás iniciar sesión", request, List.of());
+    }
+
+    // Sin @ResponseStatus: se documenta en GET /api/kiosks/me/qr-token.
+    @ExceptionHandler(KioskAuthenticationException.class)
+    public ResponseEntity<ApiError> handleKioskUnauthenticated(KioskAuthenticationException ex,
+                                                               HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), "KIOSK_UNAUTHORIZED", request, List.of());
+    }
+
+    @ExceptionHandler(KioskRateLimitedException.class)
+    public ResponseEntity<ApiError> handleKioskRateLimited(KioskRateLimitedException ex,
+                                                           HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    // Sin @ResponseStatus: se documenta en POST /api/check-ins. El mensaje es fijo: no dice por qué falló.
+    @ExceptionHandler(InvalidQrTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidQrToken(InvalidQrTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), "INVALID_QR_TOKEN", request, List.of());
+    }
+
+    @ExceptionHandler(KioskException.class)
+    public ResponseEntity<ApiError> handleKiosk(KioskException ex, HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "No tenés permisos para esta acción", request, List.of());
+    }
+
+    @ExceptionHandler(PriorityNotFoundException.class)
+    public ResponseEntity<ApiError> handlePriorityNotFound(PriorityNotFoundException ex,
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(InvalidPriorityOperationException.class)
+    public ResponseEntity<ApiError> handleInvalidPriorityOperation(InvalidPriorityOperationException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler(ResendTooSoonException.class)
+    public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfter().toSeconds(), request);
+    }
+
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    public ResponseEntity<ApiError> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
+                                                               HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    private ResponseEntity<ApiError> tooManyRequests(String message, long retryAfterSeconds,
+                                                     HttpServletRequest request) {
+        ResponseEntity<ApiError> response = build(HttpStatus.TOO_MANY_REQUESTS, message, request, List.of());
+        return ResponseEntity.status(response.getStatusCode())
+                .header("Retry-After", String.valueOf(retryAfterSeconds))
+                .body(response.getBody());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest request) {
@@ -87,9 +215,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request, List.of());
     }
 
+    // Sin @ResponseStatus: se documentan en POST /api/reservations.
+    @ExceptionHandler(TurnFullException.class)
+    public ResponseEntity<ApiError> handleTurnFull(TurnFullException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), "TURN_FULL", request, List.of());
+    }
+
+    @ExceptionHandler(ReservationRejectedException.class)
+    public ResponseEntity<ApiError> handleReservationRejected(ReservationRejectedException ex,
+                                                              HttpServletRequest request) {
+        return build(ex.getReason().getStatus(), ex.getMessage(), ex.getReason().name(), request, List.of());
+    }
+
     private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest request,
                                            List<ApiError.FieldViolation> violations) {
-        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message,
+        return build(status, message, null, request, violations);
+    }
+
+    private ResponseEntity<ApiError> build(HttpStatus status, String message, String code,
+                                           HttpServletRequest request, List<ApiError.FieldViolation> violations) {
+        ApiError body = new ApiError(clock.instant(), status.value(), status.getReasonPhrase(), message, code,
                 request.getRequestURI(), violations);
         return ResponseEntity.status(status).body(body);
     }

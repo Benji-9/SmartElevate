@@ -45,7 +45,7 @@ Prohibido usar `@media` de ancho para layout de pantallas (sí se pueden usar `@
 
 - **Modo por defecto:** `pantalla` si la ventana mide ≥ 1024 px; en menos, no hay selector ni marco.
 - **Orden de prioridad para decidir el modo:** parámetro `?vista=telefono|pantalla` de la URL → valor guardado en `localStorage` (`se:viewMode`) → por defecto.
-- **En `/admin` no hay selector:** el panel es solo de escritorio (ver sección 7).
+- **En `/admin` y en el kiosco `/qr/:ascensor` no hay selector:** el panel es solo de escritorio (ver sección 7) y el kiosco es la pantalla de una tablet del hall (`SCREENS.md` §10).
 - Cambiar de modo **no debe reiniciar** la pantalla, la ruta ni el estado de los formularios (ver sección 4).
 
 ---
@@ -215,7 +215,7 @@ Los textos, datos y componentes son los mismos que en `SCREENS.md`; cambia solo 
 | **03 Inicio** | `TopBar` + `.page`. Título de saludo en `.text-title-lg`. Grilla `7fr 5fr`, gap 32. Columna izquierda (gap 16): saludo, "Próxima clase" (pospuesta, [#86](https://github.com/Benji-9/SmartElevate/issues/86)), "Tu turno". Columna derecha: "Congestión ahora" dentro de una tarjeta (pad 20, `--radius-lg`, borde `--line`). En "Tu turno", el botón "Hacer check-in" con `block={false}`. |
 | **04 Reservar turno** | `TopBar` + `.page`. Encabezado "Reservar turno" en `.text-title-lg` (sin botón de volver). Grilla `1fr 1fr`, gap 32. Izquierda: Edificio, Piso de destino y el aviso de pisos bajos. Derecha: Franja horaria y debajo una tarjeta resumen (pad 16, `--radius-lg`, fondo `--surface-subtle`) con "Lima 3 · Piso 7 · 7:25 – 7:30" (o "Elegí tu turno" si no hay nada elegido), el paso que falta (igual que en el móvil, `SCREENS.md` §04) y el botón "Confirmar turno · 7:25" (`block={false}`, alineado a la derecha). La columna derecha es `position: sticky; top: calc(var(--topbar-h) + var(--space-32))`. |
 | **05 Turno confirmado** | Sin `TopBar`. Columna centrada de **480 px** con el mismo contenido. Los dos botones van en fila: "Cancelar turno" (secondary) a la izquierda y "Ir a check-in" (primary) a la derecha. |
-| **06 Check-in (QR)** | `TopBar` + `.page`. Columna centrada de **480 px**: primero un panel oscuro (`--surface-dark`, `--radius-2xl`, pad 32) con el visor de 250 × 250 y sus dos textos; debajo, una tarjeta clara (borde `--line`, pad 16) con el turno y el botón secondary "Ingresar código manualmente". Ver demo en la sección 8. |
+| **06 Check-in (QR)** | `TopBar` + `.page`. Columna centrada de **480 px**: primero un panel oscuro (`--surface-dark`, `--radius-2xl`, pad 32) con el visor de 250 × 250 y sus dos textos; debajo, una tarjeta clara (borde `--line`, pad 16) con el turno. Ver demo en la sección 8. |
 | **07 Viaje registrado** | Igual que la 05: columna de **480 px** sin `TopBar`; "Volver al inicio" a ancho completo. |
 | **08 Perfil** | `TopBar` + `.page`. Grilla `5fr 7fr`, gap 32. Izquierda: cabecera del perfil (dentro de una tarjeta) y la lista de ajustes. Derecha: tarjeta "Acceso prioritario". |
 | **09 Admin** | Sin cambios respecto de `SCREENS.md` (ver sección 7). |
@@ -236,7 +236,7 @@ Estados de puntero (solo con `@media (hover: hover)`): botón primary `opacity: 
 
 Pensadas para presentar el MVP; se activan con `?demo=1` en la URL y no aparecen para el usuario final.
 
-- **"Simular escaneo del QR"** en `/check-in`: botón secondary debajo del visor que lleva directo a `/check-in/ok`. En una laptop no hay un QR real que escanear ni una cámara cómoda de usar.
+- **"Simular escaneo del QR"** en `/check-in`: botón secondary debajo del visor que manda el token `DEMO` a `POST /api/check-ins`. En una laptop no hay un QR real que escanear ni una cámara cómoda de usar. Solo los datos simulados lo aceptan (sale cumplido); el backend real lo rechaza con `INVALID_QR_TOKEN`: contra la API, escaneá el QR del simulador de kiosco (`/admin/simulador`).
 - Los parámetros de URL se combinan: `/?vista=telefono&demo=1` abre la app ya en modo Teléfono con las ayudas de demo, útil para dejar el link listo antes de presentar.
 
 ---

@@ -1,6 +1,6 @@
 # 0007. Modelo de turnos: la franja es una salida de ascensor
 
-- **Estado:** Aceptado
+- **Estado:** Aceptado, en parte reemplazado por [0018](0018-alcance-del-mvp-en-reglas-de-turnos.md)
 - **Fecha:** 2026-09-28
 - **Issue:** [#7](https://github.com/Benji-9/SmartElevate/issues/7)
 

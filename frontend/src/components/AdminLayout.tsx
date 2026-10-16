@@ -1,4 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
+import { useResource } from '../hooks/useResource';
+import { getKiosks } from '../services/api';
 import './AdminLayout.css';
 
 /**
@@ -6,6 +8,7 @@ import './AdminLayout.css';
  * menos de 900 px se muestra un aviso en lugar del panel.
  */
 export function AdminLayout() {
+  const kiosks = useResource(getKiosks);
   return (
     <div className="admin-shell">
       <div className="admin">
@@ -20,7 +23,30 @@ export function AdminLayout() {
                   Dashboard
                 </NavLink>
               </li>
-              {/* Turnos, Núcleos, Usuarios prioritarios y Reportes se suman cuando existan (#158). */}
+              <li>
+                <NavLink to="/admin/prioritarios" className="admin__link">
+                  Usuarios prioritarios
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/admin/kioscos" className="admin__link">
+                  Kioscos
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/admin/ascensores" className="admin__link">
+                  Ascensores
+                </NavLink>
+              </li>
+              {/* El flag lo manda el servidor (APP_KIOSK_SIMULATOR_ENABLED); sin respuesta, no va. */}
+              {kiosks.data?.simulatorEnabled && (
+                <li>
+                  <NavLink to="/admin/simulador" className="admin__link">
+                    Simulador de kiosco
+                  </NavLink>
+                </li>
+              )}
+              {/* Turnos, Núcleos y Reportes se suman cuando existan (#158). */}
             </ul>
           </nav>
         </aside>

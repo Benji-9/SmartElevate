@@ -1,20 +1,19 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { signedIn, stubApi } from '../test/stubApi';
-import type { CheckInResult } from '../types/pending';
+import type { CheckIn } from '../types/api';
 import { CheckInSuccessPage } from './CheckInSuccessPage';
 
-const result: CheckInResult = {
-  reservationId: 'r-1',
+const result: CheckIn = {
+  reservationId: 55,
   outcome: 'ON_TIME',
+  reservationStatus: 'USED',
+  elevator: '33',
+  reservedElevator: '33',
+  departureAt: '2026-09-29T17:04:00Z',
   checkedInAt: '2026-09-29T17:04:30Z',
-  waitDeltaSeconds: 20,
-  elevatorName: 'Ascensor 2',
-  coreName: 'L1',
-  departsAt: '2026-09-29T17:04:00Z',
-  durationMinutes: 2,
+  source: 'REAL',
 };
 
 function renderPage(state: unknown = result) {
@@ -28,24 +27,28 @@ function renderPage(state: unknown = result) {
   );
 }
 
-const feedbackUrl = '/api/check-ins/r-1/wait-feedback';
-
 describe('CheckInSuccessPage', () => {
-  it('muestra el viaje registrado con ascensor, núcleo, hora y franja del turno', () => {
+  it('muestra el viaje registrado con ascensor, hora y salida del turno', () => {
     stubApi(signedIn());
     renderPage();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Viaje registrado' })).toBeVisible();
-    expect(screen.getByText('Ascensor 2 · L1 · 14:04 hs')).toBeInTheDocument();
+    expect(screen.getByText('Ascensor 33 · 14:04 hs')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 2, name: 'Check-in a tiempo' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText('Subiste dentro de tu franja. ¡Gracias por usar tu turno!'),
     ).toBeInTheDocument();
-    expect(screen.getByText('14:04 – 14:06')).toBeInTheDocument();
-    expect(screen.getByText('Nos ayuda a medir la congestión real.')).toBeInTheDocument();
+    expect(screen.getByText('14:04 hs')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
+  });
+
+  it('sin backend para la encuesta de espera, no la muestra', () => {
+    stubApi(signedIn());
+    renderPage();
+
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
   it.each([
@@ -54,17 +57,17 @@ describe('CheckInSuccessPage', () => {
       'OTHER_ELEVATOR',
       'Viaje registrado en otro ascensor',
       'Check-in en otro ascensor',
-      /ascensor distinto/,
+      'Reservaste el ascensor 33 y escaneaste el 34. Quedó registrado y no cuenta como falta.',
     ],
     [
       'LATE',
       'Llegaste fuera de tu franja: cuenta como falta',
       'Check-in fuera de hora',
-      /pasada tu franja: cuenta como falta/,
+      /después de la hora de tu salida, así que cuenta como falta/,
     ],
   ] as const)('explica el resultado %s en el título y la tarjeta', (outcome, h1, title, detail) => {
     stubApi(signedIn());
-    renderPage({ ...result, outcome });
+    renderPage({ ...result, outcome, elevator: outcome === 'OTHER_ELEVATOR' ? '34' : '33' });
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(h1);
     expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument();
@@ -73,62 +76,9 @@ describe('CheckInSuccessPage', () => {
 
   it('con LATE no muestra el título de éxito', () => {
     stubApi(signedIn());
-    renderPage({ ...result, outcome: 'LATE' });
+    renderPage({ ...result, outcome: 'LATE', reservationStatus: 'NO_SHOW' });
 
     expect(screen.queryByRole('heading', { name: /registrado/ })).not.toBeInTheDocument();
-  });
-
-  it('envía la encuesta una sola vez', async () => {
-    const fetchMock = stubApi({
-      ...signedIn(),
-      'POST /check-ins/r-1/wait-feedback': { status: 204 },
-    });
-    renderPage();
-
-    const group = screen.getByRole('radiogroup', { name: '¿Cuánto esperaste el ascensor?' });
-    expect(group).toBeInTheDocument();
-    const send = screen.getByRole('button', { name: 'Enviar respuesta' });
-    expect(send).toBeDisabled();
-
-    await userEvent.click(screen.getByRole('radio', { name: '5–10 min' }));
-    await userEvent.click(send);
-
-    expect(await screen.findByRole('status')).toHaveTextContent('Registramos tu respuesta');
-    expect(fetchMock).toHaveBeenCalledWith(
-      feedbackUrl,
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ range: 'FROM_5_TO_10' }) }),
-    );
-    expect(screen.queryByRole('button', { name: 'Enviar respuesta' })).not.toBeInTheDocument();
-    for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
-    expect(fetchMock.mock.calls.filter(([url]) => url === feedbackUrl)).toHaveLength(1);
-  });
-
-  it('si ya se había respondido (409), lo avisa y no deja reenviar', async () => {
-    stubApi({
-      ...signedIn(),
-      'POST /check-ins/r-1/wait-feedback': { status: 409, body: { message: 'Ya respondida' } },
-    });
-    renderPage();
-
-    await userEvent.click(screen.getByRole('radio', { name: '< 2 min' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Enviar respuesta' }));
-
-    expect(await screen.findByRole('status')).toHaveTextContent('Ya respondiste esta encuesta.');
-    expect(screen.queryByRole('button', { name: 'Enviar respuesta' })).not.toBeInTheDocument();
-  });
-
-  it('muestra el error y deja reintentar', async () => {
-    stubApi({
-      ...signedIn(),
-      'POST /check-ins/r-1/wait-feedback': { status: 500, body: { message: 'Error inesperado' } },
-    });
-    renderPage();
-
-    await userEvent.click(screen.getByRole('radio', { name: '> 10 min' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Enviar respuesta' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
-    expect(screen.getByRole('button', { name: 'Enviar respuesta' })).toBeEnabled();
   });
 
   it('sin un check-in reciente redirige al inicio', () => {

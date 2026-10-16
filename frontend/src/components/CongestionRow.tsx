@@ -1,5 +1,5 @@
 import { congestionLabel, congestionTone } from '../features/congestion/level';
-import type { CongestionLevel } from '../types/pending';
+import type { CongestionLevel } from '../types/api';
 import './CongestionRow.css';
 
 type CongestionRowProps = {

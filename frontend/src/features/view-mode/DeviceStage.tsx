@@ -53,7 +53,7 @@ export function DeviceStage({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const framed = canToggle && mode === 'telefono';
   useFitScale(framed);
-  const tone = pathname === '/check-in' || pathname === '/check-in/codigo' ? 'dark' : 'light';
+  const tone = pathname === '/check-in' ? 'dark' : 'light';
 
   return (
     <div className="stage" data-mode={framed ? 'telefono' : 'pantalla'}>

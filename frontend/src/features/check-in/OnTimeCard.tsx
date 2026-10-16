@@ -1,35 +1,33 @@
-import type { CheckInOutcome, CheckInResult } from '../../types/pending';
-import { formatSlot } from '../turn/format';
+import type { CheckIn, CheckInOutcome } from '../../types/api';
+import { formatTime } from '../turn/format';
 
-const outcomes: Record<CheckInOutcome, { title: string; detail: string }> = {
-  ON_TIME: {
-    title: 'Check-in a tiempo',
-    detail: 'Subiste dentro de tu franja. ¡Gracias por usar tu turno!',
-  },
-  OTHER_ELEVATOR: {
-    title: 'Check-in en otro ascensor',
-    detail: 'Subiste a un ascensor distinto al de tu turno. Igual quedó registrado.',
-  },
-  LATE: {
-    title: 'Check-in fuera de hora',
-    detail: 'Llegaste pasada tu franja: cuenta como falta, pero queda registrado que viniste.',
-  },
+const titles: Record<CheckInOutcome, string> = {
+  ON_TIME: 'Check-in a tiempo',
+  OTHER_ELEVATOR: 'Check-in en otro ascensor',
+  LATE: 'Check-in fuera de hora',
 };
 
-/** Resultado del check-in (docs/reglas/check-in-qr.md#resultados) con la franja del turno. */
-export function OnTimeCard({ result }: { result: CheckInResult }) {
-  const { title, detail } = outcomes[result.outcome];
+function detail({ outcome, elevator, reservedElevator }: CheckIn) {
+  if (outcome === 'ON_TIME') return 'Subiste dentro de tu franja. ¡Gracias por usar tu turno!';
+  if (outcome === 'OTHER_ELEVATOR') {
+    return `Reservaste el ascensor ${reservedElevator} y escaneaste el ${elevator}. Quedó registrado y no cuenta como falta.`;
+  }
+  return 'El check-in fue después de la hora de tu salida, así que cuenta como falta. Igual queda registrado que viniste.';
+}
+
+/** Resultado del check-in (docs/reglas/check-in-qr.md#resultados) con la salida del turno. */
+export function OnTimeCard({ result }: { result: CheckIn }) {
   return (
     <section
       className={`checkin-card checkin-card--${result.outcome.toLowerCase()}`}
       aria-labelledby="checkin-card-title"
     >
       <h2 id="checkin-card-title" className="checkin-card__title text-body-strong">
-        {title}
+        {titles[result.outcome]}
       </h2>
-      <p>{detail}</p>
+      <p>{detail(result)}</p>
       <p>
-        Tu turno: <strong>{formatSlot(result.departsAt, result.durationMinutes)}</strong>
+        Salida de tu turno: <strong>{formatTime(result.departureAt)} hs</strong>
       </p>
     </section>
   );

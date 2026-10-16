@@ -7,6 +7,11 @@ import { DeviceStage } from './features/view-mode/DeviceStage';
 import { ViewModeProvider } from './features/view-mode/ViewModeProvider';
 import { useDemoMode } from './hooks/useDemoMode';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminKioskSimulatorPage } from './pages/AdminKioskSimulatorPage';
+import { AdminElevatorsPage } from './pages/AdminElevatorsPage';
+import { AdminKiosksPage } from './pages/AdminKiosksPage';
+import { AdminPriorityPage } from './pages/AdminPriorityPage';
+import { KioskPage } from './pages/KioskPage';
 import { CheckInPage } from './pages/CheckInPage';
 import { CheckInSuccessPage } from './pages/CheckInSuccessPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -22,10 +27,11 @@ import { ReserveTurnPage } from './pages/ReserveTurnPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { TermsPage } from './pages/TermsPage';
 import { TurnPage } from './pages/TurnPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
 /**
  * Rutas de la app (una por frame del Figma). El router (Browser/Memory) lo provee quien la monta.
- * Todo es privado salvo login, registro, recuperar contraseña, legales y 404; `/admin` además pide rol ADMIN según `/me`.
+ * Todo es privado salvo login, registro, recuperar contraseña, legales y 404; `/admin` además pide rol ADMIN según `/users/me`.
  */
 export function App() {
   // Guarda `?demo=1` apenas se entra, aunque la primera pantalla no lo use.
@@ -53,17 +59,23 @@ export function App() {
               </Route>
               <Route element={<ScreenLayout bleed topBar />}>
                 <Route path="check-in" element={<CheckInPage />} />
-                <Route path="check-in/codigo" element={<CheckInPage manual />} />
               </Route>
             </Route>
             <Route element={<RequireSession role="ADMIN" />}>
               <Route path="admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboardPage />} />
+                <Route path="prioritarios" element={<AdminPriorityPage />} />
+                <Route path="kioscos" element={<AdminKiosksPage />} />
+                <Route path="ascensores" element={<AdminElevatorsPage />} />
+                <Route path="simulador" element={<AdminKioskSimulatorPage />} />
               </Route>
             </Route>
+            {/* Tablet del hall: sin sesión de usuario, con la credencial del kiosco (§10). */}
+            <Route path="qr/:ascensor" element={<KioskPage />} />
             <Route element={<ScreenLayout />}>
               <Route path="login" element={<LoginPage />} />
               <Route path="registro" element={<RegisterPage />} />
+              <Route path="verificar-email" element={<VerifyEmailPage />} />
               <Route path="recuperar" element={<ForgotPasswordPage />} />
               <Route path="recuperar/nueva" element={<ResetPasswordPage />} />
               <Route path="privacidad" element={<PrivacyPage />} />
