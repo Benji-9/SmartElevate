@@ -374,6 +374,8 @@ describe('mocks', () => {
     const before = await call<AdminElevator[]>('GET', '/admin/elevators');
     const count = before.find((e) => e.code === '33')!.upcomingReservations;
 
+    const [slot] = await call<Departure[]>('GET', '/departures?elevator=33');
+
     const out = await call<ElevatorServiceResult>('POST', '/admin/elevators/33/out-of-service');
     expect(out).toEqual({ code: '33', active: false, cancelledReservations: count });
     const after = await call<AdminElevator[]>('GET', '/admin/elevators');
@@ -381,13 +383,20 @@ describe('mocks', () => {
       active: false,
       upcomingReservations: 0,
     });
-    expect((await call<Elevator[]>('GET', '/elevators')).some((e) => e.code === '33')).toBe(false);
+    const listed = await call<Elevator[]>('GET', '/elevators');
+    expect(listed.find((e) => e.code === '33')?.active).toBe(false);
+    expect(listed.find((e) => e.code === '34')?.active).toBe(true);
     expect((await call<Departure[]>('GET', '/departures?elevator=33')).length).toBe(0);
+    await expect(
+      call('POST', '/reservations', { departureId: slot.id, originFloor: 0, destinationFloor: 8 }),
+    ).rejects.toMatchObject({ status: 422, code: 'ELEVATOR_NOT_BOOKABLE' });
     await expect(call('POST', '/admin/elevators/99/out-of-service')).rejects.toMatchObject({
       status: 404,
     });
 
     await call('POST', '/admin/elevators/33/in-service');
-    expect((await call<Elevator[]>('GET', '/elevators')).some((e) => e.code === '33')).toBe(true);
+    expect((await call<Elevator[]>('GET', '/elevators')).find((e) => e.code === '33')?.active).toBe(
+      true,
+    );
   });
 });

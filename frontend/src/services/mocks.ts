@@ -125,7 +125,7 @@ const ELEVATORS: Elevator[] = [
   ...['33', '34'].map((code) => elevator(code, 'IND2', [...range(-4, 0), ...range(2, 11)])),
 ];
 let kiosks: Kiosk[] = [];
-// Ascensores fuera de servicio (#134): no se ofrecen ni figuran en la lista pública.
+// Ascensores fuera de servicio (#134): no se ofrecen y `GET /elevators` los devuelve con `active: false`.
 const outOfService = new Set<string>();
 // Cola de docentes y prioritarios del panel admin (#140). Ids UUID y mensajes de error como los
 // del backend (PriorityService): 404 PriorityNotFoundException, 409 InvalidPriorityOperation.
@@ -490,6 +490,9 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
         : 'Ese ascensor es exclusivo para personas con movilidad reducida.',
     );
   }
+  if (outOfService.has(e.code)) {
+    throw rejected(422, 'ELEVATOR_NOT_BOOKABLE', 'Esa salida no se puede reservar.');
+  }
   const departure = departureFor(departureId, user);
   const at = Date.parse(departure.departureAt);
   if (at < Date.now() + BOOKING_CLOSES_MS || at > Date.now() + WINDOW_MINUTES * 60_000) {
@@ -764,7 +767,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ],
   ['GET', /^\/users\/me$/, () => currentUser()],
   ['GET', /^\/buildings$/, () => buildings],
-  ['GET', /^\/elevators$/, () => ELEVATORS.filter((e) => !outOfService.has(e.code))],
+  [
+    'GET',
+    /^\/elevators$/,
+    () => ELEVATORS.map((e) => ({ ...e, active: !outOfService.has(e.code) })),
+  ],
   ['GET', /^\/admin\/elevators$/, () => adminElevators()],
   ['POST', /^\/admin\/elevators\/([^/]+)\/out-of-service$/, (_, [code]) => setService(code, false)],
   ['POST', /^\/admin\/elevators\/([^/]+)\/in-service$/, (_, [code]) => setService(code, true)],

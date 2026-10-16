@@ -9,6 +9,7 @@ export function ConfirmAction({
   question,
   confirmLabel,
   onConfirm,
+  disabled = false,
 }: {
   label: string;
   /** Nombre accesible completo ("Rechazar a Ana"). */
@@ -16,11 +17,19 @@ export function ConfirmAction({
   question: string;
   confirmLabel: string;
   onConfirm: () => void;
+  /** Deshabilita las acciones (p. ej. mientras otro pedido está en curso). */
+  disabled?: boolean;
 }) {
   const [asking, setAsking] = useState(false);
   if (!asking) {
     return (
-      <Button variant="secondary" block={false} aria-label={name} onClick={() => setAsking(true)}>
+      <Button
+        variant="secondary"
+        block={false}
+        aria-label={name}
+        disabled={disabled}
+        onClick={() => setAsking(true)}
+      >
         {label}
       </Button>
     );
@@ -30,6 +39,7 @@ export function ConfirmAction({
       <p>{question}</p>
       <Button
         block={false}
+        disabled={disabled}
         onClick={() => {
           setAsking(false);
           onConfirm();

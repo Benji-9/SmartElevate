@@ -77,6 +77,24 @@ describe('AdminElevatorsPage', () => {
     expect(updated).toBe(2);
   });
 
+  it('deshabilita las acciones mientras el pedido está en curso', async () => {
+    const fetchMock = renderPage([elevator('33', true, 2), elevator('34', true, 0)]);
+    const real = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      url.includes('out-of-service') ? new Promise<Response>(() => {}) : real(url, init),
+    );
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Marcar fuera de servicio el ascensor 33' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Sí, marcar' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Marcar fuera de servicio el ascensor 34' }),
+    ).toBeDisabled();
+  });
+
   it('avisa cuando no hay reservas para cancelar', async () => {
     renderPage([elevator('33', true, 0)]);
     const user = userEvent.setup();

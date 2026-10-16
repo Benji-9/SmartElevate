@@ -61,7 +61,7 @@ public class ElevatorOutageService {
         Map<String, Integer> upcoming = new HashMap<>();
         reservations.countActiveFromByElevator(time.now())
                 .forEach(row -> upcoming.put((String) row[0], ((Number) row[1]).intValue()));
-        return elevators.findAll().stream()
+        return elevators.findAllWithCore().stream()
                 .sorted(Comparator.comparing((Elevator e) -> e.getCore().getBuilding().getCode())
                         .thenComparing(e -> e.getCore().getCode()).thenComparing(Elevator::getCode))
                 .map(e -> new AdminElevatorResponse(e.getCode(), e.getCore().getName(),
