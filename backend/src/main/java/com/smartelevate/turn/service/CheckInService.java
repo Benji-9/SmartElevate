@@ -17,8 +17,10 @@ import com.smartelevate.turn.model.CheckInSource;
 import com.smartelevate.turn.model.Reservation;
 import com.smartelevate.turn.model.ReservationStatus;
 import com.smartelevate.turn.repository.CheckInRepository;
+import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.EnumSet;
@@ -41,6 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p><b>LATE y el job de no-shows (#231):</b> un escaneo LATE deja la reserva NO_SHOW aunque el job todavía no haya
  * corrido; si ya corrió, queda igual. El job tiene que marcar con un update condicional
  * ({@code status = 'ACTIVE'}): así no pisa un USED de un escaneo a tiempo que se le adelantó.
+ *
+ * <p><b>Ascensor caído (#134):</b> después del lock de usuario se toma el de la salida y se relee la reserva; si
+ * {@link ElevatorOutageService} la canceló mientras tanto, el rechazo es NO_ACTIVE_RESERVATION.
  */
 @Service
 @RequiredArgsConstructor
@@ -60,6 +65,8 @@ public class CheckInService {
     private final PriorityAuditRepository audit;
     private final ConfigService config;
     private final CampusTime time;
+    private final DepartureRepository departures;
+    private final EntityManager entityManager;
 
     @Transactional
     public CheckInResponse checkIn(UUID userId, String token) {
@@ -77,6 +84,13 @@ public class CheckInService {
                                 "Tu turno no está en horario de check-in.")
                         : new ReservationRejectedException(NO_ACTIVE_RESERVATION,
                                 "No tenés un turno para hacer check-in."));
+        // Lock de la salida (usuario, después salida: el orden de reservar y cancelar) y relectura: si el ascensor
+        // cayó en el medio, ElevatorOutageService ya la canceló y marcarla USED pisaría esa cancelación (#134).
+        departures.findByIdForUpdate(reservation.getDeparture().getId());
+        entityManager.refresh(reservation);
+        if (!CHECKABLE.contains(reservation.getStatus())) {
+            throw new ReservationRejectedException(NO_ACTIVE_RESERVATION, "No tenés un turno para hacer check-in.");
+        }
         if (reservation.getStatus() == ReservationStatus.USED || checkIns.existsByReservationId(reservation.getId())) {
             throw new ReservationRejectedException(ALREADY_CHECKED_IN, "Ya registraste el check-in de este turno.");
         }

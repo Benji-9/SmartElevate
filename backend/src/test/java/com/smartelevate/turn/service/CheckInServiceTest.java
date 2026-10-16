@@ -27,9 +27,11 @@ import com.smartelevate.turn.model.Departure;
 import com.smartelevate.turn.model.Reservation;
 import com.smartelevate.turn.model.ReservationStatus;
 import com.smartelevate.turn.repository.CheckInRepository;
+import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -71,6 +73,10 @@ class CheckInServiceTest {
     private PriorityAuditRepository audit;
     @Mock
     private ConfigService config;
+    @Mock
+    private DepartureRepository departures;
+    @Mock
+    private EntityManager entityManager;
 
     private CheckInService service;
     private Elevator e33;
@@ -79,7 +85,7 @@ class CheckInServiceTest {
     @BeforeEach
     void setUp() {
         CampusTime time = new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new CheckInService(qrTokens, reservations, checkIns, users, audit, config, time);
+        service = new CheckInService(qrTokens, reservations, checkIns, users, audit, config, time, departures, entityManager);
         Core core = new Core("IND2", new Building("INDEPENDENCIA", "Independencia", -4, 11), "Independencia 2");
         e33 = new Elevator("33", core, ElevatorUsage.COMMON, true, Set.of(0, 8));
         lenient().when(users.lockById(USER)).thenReturn(Optional.of(org.mockito.Mockito.mock(User.class)));
@@ -96,8 +102,9 @@ class CheckInServiceTest {
 
     /** Reserva del usuario cuya salida fue hace {@code secondsAgo} (negativo = todavía no salió). */
     private Reservation reservation(long id, long secondsAgo) {
-        Reservation r = new Reservation(USER, new Departure(e33, NOW.minusSeconds(secondsAgo), 10), 3, 0, 8,
-                NOW.minus(Duration.ofMinutes(20)));
+        Departure departure = new Departure(e33, NOW.minusSeconds(secondsAgo), 10);
+        ReflectionTestUtils.setField(departure, "id", 7L);
+        Reservation r = new Reservation(USER, departure, 3, 0, 8, NOW.minus(Duration.ofMinutes(20)));
         ReflectionTestUtils.setField(r, "id", id);
         mine.add(r);
         return r;
@@ -140,6 +147,24 @@ class CheckInServiceTest {
         assertThat(saved.getKioskId()).isEqualTo(KIOSK);
         assertThat(saved.getSource()).isEqualTo(CheckInSource.REAL);
         verify(audit, never()).save(any());
+    }
+
+    @Test
+    void anOutageCommittedWhileWaitingForTheDepartureLockRejectsTheCheckIn() {
+        // Leída ACTIVE antes del lock; al tomar la salida el ascensor ya la canceló (#134): no se pisa con USED.
+        Reservation r = reservation(55, 0);
+        org.mockito.Mockito.doAnswer(inv -> {
+            r.cancelByOutage();
+            return null;
+        }).when(entityManager).refresh(r);
+
+        rejected(ReservationRejectedException.Reason.NO_ACTIVE_RESERVATION);
+
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(users, departures, entityManager);
+        order.verify(users).lockById(USER);
+        order.verify(departures).findByIdForUpdate(7L);
+        order.verify(entityManager).refresh(r);
     }
 
     @ParameterizedTest(name = "a {0} s de la salida se rechaza")

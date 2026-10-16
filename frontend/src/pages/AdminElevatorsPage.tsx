@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { Chip } from '../components/Chip';
 import { ConfirmAction } from '../components/ConfirmAction';
@@ -32,16 +32,30 @@ export function AdminElevatorsPage() {
   const list = useResource(getAdminElevators);
   const [done, setDone] = useState<string>();
   const [actionError, setActionError] = useState<string>();
+  // Un solo pedido a la vez (evita doble POST) y nada de setState si la pantalla ya se desmontó.
+  const [busy, setBusy] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const change = (promise: Promise<unknown>, onOk: () => string | undefined) => {
     setDone(undefined);
     setActionError(undefined);
+    setBusy(true);
     promise.then(
       () => {
+        if (!mounted.current) return;
+        setBusy(false);
         setDone(onOk());
         list.reload();
       },
       (error: unknown) => {
+        if (!mounted.current) return;
+        setBusy(false);
         // 404: la fila quedó vieja. Se vuelve a pedir la lista.
         if (error instanceof ApiError && error.status === 404) {
           setActionError(`${error.message}. Actualizamos la lista.`);
@@ -93,7 +107,7 @@ export function AdminElevatorsPage() {
             <tr>
               <th scope="col">Ascensor</th>
               <th scope="col">Núcleo</th>
-              <th scope="col">Reservas de hoy</th>
+              <th scope="col">Reservas próximas</th>
               <th scope="col">Estado</th>
               <th scope="col">Acciones</th>
             </tr>
@@ -118,6 +132,7 @@ export function AdminElevatorsPage() {
                       name={`Marcar fuera de servicio el ascensor ${e.code}`}
                       question={outageQuestion(e)}
                       confirmLabel="Sí, marcar"
+                      disabled={busy}
                       onConfirm={() => markOut(e.code)}
                     />
                   ) : (
@@ -126,6 +141,7 @@ export function AdminElevatorsPage() {
                       name={`Reactivar el ascensor ${e.code}`}
                       question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
                       confirmLabel="Sí, reactivar"
+                      disabled={busy}
                       onConfirm={() => markIn(e.code)}
                     />
                   )}
@@ -149,7 +165,7 @@ export function AdminElevatorsPage() {
       </header>
       <section className="admin-card kiosk-card" aria-labelledby={listId}>
         <h2 id={listId} className="text-card-title">
-          Ascensores
+          Estado de los ascensores
         </h2>
         {done && <p role="status">{done}</p>}
         {actionError && (

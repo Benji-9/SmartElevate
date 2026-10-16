@@ -33,6 +33,7 @@ import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.model.User;
 import com.smartelevate.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -75,6 +76,8 @@ class ReservationServiceTest {
     private NoShowService noShows;
     @Mock
     private CheckInRepository checkIns;
+    @Mock
+    private EntityManager entityManager;
 
     private ReservationService service;
     private Elevator elevator;
@@ -82,7 +85,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         CampusTime time = new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, time, priorities, noShows, checkIns);
+        service = new ReservationService(reservations, departures, users, config, time, priorities, noShows, checkIns, entityManager);
         // Ascensor 33 de Independencia: -4 a 11 sin el 1.
         Building building = new Building("INDEPENDENCIA", "Independencia", -4, 11);
         Core core = new Core("IND2", building, "Independencia 2");
@@ -225,7 +228,7 @@ class ReservationServiceTest {
         // 23:50 en Buenos Aires: faltan 20 min para la salida de las 00:10 del día siguiente.
         CampusTime late = new CampusTime(Clock.fixed(Instant.parse("2026-10-14T02:50:00Z"), ZoneOffset.UTC),
                 ZoneId.of("America/Argentina/Buenos_Aires"));
-        service = new ReservationService(reservations, departures, users, config, late, priorities, noShows, checkIns);
+        service = new ReservationService(reservations, departures, users, config, late, priorities, noShows, checkIns, entityManager);
         departureAt(Instant.parse("2026-10-14T03:10:00Z"));
 
         assertRejected(() -> reserve(0, 8), ReservationRejectedException.Reason.OUTSIDE_BOOKING_WINDOW);
@@ -485,6 +488,23 @@ class ReservationServiceTest {
 
         assertThatCode(() -> service.cancel(USER, 55L)).doesNotThrowAnyException();
         assertThat(r.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
+    }
+
+    @Test
+    void anOutageThatCommitsWhileWaitingForTheLockIsNotALateCancellation() {
+        // La copia leída antes del lock es ACTIVE; al tomar la salida el ascensor ya canceló la reserva (#134).
+        Reservation r = reservationOf(USER, NOW.plusSeconds(30)); // dentro del plazo de falta: sería CANCELLED_LATE
+        org.mockito.Mockito.doAnswer(inv -> {
+            r.cancelByOutage();
+            return null;
+        }).when(entityManager).refresh(r);
+
+        assertThatCode(() -> service.cancel(USER, 55L)).doesNotThrowAnyException();
+
+        assertThat(r.getStatus()).isEqualTo(ReservationStatus.CANCELLED);
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(departures, entityManager);
+        order.verify(departures).findByIdForUpdate(DEPARTURE_ID);
+        order.verify(entityManager).refresh(r);
     }
 
     @Test

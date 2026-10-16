@@ -33,6 +33,7 @@ import com.smartelevate.turn.repository.CheckInRepository;
 import com.smartelevate.turn.repository.DepartureRepository;
 import com.smartelevate.turn.repository.ReservationRepository;
 import com.smartelevate.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -76,6 +77,7 @@ public class ReservationService {
     private final PriorityService priorities;
     private final NoShowService noShows;
     private final CheckInRepository checkIns;
+    private final EntityManager entityManager;
 
     static final int HISTORY_PAGE_SIZE = 20;
     private static final String CURSOR_SEPARATOR = "_";
@@ -139,6 +141,9 @@ public class ReservationService {
                 .filter(r -> r.getUserId().equals(userId))
                 .orElseThrow(() -> new ReservationRejectedException(RESERVATION_NOT_FOUND, "La reserva no existe."));
         departures.findByIdForUpdate(reservation.getDeparture().getId());
+        // La copia leída arriba pudo quedar vieja mientras esperábamos el lock: si el ascensor cayó en el medio, la
+        // reserva ya es CANCELLED y no puede pasar a CANCELLED_LATE (una cancelación del sistema nunca es falta, #134).
+        entityManager.refresh(reservation);
         Instant now = time.now();
         switch (reservation.getStatus()) {
             case USED -> throw new ReservationRejectedException(ALREADY_CHECKED_IN,
@@ -229,6 +234,8 @@ public class ReservationService {
                 r.getDestinationFloor(), r.getStatus(), r.getCreatedAt(), lateCancel, outcome);
     }
 
+    // Ojo: acá se lee departure.getElevator().isActive(); nada debe cargar el ascensor de la salida antes de
+    // tomar el lock de la salida en reserve (ElevatorOutageService lo desactiva bajo ese lock), o se vería viejo.
     private void checkDeparture(Departure departure, Instant now, PriorityCategory priority) {
         Elevator elevator = departure.getElevator();
         if (departure.getStatus() != DepartureStatus.SCHEDULED || !elevator.isActive()) {

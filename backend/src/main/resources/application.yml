@@ -38,6 +38,8 @@ app:
     # false (default): el mail solo se loguea. En prod se activa con APP_MAIL_ENABLED=true (SMTP, ADR 0013).
     enabled: ${APP_MAIL_ENABLED:false}
     from: ${APP_MAIL_FROM:no-reply@localhost}
+    # true: los mails masivos (ascensor fuera de servicio) corren en el hilo que llama. Solo para tests.
+    synchronous: ${APP_MAIL_SYNCHRONOUS:false}
   # Parámetros técnicos y de seguridad: acá, con override por variable de entorno. En app_config van solo las
   # reglas de negocio ajustables sin redeploy; los secretos, solo en variables de entorno (#225).
   login-throttle:

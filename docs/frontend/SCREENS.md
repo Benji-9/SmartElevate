@@ -365,9 +365,9 @@ Estados de carga y error como 09b.
 
 Sin frame de Figma: mismos componentes que 09c. Ítem **"Ascensores"** en la barra lateral. Contrato en `docs/openapi.json` (`GET /api/admin/elevators`, `POST /api/admin/elevators/{code}/out-of-service` y `/in-service`; [turnos.md §8](../reglas/turnos.md#8-ascensor-fuera-de-servicio), #134).
 
-`h1` "Ascensores" y debajo (14 px `--ink-muted`) "Si un ascensor se rompe, marcalo fuera de servicio: sus reservas de hoy se cancelan solas, sin falta, y avisamos a cada persona por mail." Una tarjeta **"Ascensores"** con la tabla **Ascensor · Núcleo · Reservas de hoy · Estado · Acciones**:
+`h1` "Ascensores" y debajo (14 px `--ink-muted`) "Si un ascensor se rompe, marcalo fuera de servicio: sus reservas de hoy se cancelan solas, sin falta, y avisamos a cada persona por mail." Una tarjeta **"Estado de los ascensores"** (`h2`) con la tabla **Ascensor · Núcleo · Reservas próximas · Estado · Acciones**:
 
-- Ascensor = código ("33"); Núcleo = nombre visible ("Independencia 2"); Reservas de hoy = `upcomingReservations` (reservas activas de salidas que todavía no pasaron), el número que se cancelaría.
+- Ascensor = código ("33"); Núcleo = nombre visible ("Independencia 2"); Reservas próximas = `upcomingReservations` (reservas activas de salidas que todavía no pasaron), el número que se cancelaría.
 - Estado: `Chip` accent "En servicio" o neutral "Fuera de servicio" (texto, nunca solo color).
 - Acciones: en servicio, secondary "Marcar fuera de servicio" (nombre accesible "Marcar fuera de servicio el ascensor 33"); fuera de servicio, secondary "Reactivar" (nombre "Reactivar el ascensor 33"). Ambas con `ConfirmAction` en la fila:
   - Marcar: "¿Marcar el ascensor 33 fuera de servicio? Se cancelan 4 reservas sin falta y se avisa a cada persona." (con 0: "No hay reservas para cancelar."; con 1: "Se cancela 1 reserva sin falta y se avisa a la persona.") · "Sí, marcar" / "Cancelar" (con el foco).
