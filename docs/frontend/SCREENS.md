@@ -4,7 +4,7 @@ Describe las 9 pantallas del wireframe con medidas, textos y estados, para imple
 
 **Este archivo describe la versión móvil (390 px).** La disposición en modo Pantalla para laptop y el selector Pantalla / Teléfono están en `VIEW-MODES.md`.
 
-Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/20" = vertical/horizontal; "gap" = separación entre hijos. Todos los datos son **de ejemplo**: alinearlos con el contrato de API del backend antes de conectar.
+Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/20" = vertical/horizontal; "gap" = separación entre hijos. Las cifras y textos de las tablas son ilustrativos; las pantallas leen el backend real (ver [Estado por pantalla](#estado-por-pantalla)). Ante contradicción manda `docs/openapi.json`.
 
 ## Mapa de rutas
 
@@ -38,26 +38,30 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 ## Reglas de negocio que la UI debe respetar
 
 - Cada franja horaria tiene **capacidad de 10 personas**; al llegar a 10 se muestra "Completo" y no se puede elegir.
-- Las franjas de ejemplo son de 5 minutos (7:15 – 7:20, 7:20 – 7:25…), pensadas para la entrada, el recreo y la salida de cada bloque de cursada.
+- La franja es una **salida de ascensor de ~2 min** ([ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md)); se reserva de 30 a 2 min antes.
 - **Regla de pisos bajos** ([`asignacion.md`](../reglas/asignacion.md)): los trayectos cortos van por escalera, salvo **movilidad reducida**, que queda exenta (los docentes no). Hoy no se reserva con destino en los pisos **1 a 4** (umbral `low_floors_threshold` de la tabla de configuración, [#113](https://github.com/Benji-9/SmartElevate/issues/113)); el "0–4" del wireframe era de ejemplo. La regla la evalúa el servidor al reservar: hoy el contrato no expone la elegibilidad por piso, así que la UI no la marca de antemano y muestra el motivo de `LOW_FLOOR_DESTINATION` (ver §04), sin hardcodear pisos ni textos.
 - El **acceso prioritario** se solicita desde el perfil subiendo un certificado de discapacidad (PDF) o un certificado médico (PDF o imagen); queda en estado "Pendiente de validación" hasta que se valida.
 - El **check-in** se hace escaneando el QR que rota en la pantalla dentro de la cabina.
 - Los núcleos son **Lima 1, Lima 2, Lima 3, Independencia 1 e Independencia 2** (en botones cortos: "Indep. 1", "Indep. 2"). El "Lima 3, ascensores 1–3, pisos 7–10" del wireframe es de ejemplo: la zonificación real ya está relevada ([asignación](../reglas/asignacion.md#ascensores-y-pisos-servidos)) y la manda el servidor.
 - Autenticación con JWT; registro con email institucional, legajo y contraseña.
 
-> **Ojo (repo):** las franjas de 5 minutos de este wireframe son de ejemplo; la regla vigente es la del ADR 0007 (la franja es una salida de ascensor de ~2 min) y `docs/reglas/`. Ante contradicción manda `docs/reglas/`.
+> **Ojo (repo):** el wireframe original usaba franjas de 5 minutos; no se implementan. Ante contradicción con la spec manda `docs/reglas/` (ADR 0007).
 
-## Tipos sugeridos para los datos de ejemplo
+## Estado por pantalla
 
-```ts
-type CongestionLevel = 'baja' | 'media' | 'alta';
-type UserType = 'estudiante' | 'docente'; // declarativo, ver #32
-type Core = 'Lima 1' | 'Lima 2' | 'Lima 3' | 'Independencia 1' | 'Independencia 2';
+Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`services/mocks.ts`); en tests, build y producción siempre pega al backend ([README](../../README.md#frontend)). Qué está conectado hoy:
 
-interface Slot { id: string; start: string; end: string; taken: number; capacity: 10 }        // "7:25", "7:30"
-interface Turn { id: string; core: Core; elevators: string; floor: number; room?: string; slot: Slot; status: 'confirmado' | 'cancelado' }
-interface CoreStatus { core: Core; level: CongestionLevel; occupancy: number /* 0–1 */ }
-```
+| Pantalla | Estado | Endpoints / PR |
+|---|---|---|
+| 01 Login, 02 Registro, 02b/02c Recuperar contraseña, 02d Verificar email | Backend real | `/api/auth/*` ([#199](https://github.com/Benji-9/SmartElevate/pull/199), [#202](https://github.com/Benji-9/SmartElevate/pull/202), [#248](https://github.com/Benji-9/SmartElevate/pull/248)) |
+| 03 Inicio, 04 Reservar, 05 Turno, Mis viajes | Backend real | `/api/reservations`, `/api/departures`, `/api/congestion` ([#241](https://github.com/Benji-9/SmartElevate/pull/241), [#243](https://github.com/Benji-9/SmartElevate/pull/243)) |
+| 06 Check-in, 07 Viaje registrado | Backend real | `POST /api/check-ins` ([#239](https://github.com/Benji-9/SmartElevate/pull/239)). Sin ingreso manual ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)) |
+| 08 Perfil: cabecera y Notificaciones | Backend real | `/api/users/me`, `/api/me/notification-preferences` ([#246](https://github.com/Benji-9/SmartElevate/pull/246)) |
+| 08 Perfil: tarjeta "Acceso prioritario" (subir certificado) | **Pendiente**: sin endpoint (`/priority-requests/me` no está en el contrato); solo funciona con mocks | [#122](https://github.com/Benji-9/SmartElevate/issues/122), [#123](https://github.com/Benji-9/SmartElevate/issues/123), sujeto a [#24](https://github.com/Benji-9/SmartElevate/issues/24) |
+| 09 Panel (KPIs, congestión) | Backend real | `/api/admin/kpis`, `/api/admin/shifts` ([#242](https://github.com/Benji-9/SmartElevate/pull/242)) |
+| 09b Prioritarios | Backend real | `/api/admin/teachers/*`, `/api/admin/priority-users`, `/api/admin/users` ([#208](https://github.com/Benji-9/SmartElevate/pull/208), [#245](https://github.com/Benji-9/SmartElevate/pull/245)) |
+| 09c Kioscos, 09d Simulador, 10 Kiosco QR | Backend real | `/api/admin/kiosks`, `/api/kiosks/me/qr-token` ([#234](https://github.com/Benji-9/SmartElevate/pull/234), [#236](https://github.com/Benji-9/SmartElevate/pull/236)) |
+| 09e Ascensores fuera de servicio | Backend real | `/api/admin/elevators` ([#249](https://github.com/Benji-9/SmartElevate/pull/249)) |
 
 ---
 
@@ -267,10 +271,9 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
    - `ON_TIME`: "Check-in a tiempo" · "Subiste dentro de tu franja. ¡Gracias por usar tu turno!"
    - `OTHER_ELEVATOR` (fondo neutro): "Check-in en otro ascensor" · "Reservaste el ascensor 33 y escaneaste el 34. Quedó registrado y no cuenta como falta." (`reservedElevator` y `elevator`).
    - `LATE` (`--danger-tint`; la reserva queda `NO_SHOW`): "Check-in fuera de hora" · "El check-in fue después de la hora de tu salida, así que cuenta como falta. Igual queda registrado que viniste." La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
-3. **Encuesta de espera** — **no se muestra**: el backend no tiene dónde guardarla ni expone la espera real (`waitDeltaSeconds`), y no se inventa contrato. Cuando exista el endpoint, se recupera de la historia de git (`features/check-in/WaitFeedback.tsx`, #238). Spec para entonces: (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
+3. **Encuesta de espera** — **no se muestra**: queda **fuera del MVP** ([alcance](../alcance-mvp.md)): el backend no tiene dónde guardarla ni medir la espera real, y no se inventa contrato. Si se retoma, el componente está en el historial del repo (`features/check-in/WaitFeedback.tsx`, [#238](https://github.com/Benji-9/SmartElevate/issues/238)). Spec para entonces: (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
 4. Espacio flexible; `Button` primary "Volver al inicio" → `/`.
 
-> La encuesta de espera es una propuesta del wireframe, sin decisión confirmada del equipo: implementarla como opcional.
 
 ## 08 · Perfil y acceso prioritario — `/perfil`
 
@@ -289,7 +292,7 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
 
 Escritorio **1440 × 900**. Layout en dos columnas.
 
-**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). **Usuarios prioritarios** (activo en `/admin/prioritarios`, ver [09b](#09b--usuarios-prioritarios--adminprioritarios)). **Kioscos** ([09c](#09c--kioscos-del-qr--adminkioscos)) y **Simulador de kiosco** ([09d](#09d--simulador-de-kiosco--adminsimulador), solo con el simulador habilitado). Turnos, Núcleos y ascensores y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
+**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). **Usuarios prioritarios** (activo en `/admin/prioritarios`, ver [09b](#09b--usuarios-prioritarios--adminprioritarios)). **Kioscos** ([09c](#09c--kioscos-del-qr--adminkioscos)), **Ascensores** ([09e](#09e--ascensores-fuera-de-servicio--adminascensores)) y **Simulador de kiosco** ([09d](#09d--simulador-de-kiosco--adminsimulador), solo con el simulador habilitado). Turnos, Núcleos y ascensores y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
 
 **Contenido** (pad 32, gap 24):
 
@@ -306,7 +309,7 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 Turnos, check-ins y ocupación llevan debajo un `Chip` `neutral` contra el período anterior (`previous`, [#180](https://github.com/Benji-9/SmartElevate/issues/180)): "▲ Subió 8 % vs. ayer" / "los 7 días anteriores" / "los 30 días anteriores" (check-ins, en puntos), o "Igual que ayer"; sin `previous` no se muestra. Un KPI en `null` muestra **"Sin datos"** como cifra y no se compara; hoy la espera siempre (necesita la encuesta, fuera del MVP), y check-ins u ocupación mientras no haya salidas resueltas. En la tabla por núcleo, igual: "Sin datos" en la celda y en el `Chip` de estado.
 
 3. **Fila de dos tarjetas** (gap 16, mismo ancho):
-   - **Gráfico "Reservas por franja (turno mañana)"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (11 px `--ink-muted`). Datos de ejemplo (alto en px): 7:15 → 120 · 7:25 → 170 · 7:35 → 150 · 7:45 → 60 · 9:30 → 90 · 9:45 → 140 · 11:30 → 80 · 11:45 → 160. Barras de las franjas más cargadas (≥ 140) en `--accent` sólido, el resto en `--accent` al 45 %.
+   - **Gráfico "Reservas por franja (turno mañana)"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (11 px `--ink-muted`). Una barra por hora de `reservationsByHour` (alto proporcional al máximo). Barras de las horas más cargadas (≥ 80 % del máximo) en `--accent` sólido, el resto en `--accent` al 45 %.
    - **Tabla "Estado por núcleo"** (pad 20, `--radius-lg`, borde `--line`): columnas **Núcleo · Reservas · Ocupación · Espera · Estado**; encabezado 13 px / 600 `--ink-muted`; filas 13 px con pad 12/0 y divisor `--line`. La columna Estado es un `Chip` con tono `baja` / `media` / `alta`.
 
 | Núcleo | Reservas | Ocupación | Espera | Estado |
@@ -317,7 +320,6 @@ Turnos, check-ins y ocupación llevan debajo un `Chip` `neutral` contra el perí
 | Indep. 1 | 241 | 90% | 6,0 min | Alta |
 | Indep. 2 | 177 | 66% | 3,0 min | Media |
 
-4. Nota al pie 12 px `--ink-muted`: "* Datos de ejemplo (ficticios) para el wireframe." (quitar al conectar datos reales).
 
 ### 09b · Usuarios prioritarios — `/admin/prioritarios`
 
