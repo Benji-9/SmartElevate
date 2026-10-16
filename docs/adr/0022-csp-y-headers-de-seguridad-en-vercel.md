@@ -1,6 +1,6 @@
 # 0022. CSP y headers de seguridad en Vercel
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-10-15
 - **Issues:** [#223](https://github.com/Benji-9/SmartElevate/issues/223). Relacionado con [#204](https://github.com/Benji-9/SmartElevate/issues/204) y los ADR [0003](0003-deploy-frontend-vercel-via-github-actions.md), [0014](0014-refresh-token-en-sessionstorage.md) y [0019](0019-refresh-token-en-cookie-httponly.md).
 - **Autores:** @Benji-9
