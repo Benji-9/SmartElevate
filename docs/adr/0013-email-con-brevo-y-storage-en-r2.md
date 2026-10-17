@@ -1,5 +1,7 @@
 # 0013. Email con Brevo y storage de certificados en Cloudflare R2
 
+> **Supersedido parcialmente por el [ADR 0024](0024-movilidad-reducida-la-marca-viene-de-ofalu.md)** en la parte de storage: R2 y las variables `APP_STORAGE_*` ya no se usan. La parte de email con Brevo sigue vigente.
+
 - **Estado:** Aceptado
 - **Fecha:** 2026-10-06
 - **Autores:** @Benji-9

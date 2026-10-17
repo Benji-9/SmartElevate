@@ -1,5 +1,7 @@
 # 0009. Autenticación con email institucional y prioridad validada en el servidor
 
+> **Supersedido parcialmente por el [ADR 0024](0024-movilidad-reducida-la-marca-viene-de-ofalu.md)** en lo de certificados, revisión y datos de salud: la marca de movilidad reducida viene de OFALU y la app no maneja certificados.
+
 - **Estado:** Aceptado
 - **Fecha:** 2026-09-28
 - **Issues:** [#6](https://github.com/Benji-9/SmartElevate/issues/6), [#32](https://github.com/Benji-9/SmartElevate/issues/32), [#24](https://github.com/Benji-9/SmartElevate/issues/24), [#25](https://github.com/Benji-9/SmartElevate/issues/25), [#26](https://github.com/Benji-9/SmartElevate/issues/26)
