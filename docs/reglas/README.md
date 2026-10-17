@@ -7,10 +7,10 @@ Referencia funcional de SmartElevate: qué tiene que hacer el sistema. El equipo
 | [turnos.md](turnos.md) | Franja, horario, ventana de reserva, límites, cancelación, no-show, cupo prioritario, ascensor fuera de servicio | `turn` |
 | [asignacion.md](asignacion.md) | Elegibilidad, orden de prioridad, envejecimiento, edificio alternativo, ascensor accesible | `turn`, `elevator` |
 | [check-in-qr.md](check-in-qr.md) | QR rotativo, ventana de lectura, resultados | `turn`, `elevator` |
-| [usuarios-y-prioridad.md](usuarios-y-prioridad.md) | Registro, roles, certificado de prioridad, JWT, datos sensibles | `user`, `priority` |
+| [usuarios-y-prioridad.md](usuarios-y-prioridad.md) | Registro, roles, movilidad reducida (marca de OFALU), JWT | `user`, `priority` |
 | [kpis.md](kpis.md) | Indicadores de congestión y su fuente | estadísticas |
 
-Decisiones de diseño: [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md) y [0018](../adr/0018-alcance-del-mvp-en-reglas-de-turnos.md) (turnos), [0008](../adr/0008-check-in-con-qr-rotativo.md) y [0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) (QR), [0009](../adr/0009-autenticacion-y-prioridad.md) (auth), [0010](../adr/0010-integridad-de-reservas-tiempo-y-configuracion.md) (integridad técnica), [0017](../adr/0017-donde-viven-los-parametros.md) (dónde viven los parámetros). Términos: [glosario](../glosario.md). Qué entra en el MVP y qué queda para la Fase 2: [alcance del MVP](../alcance-mvp.md).
+Decisiones de diseño: [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md) y [0018](../adr/0018-alcance-del-mvp-en-reglas-de-turnos.md) (turnos), [0008](../adr/0008-check-in-con-qr-rotativo.md) y [0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) (QR), [0009](../adr/0009-autenticacion-y-prioridad.md) (auth) y [0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md) (movilidad reducida), [0010](../adr/0010-integridad-de-reservas-tiempo-y-configuracion.md) (integridad técnica), [0017](../adr/0017-donde-viven-los-parametros.md) (dónde viven los parámetros). Términos: [glosario](../glosario.md). Qué entra en el MVP y qué queda para la Fase 2: [alcance del MVP](../alcance-mvp.md).
 
 ## Parámetros configurables
 
@@ -76,11 +76,10 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Job de no-shows | Cada 15 s | `app.no-show-job.interval`, override por `APP_NO_SHOW_JOB_INTERVAL`. El umbral de negocio es `no_show_after` de `app_config`. Todos los jobs `@Scheduled` se apagan con `APP_SCHEDULING_ENABLED=false` (los tests lo hacen) |
 | Buscador de usuarios del panel admin | Mínimo 3 caracteres · páginas de 20 | `app.admin.user-search.*`, override por `APP_ADMIN_USER_SEARCH_MIN_QUERY_LENGTH` y `APP_ADMIN_USER_SEARCH_PAGE_SIZE` ([#215](https://github.com/Benji-9/SmartElevate/issues/215)) |
 | Simulador de kioscos | Apagado | `APP_KIOSK_SIMULATOR_ENABLED` (`app.kiosk.simulator-enabled`): sin él no se crean kioscos simulados |
-| Certificado | Hasta 5 MB · PDF, JPG o PNG | Tipo validado por contenido (magic bytes), no por extensión. Llega con [#123](https://github.com/Benji-9/SmartElevate/issues/123) |
 
 ### Secretos (solo variables de entorno)
 
-`JWT_SECRET`, `DATABASE_PASSWORD`, `SPRING_MAIL_PASSWORD`, `APP_STORAGE_SECRET_KEY` y la clave HMAC del QR, `APP_KIOSK_QR_SECRET` ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)). Las credenciales de los kioscos no son variables: las genera el alta y en la base queda solo su hash ([ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)).
+`JWT_SECRET`, `DATABASE_PASSWORD`, `SPRING_MAIL_PASSWORD` y la clave HMAC del QR, `APP_KIOSK_QR_SECRET` ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)). Las credenciales de los kioscos no son variables: las genera el alta y en la base queda solo su hash ([ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)).
 
 ## Pendientes fuera del código
 
@@ -88,6 +87,6 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | --- | --- | --- |
 | [#22](https://github.com/Benji-9/SmartElevate/issues/22) | Ascensores, pisos servidos y conexiones | Relevado. Punta a punta ~45–70 s, sin paredes divisorias. Falta confirmar la accesibilidad en silla de ruedas |
 | [#23](https://github.com/Benji-9/SmartElevate/issues/23) | Dispositivo para mostrar el QR | Decidido: kiosco web en una tablet o pantalla del hall ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)). Falta conseguir las pantallas |
-| [#24](https://github.com/Benji-9/SmartElevate/issues/24) | Tratamiento de datos de salud (Ley 25.326) | Postura de minimización ([usuarios y prioridad](usuarios-y-prioridad.md#datos-sensibles)); falta validarla con la cátedra |
+| [#24](https://github.com/Benji-9/SmartElevate/issues/24) | Tratamiento de datos de salud (Ley 25.326) | Sin objeto: SmartElevate no trata datos de salud, la marca de movilidad reducida viene de OFALU ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) |
 | [#25](https://github.com/Benji-9/SmartElevate/issues/25) | Proveedor de email | Resuelto: Brevo ([ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)) |
-| [#26](https://github.com/Benji-9/SmartElevate/issues/26) | Storage privado para certificados | Resuelto: Cloudflare R2 ([ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)) |
+| [#26](https://github.com/Benji-9/SmartElevate/issues/26) | Storage privado para certificados | Resuelto con R2 ([ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)), pero quedó sin uso: la app no maneja certificados ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) |

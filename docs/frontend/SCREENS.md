@@ -40,7 +40,7 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 - Cada franja horaria tiene **capacidad de 10 personas**; al llegar a 10 se muestra "Completo" y no se puede elegir.
 - La franja es una **salida de ascensor de ~2 min** ([ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md)); se reserva de 30 a 2 min antes.
 - **Regla de pisos bajos** ([`asignacion.md`](../reglas/asignacion.md)): los trayectos cortos van por escalera, salvo **movilidad reducida**, que queda exenta (los docentes no). Hoy no se reserva con destino en los pisos **1 a 4** (umbral `low_floors_threshold` de la tabla de configuración, [#113](https://github.com/Benji-9/SmartElevate/issues/113)); el "0–4" del wireframe era de ejemplo. La regla la evalúa el servidor al reservar: hoy el contrato no expone la elegibilidad por piso, así que la UI no la marca de antemano y muestra el motivo de `LOW_FLOOR_DESTINATION` (ver §04), sin hardcodear pisos ni textos.
-- El **acceso prioritario** se solicita desde el perfil subiendo un certificado de discapacidad (PDF) o un certificado médico (PDF o imagen); queda en estado "Pendiente de validación" hasta que se valida.
+- El **acceso prioritario por movilidad reducida** no se solicita en la app: lo marca UADE a través de OFALU ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)). El perfil solo informa dónde avisar. (El wireframe original permitía subir un certificado; ya no se implementa.)
 - El **check-in** se hace escaneando el QR que rota en la pantalla dentro de la cabina.
 - Los núcleos son **Lima 1, Lima 2, Lima 3, Independencia 1 e Independencia 2** (en botones cortos: "Indep. 1", "Indep. 2"). El "Lima 3, ascensores 1–3, pisos 7–10" del wireframe es de ejemplo: la zonificación real ya está relevada ([asignación](../reglas/asignacion.md#ascensores-y-pisos-servidos)) y la manda el servidor.
 - Autenticación con JWT; registro con email institucional, legajo y contraseña.
@@ -57,7 +57,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 | 03 Inicio, 04 Reservar, 05 Turno, Mis viajes | Backend real | `/api/reservations`, `/api/departures`, `/api/congestion` ([#241](https://github.com/Benji-9/SmartElevate/pull/241), [#243](https://github.com/Benji-9/SmartElevate/pull/243)) |
 | 06 Check-in, 07 Viaje registrado | Backend real | `POST /api/check-ins` ([#239](https://github.com/Benji-9/SmartElevate/pull/239)). Sin ingreso manual ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)) |
 | 08 Perfil: cabecera y Notificaciones | Backend real | `/api/users/me`, `/api/me/notification-preferences` ([#246](https://github.com/Benji-9/SmartElevate/pull/246)) |
-| 08 Perfil: tarjeta "Acceso prioritario" (subir certificado) | **Pendiente**: sin endpoint (`/priority-requests/me` no está en el contrato); solo funciona con mocks | [#122](https://github.com/Benji-9/SmartElevate/issues/122), [#123](https://github.com/Benji-9/SmartElevate/issues/123), sujeto a [#24](https://github.com/Benji-9/SmartElevate/issues/24) |
+| 08 Perfil: tarjeta "Acceso prioritario" | Solo informativa, sin API | [ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md) |
 | 09 Panel (KPIs, congestión) | Backend real | `/api/admin/kpis`, `/api/admin/shifts` ([#242](https://github.com/Benji-9/SmartElevate/pull/242)) |
 | 09b Prioritarios | Backend real | `/api/admin/teachers/*`, `/api/admin/priority-users`, `/api/admin/users` ([#208](https://github.com/Benji-9/SmartElevate/pull/208), [#245](https://github.com/Benji-9/SmartElevate/pull/245)) |
 | 09c Kioscos, 09d Simulador, 10 Kiosco QR | Backend real | `/api/admin/kiosks`, `/api/kiosks/me/qr-token` ([#234](https://github.com/Benji-9/SmartElevate/pull/234), [#236](https://github.com/Benji-9/SmartElevate/pull/236)) |
@@ -96,7 +96,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
 2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`, hint "Está en tu credencial UADE."), "Contraseña" (ph `••••••••`). La contraseña lleva el `hint` "Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas." y el cliente valida el largo igual que el servidor (code points tras NFKC). La lista de contraseñas comunes la valida solo el servidor y su error va al lado del campo ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md), [usuarios y prioridad](../reglas/usuarios-y-prioridad.md#contraseña)).
 3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
-4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte podés solicitar acceso prioritario desde tu perfil."
+4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte, mirá tu perfil para saber cómo informarlo en OFALU."
 5. Texto 14 px `--ink-muted`: "Al crear tu cuenta aceptás los Términos de uso y la Política de privacidad." (links a `/terminos` y `/privacidad`).
 6. `Button` primary "Crear cuenta".
 7. Footer legal (ver abajo).
@@ -162,7 +162,7 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 
 - **Footer legal** (`LegalFooter`): al final de Login, Registro, 02b, 02c, Perfil y las dos páginas legales. Columna centrada, gap 4, 12 px `--ink-muted`: fila de links (500, `--accent`, sin subrayado, área táctil de 44 px) **Privacidad · Términos de uso · Contacto** (`mailto:` al email del proyecto) y debajo "SmartElevate · Proyecto académico de estudiantes de UADE".
 - **Páginas legales** (`/privacidad`, `/terminos`): `PageHeader` con volver + título; "Última actualización" 13 px `--ink-muted`; secciones numeradas con `h2` de 16 px / 600 y texto 14 px con interlineado 1,55. La leyenda obligatoria de la AAIP (Disposición 10/2008) va en un aviso `--accent-tint` dentro de "Tus derechos". En Pantalla usan la columna de 480 px.
-- Contenido: la política sigue la Ley 25.326, el Decreto 1558/2001, las normas de la AAIP y el Convenio 108/108+, con los derechos del RGPD; los términos son los de un proyecto académico. **No es asesoramiento legal**: validar con la cátedra ([#24](https://github.com/Benji-9/SmartElevate/issues/24)). Si cambian proveedores, regiones o el tratamiento de datos, actualizar `PrivacyPage.tsx`.
+- Contenido: la política sigue la Ley 25.326, el Decreto 1558/2001, las normas de la AAIP y el Convenio 108/108+, con los derechos del RGPD; los términos son los de un proyecto académico. **No es asesoramiento legal**: validar con la cátedra. Ya no hay datos de salud: la política no menciona certificados ni su tratamiento, y aclara que la marca de movilidad reducida la maneja UADE ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)). Si cambian proveedores, regiones o el tratamiento de datos, actualizar `PrivacyPage.tsx`.
 
 ## 03 · Inicio — `/`
 
@@ -281,11 +281,8 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
 
 1. **Cabecera** (fila, gap 14): avatar de 60 px; columna (gap 4): "Juana Martínez" (18 px / 700), `Chip` tone `alumnos` "Estudiante", "Legajo 1234567" (13 px `--ink-muted`), "jmartinez@uade.edu.ar" (13 px `--ink-muted`). El chip cambia de tono con el tipo de usuario.
 2. **Tarjeta "Acceso prioritario"** (pad 16, gap 12, `--radius-lg`, borde `--line`):
-   - fila: "Acceso prioritario" (`.text-card-title`) + `Chip` accent "Pendiente de validación";
-   - texto 13 px `--ink-muted`: "Si tenés movilidad reducida, subí tu certificado de discapacidad o un certificado médico para habilitar turnos prioritarios (incluye los pisos bajos)."
-   - **Zona de carga** (pad 20, gap 6, `--radius-sm`, borde discontinuo 1,5 px `--accent`, fondo `--accent-tint`, contenido centrado): ícono de 28 px, "Subir certificado" 14 px / 600 `--accent`, "PDF o imagen" 12 px `--ink-muted`.
-   - **Archivo cargado** (fila pad 10/12, gap 10, `--radius-sm`, `--surface-subtle`): ícono de archivo, nombre 13 px / 500 (`certificado_discapacidad.pdf`), acción "Quitar" 12 px / 500 `--accent`.
-   - Estados del chip, según el `status` de la solicitud: `PENDING` → "Pendiente de validación", `APPROVED` → "Aprobado" (o "Aprobado (vence el {día/mes})" si tiene vencimiento), `REJECTED` → "Rechazado".
+   - **Solo informativa** ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)): título "Acceso prioritario" (`.text-card-title`) y texto 13 px `--ink-muted`: "Si tenés movilidad reducida, temporal o permanente, informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados ni datos de salud."
+   - Sin chip de estado, sin zona de carga, sin botones ni llamadas a la API.
 3. **Lista de ajustes** (`--radius-lg`, borde `--line`): filas pad 14/16, 15 px / 500, flecha "→" a la derecha en `--ink-muted`, divisor `--line` entre filas: "Mis viajes" y "Notificaciones". Debajo, separado de la lista y sin flecha (es una acción, no un destino), `Button` secondary "Cerrar sesión".
 
 ## 09 · Panel de administración — `/admin`

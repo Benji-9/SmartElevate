@@ -75,10 +75,10 @@ export function TermsPage() {
         <h2 id="terms-priority">4. Acceso prioritario</h2>
         <p>
           Las personas con movilidad reducida y los docentes validados tienen prioridad y, en
-          algunos núcleos, ascensores dedicados. La prioridad se pide desde el perfil con un
-          certificado, que revisa el equipo y se borra al resolver la solicitud. Presentar
-          documentación falsa o ajena es motivo de baja de la cuenta, sin perjuicio de otras
-          responsabilidades.
+          algunos núcleos, ascensores dedicados. La marca de prioridad por movilidad reducida la
+          define UADE a través de la Oficina de Alumnos (OFALU); SmartElevate no recibe ni revisa
+          certificados. Hacerse pasar por otra persona o declarar datos falsos es motivo de baja de
+          la cuenta, sin perjuicio de otras responsabilidades.
         </p>
       </section>
 
