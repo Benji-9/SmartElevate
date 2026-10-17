@@ -49,11 +49,6 @@ export function PrivacyPage() {
             opcionales a la encuesta de espera y tus preferencias de notificaciones.
           </li>
           <li>
-            <strong>Acceso prioritario:</strong> si lo pedís, el certificado médico o de
-            discapacidad que subís, la categoría (movilidad reducida o docente), el estado de la
-            solicitud, su vencimiento y cuándo diste tu consentimiento.
-          </li>
-          <li>
             <strong>Datos técnicos:</strong> los proveedores de hosting registran la dirección IP,
             el navegador y la hora de cada pedido en sus registros de seguridad.
           </li>
@@ -63,31 +58,8 @@ export function PrivacyPage() {
         </p>
       </section>
 
-      <section aria-labelledby="privacy-health">
-        <h2 id="privacy-health">3. Datos de salud</h2>
-        <p>
-          El certificado de prioridad es un <strong>dato sensible</strong> (arts. 2 y 7 de la Ley
-          25.326). Solo lo tratamos con tu <strong>consentimiento expreso</strong>, que das al
-          marcar la casilla cuando lo subís, y únicamente para validar el acceso prioritario. Nadie
-          está obligado a darlo: sin certificado podés usar SmartElevate como usuario común.
-        </p>
-        <ul>
-          <li>Se guarda en un almacenamiento privado, cifrado y sin acceso público.</li>
-          <li>
-            Solo lo ve el equipo revisor, mediante enlaces temporales que vencen en pocos minutos.
-          </li>
-          <li>
-            Se <strong>borra apenas se resuelve</strong> la solicitud. Después solo conservamos si
-            fue aprobada o rechazada y hasta cuándo vale.
-          </li>
-          <li>
-            No registramos su contenido ni el nombre del archivo en los registros del sistema.
-          </li>
-        </ul>
-      </section>
-
       <section aria-labelledby="privacy-purpose">
-        <h2 id="privacy-purpose">4. Para qué los usamos</h2>
+        <h2 id="privacy-purpose">3. Para qué los usamos</h2>
         <ul>
           <li>Crear y proteger tu cuenta, verificar tu email y recuperar tu contraseña.</li>
           <li>
@@ -101,14 +73,13 @@ export function PrivacyPage() {
           </li>
         </ul>
         <p>
-          La base legal es tu consentimiento al registrarte y, para los datos de salud, tu
-          consentimiento expreso. Solo pedimos los datos necesarios para estas finalidades (art. 4
-          de la Ley 25.326).
+          La base legal es tu consentimiento al registrarte. Solo pedimos los datos necesarios para
+          estas finalidades (art. 4 de la Ley 25.326).
         </p>
       </section>
 
       <section aria-labelledby="privacy-providers">
-        <h2 id="privacy-providers">5. Con quién los compartimos</h2>
+        <h2 id="privacy-providers">4. Con quién los compartimos</h2>
         <p>
           No cedemos tus datos a terceros. Para funcionar usamos proveedores que los procesan solo
           por nuestra cuenta y bajo sus propias medidas de seguridad:
@@ -124,10 +95,6 @@ export function PrivacyPage() {
           <li>
             <strong>Brevo</strong> (envío de emails), con servidores en la Unión Europea.
           </li>
-          <li>
-            <strong>Cloudflare R2</strong> (almacenamiento privado de certificados), en la región
-            que asigna Cloudflare.
-          </li>
         </ul>
         <p>
           Esto implica una <strong>transferencia internacional</strong> de datos (art. 12 de la Ley
@@ -139,10 +106,9 @@ export function PrivacyPage() {
       </section>
 
       <section aria-labelledby="privacy-retention">
-        <h2 id="privacy-retention">6. Cuánto tiempo los guardamos</h2>
+        <h2 id="privacy-retention">5. Cuánto tiempo los guardamos</h2>
         <ul>
           <li>Los datos de la cuenta y del uso, mientras tengas la cuenta.</li>
-          <li>El certificado de prioridad, hasta que se resuelve la solicitud.</li>
           <li>
             Si pedís la baja, borramos tus datos personales. Solo quedan los indicadores agregados,
             que no te identifican.
@@ -152,18 +118,18 @@ export function PrivacyPage() {
       </section>
 
       <section aria-labelledby="privacy-security">
-        <h2 id="privacy-security">7. Cómo los protegemos</h2>
+        <h2 id="privacy-security">6. Cómo los protegemos</h2>
         <p>
           Aplicamos las medidas del art. 9 de la Ley 25.326 y de la Resolución 47/2018 de la AAIP:
-          conexiones cifradas (HTTPS/TLS), contraseñas con hash, acceso por roles, almacenamiento
-          privado para los certificados y acceso restringido a los paneles de los proveedores.
-          Quienes acceden a los datos tienen deber de confidencialidad (art. 10). Si detectamos un
-          incidente que afecte tus datos, te vamos a avisar.
+          conexiones cifradas (HTTPS/TLS), contraseñas con hash, acceso por roles y acceso
+          restringido a los paneles de los proveedores. Quienes acceden a los datos tienen deber de
+          confidencialidad (art. 10). Si detectamos un incidente que afecte tus datos, te vamos a
+          avisar.
         </p>
       </section>
 
       <section aria-labelledby="privacy-storage">
-        <h2 id="privacy-storage">8. Cookies y almacenamiento en tu navegador</h2>
+        <h2 id="privacy-storage">7. Cookies y almacenamiento en tu navegador</h2>
         <p>
           No usamos cookies de publicidad ni de seguimiento, ni herramientas de analítica de
           terceros. Solo usamos lo técnico e indispensable:
@@ -178,7 +144,7 @@ export function PrivacyPage() {
       </section>
 
       <section aria-labelledby="privacy-rights">
-        <h2 id="privacy-rights">9. Tus derechos</h2>
+        <h2 id="privacy-rights">8. Tus derechos</h2>
         <p>
           Podés pedir <strong>acceso</strong> a tus datos, su <strong>rectificación</strong>,{' '}
           <strong>actualización</strong> o <strong>supresión</strong>, y retirar tu consentimiento
@@ -207,7 +173,7 @@ export function PrivacyPage() {
       </section>
 
       <section aria-labelledby="privacy-changes">
-        <h2 id="privacy-changes">10. Cambios en esta política</h2>
+        <h2 id="privacy-changes">9. Cambios en esta política</h2>
         <p>
           Si cambiamos algo importante, te lo avisamos en la app antes de que se aplique. La fecha
           de arriba indica la última versión. Ver también los{' '}

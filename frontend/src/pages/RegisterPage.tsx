@@ -166,8 +166,8 @@ export function RegisterPage() {
             ¿Tenés movilidad reducida?
           </h2>
           <p>
-            Después de crear tu cuenta podés pedir acceso prioritario desde tu perfil, adjuntando un
-            certificado.
+            Informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados
+            ni datos de salud.
           </p>
         </section>
 
