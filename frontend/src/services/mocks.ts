@@ -228,6 +228,16 @@ const users: User[] = [
     priority: 'NONE',
     declaredUserType: 'STUDENT',
   },
+  {
+    id: 'u-4',
+    email: 'docente@uade.edu.ar',
+    fullName: 'Docente UADE',
+    legajo: '1000003',
+    role: 'USER',
+    priority: 'TEACHER',
+    priorityUntil: '2027-03-31T02:59:59Z',
+    declaredUserType: 'TEACHER',
+  },
 ];
 
 // Cuentas que todavía no hicieron click en el link de verificación.

@@ -3,6 +3,7 @@ import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Chip, type ChipTone } from '../components/Chip';
 import { LegalFooter } from '../components/LegalFooter';
+import { formatShortDate } from '../features/turn/format';
 import { PriorityInfoCard } from '../features/priority/PriorityInfoCard';
 import '../features/priority/priority.css';
 import { useSession } from '../hooks/useSession';
@@ -20,11 +21,15 @@ const arrow = (
 );
 
 /**
- * Estado de la prioridad de docente. `/users/me` no trae el vencimiento: "vigente hasta el DD/MM"
- * queda pendiente de contrato (#275).
+ * Estado de la prioridad de docente: con `priorityUntil` (UTC, nulo si no vence) dice hasta
+ * cuándo vale, en hora de Buenos Aires.
  */
 function priorityStatus(user: User) {
-  if (user.priority === 'TEACHER') return 'Prioridad de docente: vigente';
+  if (user.priority === 'TEACHER') {
+    return user.priorityUntil
+      ? `Prioridad de docente: vigente hasta el ${formatShortDate(user.priorityUntil)}`
+      : 'Prioridad de docente: vigente';
+  }
   if (user.declaredUserType === 'TEACHER' && user.priority === 'NONE')
     return 'Prioridad de docente: pendiente de validación';
 }

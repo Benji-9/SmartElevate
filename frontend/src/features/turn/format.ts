@@ -40,5 +40,19 @@ export const formatSlot = (departsAt: string, durationMinutes: number) =>
     new Date(Date.parse(departsAt) + durationMinutes * 60_000).toISOString(),
   )}`;
 
+const shortDateFormat = new Intl.DateTimeFormat('es-AR', {
+  timeZone: TIME_ZONE,
+  day: '2-digit',
+  month: '2-digit',
+});
+
+/** `"31/03"`: día y mes de un instante ISO, en Buenos Aires. */
+export function formatShortDate(iso: string) {
+  const part = Object.fromEntries(
+    shortDateFormat.formatToParts(new Date(iso)).map((p) => [p.type, p.value]),
+  );
+  return `${part.day.padStart(2, '0')}/${part.month.padStart(2, '0')}`;
+}
+
 /** `"PB"`, `"3"`, `"-2"`: la planta baja se muestra como PB. */
 export const formatFloor = (floor: number) => (floor === 0 ? 'PB' : String(floor));

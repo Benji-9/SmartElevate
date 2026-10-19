@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 // Button trae los estilos `.button`, que también usan los links con forma de botón.
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
+import { useNow } from '../../hooks/useNow';
 import { ApiError, getActiveReservation } from '../../services/api';
 import type { Reservation } from '../../types/api';
 import { QR_INSTRUCTION } from '../check-in/qrInstruction';
@@ -20,17 +21,24 @@ type State =
  * (no depende de la zona del dispositivo). Se actualiza cada 30 s mientras está montado.
  */
 function DepartureCountdown({ departsAt }: { departsAt: string }) {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
-
+  const now = useNow(30_000);
   const minutes = Math.ceil((Date.parse(departsAt) - now) / 60_000);
   return (
     <p className="turn-card__countdown">{minutes > 0 ? `Sale en ${minutes} min` : 'Sale ahora'}</p>
   );
+}
+
+/** "Hacer check-in" recién cuando abre; antes, la hora de apertura (#285). */
+function CheckInAction({ opensAt }: { opensAt: string }) {
+  const now = useNow(5_000);
+  if (now >= Date.parse(opensAt)) {
+    return (
+      <Link to="/check-in" className="button button--primary button--inline">
+        Hacer check-in
+      </Link>
+    );
+  }
+  return <p className="turn-card__help">Abre a las {formatTime(opensAt)} hs</p>;
 }
 
 /** Tarjeta "Tu turno" del inicio, o el CTA para reservar si no hay turno activo. */
@@ -105,9 +113,7 @@ export function ActiveTurnCard() {
         {reservation.elevator} · Piso {formatFloor(reservation.destinationFloor)}
       </p>
       <p className="turn-card__help">{QR_INSTRUCTION}</p>
-      <Link to="/check-in" className="button button--primary button--inline">
-        Hacer check-in
-      </Link>
+      <CheckInAction opensAt={reservation.checkInOpensAt} />
       <Link to={`/turno/${encodeURIComponent(reservation.id)}`} className="turn-card__link">
         Ver turno
       </Link>
