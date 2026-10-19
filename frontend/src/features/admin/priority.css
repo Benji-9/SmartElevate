@@ -44,6 +44,8 @@
 }
 
 .priority-question {
+  /* Tope de ancho: con `min-width: max-content` en .priority-actions, sin él aplasta las otras columnas. */
+  max-width: 36ch;
   font-weight: var(--font-semibold);
   white-space: normal;
 }
@@ -105,8 +107,8 @@
   }
 }
 
-/* Engranaje: botón cuadrado sin texto. */
-.user-menu__gear {
+/* Engranaje: botón cuadrado sin texto. Le gana al padding de `.admin__main .button` (AdminLayout.css). */
+.admin__main .button.user-menu__gear {
   width: 36px;
   padding: 0;
 }
