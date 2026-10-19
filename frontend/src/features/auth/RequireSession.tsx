@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router';
+import { Link, Navigate, Outlet, useLocation } from 'react-router';
 import { useSession } from '../../hooks/useSession';
 import type { Role } from '../../types/api';
 
@@ -28,7 +28,15 @@ export function RequireSession({ role }: RequireSessionProps) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
   if (role && user.role !== role) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="screen">
+        <main className="screen__main">
+          <h1 className="text-heading">No tenés acceso a esta sección</h1>
+          <p>Es solo para administradores.</p>
+          <Link to="/">Volver al inicio</Link>
+        </main>
+      </div>
+    );
   }
   return <Outlet />;
 }

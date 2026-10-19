@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { Button } from '../components/Button';
 import { Chip } from '../components/Chip';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -26,6 +26,8 @@ const isFault = (status: ReservationStatus) => status === 'NO_SHOW' || status ==
 export function TurnPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  // El festejo es solo para quien acaba de reservar (lo manda ReserveTurnPage).
+  const justReserved = (useLocation().state as { justReserved?: boolean } | null)?.justReserved;
   // Resultado de la carga, atado al `id` pedido: si cambia la ruta, vuelve a "cargando".
   const [loaded, setLoaded] = useState<{
     id: string;
@@ -91,22 +93,9 @@ export function TurnPage() {
         Cargando tu turno…
       </p>
     );
-  } else if (reservation.status !== 'ACTIVE') {
-    content = (
+  } else if (reservation.status === 'ACTIVE') {
+    const activeBody = (
       <>
-        <Chip tone={isFault(reservation.status) ? 'danger' : 'neutral'}>
-          {closedStatus[reservation.status]}
-        </Chip>
-        <TurnDetails reservation={reservation} />
-      </>
-    );
-  } else {
-    // Turno activo: pantalla de confirmación sin header, con el hero como `h1`.
-    return (
-      <div className="success-screen">
-        <SuccessHero title="¡Turno confirmado!">
-          Te esperamos en el hall de {reservation.coreName}.
-        </SuccessHero>
         <TurnDetails reservation={reservation} />
         <CheckinHint />
         <div className="turn-actions turn-actions--row">
@@ -120,12 +109,34 @@ export function TurnPage() {
         <CancelTurnDialog
           open={dialogOpen}
           countsAsNoShow={reservation.cancelCountsAsNoShow}
+          freeUntil={reservation.cancelFreeUntil}
           cancelling={cancelling}
           error={cancelError}
           onConfirm={confirmCancel}
           onClose={closeDialog}
         />
-      </div>
+      </>
+    );
+    if (justReserved) {
+      // Recién reservado: pantalla de confirmación sin header, con el hero como `h1`.
+      return (
+        <div className="success-screen">
+          <SuccessHero title="¡Turno confirmado!">
+            Te esperamos en el hall de {reservation.coreName}.
+          </SuccessHero>
+          {activeBody}
+        </div>
+      );
+    }
+    content = activeBody;
+  } else {
+    content = (
+      <>
+        <Chip tone={isFault(reservation.status) ? 'danger' : 'neutral'}>
+          {closedStatus[reservation.status]}
+        </Chip>
+        <TurnDetails reservation={reservation} />
+      </>
     );
   }
 
