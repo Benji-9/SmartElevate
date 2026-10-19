@@ -40,6 +40,7 @@ export function MyTripsPage() {
   if (first.error) {
     content = (
       <div role="alert" className="trips__error">
+        <Mascot pose="triste" size={80} />
         <p>{first.error}</p>
         <Button variant="secondary" onClick={first.reload}>
           Reintentar
@@ -51,7 +52,7 @@ export function MyTripsPage() {
   } else if (trips.length === 0) {
     content = (
       <div className="empty-state">
-        <Mascot size={96} />
+        <Mascot pose="senala" size={96} />
         <p className="page-placeholder">
           Todavía no tenés viajes. <Link to="/reservar">Reservá tu primer turno</Link>.
         </p>

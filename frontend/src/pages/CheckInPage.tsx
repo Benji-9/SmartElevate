@@ -135,6 +135,7 @@ export function CheckInPage() {
   if (notYetOpen) {
     cameraState = (
       <section className="check-in__message" aria-labelledby="check-in-closed-title">
+        <Mascot pose="duerme" size={96} />
         <h2 id="check-in-closed-title">Abre a las {formatTime(opensAt)} hs</h2>
         <p>Cuando abra, vas a poder escanear el QR del ascensor desde acá.</p>
       </section>
@@ -144,6 +145,7 @@ export function CheckInPage() {
   } else if (camera === 'denied' || camera === 'unavailable') {
     cameraState = (
       <section className="check-in__message" aria-labelledby="check-in-camera-title">
+        <Mascot pose="triste" size={96} />
         <h2 id="check-in-camera-title">
           {camera === 'denied'
             ? 'No tenemos permiso para usar la cámara'
@@ -183,7 +185,7 @@ export function CheckInPage() {
   } else if (!reservation) {
     turnContent = (
       <div className="empty-state">
-        <Mascot size={96} />
+        <Mascot pose="senala" size={96} />
         <p className="page-placeholder">
           No tenés un turno activo. <Link to="/reservar">Reservá un turno</Link>
         </p>

@@ -7,10 +7,12 @@ export function NotFoundPage() {
   return (
     <>
       <ScreenHeader title="Página no encontrada" />
-      <Mascot size={120} />
-      <p className="page-placeholder">
-        Uy, esta página no existe o cambió de lugar. Revisá la dirección o volvé al inicio.
-      </p>
+      <div className="empty-state">
+        <Mascot pose="piensa" size={120} />
+        <p className="page-placeholder">
+          Uy, esta página no existe o cambió de lugar. Revisá la dirección o volvé al inicio.
+        </p>
+      </div>
       <Link to="/" className="button button--primary">
         Ir al inicio
       </Link>

@@ -89,7 +89,7 @@ export function ActiveTurnCard() {
   if (!reservation) {
     return (
       <section className="turn-card" aria-labelledby="turn-card-title">
-        <Mascot size={96} className="turn-card__mascot" />
+        <Mascot pose="saludo" size={96} className="turn-card__mascot" />
         <h2 id="turn-card-title" className="text-card-title">
           No tenés un turno activo
         </h2>

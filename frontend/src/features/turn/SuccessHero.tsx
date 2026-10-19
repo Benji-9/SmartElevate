@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Mascot } from '../../components/Mascot';
+import { Mascot, type MascotPose } from '../../components/Mascot';
 
 /**
  * Hero de cierre (turno confirmado, viaje registrado): ícono, título `h1` y detalle.
@@ -8,16 +8,18 @@ import { Mascot } from '../../components/Mascot';
 export function SuccessHero({
   title,
   tone = 'success',
+  pose = 'saludo',
   children,
 }: {
   title: string;
   tone?: 'success' | 'danger';
+  pose?: MascotPose;
   children: ReactNode;
 }) {
   return (
     <header className={`success-hero success-hero--${tone}`}>
       {tone === 'success' ? (
-        <Mascot size={120} />
+        <Mascot pose={pose} size={120} />
       ) : (
         <span className="success-hero__icon" aria-hidden="true">
           <svg viewBox="0 0 44 44" width="44" height="44">

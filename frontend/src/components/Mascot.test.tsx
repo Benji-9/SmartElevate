@@ -9,4 +9,9 @@ describe('Mascot', () => {
     expect(img).toHaveAttribute('alt', '');
     expect(img).toHaveAttribute('height', '100');
   });
+
+  it('calcula el ancho con la proporción de la pose', () => {
+    const { container } = render(<Mascot pose="senala" size={230} />);
+    expect(container.querySelector('img')).toHaveAttribute('width', '200');
+  });
 });
