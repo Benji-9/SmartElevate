@@ -151,3 +151,16 @@ describe('sesión en services/api', () => {
     }
   });
 });
+
+describe('errores sin cuerpo JSON', () => {
+  it('un 502 de la plataforma se muestra en español, no como "Bad Gateway"', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<html>', { status: 502, statusText: 'Bad Gateway' })),
+    );
+
+    await expect(getMe()).rejects.toThrow(
+      'El servidor no responde. Probá de nuevo en unos segundos.',
+    );
+  });
+});

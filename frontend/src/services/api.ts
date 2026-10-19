@@ -122,7 +122,10 @@ async function send<T>(
   onResponse?.(response);
 
   if (!response.ok) {
-    let message = response.statusText;
+    let message =
+      response.status >= 500
+        ? 'El servidor no responde. Probá de nuevo en unos segundos.'
+        : 'No pudimos completar el pedido. Probá de nuevo.';
     let violations: FieldViolation[] = [];
     let code: string | undefined;
     try {
@@ -131,7 +134,7 @@ async function send<T>(
       violations = body.violations ?? [];
       code = body.code;
     } catch {
-      // El cuerpo no es JSON: nos quedamos con statusText.
+      // El cuerpo no es JSON (proxy, servidor dormido): queda el mensaje genérico en español.
     }
     const retry = Number(response.headers.get('Retry-After'));
     throw new ApiError(response.status, message, violations, retry > 0 ? retry : undefined, code);
