@@ -51,9 +51,10 @@ class UserServiceTest {
         user.assignRole(Role.REVIEWER);
         given(users.findById(id)).willReturn(Optional.of(user));
         given(priorityService.currentPriority(id)).willReturn(PriorityCategory.REDUCED_MOBILITY);
+        given(priorityService.currentPriorityUntil(id)).willReturn(NOW.plusSeconds(3600));
 
         assertThat(service.me(id)).isEqualTo(new UserResponse(id, "ana@uade.edu.ar", "Ana Pérez", "1234567",
-                Role.REVIEWER, PriorityCategory.REDUCED_MOBILITY, DeclaredUserType.TEACHER));
+                Role.REVIEWER, PriorityCategory.REDUCED_MOBILITY, NOW.plusSeconds(3600), DeclaredUserType.TEACHER));
     }
 
     @Test

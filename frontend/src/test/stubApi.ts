@@ -47,6 +47,7 @@ export const testReservation: Reservation = {
   buildingName: 'Lima',
   departureAt: '2026-09-29T17:04:00Z',
   cancelFreeUntil: '2026-09-29T16:54:00Z',
+  checkInOpensAt: '2026-09-29T17:03:00Z',
   seatNumber: 3,
   originFloor: 0,
   destinationFloor: 5,

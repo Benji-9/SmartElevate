@@ -230,7 +230,8 @@ public class ReservationService {
                 && r.cancelIsLate(now, config.cancellationDeadlineBefore());
         return new ReservationResponse(r.getId(), d.getId(), e.getCode(), e.getCore().getName(),
                 e.getCore().getBuilding().getName(), d.getDepartureAt(),
-                d.getDepartureAt().minus(config.cancellationDeadlineBefore()), r.getSeatNumber(), r.getOriginFloor(),
+                d.getDepartureAt().minus(config.cancellationDeadlineBefore()),
+                d.getDepartureAt().minus(config.checkInOpensBefore()), r.getSeatNumber(), r.getOriginFloor(),
                 r.getDestinationFloor(), r.getStatus(), r.getCreatedAt(), lateCancel, outcome);
     }
 

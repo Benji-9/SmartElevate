@@ -1369,6 +1369,12 @@ export interface components {
        */
       cancelFreeUntil: string;
       /**
+       * Format: date-time
+       * @description Desde este instante (UTC) se puede hacer check-in: la salida menos check_in_opens_before.
+       * @example 2026-10-13T15:57:00Z
+       */
+      checkInOpensAt: string;
+      /**
        * @description Resultado del check-in, si hubo: ON_TIME, OTHER_ELEVATOR o LATE (cuenta como falta). Incluye los del simulador de admin.
        * @enum {string|null}
        */
@@ -1482,6 +1488,12 @@ export interface components {
        * @enum {string}
        */
       priority: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /**
+       * Format: date-time
+       * @description Hasta cuándo (UTC) vale la prioridad vigente. Null si no hay prioridad o no vence
+       * @example 2027-03-31T02:59:59Z
+       */
+      priorityUntil?: string | null;
       /** @enum {string} */
       role: 'USER' | 'REVIEWER' | 'ADMIN';
     };

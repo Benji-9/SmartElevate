@@ -78,6 +78,9 @@ const NO_SHOW_AFTER_MS = 60_000;
 /** `cancelFreeUntil` de la reserva: salida − plazo, como lo calcula el backend. */
 const cancelFreeUntil = (departureAt: string) =>
   new Date(Date.parse(departureAt) - CANCEL_DEADLINE_MS).toISOString();
+/** `checkInOpensAt` de la reserva: salida − apertura del check-in, como lo calcula el backend. */
+const checkInOpensAt = (departureAt: string) =>
+  new Date(Date.parse(departureAt) - CHECK_IN_OPENS_MS).toISOString();
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 /** `app.kiosk.qr-ttl` del backend (ADR 0020). */
@@ -550,6 +553,7 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
     ...placeOf(e.code),
     departureAt: departure.departureAt,
     cancelFreeUntil: cancelFreeUntil(departure.departureAt),
+    checkInOpensAt: checkInOpensAt(departure.departureAt),
     seatNumber: occupied(departureId) + 1,
     originFloor,
     destinationFloor,
@@ -577,6 +581,7 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
       ...placeOf('33'),
       departureAt: new Date(at).toISOString(),
       cancelFreeUntil: cancelFreeUntil(new Date(at).toISOString()),
+      checkInOpensAt: checkInOpensAt(new Date(at).toISOString()),
       seatNumber: occupied(departureId) + 1,
       originFloor: 0,
       destinationFloor: 7,
@@ -616,6 +621,7 @@ const pastTrips: Reservation[] = Array.from({ length: 24 }, (_, i) => {
     ...placeOf(ELEVATORS[(i * 3) % ELEVATORS.length].code),
     departureAt: departsAt.toISOString(),
     cancelFreeUntil: cancelFreeUntil(departsAt.toISOString()),
+    checkInOpensAt: checkInOpensAt(departsAt.toISOString()),
     seatNumber: status.startsWith('CANCELLED') ? null : 3,
     originFloor: 0,
     // 5 a 7: fuera de los pisos bajos y servidos por todos los núcleos.
