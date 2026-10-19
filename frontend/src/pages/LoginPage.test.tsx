@@ -187,7 +187,7 @@ describe('LoginPage', () => {
       'placeholder',
       'jmartinez',
     );
-    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('placeholder', '••••••••');
+    expect(screen.getByLabelText('Contraseña')).not.toHaveAttribute('placeholder');
   });
 
   it('muestra el logo de UADE al pie', async () => {

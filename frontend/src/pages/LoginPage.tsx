@@ -69,7 +69,6 @@ export function LoginPage() {
           label="Contraseña"
           type="password"
           autoComplete="current-password"
-          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}

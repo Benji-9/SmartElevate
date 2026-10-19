@@ -9,8 +9,8 @@ import { useSession } from '../hooks/useSession';
 import type { DeclaredUserType, User } from '../types/api';
 
 const userTypes: Record<DeclaredUserType, { label: string; tone: ChipTone }> = {
-  STUDENT: { label: 'Estudiante', tone: 'alumnos' },
-  TEACHER: { label: 'Docente', tone: 'docentes' },
+  STUDENT: { label: 'Estudiante', tone: 'neutral' },
+  TEACHER: { label: 'Docente', tone: 'neutral' },
 };
 
 const arrow = (

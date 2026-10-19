@@ -89,13 +89,6 @@
   color: var(--color-primary);
 }
 
-.user-type-dot {
-  flex: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
 .auth__footer {
   text-align: center;
   font-size: var(--text-14);

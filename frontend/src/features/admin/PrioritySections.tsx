@@ -159,7 +159,7 @@ export function PriorityUsers() {
           <td>{u.legajo}</td>
           <td>
             {/* El contrato admite NONE, pero esta lista solo trae prioridades vigentes. */}
-            {u.category === 'TEACHER' && <Chip tone="docentes">Docente</Chip>}
+            {u.category === 'TEACHER' && <Chip tone="neutral">Docente</Chip>}
             {u.category === 'REDUCED_MOBILITY' && <Chip>Movilidad reducida</Chip>}
           </td>
           <td>
