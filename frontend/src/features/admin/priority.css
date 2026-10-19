@@ -96,3 +96,9 @@
     background: var(--color-primary-tint);
   }
 }
+
+/* Engranaje: botón cuadrado sin texto. */
+.user-menu__gear {
+  width: 36px;
+  padding: 0;
+}

@@ -95,7 +95,7 @@ describe('Gestión de usuarios (09b)', () => {
       'aria-disabled',
       'true',
     );
-    expect(within(menu).getByRole('menuitem', { name: /Bloquear usuario/ })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /Bloquear cuenta/ })).toHaveAttribute(
       'aria-disabled',
       'true',
     );
