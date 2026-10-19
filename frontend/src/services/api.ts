@@ -23,6 +23,7 @@ import type {
   PingResponse,
   PriorityUser,
   AdminUserPage,
+  DeclaredUserType,
   Role,
   QrToken,
   RegisterRequest,
@@ -315,6 +316,9 @@ export const searchUsers = (query: string, cursor?: string) =>
 /** Cambia el rol de otro usuario (el servidor rechaza con 409 el propio). Solo ADMIN. */
 export const assignRole = (id: string, role: Role) =>
   api.put<void>(`/admin/users/${encodeURIComponent(id)}/role`, { role });
+
+export const changeDeclaredType = (id: string, declaredUserType: DeclaredUserType) =>
+  api.put<void>(`/admin/users/${encodeURIComponent(id)}/declared-type`, { declaredUserType });
 /** Usuarios con prioridad vigente. */
 export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
 export const revokePriority = (id: string) =>

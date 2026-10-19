@@ -46,7 +46,7 @@ public class UserSearchService {
         List<User> page = more ? found.subList(0, props.pageSize()) : found;
         return new AdminUserPage(
                 page.stream().map(u -> new AdminUserResponse(u.getId(), u.getFullName(), u.getEmail(),
-                        u.getLegajo(), u.getRole())).toList(),
+                        u.getLegajo(), u.getRole(), u.getDeclaredUserType(), u.isEmailVerified())).toList(),
                 more ? page.get(page.size() - 1).getId() : null);
     }
 }

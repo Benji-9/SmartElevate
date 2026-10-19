@@ -27,6 +27,7 @@ import type {
   AdminElevator,
   AdminUser,
   AdminUserPage,
+  DeclaredUserType,
   Building,
   CheckIn,
   CheckInRequest,
@@ -147,6 +148,8 @@ const adminUsers: AdminUser[] = [
     email: 'admin@uade.edu.ar',
     legajo: '1000001',
     role: 'ADMIN',
+    declaredUserType: 'STUDENT',
+    emailVerified: true,
   },
   {
     id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b11',
@@ -154,6 +157,8 @@ const adminUsers: AdminUser[] = [
     email: 'carla.diaz@uade.edu.ar',
     legajo: '1088888',
     role: 'USER',
+    declaredUserType: 'STUDENT',
+    emailVerified: true,
   },
   {
     id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b12',
@@ -161,6 +166,17 @@ const adminUsers: AdminUser[] = [
     email: 'lucia.fernandez@uade.edu.ar',
     legajo: '1077777',
     role: 'REVIEWER',
+    declaredUserType: 'TEACHER',
+    emailVerified: true,
+  },
+  {
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b13',
+    fullName: 'Mateo Ríos',
+    email: 'mateo.rios@uade.edu.ar',
+    legajo: '1066666',
+    role: 'USER',
+    declaredUserType: 'STUDENT',
+    emailVerified: false,
   },
 ];
 let priorityUsers: PriorityUser[] = [
@@ -995,6 +1011,37 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       const target = adminUsers.find((u) => u.id === id);
       if (!target) throw new ApiError(404, 'Usuario inexistente');
       target.role = (body as { role: Role }).role;
+      return undefined;
+    },
+  ],
+  [
+    'PUT',
+    /^\/admin\/users\/([^/]+)\/declared-type$/,
+    (body, [id]) => {
+      const target = adminUsers.find((u) => u.id === id);
+      if (!target) throw new ApiError(404, 'Usuario inexistente');
+      const type = (body as { declaredUserType: DeclaredUserType }).declaredUserType;
+      if (!target.emailVerified) {
+        throw new ApiError(
+          409,
+          'El usuario todavía no verificó su email: no se le puede cambiar el tipo',
+        );
+      }
+      if (target.declaredUserType === type) {
+        throw new ApiError(409, `El usuario ya está declarado como ${type}`);
+      }
+      target.declaredUserType = type;
+      const { fullName, email, legajo } = target;
+      if (type === 'TEACHER') {
+        pendingTeachers = [
+          ...pendingTeachers,
+          { id, fullName, email, legajo, registeredAt: new Date().toISOString() },
+        ];
+      } else {
+        // Sale de la cola y pierde la prioridad de docente, como en el servidor.
+        pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
+        priorityUsers = priorityUsers.filter((u) => !(u.id === id && u.category === 'TEACHER'));
+      }
       return undefined;
     },
   ],

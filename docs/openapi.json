@@ -831,6 +831,81 @@
         "tags" : [ "admin-priority" ]
       }
     },
+    "/api/admin/users/{id}/declared-type" : {
+      "put" : {
+        "description" : "Pasar a docente lo deja en la cola de validación, sin darle prioridad. Pasar a estudiante lo saca de la cola y le revoca la prioridad de docente si la tenía vigente.",
+        "operationId" : "changeDeclaredType",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignDeclaredTypeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Email sin verificar o el usuario ya tiene ese tipo"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cambia el tipo de usuario (STUDENT, TEACHER) de una cuenta con email verificado",
+        "tags" : [ "admin-priority" ]
+      }
+    },
     "/api/admin/users/{id}/role" : {
       "put" : {
         "operationId" : "assignRole",
@@ -2361,9 +2436,18 @@
         "type" : "object",
         "description" : "Usuario encontrado por el buscador del panel admin (sin datos sensibles)",
         "properties" : {
+          "declaredUserType" : {
+            "type" : "string",
+            "description" : "Estudiante o docente (STUDENT, TEACHER)",
+            "enum" : [ "STUDENT", "TEACHER" ]
+          },
           "email" : {
             "type" : "string",
             "example" : "ana@uade.edu.ar"
+          },
+          "emailVerified" : {
+            "type" : "boolean",
+            "description" : "Si ya verificó su email; sin eso no se le puede cambiar el tipo"
           },
           "fullName" : {
             "type" : "string",
@@ -2383,7 +2467,7 @@
             "enum" : [ "USER", "REVIEWER", "ADMIN" ]
           }
         },
-        "required" : [ "email", "fullName", "id", "legajo", "role" ]
+        "required" : [ "declaredUserType", "email", "emailVerified", "fullName", "id", "legajo", "role" ]
       },
       "ApiError" : {
         "type" : "object",
@@ -2424,6 +2508,17 @@
           }
         },
         "required" : [ "error", "message", "path", "status", "timestamp" ]
+      },
+      "AssignDeclaredTypeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "declaredUserType" : {
+            "type" : "string",
+            "enum" : [ "STUDENT", "TEACHER" ],
+            "example" : "TEACHER"
+          }
+        },
+        "required" : [ "declaredUserType" ]
       },
       "AssignRoleRequest" : {
         "type" : "object",
