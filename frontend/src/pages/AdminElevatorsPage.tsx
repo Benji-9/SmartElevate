@@ -104,56 +104,75 @@ export function AdminElevatorsPage() {
     content = <p className="page-placeholder">No hay ascensores para mostrar.</p>;
   } else {
     const names = new Map((buildings.data ?? []).map((b) => [b.code, b.name]));
-    // Edificios en el orden en que aparecen; cada uno con sus ascensores en fila.
-    const byBuilding = new Map<string, AdminElevator[]>();
-    for (const e of list.data)
-      byBuilding.set(e.building, [...(byBuilding.get(e.building) ?? []), e]);
+    // Edificios y, dentro de cada uno, núcleos en el orden en que aparecen.
+    const byBuilding = new Map<string, Map<string, AdminElevator[]>>();
+    for (const e of list.data) {
+      const cores = byBuilding.get(e.building) ?? new Map<string, AdminElevator[]>();
+      cores.set(e.coreName, [...(cores.get(e.coreName) ?? []), e]);
+      byBuilding.set(e.building, cores);
+    }
     content = (
       <div className="elevator-buildings">
-        {[...byBuilding].map(([building, items]) => (
+        {[...byBuilding].map(([building, cores]) => (
           <section key={building} aria-label={names.get(building) ?? building}>
             <h3 className="text-label elevator-buildings__name">
               {names.get(building) ?? building}
             </h3>
-            <ul className="elevator-grid">
-              {items.map((e) => (
-                <li key={e.code}>
-                  <article className="elevator-card" aria-label={`Ascensor ${e.code}`}>
-                    <header className="elevator-card__head">
-                      <h4 className="text-card-title">{e.code}</h4>
-                      {e.active ? (
-                        <Chip>En servicio</Chip>
-                      ) : (
-                        <Chip tone="neutral">Fuera de servicio</Chip>
-                      )}
-                    </header>
-                    <p className="elevator-card__meta">{e.coreName}</p>
-                    <p className="elevator-card__meta">
-                      {plural(e.upcomingReservations, 'reserva próxima', 'reservas próximas')}
-                    </p>
-                    {e.active ? (
-                      <ConfirmAction
-                        label="Marcar fuera de servicio"
-                        name={`Marcar fuera de servicio el ascensor ${e.code}`}
-                        question={outageQuestion(e)}
-                        confirmLabel="Sí, marcar"
-                        disabled={busy}
-                        onConfirm={() => markOut(e.code)}
-                      />
-                    ) : (
-                      <ConfirmAction
-                        label="Reactivar"
-                        name={`Reactivar el ascensor ${e.code}`}
-                        question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
-                        confirmLabel="Sí, reactivar"
-                        disabled={busy}
-                        onConfirm={() => markIn(e.code)}
-                      />
-                    )}
-                  </article>
-                </li>
-              ))}
-            </ul>
+            {[...cores].map(([core, items]) => (
+              <section key={core} aria-label={core} className="elevator-core">
+                <h4 className="text-body-strong">{core}</h4>
+                <ul className="elevator-grid">
+                  {items.map((e) => (
+                    <li key={e.code}>
+                      <article
+                        className={`elevator-card${e.active ? '' : ' elevator-card--out'}`}
+                        aria-label={`Ascensor ${e.code}`}
+                      >
+                        <header className="elevator-card__head">
+                          <h5 className="text-card-title">{e.code}</h5>
+                          {e.active ? (
+                            <Chip>En servicio</Chip>
+                          ) : (
+                            <Chip tone="danger">Fuera de servicio</Chip>
+                          )}
+                        </header>
+                        {e.usage !== 'COMMON' && (
+                          <p>
+                            <Chip tone={e.usage === 'TEACHERS' ? 'docentes' : 'neutral'}>
+                              {e.usage === 'TEACHERS'
+                                ? 'Dedicado a docentes'
+                                : 'Dedicado a movilidad reducida'}
+                            </Chip>
+                          </p>
+                        )}
+                        <p className="elevator-card__meta">
+                          {plural(e.upcomingReservations, 'reserva próxima', 'reservas próximas')}
+                        </p>
+                        {e.active ? (
+                          <ConfirmAction
+                            label="Marcar fuera de servicio"
+                            name={`Marcar fuera de servicio el ascensor ${e.code}`}
+                            question={outageQuestion(e)}
+                            confirmLabel="Sí, marcar"
+                            disabled={busy}
+                            onConfirm={() => markOut(e.code)}
+                          />
+                        ) : (
+                          <ConfirmAction
+                            label="Reactivar"
+                            name={`Reactivar el ascensor ${e.code}`}
+                            question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
+                            confirmLabel="Sí, reactivar"
+                            disabled={busy}
+                            onConfirm={() => markIn(e.code)}
+                          />
+                        )}
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
           </section>
         ))}
       </div>
