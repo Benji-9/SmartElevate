@@ -221,7 +221,7 @@ Sin salidas: "No hay salidas que puedas reservar en este núcleo ahora. Probá e
 
 Recién reservado (`state.justReserved` desde `/reservar`): sin header ni tabs, con el hero. Al reabrir un turno existente (p. ej. desde "Ver turno") no hay festejo: `ScreenHeader` "Tu turno" con volver y el resto igual. `main`: pad 32/20/24/20, gap 16.
 
-1. **Hero** centrado (gap 10): círculo de éxito de 88 px (`--accent-tint-strong`) con tilde de trazo 5 px `--accent`, puntas redondeadas; título `.text-title` "¡Turno confirmado!"; 15 px `--ink-muted` "Te esperamos en el hall de Lima 3."
+1. **Hero** centrado (gap 10): Elevy (`<Mascot>`, 120 px de alto) en lugar del círculo de éxito; título `.text-title` "¡Turno confirmado!"; 15 px `--ink-muted` "Te esperamos en el hall de Lima 3."
 2. **Detalle del turno** (pad 16, gap 12, `--radius-lg`, borde `--line`): filas clave (14 px `--ink-muted`) / valor (14 px / 600), con justificación entre extremos:
 
 | Clave | Valor |

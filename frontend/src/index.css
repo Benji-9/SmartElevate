@@ -270,3 +270,11 @@ a {
   font-size: var(--text-14);
   color: var(--color-text-muted);
 }
+
+/* Elevy con el mensaje de una pantalla vacía. */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}

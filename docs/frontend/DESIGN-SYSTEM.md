@@ -318,6 +318,7 @@ Los tres SVG de SmartElevate tienen el texto convertido a trazos (Inter Medium) 
 | Archivo | Uso |
 |---|---|
 | `frontend/src/assets/smartelevate-logo.svg` | Marca + logotipo de SmartElevate, vertical, **fondo transparente**. Login: 120 px de alto. Sin recolorear ni estirar. |
+| `frontend/src/assets/elevy.png` (`<Mascot size>`) | **Elevy**, la mascota (robot blanco con detalles celestes), PNG transparente de 320 px de ancho. Siempre decorativa (`alt=""`): el mensaje va en el texto. Va en el hero de éxito (05 y 07), en los estados vacíos (Inicio sin turno, Mis viajes, Check-in sin turno) y en el 404, entre 96 y 120 px de alto. No se usa en errores ni en el aviso de falta. Origen: proyecto de Stitch "SmartElevate UADE Redesign". |
 | `frontend/src/assets/smartelevate-logo-horizontal.svg` | Ícono + logotipo en una línea, transparente. Para el `TopBar` (~32 px de alto). |
 | `frontend/src/assets/smartelevate-mark.svg` | Solo el ícono (ascensor con personas), transparente. Favicon o espacios chicos. |
 | `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`), **fondo transparente**; con `prefers-color-scheme: dark` pasa a blanco, igual que los de SmartElevate. Preferido. Más chico que la marca de SmartElevate. |

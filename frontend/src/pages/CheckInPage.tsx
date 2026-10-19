@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Chip } from '../components/Chip';
+import { Mascot } from '../components/Mascot';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
@@ -181,9 +182,12 @@ export function CheckInPage() {
     );
   } else if (!reservation) {
     turnContent = (
-      <p className="page-placeholder">
-        No tenés un turno activo. <Link to="/reservar">Reservá un turno</Link>
-      </p>
+      <div className="empty-state">
+        <Mascot size={96} />
+        <p className="page-placeholder">
+          No tenés un turno activo. <Link to="/reservar">Reservá un turno</Link>
+        </p>
+      </div>
     );
   } else {
     turnContent = (

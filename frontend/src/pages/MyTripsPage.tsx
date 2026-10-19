@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
+import { Mascot } from '../components/Mascot';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { NoShowNotice } from '../features/trips/NoShowNotice';
 import { TripList } from '../features/trips/TripList';
@@ -49,9 +50,12 @@ export function MyTripsPage() {
     content = <Skeleton label="Cargando tus viajes…" rows={3} height={72} />;
   } else if (trips.length === 0) {
     content = (
-      <p className="page-placeholder">
-        Todavía no tenés viajes. <Link to="/reservar">Reservá tu primer turno</Link>.
-      </p>
+      <div className="empty-state">
+        <Mascot size={96} />
+        <p className="page-placeholder">
+          Todavía no tenés viajes. <Link to="/reservar">Reservá tu primer turno</Link>.
+        </p>
+      </div>
     );
   } else {
     content = (
