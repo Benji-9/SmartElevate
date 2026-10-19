@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
@@ -99,5 +100,30 @@ describe('VerifyEmailPage', () => {
 
     expect(await screen.findByRole('button', { name: 'Podés pedir otro en 45 s' })).toBeDisabled();
     expect(screen.getByText('Ya te mandamos un email hace poco.')).toBeInTheDocument();
+  });
+
+  it('un link ya usado no se muestra como falla del servidor: sugiere ingresar', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/verify': { status: 400, body: { message: 'Este link ya se usó.' } },
+    });
+    renderAt('/verificar-email?token=usado');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este link ya se usó.');
+    expect(screen.getByRole('link', { name: 'ingresá' })).toHaveAttribute('href', '/login');
+  });
+
+  it('pide la verificación una sola vez aunque el efecto corra dos veces', async () => {
+    const fetchMock = stubApi({ ...signedOut, 'POST /auth/verify': { status: 204 } });
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/verificar-email?token=strict']}>
+          <App />
+        </MemoryRouter>
+      </StrictMode>,
+    );
+
+    expect(await screen.findByText('Listo, verificamos tu email')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/verify')).toHaveLength(1);
   });
 });

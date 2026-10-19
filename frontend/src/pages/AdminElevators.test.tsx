@@ -134,4 +134,18 @@ describe('AdminElevatorsPage', () => {
       'Ascensor inexistente. Actualizamos la lista.',
     );
   });
+
+  it('con una sola reserva cancelada usa el singular', async () => {
+    renderPage([elevator('33', true, 1)]);
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Marcar fuera de servicio el ascensor 33' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Sí, marcar' }));
+
+    expect(
+      await screen.findByText('Ascensor 33 fuera de servicio. Se canceló 1 reserva.'),
+    ).toBeInTheDocument();
+  });
 });

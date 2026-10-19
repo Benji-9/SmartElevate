@@ -27,7 +27,8 @@ export function ReservationsChart({ data }: ReservationsChartProps) {
         <span className="hour-chart__y-title">Reservas</span>
         <span className="hour-chart__y-ticks">
           <span>{formatNumber(max)}</span>
-          <span>{formatNumber(Math.round(max / 2))}</span>
+          {/* La marca del medio solo si cae en un entero: si no, repetiría valores. */}
+          {max > 1 && max % 2 === 0 && <span>{formatNumber(max / 2)}</span>}
           <span>0</span>
         </span>
         <ol className="hour-chart__bars">

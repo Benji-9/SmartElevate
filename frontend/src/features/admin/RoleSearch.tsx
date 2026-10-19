@@ -243,10 +243,12 @@ function Results({
   term,
   titleId,
   onStale,
+  onTypeChanged,
 }: {
   term: string;
   titleId: string;
   onStale: () => void;
+  onTypeChanged: () => void;
 }) {
   const { user: me } = useSession();
   const first = useResource(useCallback(() => searchUsers(term), [term]));
@@ -299,7 +301,10 @@ function Results({
       () => {
         done();
         if (edit.field === 'role') setRoles((r) => ({ ...r, [user.id]: edit.to }));
-        else setTypes((t) => ({ ...t, [user.id]: edit.to }));
+        else {
+          setTypes((t) => ({ ...t, [user.id]: edit.to }));
+          onTypeChanged();
+        }
       },
       (error: unknown) => {
         done();
@@ -375,7 +380,7 @@ function Results({
 }
 
 /** Tarjeta "Buscar usuarios" (SCREENS.md 09b): buscador con debounce y gestión por usuario. */
-export function RoleSearch() {
+export function RoleSearch({ onTypeChanged }: { onTypeChanged: () => void }) {
   const titleId = useId();
   const [query, setQuery] = useState('');
   const [term, setTerm] = useState('');
@@ -404,6 +409,7 @@ export function RoleSearch() {
           term={term}
           titleId={titleId}
           onStale={() => setVersion((v) => v + 1)}
+          onTypeChanged={onTypeChanged}
         />
       )}
     </section>
