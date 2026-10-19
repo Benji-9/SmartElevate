@@ -38,12 +38,18 @@ export function AdminElevatorsPage() {
   // Un solo pedido a la vez (evita doble POST) y nada de setState si la pantalla ya se desmontó.
   const [busy, setBusy] = useState(false);
   const mounted = useRef(true);
+  const feedback = useRef<HTMLDivElement>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
+
+  // El aviso queda arriba de la lista: si se scrolleó, se lo trae a la vista.
+  useEffect(() => {
+    if (done || actionError) feedback.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [done, actionError]);
 
   const change = (promise: Promise<unknown>, onOk: () => string | undefined) => {
     setDone(undefined);
@@ -77,7 +83,7 @@ export function AdminElevatorsPage() {
         cancelled = r.cancelledReservations;
       }),
       () =>
-        `Ascensor ${code} fuera de servicio. Se cancelaron ${plural(cancelled, 'reserva', 'reservas')}.`,
+        `Ascensor ${code} fuera de servicio. ${cancelled === 1 ? 'Se canceló 1 reserva' : `Se cancelaron ${cancelled} reservas`}.`,
     );
   };
 
@@ -192,12 +198,14 @@ export function AdminElevatorsPage() {
         <h2 id={listId} className="text-card-title">
           Estado de los ascensores
         </h2>
-        {done && <p role="status">{done}</p>}
-        {actionError && (
-          <p role="alert" className="kiosk-error">
-            {actionError}
-          </p>
-        )}
+        <div ref={feedback}>
+          {done && <p role="status">{done}</p>}
+          {actionError && (
+            <p role="alert" className="kiosk-error">
+              {actionError}
+            </p>
+          )}
+        </div>
         {content}
       </section>
     </>
