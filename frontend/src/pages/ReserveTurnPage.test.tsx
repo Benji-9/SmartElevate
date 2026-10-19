@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App';
-import { signedIn, stubApi } from '../test/stubApi';
+import { signedIn, stubApi, testUser } from '../test/stubApi';
 import type { Building, Departure, Elevator, Reservation } from '../types/api';
 
 const lima: Building = {
@@ -198,38 +198,94 @@ describe('ReserveTurnPage', () => {
     expect(within(slots).getByRole('radio', { name: /^14:32/ })).toBeChecked();
   });
 
-  it('muestra los núcleos con ascensores activos, con nombre corto y en el orden de los edificios', async () => {
-    stubApi({
+  describe('núcleos disponibles', () => {
+    const independencia: Building = {
+      code: 'INDEPENDENCIA',
+      name: 'Independencia',
+      minFloor: -3,
+      maxFloor: 10,
+      cores: [{ code: 'IND1', name: 'Independencia 1' }],
+    };
+    const dedicated = (code: string, usage: Elevator['usage']): Elevator => ({
+      ...elevator(code, [0, 5], 'IND1'),
+      building: 'INDEPENDENCIA',
+      usage,
+    });
+    const catalogRoutes = (priority: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY', extra = {}) => ({
       ...routes,
+      ...signedIn({ ...testUser, priority }),
       'GET /buildings': {
-        body: [
-          { ...lima, cores: [...lima.cores, { code: 'L2', name: 'Lima 2' }] },
-          {
-            code: 'INDEPENDENCIA',
-            name: 'Independencia',
-            minFloor: -3,
-            maxFloor: 10,
-            cores: [{ code: 'IND1', name: 'Independencia 1' }],
-          },
-        ],
+        body: [{ ...lima, cores: [...lima.cores, { code: 'L2', name: 'Lima 2' }] }, independencia],
       },
       'GET /elevators': {
         body: [
-          { ...elevator('05', [0, 5], 'IND1'), building: 'INDEPENDENCIA', usage: 'TEACHERS' },
+          dedicated('05', 'TEACHERS'),
+          dedicated('06', 'REDUCED_MOBILITY'),
           ...elevators,
           // L2 sin ascensores activos: no se ofrece.
           { ...elevator('07', [0, 5], 'L2'), active: false },
         ],
       },
+      ...extra,
     });
-    renderPage();
-
-    const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
-    expect(
-      within(cores)
+    const offered = async () => {
+      const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
+      return within(cores)
         .getAllByRole('radio')
-        .map((r) => r.closest('label')!.textContent),
-    ).toEqual(['Lima 1', 'Indep. 1']);
+        .map((r) => r.closest('label')!.textContent);
+    };
+
+    it('un usuario común no ve Independencia 1: sus ascensores son dedicados', async () => {
+      stubApi(catalogRoutes('NONE'));
+      renderPage();
+
+      expect(await offered()).toEqual(['Lima 1']);
+    });
+
+    it('un docente con prioridad vigente ve Independencia 1, con nombre corto y en orden', async () => {
+      stubApi(catalogRoutes('TEACHER'));
+      renderPage();
+
+      expect(await offered()).toEqual(['Lima 1', 'Indep. 1']);
+    });
+
+    it('movilidad reducida también lo ve', async () => {
+      stubApi(catalogRoutes('REDUCED_MOBILITY'));
+      renderPage();
+
+      expect(await offered()).toEqual(['Lima 1', 'Indep. 1']);
+    });
+
+    it('un núcleo con ascensores comunes y dedicados se ofrece, pero solo con los que puede usar', async () => {
+      stubApi(
+        catalogRoutes('NONE', {
+          'GET /elevators': {
+            body: [
+              { ...dedicated('05', 'TEACHERS'), floors: [-3, 0, 10] },
+              dedicated('08', 'COMMON'),
+            ],
+          },
+        }),
+      );
+      renderPage();
+
+      expect(await offered()).toEqual(['Indep. 1']);
+      await userEvent.click(screen.getByRole('radio', { name: 'Indep. 1' }));
+      // Los pisos del ascensor dedicado ajeno (-3 y 10) no cuentan para el origen.
+      expect(screen.queryByRole('option', { name: '-3' })).not.toBeInTheDocument();
+    });
+
+    it('no precarga un último viaje a un núcleo que el usuario ya no puede usar', async () => {
+      localStorage.setItem(
+        'se:lastTrip',
+        JSON.stringify({ coreId: 'IND1', originFloor: 0, destinationFloor: 5 }),
+      );
+      stubApi(catalogRoutes('NONE'));
+      renderPage();
+
+      expect(await offered()).toEqual(['Lima 1']);
+      expect(screen.getByRole('radio', { name: 'Lima 1' })).not.toBeChecked();
+    });
   });
 
   it('sin salidas que pueda reservar (p. ej. un ascensor dedicado ajeno) lo dice', async () => {
