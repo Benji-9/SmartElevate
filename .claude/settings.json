@@ -68,14 +68,6 @@
       "PowerShell(gh pr view:*)",
       "PowerShell(gh pr checks:*)"
     ],
-    "ask": [
-      "Bash(gh issue create:*)",
-      "Bash(gh release create:*)",
-      "Bash(gh label create:*)",
-      "Bash(gh label delete:*)",
-      "Bash(gh api:*)",
-      "Bash(git tag:*)"
-    ],
     "deny": [
       "Read(**/.env)",
       "Read(**/.env.*)",
@@ -103,6 +95,13 @@
       "PowerShell(Remove-Item -Recurse:*)",
       "PowerShell(gh repo delete:*)",
       "PowerShell(gh release delete:*)"
+    ],
+    "ask": [
+      "Bash(gh release create:*)",
+      "Bash(gh label create:*)",
+      "Bash(gh label delete:*)",
+      "Bash(gh api:*)",
+      "Bash(git tag:*)"
     ]
   }
 }
