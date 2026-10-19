@@ -31,11 +31,15 @@ describe('Páginas legales', () => {
     ).toBeInTheDocument();
   });
 
-  it('la política trae la leyenda de la AAIP y la sección de datos de salud', async () => {
+  it('la política trae la leyenda de la AAIP y no menciona certificados ni datos de salud', async () => {
     stubApi(signedOut);
     renderAt('/privacidad');
 
-    expect(await screen.findByRole('heading', { name: '3. Datos de salud' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /Política de privacidad/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Datos de salud/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/certificado/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Órgano de Control de la Ley N° 25.326/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sitio de la AAIP' })).toHaveAttribute(
       'href',

@@ -28,7 +28,7 @@ Y dónde se traba, duda o se equivoca.
 
 - Los datos van **anonimizados**: en este archivo solo el id (P1…P5), el perfil y el dispositivo. Nada de nombres, emails, legajos ni datos de salud.
 - Antes de empezar se pide el consentimiento oral: qué se hace, que se prueba la app y no a la persona, que puede cortar cuando quiera y que no se graba la cara ni la voz (se toman notas; si se graba la pantalla, se avisa y se borra al pasar las notas en limpio).
-- P4 y P5 usan una **cuenta de prueba con la prioridad ya aprobada**: la prueba no incluye subir un certificado real (es un dato de salud).
+- P4 y P5 usan una **cuenta de prueba con la prioridad ya asignada** (la app no tiene flujo de certificados: la marca de movilidad reducida la pone UADE vía OFALU, [ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)). La prueba no incluye datos de salud reales.
 
 ## 3. Dispositivos y entorno
 

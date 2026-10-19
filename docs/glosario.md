@@ -31,5 +31,5 @@ Términos del dominio, para que backend, frontend y docs hablen igual. Entre par
 | **Conexión** (`Connection`) | Paso entre núcleos válido en un rango de pisos, con su tiempo de caminata (de punta a punta, ~45–70 s). |
 | **Ascensor dedicado** | Ascensor exclusivo de un tipo de prioritario: IND1 05 (docentes) e IND1 06 (movilidad reducida). |
 | **Ascensor accesible** | Ascensor apto para movilidad reducida: IND1 06. |
-| **Certificado** | Documento que respalda la movilidad reducida. Estados: pendiente (`PENDING`), aprobado con vencimiento (`APPROVED`), rechazado (`REJECTED`). |
-| **Revisor** (`REVIEWER`) | Rol que revisa certificados. |
+| **OFALU** | Oficina de Alumnos de UADE. Recibe el aviso de las personas con movilidad reducida (temporal o permanente), las marca y maneja sus certificados. SmartElevate no los ve ([ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)). |
+| **Revisor** (`REVIEWER`) | Rol que existe en el código y la base, pero hoy no tiene función (antes revisaba certificados). Se evalúa quitarlo. |
