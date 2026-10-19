@@ -137,7 +137,7 @@ export function CheckInPage() {
       <section className="check-in__message" aria-labelledby="check-in-closed-title">
         <Mascot pose="duerme" size={96} />
         <h2 id="check-in-closed-title">Abre a las {formatTime(opensAt)} hs</h2>
-        <p>Cuando abra, vas a poder escanear el QR del ascensor desde acá.</p>
+        <p>Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.</p>
       </section>
     );
   } else if (!wantsCamera) {

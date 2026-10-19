@@ -28,6 +28,7 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Docente')).toBeInTheDocument();
     expect(screen.getByText('Legajo 1099999')).toBeInTheDocument();
     expect(screen.getByText('ana.perez@uade.edu.ar')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'UADE' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Mis viajes' })).toHaveAttribute(
       'href',
       '/perfil/viajes',

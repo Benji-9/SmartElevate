@@ -160,3 +160,12 @@
   align-items: center;
   gap: 10px;
 }
+
+.turn-hint--mascot p {
+  margin: 0;
+}
+
+.turn-hint__title {
+  display: block;
+  font-weight: var(--font-semibold);
+}

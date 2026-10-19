@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
+import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
@@ -37,6 +38,7 @@ export function ForgotPasswordPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Recuperar contraseña" backTo="/login" />
+      <AuthBrand />
       {sentTo ? (
         // El servidor responde igual exista o no la cuenta: el texto no confirma nada.
         <div role="status" className="auth">

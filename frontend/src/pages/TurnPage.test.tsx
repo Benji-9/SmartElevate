@@ -47,6 +47,7 @@ describe('TurnPage', () => {
     expect(screen.getByText('Lima')).toBeInTheDocument();
     expect(screen.getByText(/· Lima 1/)).toBeInTheDocument();
     expect(screen.getByText('14:04 hs')).toBeInTheDocument();
+    expect(screen.getByText('Elevy te guía')).toBeInTheDocument();
     expect(screen.getByText(QR_INSTRUCTION)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir a check-in' })).toHaveAttribute(
       'href',

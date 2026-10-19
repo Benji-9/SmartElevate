@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
@@ -40,6 +41,7 @@ export function VerifyEmailPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Verificar email" backTo="/login" />
+      <AuthBrand />
       {state.status === 'loading' && (
         <p role="status" className="auth__lead">
           Verificando tu email…
@@ -48,7 +50,7 @@ export function VerifyEmailPage() {
       {state.status === 'ok' && (
         <div role="status" className="auth">
           <h2>Listo, verificamos tu email</h2>
-          <p className="auth__lead">Ya podés ingresar a SmartElevate.</p>
+          <p className="auth__lead">Ya podés ingresar y reservar tu primer turno.</p>
           <Link to="/login">Ir a ingresar</Link>
         </div>
       )}

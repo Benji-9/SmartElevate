@@ -317,11 +317,11 @@ Los tres SVG de SmartElevate tienen el texto convertido a trazos (Inter Medium) 
 
 | Archivo | Uso |
 |---|---|
-| `frontend/src/assets/smartelevate-logo.svg` | Marca + logotipo de SmartElevate, vertical, **fondo transparente**. Login: 120 px de alto. Sin recolorear ni estirar. |
+| `frontend/src/assets/smartelevate-logo.svg` | Marca + logotipo de SmartElevate, vertical, **fondo transparente**. Login: 120 px de alto; pantallas de cuenta (02–02d, `AuthBrand`): 72 px. Sin recolorear ni estirar. |
 | `frontend/src/assets/elevy/*.svg` (`<Mascot pose size>`) | **Elevy**, la mascota: cuerpo blanco caricaturesco y cabeza inspirada en el robot G1 de UADE (casco oscuro con aro de luz celeste). Siempre decorativa (`alt=""`): el mensaje va en el texto. Poses: `saludo` (05 Turno confirmado, Inicio sin turno), `festejo` (07 Viaje registrado), `senala` (estados vacíos que llevan a reservar), `piensa` (404), `duerme` (check-in que todavía no abrió), `triste` (errores de carga o de cámara, nunca en el aviso de falta) y `cara` (junto a la ayuda del QR). Entre 32 y 120 px de alto. El celeste del aro es parte de la ilustración, no un color de interfaz. Se generan con `frontend/scripts/generar-elevy.py` desde piezas comunes: para cambiar el diseño, editá el script y regenerá, no los SVG a mano. |
-| `frontend/src/assets/smartelevate-logo-horizontal.svg` | Ícono + logotipo en una línea, transparente. Para el `TopBar` (~32 px de alto). |
-| `frontend/src/assets/smartelevate-mark.svg` | Solo el ícono (ascensor con personas), transparente. Favicon o espacios chicos. |
-| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`), **fondo transparente**; con `prefers-color-scheme: dark` pasa a blanco, igual que los de SmartElevate. Preferido. Más chico que la marca de SmartElevate. |
+| `frontend/src/assets/smartelevate-logo-horizontal.svg` | Ícono + logotipo en una línea, transparente. Para el `TopBar` (~32 px de alto) y, en móvil, arriba de Inicio y Perfil. |
+| `frontend/src/assets/smartelevate-mark.svg` | Solo el ícono (ascensor con personas), transparente. Espacios chicos; `public/favicon.svg` es este ícono en un lienzo cuadrado. |
+| `frontend/src/assets/uade-logo.svg` (`UADE_id7RUMB-t-_1.svg`) | Logotipo de UADE, un solo color (`AstronautBlue`), **fondo transparente**; con `prefers-color-scheme: dark` pasa a blanco, igual que los de SmartElevate. Preferido. Más chico que la marca de SmartElevate. Va al pie de Login y Perfil (`LegalFooter withUadeLogo`). |
 | `UADE_id7RUMB-t-_0.png` | Mismo logotipo en PNG transparente. Solo donde no pueda usarse SVG. |
 
 ---

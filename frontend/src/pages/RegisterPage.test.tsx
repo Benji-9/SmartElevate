@@ -30,6 +30,12 @@ const valid = {
 const submit = () => userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
 describe('RegisterPage', () => {
+  it('muestra la marca de SmartElevate', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+    expect(screen.getByRole('img', { name: 'SmartElevate' })).toBeInTheDocument();
+  });
+
   it('pide todos los campos', async () => {
     const fetchMock = stubApi(signedOut);
     await renderRegister();
