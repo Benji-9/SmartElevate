@@ -12,6 +12,16 @@ const carla: AdminUser = {
   email: 'carla@uade.edu.ar',
   legajo: '1088888',
   role: 'USER',
+  declaredUserType: 'STUDENT',
+  emailVerified: true,
+};
+const mateo: AdminUser = {
+  ...carla,
+  id: 'a-2',
+  fullName: 'Mateo Ríos',
+  email: 'mateo@uade.edu.ar',
+  legajo: '1066666',
+  emailVerified: false,
 };
 const yo: AdminUser = {
   ...carla,
@@ -28,6 +38,7 @@ function renderPage(extra: Parameters<typeof stubApi>[0] = {}) {
     'GET /admin/teachers/pending': { body: [] },
     'GET /admin/priority-users': { body: [] },
     'GET /admin/users?query=carla': { body: { items: [carla, yo], nextCursor: null } },
+    'GET /admin/users?query=mateo': { body: { items: [mateo], nextCursor: null } },
     ...extra,
   });
   render(
@@ -161,5 +172,102 @@ describe('Roles de usuarios (09b)', () => {
     expect(await screen.findByRole('rowheader', { name: 'Lucía Fernández' })).toBeInTheDocument();
     expect(screen.getByRole('rowheader', { name: 'Carla Díaz' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ver más resultados' })).not.toBeInTheDocument();
+  });
+
+  it('muestra el tipo de cada usuario', async () => {
+    renderPage();
+
+    await search('carla');
+
+    const table = await screen.findByRole('table', { name: 'Roles de usuarios' });
+    expect(within(table).getByRole('columnheader', { name: 'Tipo' })).toBeInTheDocument();
+    const row = within(table).getByRole('row', { name: /Carla Díaz/ });
+    expect(within(row).getByText('Estudiante')).toBeInTheDocument();
+    expect(
+      within(row).getByRole('button', { name: 'Pasar a Carla Díaz a docente' }),
+    ).toBeInTheDocument();
+  });
+
+  it('pasar a docente pide confirmación, se puede cancelar y no manda nada', async () => {
+    const fetchMock = renderPage();
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Pasar a Carla Díaz a docente' }),
+    );
+    expect(screen.getByRole('group', { name: 'Cambiar tipo de Carla Díaz' })).toHaveTextContent(
+      '¿Pasar a Carla Díaz de Estudiante a Docente?',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Pasar a Carla Díaz a docente' }),
+    ).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/admin/users/a-1/declared-type',
+      expect.anything(),
+    );
+  });
+
+  it('confirmar manda el tipo y la fila pasa a docente', async () => {
+    const fetchMock = renderPage({ 'PUT /admin/users/a-1/declared-type': { status: 204 } });
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Pasar a Carla Díaz a docente' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, pasar' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Pasar a Carla Díaz a estudiante' }),
+    ).toBeInTheDocument();
+    const row = screen.getByRole('row', { name: /Carla Díaz/ });
+    expect(within(row).getByText('Docente')).toBeInTheDocument();
+    const put = fetchMock.mock.calls.find(([url]) => url === '/api/admin/users/a-1/declared-type');
+    expect(JSON.parse(String(put?.[1]?.body))).toEqual({ declaredUserType: 'TEACHER' });
+  });
+
+  it('de docente a estudiante avisa que se quita la prioridad', async () => {
+    renderPage({
+      'GET /admin/users?query=carla': {
+        body: { items: [{ ...carla, declaredUserType: 'TEACHER' }], nextCursor: null },
+      },
+      'PUT /admin/users/a-1/declared-type': { status: 204 },
+    });
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Pasar a Carla Díaz a estudiante' }),
+    );
+
+    expect(screen.getByRole('group', { name: 'Cambiar tipo de Carla Díaz' })).toHaveTextContent(
+      'Si tiene la prioridad de docente vigente, se la quitamos.',
+    );
+  });
+
+  it('con el email sin verificar no ofrece el cambio y lo explica', async () => {
+    renderPage();
+
+    await search('mateo');
+
+    const row = await screen.findByRole('row', { name: /Mateo Ríos/ });
+    expect(within(row).getByText('Email sin verificar')).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: /Pasar a/ })).not.toBeInTheDocument();
+  });
+
+  it('si el cambio de tipo falla muestra el error y deja el tipo como estaba', async () => {
+    renderPage({
+      'PUT /admin/users/a-1/declared-type': { status: 409, body: { message: 'Ya es docente' } },
+    });
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Pasar a Carla Díaz a docente' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, pasar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ya es docente');
+    const row = screen.getByRole('row', { name: /Carla Díaz/ });
+    expect(within(row).getByText('Estudiante')).toBeInTheDocument();
   });
 });

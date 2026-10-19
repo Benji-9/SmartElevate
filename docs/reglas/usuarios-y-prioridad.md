@@ -46,20 +46,25 @@ Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
   - Si el ADMIN aprueba, obtiene la prioridad `TEACHER`.
   - Si rechaza, sigue como usuario común.
 - La prioridad se sigue evaluando **solo en el servidor al reservar**, nunca a partir de este campo.
+- **Cambiarlo después** ([#262](https://github.com/Benji-9/SmartElevate/issues/262)): quien ya tenía cuenta como estudiante y pasa a ser docente o ayudante no se registra de nuevo. Un ADMIN cambia el tipo desde la búsqueda de usuarios del panel (`PUT /api/admin/users/{id}/declared-type`), en los dos sentidos:
+  - **Exige el email verificado**, igual que la cola. Si no lo verificó, 409.
+  - **Estudiante → docente:** entra a la cola "Docentes a validar" y un ADMIN lo aprueba como a cualquiera. El cambio **no da prioridad por sí solo**. Si antes lo habían rechazado, vuelve a la cola: el ADMIN lo está volviendo a marcar a propósito.
+  - **Docente → estudiante:** sale de la cola y, si tenía la prioridad de docente vigente, **se le revoca en el mismo paso**. La prioridad de movilidad reducida no se toca.
+  - Cada cambio queda en `priority_audit` (`DECLARED_TYPE_CHANGED`, con `STUDENT->TEACHER` o `TEACHER->STUDENT`) y la revocación como `PRIORITY_REVOKED`.
 
 ## Roles y prioridad
 
 - El **rol y la prioridad nunca vienen en el body del registro**: todo usuario nace común.
 - Los asigna un **ADMIN** desde el panel de administración.
 - **Docentes**: el ADMIN aprueba a los que se declararon docentes ([ver arriba](#tipo-de-usuario-declarado)).
-- **Movilidad reducida**: por certificado ([ver abajo](#certificado-de-prioridad)).
+- **Movilidad reducida**: la marca viene de OFALU ([ver abajo](#movilidad-reducida)).
 - **Vigencia de la prioridad de docente:** hasta el **fin del cuatrimestre en curso**, renovable (decidido el 14/10). Los cierres de cuatrimestre van en `app_config` (`semester_end_dates`); al aprobar, la prioridad vence al terminar el día del primer cierre que sea hoy o después (hora de Buenos Aires). Al vencer, el docente vuelve a la cola "Docentes a validar" y aprobarlo de nuevo lo renueva hasta el cierre siguiente. Si no hay un cierre cargado desde hoy, la aprobación falla: hay que cargar el próximo ([#218](https://github.com/Benji-9/SmartElevate/issues/218)).
 
 Modelo implementado (roles en `V5`, prioridad y auditoría en `V10`, [#121](https://github.com/Benji-9/SmartElevate/issues/121)):
 
 | Concepto | Valores |
 | --- | --- |
-| Rol | `USER`, `REVIEWER` (revisa certificados), `ADMIN` |
+| Rol | `USER`, `REVIEWER` (sin función hoy, se evalúa quitarlo: [ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)), `ADMIN` |
 | Categoría de prioridad | `NONE`, `TEACHER`, `REDUCED_MOBILITY` |
 | Estado de la solicitud de prioridad | `PENDING`, `APPROVED`, `REJECTED`, con fecha de vencimiento opcional (`expires_at`) |
 
@@ -73,22 +78,15 @@ No hay endpoint, seed ni migración que cree administradores: así no queda ning
 
 Render free no permite SSH ni comandos sueltos, así que no hay un comando para correr dentro del servidor.
 
-## Certificado de prioridad
+## Movilidad reducida
 
-```
-PENDIENTE ──► APROBADO (con vencimiento) ──► vence ──► usuario común
-    └──────► RECHAZADO
-```
+Decidido el 16/10 ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
 
-- Todo **APROBADO** tiene **fecha de vencimiento**. Las lesiones temporales vencen rápido.
-- Al vencer, el usuario **vuelve a ser común** automáticamente.
-
-### Archivos
-
-Decidido el 14/10; se implementa en [#123](https://github.com/Benji-9/SmartElevate/issues/123).
-
-- **Hasta 5 MB**, en **PDF, JPG o PNG**.
-- El **tipo se valida por contenido** (magic bytes), no por extensión.
+- La marca la pone **UADE, a través de OFALU** (Oficina de Alumnos), que recibe el aviso de la persona (temporal o permanente) y maneja los certificados.
+- SmartElevate **no sube, guarda, revisa ni muestra certificados** y no trata datos de salud. El perfil solo informa que hay que avisar en OFALU.
+- A futuro habrá una integración con OFALU para recibir la marca. Formato, vigencia y temporal vs permanente: a definir con OFALU.
+- Hoy el backend conserva la categoría `REDUCED_MOBILITY` y el ascensor dedicado IND1 06, pero **ningún endpoint asigna esa categoría**: nadie queda marcado en la app hasta la integración.
+- Pregunta abierta: si un `ADMIN` puede marcarla a mano mientras tanto. **No está decidido ni implementado.**
 
 ## Sesión (JWT)
 
@@ -96,17 +94,3 @@ Decidido el 14/10; se implementa en [#123](https://github.com/Benji-9/SmartEleva
 - Implementado en [#120](https://github.com/Benji-9/SmartElevate/issues/120): el JWT lleva solo `sub` (id de usuario); el rol se lee de la base en cada request. El refresh es opaco, de un solo uso y se guarda hasheado; reusar uno ya rotado revoca toda la sesión. Credenciales erróneas dan 401 sin distinguir si el email existe, y una cuenta sin verificar no puede loguearse (403, solo tras acertar la clave).
 - Decidido el 14/10 ([#204](https://github.com/Benji-9/SmartElevate/issues/204), [ADR 0019](../adr/0019-refresh-token-en-cookie-httponly.md)): el refresh pasa a una cookie `HttpOnly; Secure; SameSite=Lax`, a través del proxy del mismo origen de `vercel.json`. Implementado: login y refresh la setean (`Path=/api/auth`, `Max-Age` = TTL del refresh) y ya no devuelven el refresh en el body; `/auth/refresh` y `/auth/logout` la leen sin body y exigen el header `X-Requested-With: SmartElevate` y un `Origin` permitido ([ADR 0023](../adr/0023-defensa-csrf-del-refresh-por-cookie.md)). Reemplaza al [ADR 0014](../adr/0014-refresh-token-en-sessionstorage.md).
 - La **prioridad se evalúa en el servidor al reservar**, consultando el estado actual. **No se usa un claim del token**: la prioridad puede vencer o revocarse mientras el token sigue vigente.
-
-## Datos sensibles
-
-Un certificado médico o de discapacidad es un **dato de salud**. La **Ley 25.326** (Protección de Datos Personales) los trata como datos sensibles: exige **consentimiento expreso**, **finalidad limitada** y **medidas de seguridad**.
-
-> Esto **no es asesoramiento legal**. La normativa vigente la tiene que verificar el equipo, por ejemplo consultando a la cátedra: [#24](https://github.com/Benji-9/SmartElevate/issues/24).
-
-Postura del equipo (14/10): **minimización**. Sigue a validar con la cátedra, porque el certificado mismo es un dato de salud.
-
-- **No se guarda el diagnóstico**: solo la categoría, el estado y el vencimiento.
-- **Consentimiento explícito** al subir el archivo: checkbox con el texto de finalidad, y registro de cuándo se aceptó.
-- El certificado se guarda **cifrado** en un **bucket privado** (Cloudflare R2, [ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)), con **acceso restringido** al rol `REVIEWER`, mediante **URLs firmadas de corta duración**.
-- **Se borra el archivo al resolver** la solicitud **o al vencer**, y queda **solo el estado y el vencimiento**.
-- No se loguea el contenido ni el nombre original del archivo.

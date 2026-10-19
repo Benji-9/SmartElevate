@@ -7,7 +7,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 ## Estado del proyecto
 
 - **Hecho** (backend y pantallas contra la API real): cuentas con email institucional, login con refresh en cookie HttpOnly, olvidé mi contraseña, reservas con cupo atómico y prioritario, cancelación, check-in con QR en kiosco web, no-shows y suspensión, notificaciones por email, ascensor fuera de servicio, KPIs y panel de administración (prioritarios, kioscos, ascensores, simulador).
-- **Pendiente**: certificado de movilidad reducida (la UI del perfil corre con datos simulados, [#122](https://github.com/Benji-9/SmartElevate/issues/122), [#123](https://github.com/Benji-9/SmartElevate/issues/123)), deploy del backend en Render ([#222](https://github.com/Benji-9/SmartElevate/issues/222)) y los [bloqueantes](docs/bloqueantes.md) abiertos (conexiones accesibles, datos de salud, calendario de UADE).
+- **Pendiente**: deploy del backend en Render ([#222](https://github.com/Benji-9/SmartElevate/issues/222)), la integración con OFALU para la marca de movilidad reducida (Fase 2: la app no maneja certificados, [ADR 0024](docs/adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) y los [bloqueantes](docs/bloqueantes.md) abiertos (conexiones accesibles, calendario de UADE).
 - **Fuera del MVP**: lista de espera, envejecimiento de prioridad, edificio alternativo, tolerancia X, ingreso manual del código y encuesta de espera.
 - Mapa de pantallas y qué está conectado: [docs/frontend/SCREENS.md](docs/frontend/SCREENS.md#estado-por-pantalla).
 
@@ -116,7 +116,7 @@ En producción las carga el equipo en Render; la checklist completa (quién la d
 | `APP_MAIL_SMTP_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de lectura del SMTP |
 | `APP_MAIL_SMTP_WRITE_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de escritura al SMTP |
 | `SPRING_MAIL_HOST` | — | **Obligatoria con el mail activo** (default de `prod`): sin ella la app no arranca. Brevo: `smtp-relay.brevo.com` |
-| `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
+| `SPRING_MAIL_PORT` | — | Brevo: `2525` (STARTTLS). No usar `587` en Render free: bloquea los puertos SMTP salientes (25, 465, 587) y el envío da `Connect timed out` |
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
 | `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
 | `APP_FRONTEND_URL` | `http://localhost:5173` solo en dev | **Obligatorio en `prod`** (sin default: la app no arranca sin él). Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
@@ -408,7 +408,7 @@ Cada issue lleva al menos un `type:` y un `area:`. Los bloqueantes se registran 
 - [docs/frontend/](docs/frontend/README.md) — **specs de UI**: design system (tokens y componentes), pantallas y modos de vista Pantalla/Teléfono; reemplazan consultar Figma
 - [docs/alcance-mvp.md](docs/alcance-mvp.md) — **alcance del MVP**: qué entra y qué queda para la Fase 2, con el porqué
 - [docs/glosario.md](docs/glosario.md) — términos del dominio
-- [docs/infraestructura.md](docs/infraestructura.md) — accesos y operación (Render, Neon, Vercel, Brevo, R2)
+- [docs/infraestructura.md](docs/infraestructura.md) — accesos y operación (Render, Neon, Vercel, Brevo)
 - [docs/bloqueantes.md](docs/bloqueantes.md) — bloqueantes y decisiones abiertas
 - [docs/adr/](docs/adr/README.md) — Architecture Decision Records (índice con estados)
 - [docs/openapi.json](docs/openapi.json) — contrato de la API (generado)

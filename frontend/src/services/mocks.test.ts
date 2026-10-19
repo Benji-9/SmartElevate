@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { PriorityUploadRules } from '../types/pending';
 import type {
   AdminElevator,
   Building,
@@ -279,32 +278,6 @@ describe('mocks', () => {
       status: 409,
       code: 'ALREADY_CHECKED_IN',
     });
-  });
-
-  it('certificado: pide consentimiento, valida tipo y tamaño y queda pendiente', async () => {
-    const rules = await call<PriorityUploadRules>('GET', '/priority-requests/upload-rules');
-    expect(rules.acceptedTypes).toContain('application/pdf');
-    expect(await call('GET', '/priority-requests/me')).toBeNull();
-
-    const submit = (file: File, consent = 'true') => {
-      const form = new FormData();
-      form.append('consentAccepted', consent);
-      form.append('certificate', file);
-      return mockRequest('POST', '/priority-requests', form, 0);
-    };
-    const pdf = new File(['%PDF'], 'c.pdf', { type: 'application/pdf' });
-
-    await expect(submit(pdf, 'false')).rejects.toMatchObject({ status: 400 });
-    await expect(submit(new File(['x'], 'c.txt', { type: 'text/plain' }))).rejects.toMatchObject({
-      status: 415,
-    });
-    const big = new File([new Uint8Array(rules.maxSizeBytes + 1)], 'c.png', {
-      type: 'image/png',
-    });
-    await expect(submit(big)).rejects.toMatchObject({ status: 413 });
-
-    await submit(pdf);
-    expect(await call('GET', '/priority-requests/me')).toMatchObject({ status: 'PENDING' });
   });
 
   it('historial paginado y faltas recientes con los parámetros de la regla', async () => {

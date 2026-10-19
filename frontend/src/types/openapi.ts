@@ -241,6 +241,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/users/{id}/declared-type': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Cambia el tipo de usuario (STUDENT, TEACHER) de una cuenta con email verificado
+     * @description Pasar a docente lo deja en la cola de validación, sin darle prioridad. Pasar a estudiante lo saca de la cola y le revoca la prioridad de docente si la tenía vigente.
+     */
+    put: operations['changeDeclaredType'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/users/{id}/role': {
     parameters: {
       query?: never;
@@ -809,8 +829,15 @@ export interface components {
     };
     /** @description Usuario encontrado por el buscador del panel admin (sin datos sensibles) */
     AdminUserResponse: {
+      /**
+       * @description Estudiante o docente (STUDENT, TEACHER)
+       * @enum {string}
+       */
+      declaredUserType: 'STUDENT' | 'TEACHER';
       /** @example ana@uade.edu.ar */
       email: string;
+      /** @description Si ya verificó su email; sin eso no se le puede cambiar el tipo */
+      emailVerified: boolean;
       /** @example Ana Pérez */
       fullName: string;
       /** Format: uuid */
@@ -845,6 +872,13 @@ export interface components {
       timestamp: string;
       /** @description Solo en errores de validación */
       violations?: components['schemas']['FieldViolation'][];
+    };
+    AssignDeclaredTypeRequest: {
+      /**
+       * @example TEACHER
+       * @enum {string}
+       */
+      declaredUserType: 'STUDENT' | 'TEACHER';
     };
     AssignRoleRequest: {
       /**
@@ -2096,6 +2130,66 @@ export interface operations {
       };
       /** @description Búsqueda demasiado corta o cursor inválido */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  changeDeclaredType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssignDeclaredTypeRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Email sin verificar o el usuario ya tiene ese tipo */
+      409: {
         headers: {
           [name: string]: unknown;
         };

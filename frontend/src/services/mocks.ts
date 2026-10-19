@@ -21,13 +21,13 @@
 // - Un solo turno activo por usuario se chequea sin distinguir usuarios (hay un estado global).
 // - Tokens de QR: no se firman; los tokens `DEMO`, `TARDE` y `OTRO` saltean la ventana horaria
 //   para poder probar cada resultado sin esperar la hora de salida.
-// - Certificados de prioridad (#122/#123): el backend todavía no los tiene; se valida por tipo.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
 // halls y ocupación siguen siendo de ejemplo.
 import type {
   AdminElevator,
   AdminUser,
   AdminUserPage,
+  DeclaredUserType,
   Building,
   CheckIn,
   CheckInRequest,
@@ -56,7 +56,6 @@ import type {
   User,
 } from '../types/api';
 import { ApiError } from './api';
-import type { PriorityRequest, PriorityUploadRules } from '../types/pending';
 
 // Parámetros "de la API": las pantallas los leen de las respuestas, no de acá.
 const DEPARTURE_MINUTES = 2;
@@ -79,10 +78,6 @@ const NO_SHOW_AFTER_MS = 60_000;
 /** `cancelFreeUntil` de la reserva: salida − plazo, como lo calcula el backend. */
 const cancelFreeUntil = (departureAt: string) =>
   new Date(Date.parse(departureAt) - CANCEL_DEADLINE_MS).toISOString();
-const UPLOAD_RULES: PriorityUploadRules = {
-  maxSizeBytes: 5 * 1024 * 1024,
-  acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-};
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
 /** `app.kiosk.qr-ttl` del backend (ADR 0020). */
@@ -153,6 +148,8 @@ const adminUsers: AdminUser[] = [
     email: 'admin@uade.edu.ar',
     legajo: '1000001',
     role: 'ADMIN',
+    declaredUserType: 'STUDENT',
+    emailVerified: true,
   },
   {
     id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b11',
@@ -160,6 +157,8 @@ const adminUsers: AdminUser[] = [
     email: 'carla.diaz@uade.edu.ar',
     legajo: '1088888',
     role: 'USER',
+    declaredUserType: 'STUDENT',
+    emailVerified: true,
   },
   {
     id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b12',
@@ -167,6 +166,17 @@ const adminUsers: AdminUser[] = [
     email: 'lucia.fernandez@uade.edu.ar',
     legajo: '1077777',
     role: 'REVIEWER',
+    declaredUserType: 'TEACHER',
+    emailVerified: true,
+  },
+  {
+    id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b13',
+    fullName: 'Mateo Ríos',
+    email: 'mateo.rios@uade.edu.ar',
+    legajo: '1066666',
+    role: 'USER',
+    declaredUserType: 'STUDENT',
+    emailVerified: false,
   },
 ];
 let priorityUsers: PriorityUser[] = [
@@ -579,7 +589,6 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
 }
 /** Turno del último check-in, para "ya escaneado". */
 let lastCheckedIn: number | null = null;
-let priorityRequest: PriorityRequest | null = null;
 let notificationPreferences: NotificationPreferences = {
   // Como el servidor: todos los avisos activos por defecto.
   departureReminder: true,
@@ -896,37 +905,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       return result;
     },
   ],
-  ['GET', /^\/priority-requests\/me$/, () => priorityRequest],
-  ['GET', /^\/priority-requests\/upload-rules$/, () => UPLOAD_RULES],
-  [
-    'POST',
-    /^\/priority-requests$/,
-    (body) => {
-      const form = body as FormData;
-      const file = form.get('certificate');
-      if (form.get('consentAccepted') !== 'true') {
-        throw new ApiError(400, 'Tenés que aceptar el tratamiento del certificado.');
-      }
-      if (!(file instanceof File)) throw new ApiError(400, 'Adjuntá el certificado.');
-      // El backend real valida por contenido (magic bytes); el mock, por el tipo declarado.
-      if (!UPLOAD_RULES.acceptedTypes.includes(file.type)) {
-        throw new ApiError(415, 'El archivo tiene que ser PDF, JPG o PNG.');
-      }
-      if (file.size > UPLOAD_RULES.maxSizeBytes) {
-        throw new ApiError(413, 'El archivo supera el tamaño máximo.');
-      }
-      if (priorityRequest?.status === 'PENDING') {
-        throw new ApiError(409, 'Ya tenés una solicitud pendiente.');
-      }
-      priorityRequest = {
-        category: 'REDUCED_MOBILITY',
-        status: 'PENDING',
-        submittedAt: new Date().toISOString(),
-        expiresAt: null,
-      };
-      return priorityRequest;
-    },
-  ],
   [
     'GET',
     /^\/me\/no-shows$/,
@@ -1033,6 +1011,37 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       const target = adminUsers.find((u) => u.id === id);
       if (!target) throw new ApiError(404, 'Usuario inexistente');
       target.role = (body as { role: Role }).role;
+      return undefined;
+    },
+  ],
+  [
+    'PUT',
+    /^\/admin\/users\/([^/]+)\/declared-type$/,
+    (body, [id]) => {
+      const target = adminUsers.find((u) => u.id === id);
+      if (!target) throw new ApiError(404, 'Usuario inexistente');
+      const type = (body as { declaredUserType: DeclaredUserType }).declaredUserType;
+      if (!target.emailVerified) {
+        throw new ApiError(
+          409,
+          'El usuario todavía no verificó su email: no se le puede cambiar el tipo',
+        );
+      }
+      if (target.declaredUserType === type) {
+        throw new ApiError(409, `El usuario ya está declarado como ${type}`);
+      }
+      target.declaredUserType = type;
+      const { fullName, email, legajo } = target;
+      if (type === 'TEACHER') {
+        pendingTeachers = [
+          ...pendingTeachers,
+          { id, fullName, email, legajo, registeredAt: new Date().toISOString() },
+        ];
+      } else {
+        // Sale de la cola y pierde la prioridad de docente, como en el servidor.
+        pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
+        priorityUsers = priorityUsers.filter((u) => !(u.id === id && u.category === 'TEACHER'));
+      }
       return undefined;
     },
   ],

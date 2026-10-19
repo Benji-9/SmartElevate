@@ -3,7 +3,7 @@ import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Chip, type ChipTone } from '../components/Chip';
 import { LegalFooter } from '../components/LegalFooter';
-import { PriorityAccessCard } from '../features/priority/PriorityAccessCard';
+import { PriorityInfoCard } from '../features/priority/PriorityInfoCard';
 import '../features/priority/priority.css';
 import { useSession } from '../hooks/useSession';
 import type { DeclaredUserType } from '../types/api';
@@ -44,7 +44,7 @@ export function ProfilePage() {
           </div>
         </header>
       )}
-      <PriorityAccessCard />
+      <PriorityInfoCard />
       <div className="profile-nav">
         <nav aria-label="Opciones del perfil">
           <ul className="profile-options">

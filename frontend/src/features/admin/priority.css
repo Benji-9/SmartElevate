@@ -43,6 +43,12 @@
   background: var(--color-surface);
 }
 
+.priority-type {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
 .priority-question {
   font-weight: var(--font-semibold);
   white-space: normal;

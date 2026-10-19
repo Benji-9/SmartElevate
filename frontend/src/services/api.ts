@@ -23,6 +23,7 @@ import type {
   PingResponse,
   PriorityUser,
   AdminUserPage,
+  DeclaredUserType,
   Role,
   QrToken,
   RegisterRequest,
@@ -35,7 +36,6 @@ import type {
   User,
   VerifyEmailRequest,
 } from '../types/api';
-import type { PriorityRequest, PriorityUploadRules } from '../types/pending';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
@@ -280,20 +280,6 @@ export const cancelReservation = (id: number) => api.delete<void>(`/reservations
  * `NO_ACTIVE_RESERVATION`, `OUTSIDE_CHECK_IN_WINDOW` y `ALREADY_CHECKED_IN` (409).
  */
 export const checkIn = (body: CheckInRequest) => api.post<CheckIn>('/check-ins', body);
-export const getMyPriorityRequest = () => api.get<PriorityRequest | null>('/priority-requests/me');
-export const getPriorityUploadRules = () =>
-  api.get<PriorityUploadRules>('/priority-requests/upload-rules');
-/**
- * Pide acceso prioritario por movilidad reducida. El certificado es un dato de salud
- * (Ley 25.326): va solo en esta llamada y nunca se vuelve a pedir ni mostrar.
- */
-export function submitPriorityRequest(certificate: File, consentAccepted: true) {
-  const form = new FormData();
-  form.append('category', 'REDUCED_MOBILITY');
-  form.append('consentAccepted', String(consentAccepted));
-  form.append('certificate', certificate);
-  return request<PriorityRequest>('/priority-requests', { method: 'POST', body: form });
-}
 /** Historial de reservas paginado por cursor; sin `cursor` trae la primera página. */
 export const getTrips = (cursor?: string | null) =>
   api.get<ReservationPage>(
@@ -330,6 +316,9 @@ export const searchUsers = (query: string, cursor?: string) =>
 /** Cambia el rol de otro usuario (el servidor rechaza con 409 el propio). Solo ADMIN. */
 export const assignRole = (id: string, role: Role) =>
   api.put<void>(`/admin/users/${encodeURIComponent(id)}/role`, { role });
+
+export const changeDeclaredType = (id: string, declaredUserType: DeclaredUserType) =>
+  api.put<void>(`/admin/users/${encodeURIComponent(id)}/declared-type`, { declaredUserType });
 /** Usuarios con prioridad vigente. */
 export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
 export const revokePriority = (id: string) =>

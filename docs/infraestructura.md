@@ -1,6 +1,6 @@
 # Infraestructura y deploy
 
-Qué servicios usamos, dónde se administran y cómo se opera la app en producción. Las decisiones están en los ADR [0003](adr/0003-deploy-frontend-vercel-via-github-actions.md) (frontend), [0012](adr/0012-hosting-del-backend-render-y-neon.md) (backend y base) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (email y storage).
+Qué servicios usamos, dónde se administran y cómo se opera la app en producción. Las decisiones están en los ADR [0003](adr/0003-deploy-frontend-vercel-via-github-actions.md) (frontend), [0012](adr/0012-hosting-del-backend-render-y-neon.md) (backend y base) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (email; el storage quedó sin uso por el [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
 
 > **Nunca** se escriben claves en este archivo ni en el repo. Viven en el dashboard de cada servicio y en los secrets de GitHub.
 
@@ -20,7 +20,6 @@ Neon Postgres (AWS us-east-2)     Flyway crea y migra el schema al arrancar
 
 El backend además usa:
   Brevo (SMTP)                    mails de verificación de cuenta y de reset de contraseña
-  Cloudflare R2 (bucket privado)  certificados de prioridad (todavía sin código que lo use, #123)
 ```
 
 El navegador solo habla con Vercel: `/api/*` lo reenvía Vercel al backend, así la cookie del refresh es de primera parte. Aun así, `CORS_ALLOWED_ORIGINS` es obligatoria y tiene que traer el origen del front: Vercel reenvía el header `Origin`, y el backend rechaza con 403 (CORS y defensa CSRF del refresh) cualquier `Origin` que no esté en la lista.
@@ -33,7 +32,6 @@ El navegador solo habla con Vercel: `/api/*` lo reenvía Vercel al backend, así
 | **Render** | Backend | [dashboard.render.com](https://dashboard.render.com) → servicio `smartelevate` | @Benji-9 |
 | **Neon** | Postgres de producción | [console.neon.tech](https://console.neon.tech) → proyecto `snowy-surf-03910636` | @Benji-9 |
 | **Brevo** | Email transaccional (SMTP) | [app.brevo.com](https://app.brevo.com) → remitente `smartelevate.uade@gmail.com` | @Benji-9 |
-| **Cloudflare** | Storage de certificados (R2) | [dash.cloudflare.com](https://dash.cloudflare.com) → R2 → bucket `smartelevate-certificados` | @Benji-9 |
 | **GitHub Actions** | CI, deploy del front, keep-alive | [Actions](https://github.com/Benji-9/SmartElevate/actions) | Repo |
 
 Para entrar a un dashboard, pedile acceso al titular. No compartan las claves por chat: el titular las carga directamente en el servicio que las usa.
@@ -91,7 +89,7 @@ Las cuatro que valida `RequiredProdProperties` (`JWT_SECRET`, `APP_KIOSK_QR_SECR
 | Variable | Define | Valor | Si falta |
 | --- | --- | --- | --- |
 | `APP_MAIL_ENABLED` | Render | Default `true` en `prod`. `false` no manda nada y deja el contenido del mail (con el link de verificación) en el log | Con el default, ver las `SPRING_MAIL_*` |
-| `SPRING_MAIL_PORT` | Render | `587` (STARTTLS, ya exigido en `application-prod.yml`) | Spring usa el 25 y el envío falla en runtime (los hosts suelen bloquearlo): los mails no salen, la app sí arranca |
+| `SPRING_MAIL_PORT` | Render | `2525` (STARTTLS, ya exigido en `application-prod.yml`). **No `587`**: Render free bloquea los puertos SMTP 25, 465 y 587 | Con `587` el envío da `Connect timed out` a los 5 s (queda en el log, la request responde bien): los mails no salen. Sin la variable Spring usa el 25 y falla igual |
 | `SPRING_MAIL_USERNAME` | Render | Login SMTP de Brevo (`xxxx@smtp-brevo.com`, **no** el Gmail) | Arranca; el envío falla con error de autenticación |
 | `SPRING_MAIL_PASSWORD` | Render | SMTP key de Brevo (secreto) | Ídem |
 | `APP_MAIL_FROM` | Render | `smartelevate.uade@gmail.com`. Default `no-reply@localhost`, que Brevo rechaza | Arranca; Brevo rechaza el remitente |
@@ -145,7 +143,6 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | `PORT` | Render | `8080` (en la imagen) | Lo inyecta Render (por defecto `10000`); Spring lo toma de `server.port` |
 | `SPRING_PROFILES_ACTIVE` | Imagen | `prod` | Ya viene en el `Dockerfile`; no hace falta cargarla |
 | `JAVA_OPTS` | Render | `-XX:MaxRAMPercentage=75` | Si Render reinicia por memoria (512 MB), `-XX:MaxRAMPercentage=60` |
-| `APP_STORAGE_ENDPOINT` / `_BUCKET` / `_ACCESS_KEY` / `_SECRET_KEY` | Render | — | Reservadas para los certificados en R2 ([#123](https://github.com/Benji-9/SmartElevate/issues/123)): **el backend todavía no las lee**. `ENDPOINT` = `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` (sin el bucket), `BUCKET` = `smartelevate-certificados`; las claves son las del token de R2 (se ven una sola vez) |
 
 #### Frontend y CI
 
@@ -197,7 +194,7 @@ services:
       - { key: APP_FRONTEND_URL, sync: false }
       - { key: CORS_ALLOWED_ORIGINS, sync: false }
       - { key: SPRING_MAIL_HOST, value: smtp-relay.brevo.com }
-      - { key: SPRING_MAIL_PORT, value: "587" }
+      - { key: SPRING_MAIL_PORT, value: "2525" }
       - { key: SPRING_MAIL_USERNAME, sync: false }
       - { key: SPRING_MAIL_PASSWORD, sync: false }
       - { key: APP_MAIL_FROM, sync: false }
@@ -384,7 +381,6 @@ Verificados el 2026-10-06.
 | Neon (Free) | 100 CU-h de cómputo y 1 GB de storage por proyecto por mes · duerme tras 5 min sin uso | Sin cómputo: la base se suspende hasta el mes siguiente. **No se borran datos** |
 | Vercel (Hobby) | Uso no comercial | — |
 | Brevo (Free) | 300 mails por día | Los envíos se rechazan hasta el día siguiente |
-| Cloudflare R2 | 10 GB-mes de storage (clase Standard) · 1 M de escrituras y 10 M de lecturas por mes · egreso gratis | **Se cobra** a la tarjeta de la cuenta (USD 0,015 por GB-mes). Improbable: los certificados se borran al resolverse |
 
 Opciones descartadas:
 
@@ -393,12 +389,13 @@ Opciones descartadas:
 - **Koyeb, Fly.io y Railway:** ya no tienen plan gratuito.
 - **Resend:** exige un dominio propio para mandar mails a terceros.
 
-El detalle está en los ADR [0012](adr/0012-hosting-del-backend-render-y-neon.md) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md).
+El detalle está en los ADR [0012](adr/0012-hosting-del-backend-render-y-neon.md) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (la parte de storage quedó sin uso, [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
 
 ## Email con Brevo
 
-- Envío por **SMTP** (`smtp-relay.brevo.com:587`, STARTTLS) con `spring-boot-starter-mail`. No usamos el SDK de Brevo: cambiar de proveedor es cambiar variables.
+- Envío por **SMTP** (`smtp-relay.brevo.com:2525`, STARTTLS) con `spring-boot-starter-mail`. No usamos el SDK de Brevo: cambiar de proveedor es cambiar variables.
 - Remitente verificado: `smartelevate.uade@gmail.com`. **No tenemos dominio propio**, así que Brevo reescribe el remitente a `smartelevate.uade@12377968.brevosend.com`. Es esperado y no se puede evitar sin dominio.
+- **Puerto 2525, no 587.** Render free bloquea las conexiones salientes a los puertos 25, 465 y 587; con 587 el log muestra `Couldn't connect to host, port: smtp-relay.brevo.com, 587; timeout 5000` y no sale ningún mail (verificación ni reset). Brevo acepta STARTTLS en el 2525 y funciona (verificado el 2026-10-19). Si algún día se pasa a un plan pago, 587 vuelve a ser una opción.
 - Prueba del 2026-10-06: un mail a una casilla @uade.edu.ar **llegó a la bandeja de entrada**.
 - **Si empiezan a caer en spam:** comprar un dominio (unos USD 10 por año, p. ej. en Cloudflare), autenticarlo en Brevo (**Senders, Domains & Dedicated IPs → Domains**: registros TXT, DKIM y DMARC) y cambiar `APP_MAIL_FROM`. No hace falta tocar código.
 
@@ -408,25 +405,9 @@ STARTTLS ya está activado en `application-prod.yml`. `APP_FRONTEND_URL` (obliga
 
 **Rotar la clave:** Brevo → **SMTP & API → SMTP → Generate a new SMTP key**, cargarla en Render y borrar la vieja.
 
-## Storage de certificados en R2
+## Recursos que quedaron sin uso
 
-Los certificados de prioridad son **datos de salud** ([ADR 0009](adr/0009-autenticacion-y-prioridad.md)): bucket privado, URLs firmadas cortas y borrado del archivo al resolver.
-
-| Campo | Valor |
-| --- | --- |
-| Bucket | `smartelevate-certificados` |
-| Ubicación | Location hint **Eastern North America (ENAM)**, cerca de Render |
-| Storage class | Standard (el free tier no cubre *Infrequent Access*) |
-| Acceso público | **Desactivado**: sin Public Development URL ni dominio propio. Sin credenciales responde `400` |
-| Token de API | *Object Read & Write*, **solo** sobre este bucket |
-
-Las variables `APP_STORAGE_*` (reservadas para la implementación futura, [#123](https://github.com/Benji-9/SmartElevate/issues/123); hoy el backend no las lee) están en la [checklist maestra](#plataforma).
-
-R2 habla la API de S3: en el cliente se usa la región `auto`.
-
-**Rotar las claves:** R2 → **Manage API tokens**. Crear un token nuevo con los mismos permisos, cargarlo en Render y recién después borrar el viejo.
-
-> ⚠️ **No subir certificados reales** hasta resolver [B-13](bloqueantes.md) (Ley 25.326). R2 guarda los archivos en EE.UU., y la transferencia internacional de datos de salud es parte de lo que hay que validar.
+Por el [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md) la app no maneja certificados. El bucket de Cloudflare R2 `smartelevate-certificados`, su token de API y las variables `APP_STORAGE_*` de Render ya no los lee nadie: se pueden **borrar a mano** de Cloudflare y de Render. El backend no necesita ningún cambio de configuración.
 
 ## Probar los servicios desde tu máquina
 
@@ -436,4 +417,4 @@ Para usar las mismas credenciales en local, ponelas en un `.env` en la raíz del
 - Claude Code no lo puede leer: hay una regla `deny` en `.claude/settings.json`.
 - **Spring no lo carga solo:** para correr el backend con esas variables, exportalas antes (`set -a; . ./.env; set +a`).
 
-El email ya está en uso (verificación y reset). Las `APP_STORAGE_*` están cargadas en Render pero nadie las lee hasta que lleguen los certificados ([#123](https://github.com/Benji-9/SmartElevate/issues/123)).
+El email ya está en uso (verificación y reset).
