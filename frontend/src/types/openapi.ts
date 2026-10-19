@@ -251,7 +251,7 @@ export interface paths {
     get?: never;
     /**
      * Cambia el tipo de usuario (STUDENT, TEACHER) de una cuenta con email verificado
-     * @description Pasar a docente lo deja en la cola de validación, sin darle prioridad. Pasar a estudiante lo saca de la cola y le revoca la prioridad de docente si la tenía vigente.
+     * @description Pasar a docente le da la prioridad de docente directamente, hasta el fin del cuatrimestre en curso. Pasar a estudiante le revoca la prioridad de docente si la tenía vigente.
      */
     put: operations['changeDeclaredType'];
     post?: never;
@@ -2188,7 +2188,7 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
-      /** @description Email sin verificar o el usuario ya tiene ese tipo */
+      /** @description Email sin verificar, el usuario ya tiene ese tipo o falta cargar el cierre del cuatrimestre */
       409: {
         headers: {
           [name: string]: unknown;

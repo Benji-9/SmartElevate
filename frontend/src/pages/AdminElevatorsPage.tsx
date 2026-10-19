@@ -6,6 +6,7 @@ import { errorMessage, useResource } from '../hooks/useResource';
 import {
   ApiError,
   getAdminElevators,
+  getBuildings,
   markElevatorInService,
   markElevatorOutOfService,
 } from '../services/api';
@@ -30,6 +31,8 @@ function outageQuestion({ code, upcomingReservations: n }: AdminElevator) {
 export function AdminElevatorsPage() {
   const listId = useId();
   const list = useResource(getAdminElevators);
+  // Solo para el nombre visible del edificio: si falla, se muestra el código.
+  const buildings = useResource(getBuildings);
   const [done, setDone] = useState<string>();
   const [actionError, setActionError] = useState<string>();
   // Un solo pedido a la vez (evita doble POST) y nada de setState si la pantalla ya se desmontó.
@@ -100,56 +103,59 @@ export function AdminElevatorsPage() {
   } else if (list.data.length === 0) {
     content = <p className="page-placeholder">No hay ascensores para mostrar.</p>;
   } else {
+    const names = new Map((buildings.data ?? []).map((b) => [b.code, b.name]));
+    // Edificios en el orden en que aparecen; cada uno con sus ascensores en fila.
+    const byBuilding = new Map<string, AdminElevator[]>();
+    for (const e of list.data)
+      byBuilding.set(e.building, [...(byBuilding.get(e.building) ?? []), e]);
     content = (
-      <div className="core-table__scroll">
-        <table className="core-table" aria-labelledby={listId}>
-          <thead>
-            <tr>
-              <th scope="col">Ascensor</th>
-              <th scope="col">Núcleo</th>
-              <th scope="col">Reservas próximas</th>
-              <th scope="col">Estado</th>
-              <th scope="col">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.map((e) => (
-              <tr key={e.code}>
-                <th scope="row">{e.code}</th>
-                <td>{e.coreName}</td>
-                <td>{e.upcomingReservations}</td>
-                <td>
-                  {e.active ? (
-                    <Chip>En servicio</Chip>
-                  ) : (
-                    <Chip tone="neutral">Fuera de servicio</Chip>
-                  )}
-                </td>
-                <td>
-                  {e.active ? (
-                    <ConfirmAction
-                      label="Marcar fuera de servicio"
-                      name={`Marcar fuera de servicio el ascensor ${e.code}`}
-                      question={outageQuestion(e)}
-                      confirmLabel="Sí, marcar"
-                      disabled={busy}
-                      onConfirm={() => markOut(e.code)}
-                    />
-                  ) : (
-                    <ConfirmAction
-                      label="Reactivar"
-                      name={`Reactivar el ascensor ${e.code}`}
-                      question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
-                      confirmLabel="Sí, reactivar"
-                      disabled={busy}
-                      onConfirm={() => markIn(e.code)}
-                    />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="elevator-buildings">
+        {[...byBuilding].map(([building, items]) => (
+          <section key={building} aria-label={names.get(building) ?? building}>
+            <h3 className="text-label elevator-buildings__name">
+              {names.get(building) ?? building}
+            </h3>
+            <ul className="elevator-grid">
+              {items.map((e) => (
+                <li key={e.code}>
+                  <article className="elevator-card" aria-label={`Ascensor ${e.code}`}>
+                    <header className="elevator-card__head">
+                      <h4 className="text-card-title">{e.code}</h4>
+                      {e.active ? (
+                        <Chip>En servicio</Chip>
+                      ) : (
+                        <Chip tone="neutral">Fuera de servicio</Chip>
+                      )}
+                    </header>
+                    <p className="elevator-card__meta">{e.coreName}</p>
+                    <p className="elevator-card__meta">
+                      {plural(e.upcomingReservations, 'reserva próxima', 'reservas próximas')}
+                    </p>
+                    {e.active ? (
+                      <ConfirmAction
+                        label="Marcar fuera de servicio"
+                        name={`Marcar fuera de servicio el ascensor ${e.code}`}
+                        question={outageQuestion(e)}
+                        confirmLabel="Sí, marcar"
+                        disabled={busy}
+                        onConfirm={() => markOut(e.code)}
+                      />
+                    ) : (
+                      <ConfirmAction
+                        label="Reactivar"
+                        name={`Reactivar el ascensor ${e.code}`}
+                        question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
+                        confirmLabel="Sí, reactivar"
+                        disabled={busy}
+                        onConfirm={() => markIn(e.code)}
+                      />
+                    )}
+                  </article>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     );
   }

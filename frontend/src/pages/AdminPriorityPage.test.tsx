@@ -66,7 +66,7 @@ describe('AdminPriorityPage', () => {
     expect(within(queue).getByText('8/10/2026')).toBeInTheDocument();
     const priority = await screen.findByRole('table', { name: 'Usuarios con prioridad' });
     expect(within(priority).getByText('Movilidad reducida')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Usuarios prioritarios' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Gestión de usuarios' })).toHaveAttribute(
       'aria-current',
       'page',
     );

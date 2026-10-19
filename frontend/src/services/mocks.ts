@@ -1032,15 +1032,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       }
       target.declaredUserType = type;
       const { fullName, email, legajo } = target;
+      // Como el servidor: a docente, prioridad directa (sin pasar por la cola); a estudiante, se la quita.
+      pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
+      priorityUsers = priorityUsers.filter((u) => !(u.id === id && u.category === 'TEACHER'));
       if (type === 'TEACHER') {
-        pendingTeachers = [
-          ...pendingTeachers,
-          { id, fullName, email, legajo, registeredAt: new Date().toISOString() },
-        ];
-      } else {
-        // Sale de la cola y pierde la prioridad de docente, como en el servidor.
-        pendingTeachers = pendingTeachers.filter((t) => t.id !== id);
-        priorityUsers = priorityUsers.filter((u) => !(u.id === id && u.category === 'TEACHER'));
+        priorityUsers = [...priorityUsers, { id, fullName, email, legajo, category: 'TEACHER' }];
       }
       return undefined;
     },

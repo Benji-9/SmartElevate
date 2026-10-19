@@ -26,7 +26,7 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/perfil/viajes` | Mis viajes (desde la lista de ajustes del perfil) | no (tiene header con volver) | autenticado |
 | `/perfil/notificaciones` | Notificaciones (desde la lista de ajustes del perfil) | no (tiene header con volver) | autenticado |
 | `/admin` | Layout del panel (`AdminLayout`); su índice es 09 Panel de administración | — (escritorio) | rol administrador |
-| `/admin/prioritarios` | 09b Usuarios prioritarios, dentro del layout de `/admin` | — (escritorio) | rol administrador |
+| `/admin/prioritarios` | 09b Gestión de usuarios, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/kioscos` | 09c Kioscos del QR, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/ascensores` | 09e Ascensores fuera de servicio, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/simulador` | 09d Simulador de kiosco, dentro del layout de `/admin` (solo si el servidor lo habilita) | — (escritorio) | rol administrador |
@@ -289,11 +289,11 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
 
 Escritorio **1440 × 900**. Layout en dos columnas.
 
-**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). **Usuarios prioritarios** (activo en `/admin/prioritarios`, ver [09b](#09b--usuarios-prioritarios--adminprioritarios)). **Kioscos** ([09c](#09c--kioscos-del-qr--adminkioscos)), **Ascensores** ([09e](#09e--ascensores-fuera-de-servicio--adminascensores)) y **Simulador de kiosco** ([09d](#09d--simulador-de-kiosco--adminsimulador), solo con el simulador habilitado). Turnos, Núcleos y ascensores y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
+**Barra lateral** (248 px, fondo `--surface-dark`, pad 28/16, gap 6): "SmartElevate" (20 px / 700 `--on-dark`), "Panel UADE" (12 px `--on-dark-muted`), separación 20 y navegación (cada ítem pad 10/12, gap 10, `--radius-sm`, ícono de 18 px + texto 14 px): **Dashboard** (activo: fondo blanco al 12 %, texto 600 `--on-dark`). **Gestión de usuarios** (activo en `/admin/prioritarios`, ver [09b](#09b--gestión-de-usuarios--adminprioritarios)). **Kioscos** ([09c](#09c--kioscos-del-qr--adminkioscos)), **Ascensores** ([09e](#09e--ascensores-fuera-de-servicio--adminascensores)) y **Simulador de kiosco** ([09d](#09d--simulador-de-kiosco--adminsimulador), solo con el simulador habilitado). Turnos, Núcleos y ascensores y Reportes (`--on-dark-muted`) se agregan **cuando existan**: no se muestran ítems "Próximamente", que compiten con lo real y dan pistas falsas de navegación ([#158](https://github.com/Benji-9/SmartElevate/issues/158)).
 
 **Contenido** (pad 32, gap 24):
 
-1. **Encabezado**: a la izquierda "Congestión y uso de ascensores" (`.text-title-lg`) y "Lunes 28/9 · Sede Lima · Turno mañana (7:00–12:15)" (14 px `--ink-muted`); a la derecha los filtros de período, sede y **turno de cursada** ("Turno mañana"). Los turnos y sus horarios los manda el servidor (tabla de configuración, ver [`kpis.md`](../reglas/kpis.md#filtros)).
+1. **Encabezado**: a la izquierda "Congestión y uso de ascensores" (`.text-title-lg`) y "Lunes 28/9 · Lima · Turno mañana (7:00–13:00)" (14 px `--ink-muted`) y debajo "Ahora: Turno tarde (13:00–18:00)" según la hora de Buenos Aires (sin aviso fuera del horario de los turnos); a la derecha los filtros de período, **edificio** ("Todos los edificios") y **turno de cursada** (Turno mañana, tarde y noche). Los turnos y sus horarios los manda el servidor (tabla de configuración, ver [`kpis.md`](../reglas/kpis.md#filtros)).
 2. **4 tarjetas KPI** en fila (gap 16, cada una pad 20, gap 6, `--radius-lg`, borde `--line`): etiqueta 13 px `--ink-muted`, cifra `.text-kpi`, detalle 12 px / 500 `--accent`.
 
 | Etiqueta | Cifra | Detalle |
@@ -318,11 +318,11 @@ Turnos, check-ins y ocupación llevan debajo un `Chip` `neutral` contra el perí
 | Indep. 2 | 177 | 66% | 3,0 min | Media |
 
 
-### 09b · Usuarios prioritarios — `/admin/prioritarios`
+### 09b · Gestión de usuarios — `/admin/prioritarios`
 
 Sin frame de Figma: se arma con los componentes del panel (tarjeta `.admin-card`, tabla de "Estado por núcleo", `Chip`, `Button`). Solo rol `ADMIN` (el servidor valida con 403). Reglas en [`usuarios-y-prioridad.md`](../reglas/usuarios-y-prioridad.md#tipo-de-usuario-declarado).
 
-**Contenido** (mismo pad 32 y gap 24 del Dashboard). `h1` `.text-title-lg` "Usuarios prioritarios" y debajo (14 px `--ink-muted`) "Validá a los docentes y gestioná quién tiene prioridad." Dos tarjetas apiladas, cada una con `h2` `.text-card-title` y tabla (misma tipografía y divisores `--line` que "Estado por núcleo"):
+**Contenido** (mismo pad 32 y gap 24 del Dashboard). `h1` `.text-title-lg` "Gestión de usuarios" y debajo (14 px `--ink-muted`) "Validá a los docentes, gestioná quién tiene prioridad y buscá usuarios para cambiar su rol." Dos tarjetas apiladas, cada una con `h2` `.text-card-title` y tabla (misma tipografía y divisores `--line` que "Estado por núcleo"):
 
 1. **"Docentes a validar"**: columnas **Nombre · Email · Legajo · Registro · Acciones**. Registro = fecha en Buenos Aires ("29/9/2026"). Acciones: `Button` primary "Aprobar" y secondary "Rechazar" (ancho del contenido, 48 px de alto), con nombre accesible "Aprobar a {nombre}" / "Rechazar a {nombre}".
    - **Rechazar pide confirmación** en la misma fila: el texto "¿Rechazar a {nombre}?" reemplaza los botones, con "Sí, rechazar" (primary) y "Cancelar" (secondary, con el foco). Aprobar es directo y reversible desde la otra lista (revocar).
@@ -335,12 +335,13 @@ Sin frame de Figma: se arma con los componentes del panel (tarjeta `.admin-card`
 
 **Endpoints** (tag `admin-priority` de `docs/openapi.json`): `GET /api/admin/teachers/pending`, `POST /api/admin/teachers/{id}/approve` y `/reject`, `GET /api/admin/priority-users`, `DELETE /api/admin/priority-users/{id}`.
 
-**Cambiar roles**: tercera tarjeta, **"Roles de usuarios"** (mismo patrón que las anteriores; el rol solo lo cambia un `ADMIN`).
+**Cambiar roles**: tercera tarjeta, **"Buscar usuarios"** (mismo patrón que las anteriores; el rol solo lo cambia un `ADMIN`).
 
 - **Buscador**: `Input` "Buscar usuario" con ayuda "Por nombre, email o legajo (mínimo 3 caracteres)". Busca solo después de una pausa de ~300 ms sin tipear (debounce) y con 3 o más caracteres (el servidor exige el mismo mínimo: 400 si no). Con menos, no pide nada y muestra la ayuda.
-- **Resultados**: tabla **Nombre · Email · Legajo · Rol · Tipo · Acciones**. Rol = `Chip` con texto ("Usuario", "Revisor", "Administrador"). Acciones: `select` nativo "Rol de {nombre}" con las tres opciones (el valor actual preseleccionado) y, al elegir otro, la confirmación en la misma fila: "¿Cambiar a {nombre} de {rol actual} a {rol nuevo}?" con "Sí, cambiar" (primary) y "Cancelar" (secondary, con el foco, que además restaura el valor del select). Nunca se cambia el rol sin confirmar.
-- **Tipo** ([#262](https://github.com/Benji-9/SmartElevate/issues/262)): `Chip` `alumnos` "Estudiante" o `docentes` "Docente" y debajo un `Button` secondary "Pasar a docente" / "Pasar a estudiante" (nombre accesible "Pasar a {nombre} a docente"). Pide confirmación en la misma celda: "¿Pasar a {nombre} de Estudiante a Docente?" con "Sí, pasar" (primary) y "Cancelar" (secondary, con el foco). El texto aclara el efecto: hacia docente, "Queda en «Docentes a validar» hasta que lo apruebes."; hacia estudiante, "Si tiene la prioridad de docente vigente, se la quitamos.". **Con el email sin verificar** no hay botón: se muestra "Email sin verificar" (el servidor responde 409). Se puede cambiar el tipo de la cuenta propia. Un error del servidor sale en el `role="alert"` de la tarjeta y la fila queda como estaba; con 404 se agrega "Actualizamos la lista." y se vuelve a buscar.
-- **Uno mismo**: la fila de la persona logueada no ofrece el selector de rol (texto "Es tu cuenta"); el servidor igual responde 409 si se intenta.
+- **Resultados**: tabla **Nombre · Email · Legajo · Tipo · Rol · Acciones**. Tipo ("Estudiante" / "Docente") y Rol ("Usuario", "Revisor", "Administrador") son `Chip` neutros, solo texto, sin color ni símbolo. Acciones: engranaje (botón secondary compacto, nombre accesible "Gestionar usuario {nombre}") que despliega en la celda un menú (`role="menu"`) con **Modificar rol**, **Cambiar tipo** y **Bloquear cuenta**. Bloquear aparece deshabilitado ("Próximamente"): no hay endpoint ni migración.
+- **Modificar rol**: `select` nativo "Rol de {nombre}" con **Usuario** y **Administrador** (Revisor ya no se asigna desde el panel; si la persona ya es Revisor se lo muestra preseleccionado) y, al elegir otro, la confirmación en la misma fila: "¿Cambiar a {nombre} de {rol actual} a {rol nuevo}?" con "Sí, cambiar" (primary) y "Cancelar" (secondary, con el foco). Nunca se cambia el rol sin confirmar.
+- **Cambiar tipo** ([#262](https://github.com/Benji-9/SmartElevate/issues/262)): `select` "Tipo de {nombre}" (Estudiante / Docente) y la misma confirmación en la fila. El texto aclara el efecto: hacia docente, "Va a tener la prioridad de docente hasta fin del cuatrimestre." (prioridad directa, sin pasar por la cola); hacia estudiante, "Pierde la prioridad de docente si la tenía vigente.". **Con el email sin verificar** el ítem del menú está deshabilitado y dice "Email sin verificar" (el servidor responde 409). Un error del servidor (p. ej. 409 sin cierre de cuatrimestre cargado) sale en el `role="alert"` de la tarjeta y la fila queda como estaba; con 404 se agrega "Actualizamos la lista." y se vuelve a buscar.
+- **Uno mismo**: la fila de la persona logueada no ofrece el engranaje (texto "Es tu cuenta"); el servidor igual responde 409 si se intenta cambiar el propio rol.
 - Paginación por cursor: si el servidor devuelve `nextCursor`, botón secondary "Ver más resultados" que agrega la página siguiente.
 - Al confirmar, la fila se actualiza con el rol nuevo sin recargar; si falla, `role="alert"` con el mensaje del servidor y el rol queda como estaba. Con 404 (usuario borrado) se agrega "Actualizamos la lista." y se vuelve a buscar.
 - **Estados**: sin búsqueda, la tarjeta solo muestra la ayuda; cargando "Buscando…" (`role="status"`); sin resultados "No encontramos usuarios para «{texto}»."; error del servidor en `role="alert"` con "Reintentar".

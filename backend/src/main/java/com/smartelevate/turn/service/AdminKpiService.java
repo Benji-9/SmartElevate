@@ -44,9 +44,8 @@ public class AdminKpiService {
 
     /** Línea base de la encuesta inicial (kpis.md): % que esperaba entre 5 y 10 min. Es un dato, no un parámetro. */
     static final double BASELINE_WAIT_5_TO_10_PERCENT = 43.5;
-    /** Único turno de cursada definido (kpis.md#filtros); sus horas están en app_config. */
+    /** Id del turno mañana (kpis.md#filtros); las horas de cada turno están en app_config. */
     static final String MORNING_SHIFT_ID = "MORNING";
-    private static final String MORNING_SHIFT_NAME = "Turno mañana";
     private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
 
     private final KpiEvents events;
@@ -54,9 +53,21 @@ public class AdminKpiService {
     private final ConfigService config;
     private final CampusTime time;
 
+    /** Turno de cursada: hora de Buenos Aires, fin exclusivo. */
+    private record Shift(String id, String name, LocalTime start, LocalTime end) {
+    }
+
+    private List<Shift> shiftDefinitions() {
+        return List.of(
+                new Shift(MORNING_SHIFT_ID, "Turno mañana", config.morningShiftStart(), config.morningShiftEnd()),
+                new Shift("AFTERNOON", "Turno tarde", config.afternoonShiftStart(), config.afternoonShiftEnd()),
+                new Shift("NIGHT", "Turno noche", config.nightShiftStart(), config.nightShiftEnd()));
+    }
+
     public List<AdminShiftResponse> shifts() {
-        return List.of(new AdminShiftResponse(MORNING_SHIFT_ID, MORNING_SHIFT_NAME,
-                config.morningShiftStart().format(HH_MM), config.morningShiftEnd().format(HH_MM)));
+        return shiftDefinitions().stream()
+                .map(s -> new AdminShiftResponse(s.id(), s.name(), s.start().format(HH_MM), s.end().format(HH_MM)))
+                .toList();
     }
 
     /**
@@ -68,14 +79,15 @@ public class AdminKpiService {
         if (buildingCode != null && !buildings.existsById(buildingCode)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sede no existe");
         }
-        if (shiftId != null && !MORNING_SHIFT_ID.equals(shiftId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El turno de cursada no existe");
-        }
+        Shift shift = shiftId == null ? null : shiftDefinitions().stream()
+                .filter(s -> s.id().equals(shiftId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "El turno de cursada no existe"));
         LocalTime open = config.operatingHoursStart();
         LocalTime close = config.operatingHoursEnd();
-        if (shiftId != null) {
-            open = max(open, config.morningShiftStart());
-            close = min(close, config.morningShiftEnd());
+        if (shift != null) {
+            open = max(open, shift.start());
+            close = min(close, shift.end());
         }
         LocalTime start = open;
         LocalTime end = close;

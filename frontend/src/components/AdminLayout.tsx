@@ -25,7 +25,7 @@ export function AdminLayout() {
               </li>
               <li>
                 <NavLink to="/admin/prioritarios" className="admin__link">
-                  Usuarios prioritarios
+                  Gestión de usuarios
                 </NavLink>
               </li>
               <li>
