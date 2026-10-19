@@ -153,3 +153,10 @@
   color: var(--color-danger);
   font-weight: var(--font-medium);
 }
+
+/* La cara de Elevy a la izquierda del texto del QR. */
+.turn-hint--mascot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

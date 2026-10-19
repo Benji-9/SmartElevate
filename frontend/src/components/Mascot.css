@@ -1,0 +1,7 @@
+.mascot {
+  display: block;
+  flex: none;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}

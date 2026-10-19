@@ -32,7 +32,7 @@ export function CheckInSuccessPage() {
   const hero = heroes[state.outcome];
   return (
     <div className="success-screen success-screen--check-in">
-      <SuccessHero title={hero.title} tone={hero.tone}>
+      <SuccessHero title={hero.title} tone={hero.tone} pose="festejo">
         Ascensor {state.elevator} · {formatTime(state.checkedInAt)} hs
       </SuccessHero>
       <OnTimeCard result={state} />

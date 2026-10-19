@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 // Button trae los estilos `.button`, que también usan los links con forma de botón.
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
+import { Mascot } from '../../components/Mascot';
 import { useNow } from '../../hooks/useNow';
 import { ApiError, getActiveReservation } from '../../services/api';
 import type { Reservation } from '../../types/api';
@@ -88,10 +89,13 @@ export function ActiveTurnCard() {
   if (!reservation) {
     return (
       <section className="turn-card" aria-labelledby="turn-card-title">
+        <Mascot pose="saludo" size={96} className="turn-card__mascot" />
         <h2 id="turn-card-title" className="text-card-title">
           No tenés un turno activo
         </h2>
-        <p className="turn-card__help">Reservá un lugar en la próxima salida del ascensor.</p>
+        <p className="turn-card__help">
+          Elevy te ayuda: reservá un lugar en la próxima salida del ascensor.
+        </p>
         <Link to="/reservar" className="button button--primary button--inline">
           Reservar turno
         </Link>
