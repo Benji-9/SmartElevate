@@ -101,7 +101,7 @@ describe('MyTripsPage', () => {
   it('muestra el estado vacío', async () => {
     renderTrips({ items: [], nextCursor: null });
 
-    expect(await screen.findByText(/Todavía no tenés viajes/)).toBeInTheDocument();
+    expect(await screen.findByText(/Todavía no viajaste con SmartElevate/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Reservá tu primer turno' })).toHaveAttribute(
       'href',
       '/reservar',

@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Chip, type ChipTone } from '../components/Chip';
+import logo from '../assets/smartelevate-logo-horizontal.svg';
 import { LegalFooter } from '../components/LegalFooter';
 import { formatShortDate } from '../features/turn/format';
 import { PriorityInfoCard } from '../features/priority/PriorityInfoCard';
@@ -45,6 +46,14 @@ export function ProfilePage() {
 
   return (
     <div className="profile">
+      {/* El TopBar ya lleva el logo en Pantalla. */}
+      <img
+        className="profile-logo only-mobile"
+        src={logo}
+        alt="SmartElevate"
+        width={131}
+        height={32}
+      />
       <h1 className="profile-title text-heading">Mi perfil</h1>
       {user && (
         <header className="profile-header">
@@ -82,7 +91,7 @@ export function ProfilePage() {
           Cerrar sesión
         </Button>
       </div>
-      <LegalFooter />
+      <LegalFooter withUadeLogo />
     </div>
   );
 }

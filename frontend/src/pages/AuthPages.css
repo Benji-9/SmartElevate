@@ -25,11 +25,6 @@
   margin-bottom: 8px;
 }
 
-.auth__org {
-  display: grid;
-  justify-items: center;
-}
-
 .auth__lead {
   font-size: var(--text-14);
 }

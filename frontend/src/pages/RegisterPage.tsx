@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -97,6 +98,7 @@ export function RegisterPage() {
     return (
       <div className="auth-card auth-card--register">
         <ScreenHeader title="Crear cuenta" backTo="/login" />
+        <AuthBrand />
         <div role="status" className="auth">
           <h2>Revisá tu email</h2>
           <p className="auth__lead">
@@ -113,6 +115,7 @@ export function RegisterPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Crear cuenta" backTo="/login" />
+      <AuthBrand />
       <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>

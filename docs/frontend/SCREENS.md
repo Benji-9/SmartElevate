@@ -86,6 +86,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, sin subrayado, alineado a la derecha; lleva a `/recuperar` (02b).
 6. `Button` primary "Ingresar".
 7. "¿No tenés cuenta? Registrate" — 14 px, `--ink-muted`, centrado; "Registrate" es un link a `/registro` en `--accent`.
+8. Footer legal con el logotipo de UADE arriba (`LegalFooter withUadeLogo`, 86 px de ancho).
 
 Estados: error de credenciales → `error` en el `Input` de contraseña.
 
@@ -93,6 +94,7 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 
 `PageHeader` con volver + "Crear cuenta". `main`: pad 8/20/20/20, gap 14.
 
+0. **Marca** (`AuthBrand`): `smartelevate-logo.svg` a 72 px de alto, centrada, `alt="SmartElevate"` (el `h1` es el título de la pantalla). Va debajo del `PageHeader` en 02, 02b, 02c y 02d, también en sus confirmaciones.
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
 2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`, hint "Está en tu credencial UADE."), "Contraseña" (sin placeholder). La contraseña lleva el `hint` "Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas." y el cliente valida el largo igual que el servidor (code points tras NFKC). La lista de contraseñas comunes la valida solo el servidor y su error va al lado del campo ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md), [usuarios y prioridad](../reglas/usuarios-y-prioridad.md#contraseña)).
 3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
@@ -130,7 +132,7 @@ Al abrirla llama sola a `POST /api/auth/verify` con `{ token }` (es POST a prop�
 
 Estados:
 - **Verificando** (`role="status"`): "Verificando tu email…".
-- **OK** (204): título "Listo, verificamos tu email", "Ya podés ingresar a SmartElevate." y link "Ir a ingresar".
+- **OK** (204): título "Listo, verificamos tu email", "Ya podés ingresar y reservar tu primer turno." y link "Ir a ingresar".
 - **Error** (sin `token` en la URL, o 400 por token inexistente / usado / vencido): aviso `--danger-tint` con el mensaje del servidor (distinto por caso; sin token: "Este link no es válido. Pedí uno nuevo."), "Pedí un link nuevo a tu email institucional." y el bloque **Reenviar**.
 
 ### Reenviar el email de verificación (`ResendVerification`)
@@ -160,7 +162,7 @@ Todo `Input` con `type="password"` (Login, Registro y 02c) trae a la derecha, de
 
 No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145)).
 
-- **Footer legal** (`LegalFooter`): al final de Login, Registro, 02b, 02c, Perfil y las dos páginas legales. Columna centrada, gap 4, 12 px `--ink-muted`: fila de links (500, `--accent`, sin subrayado, área táctil de 44 px) **Privacidad · Términos de uso · Contacto** (`mailto:` al email del proyecto) y debajo "SmartElevate · Proyecto académico de estudiantes de UADE".
+- **Footer legal** (`LegalFooter`): al final de Login, Registro, 02b, 02c, 02d, Perfil y las dos páginas legales. En Login y Perfil lleva arriba el logotipo de UADE (`withUadeLogo`). Columna centrada, gap 4, 12 px `--ink-muted`: fila de links (500, `--accent`, sin subrayado, área táctil de 44 px) **Privacidad · Términos de uso · Contacto** (`mailto:` al email del proyecto) y debajo "SmartElevate · Proyecto académico de estudiantes de UADE".
 - **Páginas legales** (`/privacidad`, `/terminos`): `PageHeader` con volver + título; "Última actualización" 13 px `--ink-muted`; secciones numeradas con `h2` de 16 px / 600 y texto 14 px con interlineado 1,55. La leyenda obligatoria de la AAIP (Disposición 10/2008) va en un aviso `--accent-tint` dentro de "Tus derechos". En Pantalla usan la columna de 480 px.
 - Contenido: la política sigue la Ley 25.326, el Decreto 1558/2001, las normas de la AAIP y el Convenio 108/108+, con los derechos del RGPD; los términos son los de un proyecto académico. **No es asesoramiento legal**: validar con la cátedra. Ya no hay datos de salud: la política no menciona certificados ni su tratamiento, y aclara que la marca de movilidad reducida la maneja UADE ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)). Si cambian proveedores, regiones o el tratamiento de datos, actualizar `PrivacyPage.tsx`.
 
@@ -168,9 +170,10 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 
 `main`: pad 12/20/16/20, gap 16. `BottomNav` con **Inicio** activa.
 
+0. **Logo** (solo móvil): `smartelevate-logo-horizontal.svg` a ~32 px, arriba a la izquierda. En Pantalla lo lleva el `TopBar`.
 1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9" (14 px `--ink-muted`; la sede queda **pospuesta**: no hay de dónde sacarla, [#86](https://github.com/Benji-9/SmartElevate/issues/86)); a la derecha, avatar circular de 44 px (`--surface-subtle`); en Pantalla se oculta porque la barra superior ya lo muestra.
 2. **Tarjeta "Próxima clase"** — **pospuesta**: todavía no hay fuente del horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)); no implementar por ahora. (pad 18, gap 6, `--radius-xl`, fondo `--accent`): rótulo `.text-overline` "PRÓXIMA CLASE" en `--on-dark-muted`; nombre de la materia 17 px / 700 `--on-accent`: "Seminario de Gestión de Tecnología"; detalle 14 px "Aula 705 · Piso 7 · Lima 3 · 7:45 hs" en `--on-dark-muted`; separación 6; botón interno blanco (pad 10/14, `--radius-sm`, texto 14 px / 600 `--accent`) "Reservar turno para esta clase" → `/reservar`.
-3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; cuenta regresiva 18 px / 700 `--accent` "Sale en 6 min" (con el `departsAt` de la API, se actualiza cada ~30 s; "Sale ahora" al llegar la hora. El destacado por límite de cancelación espera que la API exponga ese instante, [#155](https://github.com/Benji-9/SmartElevate/issues/155)); línea 15 px / 500 "7:25 hs · Lima 3 · Ascensor 33 · Piso 7" (`departureAt`, `coreName`, `elevator`: la reserva no trae la duración de la franja, [#214](https://github.com/Benji-9/SmartElevate/issues/214)); ayuda 13 px `--ink-muted` con el texto único del QR (§ Reglas de negocio); `Button` primary "Hacer check-in" → `/check-in`; antes de `checkInOpensAt` no se ofrece y en su lugar va "Abre a las 14:03 hs" (hora de Buenos Aires; se habilita solo al abrir, sin recargar). Si no hay turno, ocultar la tarjeta.
+3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; cuenta regresiva 18 px / 700 `--accent` "Sale en 6 min" (con el `departsAt` de la API, se actualiza cada ~30 s; "Sale ahora" al llegar la hora. El destacado por límite de cancelación espera que la API exponga ese instante, [#155](https://github.com/Benji-9/SmartElevate/issues/155)); línea 15 px / 500 "7:25 hs · Lima 3 · Ascensor 33 · Piso 7" (`departureAt`, `coreName`, `elevator`: la reserva no trae la duración de la franja, [#214](https://github.com/Benji-9/SmartElevate/issues/214)); ayuda 13 px `--ink-muted` con el texto único del QR (§ Reglas de negocio); `Button` primary "Hacer check-in" → `/check-in`; antes de `checkInOpensAt` no se ofrece y en su lugar va "Abre a las 14:03 hs" (hora de Buenos Aires; se habilita solo al abrir, sin recargar). Sin turno, la tarjeta muestra a Elevy (`saludo`, 96 px), "No tenés un turno activo", "Elevy te ayuda: reservá un lugar en la próxima salida del ascensor." y `Button` "Reservar turno".
 4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`; con menos de 1 min, "Actualizado recién"); debajo un `CongestionRow` por núcleo (`GET /api/congestion`: `value` = `occupancyPercent / 100`, detalle "62,5 % de los lugares reservados"; se vuelve a pedir cada `refreshAfterSeconds`):
 
 | Núcleo | level | value |
@@ -234,7 +237,7 @@ Recién reservado (`state.justReserved` desde `/reservar`): sin header ni tabs, 
 
 > **Repo (#214):** con `ReservationResponse` el detalle muestra Edificio (`buildingName`), Ascensor (`elevator` · `coreName`), Recorrido y **Salida** "7:25 hs" (`departureAt`). La ocupación y los pisos del ascensor no vienen en la reserva y no se muestran. El hall del hero sale de `coreName`.
 
-3. **Ayuda de check-in** (pad 14, `--radius-md`, `--accent-tint`, 13 px): el texto único del QR.
+3. **Ayuda de check-in** (`CheckinHint`: pad 14, `--radius-md`, `--accent-tint`, 13 px): la cara de Elevy (32 px) a la izquierda; título "Elevy te guía" (600) y debajo el texto único del QR.
 4. Espacio flexible que empuja los botones al pie.
 5. `Button` primary "Ir a check-in" → `/check-in` (la pantalla 06 avisa "Abre a las HH:MM hs" si todavía no abrió); `Button` secondary "Cancelar turno", que pide confirmación en un diálogo modal: título "¿Cancelar el turno?" con el plazo ("Podés cancelar sin falta hasta las 13:54 hs; después, cancelar cuenta como falta.", de `cancelFreeUntil`) (si el servidor avisa que cuenta como falta, el título es "Si cancelás ahora, cuenta como falta"); botones "Mantener turno" (primary, primero y con el foco al abrir) y "Cancelar turno" (secondary). La acción destructiva nunca lleva el énfasis.
 
@@ -258,9 +261,9 @@ Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y c
 
 Sin red u otro error: "No pudimos conectarnos. Probá de nuevo."
 
-**Check-in anticipado:** antes de `checkInOpensAt` (de `GET /api/reservations/active`) no se pide la cámara: el visor se reemplaza por "Abre a las 14:03 hs" (hora de Buenos Aires) y "Cuando abra, vas a poder escanear el QR del ascensor desde acá.". La pantalla re-evalúa cada segundo y, al abrir, activa la cámara sola.
+**Check-in anticipado:** antes de `checkInOpensAt` (de `GET /api/reservations/active`) no se pide la cámara: el visor se reemplaza por "Abre a las 14:03 hs" (hora de Buenos Aires) y "Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.", con Elevy durmiendo (`duerme`, 96 px). La pantalla re-evalúa cada segundo y, al abrir, activa la cámara sola.
 
-**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo y el check-in ya abrió. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error. Permiso negado: "No tenemos permiso para usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador." Sin cámara: "No pudimos usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular."
+**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo y el check-in ya abrió. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra a Elevy (`senala`) y "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error. Los dos casos de cámara llevan a Elevy (`triste`). Permiso negado: "No tenemos permiso para usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador." Sin cámara: "No pudimos usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular."
 
 ## 07 · Viaje registrado — `/check-in/ok`
 
@@ -270,7 +273,7 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
 
 1. **Hero** igual al de la 05: título "Viaje registrado"; detalle 15 px `--ink-muted` "Ascensor 33 · 7:27 hs" (`elevator` escaneado y `checkedInAt`; la respuesta no trae el núcleo). Cambia según el resultado ([check-in](../reglas/check-in-qr.md#resultados)): con *otro ascensor*, título "Viaje registrado en otro ascensor"; con *fuera de hora* (cuenta como falta), sin tilde: signo de advertencia sobre `--Status-Alta-tint` en `--Status-Alta` y título "Llegaste fuera de tu franja: cuenta como falta".
 2. **Tarjeta "a tiempo"** (pad 16, gap 4, `--radius-lg`, `--accent-tint`): "Check-in a tiempo" 15 px / 600 `--accent`; debajo, 13 px, el detalle del resultado y "Salida de tu turno: **7:26 hs**" (`departureAt`; la respuesta no trae la duración de la franja). Según `outcome`:
-   - `ON_TIME`: "Check-in a tiempo" · "Subiste dentro de tu franja. ¡Gracias por usar tu turno!"
+   - `ON_TIME`: "Check-in a tiempo" · "Subiste dentro de tu franja. ¡Gracias por ayudar a que el ascensor fluya!"
    - `OTHER_ELEVATOR` (fondo neutro): "Check-in en otro ascensor" · "Reservaste el ascensor 33 y escaneaste el 34. Quedó registrado y no cuenta como falta." (`reservedElevator` y `elevator`).
    - `LATE` (`--danger-tint`; la reserva queda `NO_SHOW`): "Check-in fuera de hora" · "El check-in fue después de la hora de tu salida, así que cuenta como falta. Igual queda registrado que viniste." La hora y el aula de la clase ("Tu clase empieza a las 7:45 en el Aula 705.") quedan **pospuestas** hasta tener el horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
 3. **Encuesta de espera** — **no se muestra**: queda **fuera del MVP** ([alcance](../alcance-mvp.md)): el backend no tiene dónde guardarla ni medir la espera real, y no se inventa contrato. Si se retoma, el componente está en el historial del repo (`features/check-in/WaitFeedback.tsx`, [#238](https://github.com/Benji-9/SmartElevate/issues/238)). Spec para entonces: (pad 16, gap 12, `--radius-lg`, borde `--line`): pregunta 15 px / 600 "¿Cuánto esperaste el ascensor?"; 4 opciones de igual ancho (pad 10/4, `--radius-sm`, 13 px / 500): "< 2 min", "2–5", "5–10", "> 10" (opción elegida: borde `--accent`, fondo `--accent-tint`, texto `--accent`); nota 12 px `--ink-muted` "Nos ayuda a medir la congestión real."
@@ -281,11 +284,18 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
 
 `PageHeader` sin volver, título "Mi perfil". `main`: pad 8/20/20/20, gap 16. `BottomNav` con **Perfil** activa.
 
+0. **Logo** (solo móvil): `smartelevate-logo-horizontal.svg` a ~32 px sobre el título, como en Inicio.
+
 1. **Cabecera** (fila, gap 14): avatar de 60 px; columna (gap 4): "Juana Martínez" (18 px / 700), `Chip` tone `neutral` "Estudiante", "Legajo 1234567" (13 px `--ink-muted`), "jmartinez@uade.edu.ar" (13 px `--ink-muted`); si es docente con prioridad vigente, "Prioridad de docente: vigente hasta el 31/03" (`priorityUntil` de `GET /api/users/me`, día/mes en Buenos Aires; sin fecha, "vigente"; declarado docente sin validar, "pendiente de validación"). El chip no usa color: el tipo de usuario es un dato, no un estado.
 2. **Tarjeta "Acceso prioritario"** (pad 16, gap 12, `--radius-lg`, borde `--line`):
    - **Solo informativa** ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)): título "Acceso prioritario" (`.text-card-title`) y texto 13 px `--ink-muted`: "Si tenés movilidad reducida, temporal o permanente, informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados ni datos de salud."
    - Sin chip de estado, sin zona de carga, sin botones ni llamadas a la API.
 3. **Lista de ajustes** (`--radius-lg`, borde `--line`): filas pad 14/16, 15 px / 500, flecha "→" a la derecha en `--ink-muted`, divisor `--line` entre filas: "Mis viajes" y "Notificaciones". Debajo, separado de la lista y sin flecha (es una acción, no un destino), `Button` secondary "Cerrar sesión".
+4. Footer legal con el logotipo de UADE (`LegalFooter withUadeLogo`).
+
+**Mis viajes** (`/perfil/viajes`): vacía, Elevy (`senala`, 96 px) y "Todavía no viajaste con SmartElevate. Reservá tu primer turno y evitá la fila." (link a `/reservar`); si falla la carga, Elevy (`triste`) en el aviso con "Reintentar".
+
+**Notificaciones** (`/perfil/notificaciones`): intro "Elegí qué avisos querés recibir. Te escribimos solo cuando hace falta."
 
 ## 09 · Panel de administración — `/admin`
 
@@ -414,6 +424,10 @@ El ascensor que vale es el de la credencial; el de la URL es el que la pantalla 
 
 
 ---
+
+## 404 — `*`
+
+`PageHeader` con volver + "Página no encontrada". Elevy pensando (`piensa`, 120 px) y el texto centrados: "Uy, esta página no existe o cambió de lugar. Revisá la dirección o volvé al inicio."; `Button` primary "Ir al inicio".
 
 ## Checklist de accesibilidad para cada pantalla
 

@@ -54,7 +54,8 @@ export function MyTripsPage() {
       <div className="empty-state">
         <Mascot pose="senala" size={96} />
         <p className="page-placeholder">
-          Todavía no tenés viajes. <Link to="/reservar">Reservá tu primer turno</Link>.
+          Todavía no viajaste con SmartElevate. <Link to="/reservar">Reservá tu primer turno</Link>{' '}
+          y evitá la fila.
         </p>
       </div>
     );
