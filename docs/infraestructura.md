@@ -91,7 +91,7 @@ Las cuatro que valida `RequiredProdProperties` (`JWT_SECRET`, `APP_KIOSK_QR_SECR
 | Variable | Define | Valor | Si falta |
 | --- | --- | --- | --- |
 | `APP_MAIL_ENABLED` | Render | Default `true` en `prod`. `false` no manda nada y deja el contenido del mail (con el link de verificación) en el log | Con el default, ver las `SPRING_MAIL_*` |
-| `SPRING_MAIL_PORT` | Render | `587` (STARTTLS, ya exigido en `application-prod.yml`) | Spring usa el 25 y el envío falla en runtime (los hosts suelen bloquearlo): los mails no salen, la app sí arranca |
+| `SPRING_MAIL_PORT` | Render | `2525` (STARTTLS, ya exigido en `application-prod.yml`). **No `587`**: Render free bloquea los puertos SMTP 25, 465 y 587 | Con `587` el envío da `Connect timed out` a los 5 s (queda en el log, la request responde bien): los mails no salen. Sin la variable Spring usa el 25 y falla igual |
 | `SPRING_MAIL_USERNAME` | Render | Login SMTP de Brevo (`xxxx@smtp-brevo.com`, **no** el Gmail) | Arranca; el envío falla con error de autenticación |
 | `SPRING_MAIL_PASSWORD` | Render | SMTP key de Brevo (secreto) | Ídem |
 | `APP_MAIL_FROM` | Render | `smartelevate.uade@gmail.com`. Default `no-reply@localhost`, que Brevo rechaza | Arranca; Brevo rechaza el remitente |
@@ -197,7 +197,7 @@ services:
       - { key: APP_FRONTEND_URL, sync: false }
       - { key: CORS_ALLOWED_ORIGINS, sync: false }
       - { key: SPRING_MAIL_HOST, value: smtp-relay.brevo.com }
-      - { key: SPRING_MAIL_PORT, value: "587" }
+      - { key: SPRING_MAIL_PORT, value: "2525" }
       - { key: SPRING_MAIL_USERNAME, sync: false }
       - { key: SPRING_MAIL_PASSWORD, sync: false }
       - { key: APP_MAIL_FROM, sync: false }
@@ -397,8 +397,9 @@ El detalle está en los ADR [0012](adr/0012-hosting-del-backend-render-y-neon.md
 
 ## Email con Brevo
 
-- Envío por **SMTP** (`smtp-relay.brevo.com:587`, STARTTLS) con `spring-boot-starter-mail`. No usamos el SDK de Brevo: cambiar de proveedor es cambiar variables.
+- Envío por **SMTP** (`smtp-relay.brevo.com:2525`, STARTTLS) con `spring-boot-starter-mail`. No usamos el SDK de Brevo: cambiar de proveedor es cambiar variables.
 - Remitente verificado: `smartelevate.uade@gmail.com`. **No tenemos dominio propio**, así que Brevo reescribe el remitente a `smartelevate.uade@12377968.brevosend.com`. Es esperado y no se puede evitar sin dominio.
+- **Puerto 2525, no 587.** Render free bloquea las conexiones salientes a los puertos 25, 465 y 587; con 587 el log muestra `Couldn't connect to host, port: smtp-relay.brevo.com, 587; timeout 5000` y no sale ningún mail (verificación ni reset). Brevo acepta STARTTLS en el 2525 y funciona (verificado el 2026-10-19). Si algún día se pasa a un plan pago, 587 vuelve a ser una opción.
 - Prueba del 2026-10-06: un mail a una casilla @uade.edu.ar **llegó a la bandeja de entrada**.
 - **Si empiezan a caer en spam:** comprar un dominio (unos USD 10 por año, p. ej. en Cloudflare), autenticarlo en Brevo (**Senders, Domains & Dedicated IPs → Domains**: registros TXT, DKIM y DMARC) y cambiar `APP_MAIL_FROM`. No hace falta tocar código.
 

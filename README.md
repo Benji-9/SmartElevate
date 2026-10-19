@@ -116,7 +116,7 @@ En producción las carga el equipo en Render; la checklist completa (quién la d
 | `APP_MAIL_SMTP_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de lectura del SMTP |
 | `APP_MAIL_SMTP_WRITE_TIMEOUT` | `10000` | Solo `prod`. Milisegundos de espera de escritura al SMTP |
 | `SPRING_MAIL_HOST` | — | **Obligatoria con el mail activo** (default de `prod`): sin ella la app no arranca. Brevo: `smtp-relay.brevo.com` |
-| `SPRING_MAIL_PORT` | — | Brevo: `587` (STARTTLS) |
+| `SPRING_MAIL_PORT` | — | Brevo: `2525` (STARTTLS). No usar `587` en Render free: bloquea los puertos SMTP salientes (25, 465, 587) y el envío da `Connect timed out` |
 | `SPRING_MAIL_USERNAME` | — | Login SMTP de Brevo |
 | `SPRING_MAIL_PASSWORD` | — | SMTP key de Brevo (secreto: solo en el servicio, nunca en el repo) |
 | `APP_FRONTEND_URL` | `http://localhost:5173` solo en dev | **Obligatorio en `prod`** (sin default: la app no arranca sin él). Base de los links de los mails: verificación (`<url>/verificar-email?token=…`) y reset de contraseña (`<url>/recuperar/nueva?token=…`) |
