@@ -231,3 +231,14 @@
 .elevator-card .confirm-action {
   align-self: end;
 }
+
+.elevator-core {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.elevator-card--out {
+  border-color: var(--color-danger);
+  background: var(--color-danger-tint);
+}
