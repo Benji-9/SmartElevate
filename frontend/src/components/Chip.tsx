@@ -1,21 +1,19 @@
 import type { ReactNode } from 'react';
 import './Chip.css';
 
-export type ChipTone =
-  'accent' | 'neutral' | 'danger' | 'baja' | 'media' | 'alta' | 'alumnos' | 'docentes';
+export type ChipTone = 'accent' | 'neutral' | 'danger' | 'baja' | 'media' | 'alta';
 
 type ChipProps = {
   children: ReactNode;
   /**
    * `accent` para estados de reserva ("Confirmado"), `neutral` y `danger` para el historial
-   * y los rechazos. Congestión (`baja`/`media`/`alta`) y tipo de usuario (`alumnos`/`docentes`)
-   * llevan un punto de color: es un refuerzo, el texto siempre va.
+   * y los rechazos. Congestión (`baja`/`media`/`alta`) lleva un punto de color: es un refuerzo, el texto siempre va.
    */
   tone?: ChipTone;
   className?: string;
 };
 
-const dotted = new Set<ChipTone>(['baja', 'media', 'alta', 'alumnos', 'docentes']);
+const dotted = new Set<ChipTone>(['baja', 'media', 'alta']);
 
 /** Etiqueta corta de estado o dato (Figma: Chip). No es interactiva. */
 export function Chip({ children, tone = 'accent', className }: ChipProps) {

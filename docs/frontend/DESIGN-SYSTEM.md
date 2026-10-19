@@ -110,6 +110,10 @@ Stack: **React + Vite**, mobile-first (390 px), con una vista de Pantalla para l
 
 ### Colores (con reglas de uso)
 
+`:root` declara `color-scheme: light` y el tema oscuro `color-scheme: dark`, para que scrollbars y desplegables nativos sigan el tema. `html` lleva `scrollbar-gutter: stable` para que el layout no salte al aparecer la barra.
+
+**Pendiente de diseño ([#276](https://github.com/Benji-9/SmartElevate/issues/276)):** en tema oscuro el botón primario (gris azulado) se lee como deshabilitado. No se cambió; necesita una decisión de diseño.
+
 | Token | Valor | Uso |
 |---|---|---|
 | `--AstronautBlue` | `#00405c` | Color de acción de SmartElevate y azul del logotipo de UADE: botón primario, ítem seleccionado, links, tab activa y foco. Texto en AstronautBlue sobre `surface` (11,1:1); sobre él va `on-accent`. |
@@ -236,7 +240,7 @@ Todos aceptan `className`. Las clases (prefijo `se-`) están en la sección 7.
 |---|---|---|
 | `Button` | `variant: 'primary' \| 'secondary'` (default `primary`), `block?: boolean` (default `true`), + atributos de `<button>` | Un solo `primary` por vista. Etiqueta con verbo: "Ingresar", "Confirmar turno · 7:25". Alto mínimo 48 px. `disabled` usa `surface-subtle` + `ink-subtle`. |
 | `Input` | `label?: string`, `error?: string`, + atributos de `<input>` | Etiqueta arriba (13 px, 500). Con `error`: borde y mensaje en `Status-Alta`, `aria-invalid`, mensaje con `role="alert"`. El placeholder es un ejemplo, no reemplaza la etiqueta. `suffix?: string`: texto fijo a la derecha dentro del control (`--ink-muted`), anunciado con `aria-describedby` (p. ej. `@uade.edu.ar`). Con `type="password"` suma el botón "Mostrar"/"Ocultar" contraseña (44 × 44 px), que se resetea al enviar. |
-| `Chip` | `tone?: 'accent' \| 'baja' \| 'media' \| 'alta' \| 'alumnos' \| 'docentes'` (default `accent`) | `accent`: sin punto, para estados de reserva ("Confirmado", "Pendiente de validación"). Los demás llevan punto de color + texto en `ink`. |
+| `Chip` | `tone?: 'accent' \| 'neutral' \| 'danger' \| 'baja' \| 'media' \| 'alta'` (default `accent`) | `accent`: sin punto, para estados de reserva ("Confirmado", "Pendiente de validación"). `neutral`: datos que no son estado, como el tipo de usuario ("Estudiante", "Docente"), sin color propio. Solo la congestión (`baja`/`media`/`alta`) lleva punto de color + texto en `ink`. |
 | `CongestionRow` | `label: string`, `level: 'baja' \| 'media' \| 'alta'`, `value: number` (0–1) | Nombre del núcleo · barra de 90 × 8 px · nivel escrito (48 px de ancho). Apilar una por núcleo. |
 | `BottomNav` | `items: { id, label, icon? }[]`, `active: string`, `onSelect?: (id) => void` | Cuatro destinos: Inicio, Reservar, Check-in, Perfil. Activa en `accent`, resto en `ink-muted`. Sin `icon` muestra un cuadrado gris de 24 px (marcador: **el set de íconos aún no está elegido**). |
 | `Skeleton` | `label: string`, `rows?: number` (default 1), `height?: number` (px, default 20) | Estado de carga con la forma del contenido (bloques `surface-subtle` que laten; sin animación con `prefers-reduced-motion`). Es un `role="status"` que anuncia `label` ("Cargando tus viajes…"). Lo usan Inicio, Mis viajes y Reservar. |
@@ -275,8 +279,6 @@ body { margin: 0; font-family: var(--font-sans); background: var(--surface); col
 .se-chip-baja { background: var(--Status-Baja-tint); } .se-chip-baja .se-chip-dot { background: var(--Status-Baja); }
 .se-chip-media { background: var(--Status-Media-tint); } .se-chip-media .se-chip-dot { background: var(--Status-Media); }
 .se-chip-alta { background: var(--Status-Alta-tint); } .se-chip-alta .se-chip-dot { background: var(--Status-Alta); }
-.se-chip-alumnos { background: var(--User-Alumnos-tint); } .se-chip-alumnos .se-chip-dot { background: var(--User-Alumnos); }
-.se-chip-docentes { background: var(--User-Docentes-tint); } .se-chip-docentes .se-chip-dot { background: var(--User-Docentes); }
 
 .se-cong { display: flex; align-items: center; gap: var(--space-10); }
 .se-cong-label { flex: 1; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--ink); }

@@ -82,7 +82,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 1. **Marca** (columna centrada, gap 12): logo `smartelevate-logo.svg` a 120 px; título `.text-title` centrado "Te damos la bienvenida a SmartElevate"; subtítulo 15 px `--ink-muted` centrado "Reservá tu turno de ascensor y llegá a tiempo a clase."
 2. Espacio de 8 px.
 3. `Input` "Email institucional" con el sufijo fijo `@uade.edu.ar` (ph `jmartinez`): se escribe solo el usuario. Ver [Email institucional](#email-institucional).
-4. `Input` "Contraseña", placeholder `••••••••` (`type="password"`).
+4. `Input` "Contraseña" (`type="password"`, sin placeholder: "••••••••" parece un valor ya cargado).
 5. Link "¿Olvidaste tu contraseña?" — 13 px, 500, `--accent`, sin subrayado, alineado a la derecha; lleva a `/recuperar` (02b).
 6. `Button` primary "Ingresar".
 7. "¿No tenés cuenta? Registrate" — 14 px, `--ink-muted`, centrado; "Registrate" es un link a `/registro` en `--accent`.
@@ -94,8 +94,8 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 `PageHeader` con volver + "Crear cuenta". `main`: pad 8/20/20/20, gap 14.
 
 1. Intro 14 px `--ink-muted`: "Usá tu email institucional y tu legajo."
-2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`, hint "Está en tu credencial UADE."), "Contraseña" (ph `••••••••`). La contraseña lleva el `hint` "Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas." y el cliente valida el largo igual que el servidor (code points tras NFKC). La lista de contraseñas comunes la valida solo el servidor y su error va al lado del campo ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md), [usuarios y prioridad](../reglas/usuarios-y-prioridad.md#contraseña)).
-3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). Cada opción lleva un punto de 10 px a la izquierda (gap 8): Estudiante → `--User-Alumnos`, Docente → `--User-Docentes`. El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
+2. `Input` × 4: "Nombre y apellido" (ph `Juana Martínez`), "Email institucional" (sufijo fijo `@uade.edu.ar`, ph `jmartinez`), "Legajo" (ph `Ej: 1234567`, hint "Está en tu credencial UADE."), "Contraseña" (sin placeholder). La contraseña lleva el `hint` "Entre 8 y 64 caracteres. No exigimos símbolos ni mayúsculas." y el cliente valida el largo igual que el servidor (code points tras NFKC). La lista de contraseñas comunes la valida solo el servidor y su error va al lado del campo ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md), [usuarios y prioridad](../reglas/usuarios-y-prioridad.md#contraseña)).
+3. Etiqueta "Tipo de usuario" (13 px, 500, `--ink-muted`) y **selector segmentado** (2 opciones de igual ancho, gap 8, pad 11/8, `--radius-sm`, texto 14 px / 600): **Estudiante** (seleccionada por defecto: fondo `--accent`, texto `--on-accent`) y **Docente** (no seleccionada: fondo `--surface`, borde 1 px `--border`, texto `--ink`). El wireframe tenía una tercera opción, **Personal**, que se sacó en [#32](https://github.com/Benji-9/SmartElevate/issues/32). El tipo es **declarativo**: elegir Docente no da prioridad, queda pendiente hasta que un ADMIN lo aprueba.
 4. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Después de registrarte, mirá tu perfil para saber cómo informarlo en OFALU."
 5. Texto 14 px `--ink-muted`: "Al crear tu cuenta aceptás los Términos de uso y la Política de privacidad." (links a `/terminos` y `/privacidad`).
 6. `Button` primary "Crear cuenta".
@@ -117,7 +117,7 @@ Estados: el servidor responde **202 siempre**, exista o no la cuenta, así que l
 
 Es la pantalla a la que lleva el link del mail. Misma estructura que 02b, con título "Contraseña nueva".
 
-1. `Input` "Contraseña nueva" y `Input` "Repetí la contraseña" (ph `••••••••`, `autocomplete="new-password"`). La UI solo valida que no esté vacía y que coincidan; la política la valida el servidor y su error va al lado del campo.
+1. `Input` "Contraseña nueva" y `Input` "Repetí la contraseña" (sin placeholder, `autocomplete="new-password"`). La UI solo valida que no esté vacía y que coincidan; la política la valida el servidor y su error va al lado del campo.
 2. `Button` primary "Guardar contraseña" → `POST /api/auth/password/reset` con `{ token, newPassword }`.
 
 Estados: OK → "Listo, cambiaste tu contraseña" + link "Ir a ingresar". Sin `token` en la URL, o token vencido / ya usado (400) → aviso `--danger-tint` con el motivo y link "Pedir otro link" a `/recuperar`.
@@ -168,10 +168,10 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 
 `main`: pad 12/20/16/20, gap 16. `BottomNav` con **Inicio** activa.
 
-1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9" (14 px `--ink-muted`; la sede queda **pospuesta**: no hay de dónde sacarla, [#86](https://github.com/Benji-9/SmartElevate/issues/86)); a la derecha, avatar circular de 44 px (`--surface-subtle`).
+1. **Saludo** (fila, gap 12): columna con "Hola, Juana" (`.text-title`) y "Lunes 28/9" (14 px `--ink-muted`; la sede queda **pospuesta**: no hay de dónde sacarla, [#86](https://github.com/Benji-9/SmartElevate/issues/86)); a la derecha, avatar circular de 44 px (`--surface-subtle`); en Pantalla se oculta porque la barra superior ya lo muestra.
 2. **Tarjeta "Próxima clase"** — **pospuesta**: todavía no hay fuente del horario de cursada ([#86](https://github.com/Benji-9/SmartElevate/issues/86)); no implementar por ahora. (pad 18, gap 6, `--radius-xl`, fondo `--accent`): rótulo `.text-overline` "PRÓXIMA CLASE" en `--on-dark-muted`; nombre de la materia 17 px / 700 `--on-accent`: "Seminario de Gestión de Tecnología"; detalle 14 px "Aula 705 · Piso 7 · Lima 3 · 7:45 hs" en `--on-dark-muted`; separación 6; botón interno blanco (pad 10/14, `--radius-sm`, texto 14 px / 600 `--accent`) "Reservar turno para esta clase" → `/reservar`.
 3. **Tarjeta "Tu turno"** (pad 16, gap 10, `--radius-xl`, borde 1 px `--line`): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "Confirmado"; cuenta regresiva 18 px / 700 `--accent` "Sale en 6 min" (con el `departsAt` de la API, se actualiza cada ~30 s; "Sale ahora" al llegar la hora. El destacado por límite de cancelación espera que la API exponga ese instante, [#155](https://github.com/Benji-9/SmartElevate/issues/155)); línea 15 px / 500 "7:25 hs · Lima 3 · Ascensor 33 · Piso 7" (`departureAt`, `coreName`, `elevator`: la reserva no trae la duración de la franja, [#214](https://github.com/Benji-9/SmartElevate/issues/214)); ayuda 13 px `--ink-muted` "Escaneá el QR de la pantalla del ascensor al subir."; `Button` primary "Hacer check-in" → `/check-in`. Si no hay turno, ocultar la tarjeta.
-4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`); debajo un `CongestionRow` por núcleo (`GET /api/congestion`: `value` = `occupancyPercent / 100`, detalle "62,5 % de los lugares reservados"; se vuelve a pedir cada `refreshAfterSeconds`):
+4. **"Congestión ahora"** (gap 10): fila de encabezado con "Congestión ahora" (`.text-card-title`) y "Actualizado hace 1 min" (12 px `--ink-muted`; con menos de 1 min, "Actualizado recién"); debajo un `CongestionRow` por núcleo (`GET /api/congestion`: `value` = `occupancyPercent / 100`, detalle "62,5 % de los lugares reservados"; se vuelve a pedir cada `refreshAfterSeconds`):
 
 | Núcleo | level | value |
 |---|---|---|
@@ -279,7 +279,7 @@ Muestra la respuesta de `POST /api/check-ins` (llega en el `state` de la navegac
 
 `PageHeader` sin volver, título "Mi perfil". `main`: pad 8/20/20/20, gap 16. `BottomNav` con **Perfil** activa.
 
-1. **Cabecera** (fila, gap 14): avatar de 60 px; columna (gap 4): "Juana Martínez" (18 px / 700), `Chip` tone `alumnos` "Estudiante", "Legajo 1234567" (13 px `--ink-muted`), "jmartinez@uade.edu.ar" (13 px `--ink-muted`). El chip cambia de tono con el tipo de usuario.
+1. **Cabecera** (fila, gap 14): avatar de 60 px; columna (gap 4): "Juana Martínez" (18 px / 700), `Chip` tone `neutral` "Estudiante", "Legajo 1234567" (13 px `--ink-muted`), "jmartinez@uade.edu.ar" (13 px `--ink-muted`). El chip no usa color: el tipo de usuario es un dato, no un estado.
 2. **Tarjeta "Acceso prioritario"** (pad 16, gap 12, `--radius-lg`, borde `--line`):
    - **Solo informativa** ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)): título "Acceso prioritario" (`.text-card-title`) y texto 13 px `--ink-muted`: "Si tenés movilidad reducida, temporal o permanente, informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados ni datos de salud."
    - Sin chip de estado, sin zona de carga, sin botones ni llamadas a la API.
@@ -328,7 +328,7 @@ Sin frame de Figma: se arma con los componentes del panel (tarjeta `.admin-card`
    - **Rechazar pide confirmación** en la misma fila: el texto "¿Rechazar a {nombre}?" reemplaza los botones, con "Sí, rechazar" (primary) y "Cancelar" (secondary, con el foco). Aprobar es directo y reversible desde la otra lista (revocar).
    - Al confirmar, la fila sale de la cola sin recargar la página. Aprobar la pasa a la lista de prioritarios con categoría Docente. Rechazar la deja como usuario común.
    - Vacía: "No hay docentes para validar." (`.page-placeholder`).
-2. **"Usuarios con prioridad"**: columnas **Nombre · Email · Legajo · Categoría · Acciones**. Categoría = `Chip` (`docentes` "Docente" o `accent` "Movilidad reducida"), siempre con texto. Acción: secondary "Revocar" ("Revocar a {nombre}"), también con confirmación en la fila ("¿Revocar la prioridad de {nombre}?", "Sí, revocar" / "Cancelar").
+2. **"Usuarios con prioridad"**: columnas **Nombre · Email · Legajo · Categoría · Acciones**. Categoría = `Chip` (`neutral` "Docente" o `accent` "Movilidad reducida"), siempre con texto. Acción: secondary "Revocar" ("Revocar a {nombre}"), también con confirmación en la fila ("¿Revocar la prioridad de {nombre}?", "Sí, revocar" / "Cancelar").
    - Vacía: "Todavía no hay usuarios con prioridad."
 
 **Estados**: cada tarjeta carga y falla por separado. Cargando: "Cargando…" (`role="status"`); error: mensaje del servidor con `role="alert"` y "Reintentar". Si falla una acción, el error aparece en un `role="alert"` dentro de la tarjeta y la fila queda como estaba. Si el servidor responde **404** (usuario inexistente o sin prioridad vigente) o **409** (ya aprobado, no se declaró docente), la fila quedó vieja —otro admin ya la resolvió—: se muestra el mensaje del servidor seguido de "Actualizamos la lista." y la tarjeta vuelve a pedir su lista.

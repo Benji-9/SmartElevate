@@ -21,13 +21,9 @@ const FIELDS = ['fullName', 'email', 'legajo', 'password'] as const;
 type Field = (typeof FIELDS)[number];
 type Errors = Partial<Record<Field, string>>;
 
-const dot = (color: string) => (
-  <span className="user-type-dot" style={{ background: color }} aria-hidden="true" />
-);
-
 const userTypes: Option<DeclaredUserType>[] = [
-  { value: 'STUDENT', label: 'Estudiante', adornment: dot('var(--User-Alumnos)') },
-  { value: 'TEACHER', label: 'Docente', adornment: dot('var(--User-Docentes)') },
+  { value: 'STUDENT', label: 'Estudiante' },
+  { value: 'TEACHER', label: 'Docente' },
 ];
 
 function validate(form: RegisterRequest): Errors {
@@ -143,7 +139,6 @@ export function RegisterPage() {
           label="Contraseña"
           type="password"
           autoComplete="new-password"
-          placeholder="••••••••"
           hint={PASSWORD_HINT}
           {...bind('password')}
         />
