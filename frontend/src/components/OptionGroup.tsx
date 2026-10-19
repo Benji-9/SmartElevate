@@ -21,6 +21,8 @@ type OptionGroupProps<T extends string> = {
   columns?: number;
   hideLabel?: boolean;
   className?: string;
+  /** Id de un texto que describe el grupo (p. ej. por qué hay opciones deshabilitadas). */
+  describedBy?: string;
 };
 
 /**
@@ -37,6 +39,7 @@ export function OptionGroup<T extends string>({
   columns,
   hideLabel = false,
   className,
+  describedBy,
 }: OptionGroupProps<T>) {
   const labelId = useId();
   const style = columns ? ({ '--option-columns': columns } as CSSProperties) : undefined;
@@ -49,6 +52,7 @@ export function OptionGroup<T extends string>({
       <div
         role="radiogroup"
         aria-labelledby={labelId}
+        aria-describedby={describedBy}
         className={`option-group__options option-group__options--${layout}`}
         style={style}
       >
