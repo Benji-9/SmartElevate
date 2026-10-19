@@ -25,7 +25,6 @@ export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
       <div role="radiogroup" aria-labelledby={labelId} className="slot-list">
         {slots.map(({ departureAt, departure: d }) => {
           const full = d.remainingSeats <= 0;
-          const taken = d.capacity - d.remainingSeats;
           return (
             <label
               key={departureAt}
@@ -38,7 +37,9 @@ export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
                   <span className="slot__elevator">· Ascensor {d.elevator}</span>
                 </span>
                 <span className="slot__bar" aria-hidden="true">
-                  <span style={{ width: `${Math.min(100, (taken / d.capacity) * 100)}%` }} />
+                  <span
+                    style={{ width: `${Math.min(100, (d.bookedSeats / d.capacity) * 100)}%` }}
+                  />
                 </span>
               </span>{' '}
               <span className="slot__count">

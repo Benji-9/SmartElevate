@@ -209,9 +209,28 @@
     gap: 24px;
   }
 
+  /*
+   * Altura fija al alto visible: la lista de franjas scrollea por dentro y el resumen con el botón
+   * queda siempre abajo, en el mismo lugar, sin importar cuántas franjas haya (#273).
+   */
   .reserve__column--aside {
     position: sticky;
     top: calc(var(--topbar-h) + 32px);
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--topbar-h) - 64px);
+    min-height: 320px;
+  }
+
+  .reserve__column--aside > .option-group {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .reserve__column--aside > .reserve__submit {
+    flex: none;
+    margin-top: auto;
   }
 
   .reserve__submit {

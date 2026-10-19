@@ -2546,6 +2546,12 @@
               "$ref" : "#/components/schemas/CoreResponse"
             }
           },
+          "lowFloorsThreshold" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Los pisos 1 a este valor no se pueden elegir de destino (van por escalera), salvo movilidad reducida",
+            "example" : 4
+          },
           "maxFloor" : {
             "type" : "integer",
             "format" : "int32",
@@ -2561,7 +2567,7 @@
             "example" : "Lima"
           }
         },
-        "required" : [ "code", "cores", "maxFloor", "minFloor", "name" ]
+        "required" : [ "code", "cores", "lowFloorsThreshold", "maxFloor", "minFloor", "name" ]
       },
       "CheckInRequest" : {
         "type" : "object",
@@ -2773,6 +2779,18 @@
         "type" : "object",
         "description" : "Salida de un ascensor reservable ahora, con su cupo restante",
         "properties" : {
+          "bookedSeats" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Lugares ya reservados (de cualquier usuario). Es lo que mide la barra de ocupación; no incluye los guardados para prioritarios que nadie tomó",
+            "example" : 2
+          },
+          "bookingClosesAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Cierre de la ventana de reserva, en UTC: desde ahí la salida ya no se puede reservar",
+            "example" : "2026-10-13T15:54:00Z"
+          },
           "building" : {
             "type" : "string",
             "example" : "INDEPENDENCIA"
@@ -2808,7 +2826,7 @@
             "enum" : [ "SCHEDULED", "CANCELLED" ]
           }
         },
-        "required" : [ "building", "capacity", "departureAt", "elevator", "id", "remainingSeats", "status" ]
+        "required" : [ "bookedSeats", "bookingClosesAt", "building", "capacity", "departureAt", "elevator", "id", "remainingSeats", "status" ]
       },
       "ElevatorResponse" : {
         "type" : "object",

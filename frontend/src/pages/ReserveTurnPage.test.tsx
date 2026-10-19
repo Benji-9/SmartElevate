@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
 import type { Building, Departure, Elevator, Reservation } from '../types/api';
@@ -12,6 +12,7 @@ const lima: Building = {
   minFloor: -1,
   maxFloor: 5,
   cores: [{ code: 'L1', name: 'Lima 1' }],
+  lowFloorsThreshold: 4,
 };
 
 const elevator = (code: string, floors: number[], core = 'L1'): Elevator => ({
@@ -34,6 +35,9 @@ const departure = (id: number, code: string, at: string, remainingSeats: number)
   departureAt: `2026-09-29T${at}:00Z`,
   capacity: 10,
   remainingSeats,
+  bookedSeats: 10 - remainingSeats,
+  // La ventana cierra 2 min antes de la salida.
+  bookingClosesAt: `2026-09-29T${at.slice(0, 3)}${Number(at.slice(3)) - 2}:00Z`,
   status: 'SCHEDULED',
 });
 const departures = [
@@ -95,6 +99,88 @@ const rejection = (status: number, code: string, message: string) => ({
 });
 
 describe('ReserveTurnPage', () => {
+  // 14:20 en Buenos Aires: las salidas de 14:32 y 14:34 siguen abiertas.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-29T17:20:00Z') });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('no deja elegir los pisos bajos y dice por qué', async () => {
+    stubApi(routes);
+    await renderReserve();
+
+    expect(screen.getByRole('radio', { name: '1' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: '5' })).toBeEnabled();
+    expect(screen.getByText('Los pisos 1 a 4 van por escalera.')).toBeInTheDocument();
+  });
+
+  it('movilidad reducida puede elegir los pisos bajos', async () => {
+    stubApi({ ...routes, ...signedIn({ ...testUser, priority: 'REDUCED_MOBILITY' }) });
+    await renderReserve();
+
+    expect(screen.getByRole('radio', { name: '1' })).toBeEnabled();
+    expect(screen.queryByText(/van por escalera/)).not.toBeInTheDocument();
+  });
+
+  it('no ofrece las franjas cuya ventana de reserva ya cerró', async () => {
+    stubApi({
+      ...routes,
+      'GET /departures?building=LIMA': {
+        body: [
+          { ...departure(1, '01', '17:32', 6), bookingClosesAt: '2026-09-29T17:19:00Z' },
+          departure(2, '01', '17:34', 5),
+        ],
+      },
+    });
+    await renderReserve();
+    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+
+    expect(await screen.findByRole('radio', { name: /^14:34/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /^14:32/ })).not.toBeInTheDocument();
+  });
+
+  it('la barra cuenta los lugares reservados, no los guardados para prioritarios', async () => {
+    // Sin reservas, un común ve 8 libres (2 guardados): la barra tiene que estar vacía.
+    stubApi({
+      ...routes,
+      'GET /departures?building=LIMA': {
+        body: [{ ...departure(1, '01', '17:32', 8), bookedSeats: 0 }],
+      },
+    });
+    await renderReserve();
+    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+
+    const slot = (await screen.findByRole('radio', { name: /^14:32/ })).closest('label')!;
+    expect(slot).toHaveTextContent('8 libres');
+    expect(slot.querySelector('.slot__bar > span')).toHaveStyle({ width: '0%' });
+  });
+
+  it('ordena los núcleos como la spec: Lima primero', async () => {
+    const ind: Building = {
+      code: 'INDEPENDENCIA',
+      name: 'Independencia',
+      minFloor: -1,
+      maxFloor: 5,
+      cores: [{ code: 'IND2', name: 'Independencia 2' }],
+      lowFloorsThreshold: 4,
+    };
+    stubApi({
+      ...routes,
+      'GET /buildings': { body: [ind, lima] },
+      'GET /elevators': {
+        body: [...elevators, { ...elevator('33', [0, 5], 'IND2'), building: 'INDEPENDENCIA' }],
+      },
+    });
+    renderPage();
+
+    const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
+    expect(
+      within(cores)
+        .getAllByRole('radio')
+        .map((r) => r.closest('label')!.textContent),
+    ).toEqual(['Lima 1', 'Indep. 2']);
+  });
+
   it('con todo elegido reserva y va al turno', async () => {
     const fetchMock = stubApi({ ...routes, 'POST /reservations': { body: reservation() } });
     await renderReserve();
@@ -161,7 +247,8 @@ describe('ReserveTurnPage', () => {
   });
 
   it('los destinos y las salidas salen de los ascensores que paran en los pisos elegidos', async () => {
-    stubApi(routes);
+    // Sin pisos bajos, para que el 3 sea elegible.
+    stubApi({ ...routes, 'GET /buildings': { body: [{ ...lima, lowFloorsThreshold: 0 }] } });
     await renderReserve();
 
     // Desde PB paran los dos: destinos de ambas baterías, sin el origen.
@@ -205,6 +292,7 @@ describe('ReserveTurnPage', () => {
       minFloor: -3,
       maxFloor: 10,
       cores: [{ code: 'IND1', name: 'Independencia 1' }],
+      lowFloorsThreshold: 4,
     };
     const dedicated = (code: string, usage: Elevator['usage']): Elevator => ({
       ...elevator(code, [0, 5], 'IND1'),
