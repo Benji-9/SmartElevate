@@ -1,5 +1,4 @@
-import { useId } from 'react';
-import '../../components/Input.css';
+import { OptionGroup } from '../../components/OptionGroup';
 import { formatFloor } from './format';
 
 type OriginFloorInputProps = {
@@ -8,30 +7,16 @@ type OriginFloorInputProps = {
   onChange: (floor: number) => void;
 };
 
-/** Piso donde estás ahora (desplegable nativo). */
+/** Piso donde estás ahora: la misma grilla de botones que el destino. */
 export function OriginFloorInput({ floors, value, onChange }: OriginFloorInputProps) {
-  const id = useId();
   return (
-    <div className="input">
-      {/* Mismo estilo que las etiquetas de "Edificio" y "Piso de destino". */}
-      <label htmlFor={id} className="option-group__label">
-        Piso de origen
-      </label>
-      <select
-        id={id}
-        className="input__field text-body"
-        value={value ?? ''}
-        onChange={(e) => onChange(Number(e.target.value))}
-      >
-        <option value="" disabled>
-          Elegí tu piso
-        </option>
-        {floors.map((floor) => (
-          <option key={floor} value={floor}>
-            {formatFloor(floor)}
-          </option>
-        ))}
-      </select>
-    </div>
+    <OptionGroup
+      label="Piso de origen"
+      name="origin-floor"
+      options={floors.map((floor) => ({ value: String(floor), label: formatFloor(floor) }))}
+      value={value === null ? null : String(value)}
+      onChange={(floor) => onChange(Number(floor))}
+      className="reserve__floors"
+    />
   );
 }
