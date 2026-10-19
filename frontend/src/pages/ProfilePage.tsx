@@ -6,7 +6,7 @@ import { LegalFooter } from '../components/LegalFooter';
 import { PriorityInfoCard } from '../features/priority/PriorityInfoCard';
 import '../features/priority/priority.css';
 import { useSession } from '../hooks/useSession';
-import type { DeclaredUserType } from '../types/api';
+import type { DeclaredUserType, User } from '../types/api';
 
 const userTypes: Record<DeclaredUserType, { label: string; tone: ChipTone }> = {
   STUDENT: { label: 'Estudiante', tone: 'alumnos' },
@@ -18,6 +18,16 @@ const arrow = (
     →
   </span>
 );
+
+/**
+ * Estado de la prioridad de docente. `/users/me` no trae el vencimiento: "vigente hasta el DD/MM"
+ * queda pendiente de contrato (#275).
+ */
+function priorityStatus(user: User) {
+  if (user.priority === 'TEACHER') return 'Prioridad de docente: vigente';
+  if (user.declaredUserType === 'TEACHER' && user.priority === 'NONE')
+    return 'Prioridad de docente: pendiente de validación';
+}
 
 export function ProfilePage() {
   const { user, logout } = useSession();
@@ -41,6 +51,7 @@ export function ProfilePage() {
             </Chip>
             <p>Legajo {user.legajo}</p>
             <p>{user.email}</p>
+            {priorityStatus(user) && <p>{priorityStatus(user)}</p>}
           </div>
         </header>
       )}
@@ -54,6 +65,11 @@ export function ProfilePage() {
             <li>
               <Link to="/perfil/notificaciones">Notificaciones{arrow}</Link>
             </li>
+            {user?.role === 'ADMIN' && (
+              <li>
+                <Link to="/admin">Panel de administración{arrow}</Link>
+              </li>
+            )}
           </ul>
         </nav>
         {/* Es una acción, no un destino: fuera de la lista y sin flecha (#159). */}

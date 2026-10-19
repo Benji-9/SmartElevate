@@ -23,6 +23,13 @@ export function TopBar() {
               </NavLink>
             </li>
           ))}
+          {user?.role === 'ADMIN' && (
+            <li>
+              <NavLink to="/admin" className="topbar__tab text-body-sm-strong">
+                Panel
+              </NavLink>
+            </li>
+          )}
         </ul>
       </nav>
       {user && (

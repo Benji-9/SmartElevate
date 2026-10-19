@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { signedIn, stubApi, testReservation } from '../test/stubApi';
 import { TurnPage } from './TurnPage';
 
@@ -12,9 +13,11 @@ function HomeProbe() {
   return <p>Inicio: {(state as { notice?: string } | null)?.notice}</p>;
 }
 
-function renderTurn(id = '55') {
+function renderTurn(id = '55', justReserved = true) {
   render(
-    <MemoryRouter initialEntries={[`/turno/${id}`]}>
+    <MemoryRouter
+      initialEntries={[{ pathname: `/turno/${id}`, state: justReserved ? { justReserved } : null }]}
+    >
       <Routes>
         <Route path="/" element={<HomeProbe />} />
         <Route path="/turno/:id" element={<TurnPage />} />
@@ -44,11 +47,30 @@ describe('TurnPage', () => {
     expect(screen.getByText('Lima')).toBeInTheDocument();
     expect(screen.getByText(/· Lima 1/)).toBeInTheDocument();
     expect(screen.getByText('14:04 hs')).toBeInTheDocument();
-    expect(screen.getByText(/escaneá el QR que aparece en la pantalla/)).toBeInTheDocument();
+    expect(screen.getByText(QR_INSTRUCTION)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir a check-in' })).toHaveAttribute(
       'href',
       '/check-in',
     );
+  });
+
+  it('al reabrir un turno existente no festeja y ofrece volver', async () => {
+    stubApi({ ...signedIn(), 'GET /reservations/55': { body: reservation } });
+    renderTurn('55', false);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tu turno' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument();
+    expect(screen.queryByText('¡Turno confirmado!')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir a check-in' })).toBeInTheDocument();
+  });
+
+  it('el diálogo de cancelar informa el plazo sin falta', async () => {
+    stubApi({ ...signedIn(), 'GET /reservations/55': { body: reservation } });
+    renderTurn();
+
+    const dialog = await openCancelDialog();
+    expect(dialog).toHaveAccessibleDescription(/sin falta hasta las 13:54 hs/);
+    expect(dialog).toHaveAccessibleDescription(/después, cancelar cuenta como falta/);
   });
 
   it('cancela el turno y vuelve al inicio con un aviso', async () => {

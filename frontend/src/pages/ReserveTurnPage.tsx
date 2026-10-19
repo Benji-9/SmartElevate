@@ -181,7 +181,7 @@ export function ReserveTurnPage() {
         destinationFloor: validDestination,
       });
       saveLastTrip({ coreId: core.code, originFloor: origin, destinationFloor: validDestination });
-      navigate(`/turno/${reservation.id}`);
+      navigate(`/turno/${reservation.id}`, { state: { justReserved: true } });
     } catch (error) {
       setSubmitError(errorMessage(error));
       const code = error instanceof ApiError ? error.code : undefined;
