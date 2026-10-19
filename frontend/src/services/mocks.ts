@@ -153,6 +153,7 @@ const adminUsers: AdminUser[] = [
     email: 'admin@uade.edu.ar',
     legajo: '1000001',
     role: 'ADMIN',
+    userType: 'STUDENT',
   },
   {
     id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b11',
@@ -160,6 +161,7 @@ const adminUsers: AdminUser[] = [
     email: 'carla.diaz@uade.edu.ar',
     legajo: '1088888',
     role: 'USER',
+    userType: 'STUDENT',
   },
   {
     id: '0b9f1c2e-4d1a-4c3e-9a51-1f2e3d4c5b12',
@@ -167,6 +169,7 @@ const adminUsers: AdminUser[] = [
     email: 'lucia.fernandez@uade.edu.ar',
     legajo: '1077777',
     role: 'REVIEWER',
+    userType: 'TEACHER',
   },
 ];
 let priorityUsers: PriorityUser[] = [

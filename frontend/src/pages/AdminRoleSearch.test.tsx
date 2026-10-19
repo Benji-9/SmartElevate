@@ -12,6 +12,7 @@ const carla: AdminUser = {
   email: 'carla@uade.edu.ar',
   legajo: '1088888',
   role: 'USER',
+  userType: 'STUDENT',
 };
 const yo: AdminUser = {
   ...carla,
@@ -41,7 +42,14 @@ function renderPage(extra: Parameters<typeof stubApi>[0] = {}) {
 const search = async (text: string) =>
   userEvent.type(await screen.findByRole('searchbox', { name: 'Buscar usuario' }), text);
 
-describe('Roles de usuarios (09b)', () => {
+/** Abre "Gestionar usuario" de la fila y elige "Cambiar rol". */
+async function openRoleSelect(name: string) {
+  await userEvent.click(await screen.findByRole('button', { name: `Gestionar usuario ${name}` }));
+  await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar rol' }));
+  return screen.findByRole('combobox', { name: `Rol de ${name}` });
+}
+
+describe('Gestión de usuarios (09b)', () => {
   it('no busca con menos de 3 caracteres y muestra la ayuda', async () => {
     const fetchMock = renderPage();
 
@@ -60,14 +68,37 @@ describe('Roles de usuarios (09b)', () => {
 
     await search('carla');
 
-    const table = await screen.findByRole('table', { name: 'Roles de usuarios' });
+    const table = await screen.findByRole('table', { name: 'Buscar usuarios' });
     expect(within(table).getByRole('rowheader', { name: 'Carla Díaz' })).toBeInTheDocument();
     expect(within(table).getByText('carla@uade.edu.ar')).toBeInTheDocument();
     expect(within(table).getByText('1088888')).toBeInTheDocument();
-    expect(within(table).getByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue('USER');
+    expect(within(table).getAllByText('Estudiante')).toHaveLength(2);
+    expect(
+      within(table).getByRole('button', { name: 'Gestionar usuario Carla Díaz' }),
+    ).toBeInTheDocument();
     // Un solo pedido: el debounce agrupó las teclas.
     const searches = fetchMock.mock.calls.filter(([url]) => String(url).includes('/admin/users'));
     expect(searches).toHaveLength(1);
+  });
+
+  it('el menú ofrece cambiar rol y deja cambiar tipo y bloquear como próximamente', async () => {
+    renderPage();
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Gestionar usuario Carla Díaz' }),
+    );
+
+    const menu = screen.getByRole('menu', { name: 'Gestionar a Carla Díaz' });
+    expect(within(menu).getByRole('menuitem', { name: 'Cambiar rol' })).toBeEnabled();
+    expect(within(menu).getByRole('menuitem', { name: /Cambiar tipo/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(within(menu).getByRole('menuitem', { name: /Bloquear usuario/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('la cuenta propia no ofrece cambiar el rol', async () => {
@@ -83,10 +114,7 @@ describe('Roles de usuarios (09b)', () => {
     const fetchMock = renderPage();
     await search('carla');
 
-    await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' }),
-      'REVIEWER',
-    );
+    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'REVIEWER');
     expect(screen.getByRole('group', { name: 'Cambiar rol de Carla Díaz' })).toHaveTextContent(
       '¿Cambiar a Carla Díaz de Usuario a Revisor?',
     );
@@ -100,15 +128,10 @@ describe('Roles de usuarios (09b)', () => {
     const fetchMock = renderPage({ 'PUT /admin/users/a-1/role': { status: 204 } });
     await search('carla');
 
-    await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' }),
-      'REVIEWER',
-    );
+    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'REVIEWER');
     await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
 
-    expect(await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue(
-      'REVIEWER',
-    );
+    expect(await screen.findByText('Revisor')).toBeInTheDocument();
     const put = fetchMock.mock.calls.find(([url]) => url === '/api/admin/users/a-1/role');
     expect(JSON.parse(String(put?.[1]?.body))).toEqual({ role: 'REVIEWER' });
   });
@@ -119,14 +142,12 @@ describe('Roles de usuarios (09b)', () => {
     });
     await search('carla');
 
-    await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: 'Rol de Carla Díaz' }),
-      'ADMIN',
-    );
+    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'ADMIN');
     await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se puede');
-    expect(screen.getByRole('combobox', { name: 'Rol de Carla Díaz' })).toHaveValue('USER');
+    const row = screen.getByRole('rowheader', { name: 'Carla Díaz' }).closest('tr')!;
+    expect(within(row).getByText('Usuario')).toBeInTheDocument();
   });
 
   it('sin resultados lo avisa', async () => {

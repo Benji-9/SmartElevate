@@ -160,6 +160,26 @@ public class ConfigService {
         return get("morning_shift_end", LocalTime::parse);
     }
 
+    /** Turno tarde de cursada, hora de Buenos Aires. */
+    public LocalTime afternoonShiftStart() {
+        return get("afternoon_shift_start", LocalTime::parse);
+    }
+
+    /** Fin exclusivo del turno tarde de cursada. */
+    public LocalTime afternoonShiftEnd() {
+        return get("afternoon_shift_end", LocalTime::parse);
+    }
+
+    /** Turno noche de cursada, hora de Buenos Aires. */
+    public LocalTime nightShiftStart() {
+        return get("night_shift_start", LocalTime::parse);
+    }
+
+    /** Fin exclusivo del turno noche de cursada. */
+    public LocalTime nightShiftEnd() {
+        return get("night_shift_end", LocalTime::parse);
+    }
+
     // Cada accessor parsea su valor, así que llamarlos acá también detecta claves faltantes y formatos inválidos.
     private void validate() {
         check(operatingHoursStart().isBefore(operatingHoursEnd()),
@@ -198,6 +218,14 @@ public class ConfigService {
                 "congestion_medium_from y congestion_high_from tienen que cumplir 0 < media < alta <= 100");
         check(morningShiftStart().isBefore(morningShiftEnd()),
                 "morning_shift_start tiene que ser anterior a morning_shift_end");
+        check(afternoonShiftStart().isBefore(afternoonShiftEnd()),
+                "afternoon_shift_start tiene que ser anterior a afternoon_shift_end");
+        check(nightShiftStart().isBefore(nightShiftEnd()),
+                "night_shift_start tiene que ser anterior a night_shift_end");
+        check(morningShiftEnd().compareTo(afternoonShiftStart()) <= 0,
+                "morning_shift_end no puede superar afternoon_shift_start");
+        check(afternoonShiftEnd().compareTo(nightShiftStart()) <= 0,
+                "afternoon_shift_end no puede superar night_shift_start");
         List<LocalDate> semesterEnds = semesterEndDates();
         check(semesterEnds.equals(semesterEnds.stream().distinct().sorted().toList()),
                 "semester_end_dates tiene que estar en orden y sin fechas repetidas");

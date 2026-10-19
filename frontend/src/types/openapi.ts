@@ -822,6 +822,11 @@ export interface components {
        * @enum {string}
        */
       role: 'USER' | 'REVIEWER' | 'ADMIN';
+      /**
+       * @description Estudiante o docente (lo declarado al registrarse)
+       * @enum {string}
+       */
+      userType: 'STUDENT' | 'TEACHER';
     };
     /** @description Error estándar de la API */
     ApiError: {

@@ -51,7 +51,11 @@ class ConfigServiceSeedTest {
         assertThat(config.congestionMediumFrom()).isEqualTo(60);
         assertThat(config.congestionHighFrom()).isEqualTo(85);
         assertThat(config.morningShiftStart()).isEqualTo(LocalTime.of(7, 0));
-        assertThat(config.morningShiftEnd()).isEqualTo(LocalTime.of(12, 15));
+        assertThat(config.morningShiftEnd()).isEqualTo(LocalTime.of(13, 0));
+        assertThat(config.afternoonShiftStart()).isEqualTo(LocalTime.of(13, 0));
+        assertThat(config.afternoonShiftEnd()).isEqualTo(LocalTime.of(18, 0));
+        assertThat(config.nightShiftStart()).isEqualTo(LocalTime.of(18, 0));
+        assertThat(config.nightShiftEnd()).isEqualTo(LocalTime.of(22, 30));
         assertThat(config.semesterEndDates()).isNotEmpty();
     }
 

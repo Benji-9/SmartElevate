@@ -302,6 +302,6 @@ class AdminPriorityApiTest {
         assertThat(body).doesNotContain("passwordHash", "password", "declaredUserType", "certificate", "priority");
         mockMvc.perform(as(admin, get("/api/admin/users").param("query", "comun@")))
                 .andExpect(jsonPath("$.items[0].keys()").value(
-                        org.hamcrest.Matchers.containsInAnyOrder("id", "fullName", "email", "legajo", "role")));
+                        org.hamcrest.Matchers.containsInAnyOrder("id", "fullName", "email", "legajo", "role", "userType")));
     }
 }

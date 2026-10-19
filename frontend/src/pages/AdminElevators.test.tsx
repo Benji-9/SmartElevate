@@ -48,10 +48,10 @@ describe('AdminElevatorsPage', () => {
     const fetchMock = renderPage([elevator('33', true, 4), elevator('34', false, 0)]);
     const user = userEvent.setup();
 
-    const row33 = (await screen.findByRole('rowheader', { name: '33' })).closest('tr')!;
-    expect(within(row33).getByText('En servicio')).toBeInTheDocument();
-    const row34 = screen.getByRole('rowheader', { name: '34' }).closest('tr')!;
-    expect(within(row34).getByText('Fuera de servicio')).toBeInTheDocument();
+    const card33 = await screen.findByRole('article', { name: 'Ascensor 33' });
+    expect(within(card33).getByText('En servicio')).toBeInTheDocument();
+    const card34 = screen.getByRole('article', { name: 'Ascensor 34' });
+    expect(within(card34).getByText('Fuera de servicio')).toBeInTheDocument();
 
     await user.click(
       screen.getByRole('button', { name: 'Marcar fuera de servicio el ascensor 33' }),

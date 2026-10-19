@@ -184,3 +184,50 @@
 .core-table td:nth-child(4) {
   font-variant-numeric: tabular-nums;
 }
+
+/* Ascensores (09e): una fila de tarjetas por edificio; al llegar al ancho disponible pasan abajo. */
+.elevator-buildings {
+  display: grid;
+  gap: 24px;
+}
+
+.elevator-buildings__name {
+  margin-bottom: 8px;
+  color: var(--color-text-muted);
+}
+
+.elevator-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.elevator-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  width: 260px;
+  height: 100%;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.elevator-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.elevator-card__meta {
+  font-size: var(--text-13);
+  color: var(--color-text-muted);
+}
+
+.elevator-card .confirm-action {
+  align-self: end;
+}

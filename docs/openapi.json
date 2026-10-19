@@ -2381,9 +2381,14 @@
             "type" : "string",
             "description" : "Rol actual",
             "enum" : [ "USER", "REVIEWER", "ADMIN" ]
+          },
+          "userType" : {
+            "type" : "string",
+            "description" : "Estudiante o docente (lo declarado al registrarse)",
+            "enum" : [ "STUDENT", "TEACHER" ]
           }
         },
-        "required" : [ "email", "fullName", "id", "legajo", "role" ]
+        "required" : [ "email", "fullName", "id", "legajo", "role", "userType" ]
       },
       "ApiError" : {
         "type" : "object",
