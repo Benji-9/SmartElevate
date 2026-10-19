@@ -37,6 +37,7 @@ export function FloorSelector({
         value={value === null ? null : String(value)}
         onChange={(floor) => onChange(Number(floor))}
         className="reserve__floors"
+        describedBy={hasBlocked && blockedReason ? reasonId : undefined}
       />
       {hasBlocked && blockedReason && (
         <p id={reasonId} className="reserve__missing">

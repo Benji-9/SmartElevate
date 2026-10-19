@@ -115,6 +115,23 @@ describe('ReserveTurnPage', () => {
     expect(screen.getByText('Los pisos 1 a 4 van por escalera.')).toBeInTheDocument();
   });
 
+  it('asocia el motivo al grupo de pisos para lectores de pantalla', async () => {
+    stubApi(routes);
+    await renderReserve();
+
+    expect(screen.getByRole('radiogroup', { name: 'Piso de destino' })).toHaveAccessibleDescription(
+      'Los pisos 1 a 4 van por escalera.',
+    );
+  });
+
+  it('con umbral 0 no deshabilita pisos ni muestra el motivo', async () => {
+    stubApi({ ...routes, 'GET /buildings': { body: [{ ...lima, lowFloorsThreshold: 0 }] } });
+    await renderReserve();
+
+    expect(screen.getByRole('radio', { name: '1' })).toBeEnabled();
+    expect(screen.queryByText(/van por escalera/)).not.toBeInTheDocument();
+  });
+
   it('movilidad reducida puede elegir los pisos bajos', async () => {
     stubApi({ ...routes, ...signedIn({ ...testUser, priority: 'REDUCED_MOBILITY' }) });
     await renderReserve();

@@ -88,6 +88,8 @@ export function slotsOf(departures: Departure[], elevators: Elevator[], now: num
   const byTime = new Map<string, Departure>();
   for (const d of departures) {
     // La ventana de reserva cerró: el servidor la rechazaría (OUTSIDE_BOOKING_WINDOW).
+    // Borde: con bookingClosesAt === now el servidor todavía acepta (>= now) y acá se descarta (<= now);
+    // es a propósito, para no ofrecer una franja que se cierra en el mismo instante del click.
     if (d.status !== 'SCHEDULED' || !codes.has(d.elevator) || Date.parse(d.bookingClosesAt) <= now)
       continue;
     const best = byTime.get(d.departureAt);
