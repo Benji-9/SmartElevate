@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Chip } from '../components/Chip';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
 import '../features/check-in/check-in.css';
 import { formatFloor, formatTime } from '../features/turn/format';
@@ -147,7 +148,7 @@ export function CheckInPage() {
         <div className="check-in__finder" aria-hidden="true" />
         {camera === 'starting' && <p role="status">Pidiendo permiso para usar la cámara…</p>}
         <p className="check-in__instructions">Apuntá la cámara al QR de la pantalla del ascensor</p>
-        <p className="check-in__note">El código rota: escanealo desde dentro de la cabina</p>
+        <p className="check-in__note">{QR_INSTRUCTION} El código rota: no le saques foto.</p>
       </>
     );
   }

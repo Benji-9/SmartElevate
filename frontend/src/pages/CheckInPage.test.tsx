@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
 import { signedIn, stubApi, testReservation } from '../test/stubApi';
 import type { CheckIn } from '../types/api';
@@ -70,7 +71,7 @@ describe('CheckInPage', () => {
     ).toBeInTheDocument();
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
     expect(
-      screen.getByText('El código rota: escanealo desde dentro de la cabina'),
+      screen.getByText(`${QR_INSTRUCTION} El código rota: no le saques foto.`),
     ).toBeInTheDocument();
     const sheet = screen.getByRole('region', { name: 'Tu turno' });
     expect(await within(sheet).findByText('14:04 hs')).toBeInTheDocument();
