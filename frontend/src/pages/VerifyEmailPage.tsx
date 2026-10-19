@@ -8,6 +8,11 @@ import './AuthPages.css';
 
 type State = { status: 'loading' } | { status: 'ok' } | { status: 'error'; message: string };
 
+/** Un pedido por token: StrictMode (o un re-render) no gasta el link dos veces. */
+const requests = new Map<string, Promise<unknown>>();
+
+const USED = 'Este link ya se usó.';
+
 /** Verifica el email con el token del link, `/verificar-email?token=…` (SCREENS.md §02d). */
 export function VerifyEmailPage() {
   const token = useSearchParams()[0].get('token');
@@ -20,7 +25,8 @@ export function VerifyEmailPage() {
   useEffect(() => {
     if (!token) return;
     // Es POST a propósito: los antivirus que abren el mail no gastan el token.
-    verifyEmail({ token }).then(
+    if (!requests.has(token)) requests.set(token, verifyEmail({ token }));
+    requests.get(token)!.then(
       () => setState({ status: 'ok' }),
       (error) =>
         setState({
@@ -51,6 +57,11 @@ export function VerifyEmailPage() {
           <p role="alert" className="auth__alert">
             {state.message}
           </p>
+          {state.message === USED && (
+            <p className="auth__lead">
+              Si ya verificaste tu email, <Link to="/login">ingresá</Link>.
+            </p>
+          )}
           <p className="auth__lead">Pedí un link nuevo a tu email institucional.</p>
           <ResendVerification />
         </div>
