@@ -8,6 +8,7 @@ import { createQrReader } from '../features/check-in/qrReader';
 import '../features/check-in/check-in.css';
 import { formatFloor, formatTime } from '../features/turn/format';
 import '../features/turn/turn.css';
+import { useNow } from '../hooks/useNow';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { ApiError, checkIn, getActiveReservation } from '../services/api';
@@ -49,9 +50,14 @@ export function CheckInPage() {
   const turn = useResource(getActiveReservation);
   const turnTitleId = useId();
   const reservation = turn.data;
+  const now = useNow(1_000);
+  // Antes de la apertura no se pide la cámara: se avisa a qué hora abre (#285).
+  const opensAt = reservation?.checkInOpensAt;
+  const notYetOpen = opensAt !== undefined && now < Date.parse(opensAt);
   // La cámara se pide solo con turno activo (#152). Si falla la carga del turno se pide igual:
   // el servidor valida el check-in y no queremos trabar a quien sí tiene turno.
-  const wantsCamera = !turn.loading && (turn.error !== undefined || reservation != null);
+  const wantsCamera =
+    !turn.loading && !notYetOpen && (turn.error !== undefined || reservation != null);
   const scanDone = error?.code !== undefined && FINAL_CODES.includes(error.code);
 
   async function submit(token: string) {
@@ -125,7 +131,14 @@ export function CheckInPage() {
   }, [wantsCamera]);
 
   let cameraState;
-  if (!wantsCamera) {
+  if (notYetOpen) {
+    cameraState = (
+      <section className="check-in__message" aria-labelledby="check-in-closed-title">
+        <h2 id="check-in-closed-title">Abre a las {formatTime(opensAt)} hs</h2>
+        <p>Cuando abra, vas a poder escanear el QR del ascensor desde acá.</p>
+      </section>
+    );
+  } else if (!wantsCamera) {
     cameraState = null;
   } else if (camera === 'denied' || camera === 'unavailable') {
     cameraState = (
