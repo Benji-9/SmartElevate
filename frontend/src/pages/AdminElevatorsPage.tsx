@@ -144,7 +144,7 @@ export function AdminElevatorsPage() {
                         </header>
                         {e.usage !== 'COMMON' && (
                           <p>
-                            <Chip tone={e.usage === 'TEACHERS' ? 'docentes' : 'neutral'}>
+                            <Chip tone="neutral">
                               {e.usage === 'TEACHERS'
                                 ? 'Dedicado a docentes'
                                 : 'Dedicado a movilidad reducida'}
