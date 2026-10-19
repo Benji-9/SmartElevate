@@ -1,4 +1,4 @@
-import type { Building, Departure, Elevator } from '../../types/api';
+import type { Building, Departure, Elevator, PriorityCategory } from '../../types/api';
 
 /**
  * Núcleo para elegir en Reservar. El contrato modela por ascensor: el núcleo lo arma el front
@@ -6,11 +6,27 @@ import type { Building, Departure, Elevator } from '../../types/api';
  */
 export type CoreOption = { code: string; name: string; building: Building; elevators: Elevator[] };
 
-/** Núcleos con algún ascensor activo, en el orden de los edificios. */
-export function coreOptions(buildings: Building[], elevators: Elevator[]): CoreOption[] {
+/**
+ * Si el usuario puede usar el ascensor: los comunes, cualquiera; un dedicado, solo quien tiene esa prioridad
+ * vigente. Es el espejo de `ElevatorUsage.allows` del backend, que igual lo exige al listar salidas y reservar.
+ */
+export const canUse = (elevator: Elevator, priority: PriorityCategory) =>
+  elevator.usage === 'COMMON' ||
+  (elevator.usage === 'TEACHERS' && priority === 'TEACHER') ||
+  (elevator.usage === 'REDUCED_MOBILITY' && priority === 'REDUCED_MOBILITY');
+
+/**
+ * Núcleos con algún ascensor activo que el usuario pueda usar, en el orden de los edificios. Un núcleo
+ * donde todo es dedicado a otra categoría (p. ej. Independencia 1 para un usuario común) no se ofrece.
+ */
+export function coreOptions(
+  buildings: Building[],
+  elevators: Elevator[],
+  priority: PriorityCategory,
+): CoreOption[] {
   return buildings.flatMap((building) =>
     building.cores.flatMap((core) => {
-      const own = elevators.filter((e) => e.active && e.core === core.code);
+      const own = elevators.filter((e) => e.active && e.core === core.code && canUse(e, priority));
       return own.length ? [{ ...core, building, elevators: own }] : [];
     }),
   );

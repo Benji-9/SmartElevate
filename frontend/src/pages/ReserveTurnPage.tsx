@@ -17,6 +17,7 @@ import { OriginFloorInput } from '../features/turn/OriginFloorInput';
 import { SlotList } from '../features/turn/SlotList';
 import '../features/turn/ReserveTurn.css';
 import { errorMessage, useResource } from '../hooks/useResource';
+import { useSession } from '../hooks/useSession';
 import {
   ApiError,
   getBuildings,
@@ -67,7 +68,9 @@ export function ReserveTurnPage() {
 
   const catalog = useResource(loadCatalog);
   const active = useResource(loadActive);
-  const cores = catalog.data ? coreOptions(...catalog.data) : [];
+  // La prioridad vigente decide qué núcleos con ascensores dedicados se ofrecen (el servidor igual la exige).
+  const priority = useSession().user?.priority ?? 'NONE';
+  const cores = catalog.data ? coreOptions(...catalog.data, priority) : [];
   const core = cores.find((c) => c.code === coreCode);
   const departures = useResource(
     useMemo(() => (buildingCode ? () => getDepartures(buildingCode) : null), [buildingCode]),
