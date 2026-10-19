@@ -10,6 +10,7 @@ import {
   formatNumber,
   formatPercent,
   formatPeriod,
+  currentShift,
   formatShift,
   NO_DATA,
 } from '../features/admin/format';
@@ -104,7 +105,7 @@ export function AdminDashboardPage() {
   const [period, setPeriod] = useState<AdminPeriod>('TODAY');
   const [buildingId, setBuildingId] = useState(ALL);
   const [shiftId, setShiftId] = useState(ALL);
-  // Sedes y turnos son secundarios: si fallan, queda solo "Todas las sedes" / "Todo el día".
+  // Edificios y turnos son secundarios: si fallan, queda solo "Todos los edificios" / "Todo el día".
   const buildings = useResource(getBuildings);
   const shifts = useResource(getAdminShifts);
   const load = useCallback(
@@ -119,7 +120,7 @@ export function AdminDashboardPage() {
   const kpis = useResource(load);
 
   const buildingOptions: Option<string>[] = [
-    { value: ALL, label: 'Todas las sedes' },
+    { value: ALL, label: 'Todos los edificios' },
     ...(buildings.data ?? []).map((b) => ({ value: b.code, label: b.name })),
   ];
   const buildingName = buildingOptions.find((o) => o.value === buildingId)?.label;
@@ -129,6 +130,7 @@ export function AdminDashboardPage() {
   ];
   const shift = shifts.data?.find((s) => s.id === shiftId);
   const data = kpis.data;
+  const nowShift = shifts.data && currentShift(shifts.data, new Date());
   const context = [
     data && formatPeriod(data.from, data.to),
     buildingName,
@@ -236,6 +238,11 @@ export function AdminDashboardPage() {
         <div>
           <h1 className="text-title-lg">Congestión y uso de ascensores</h1>
           <p className="admin__context">{context}</p>
+          {nowShift && (
+            <p className="admin__context">
+              Ahora: <strong>{formatShift(nowShift)}</strong>
+            </p>
+          )}
         </div>
         <div className="admin__filters">
           <OptionGroup
@@ -247,7 +254,7 @@ export function AdminDashboardPage() {
             hideLabel
           />
           <OptionGroup
-            label="Sede"
+            label="Edificio"
             name="building"
             options={buildingOptions}
             value={buildingId}

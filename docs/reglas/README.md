@@ -59,7 +59,9 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Punta a punta ~45–70 s; accesibilidad **a confirmar** |
 | Ascensores dedicados | IND1 05 docentes · IND1 06 movilidad reducida | Ver [asignación](asignacion.md#ascensores-dedicados) |
 | Umbrales de congestión | Media desde 60 % · alta desde 85 % de ocupación | `congestion_medium_from`, `congestion_high_from`. Propuesta **a calibrar en el piloto** ([KPIs](kpis.md#congestión), [#220](https://github.com/Benji-9/SmartElevate/issues/220)) |
-| Turno mañana de cursada | 07:00 – 12:15 | `morning_shift_start`, `morning_shift_end`. Filtro del panel ([KPIs](kpis.md#filtros)) |
+| Turno mañana | 07:00 – 13:00 | `morning_shift_start`, `morning_shift_end`. Filtro del panel ([KPIs](kpis.md#filtros)) |
+| Turno tarde | 13:00 – 18:00 | `afternoon_shift_start`, `afternoon_shift_end` |
+| Turno noche | 18:00 – 22:30 | `night_shift_start`, `night_shift_end` |
 
 ### Técnicos y de seguridad (`application.yml`)
 

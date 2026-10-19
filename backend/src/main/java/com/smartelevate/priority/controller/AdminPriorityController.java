@@ -112,11 +112,11 @@ public class AdminPriorityController {
     @PutMapping("/users/{id}/declared-type")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Cambia el tipo de usuario (STUDENT, TEACHER) de una cuenta con email verificado",
-            description = "Pasar a docente lo deja en la cola de validación, sin darle prioridad. Pasar a estudiante "
-                    + "lo saca de la cola y le revoca la prioridad de docente si la tenía vigente.")
+            description = "Pasar a docente le da la prioridad de docente directamente, hasta el fin del cuatrimestre en "
+                    + "curso. Pasar a estudiante le revoca la prioridad de docente si la tenía vigente.")
     @ApiResponse(responseCode = "404", description = "Usuario inexistente",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    @ApiResponse(responseCode = "409", description = "Email sin verificar o el usuario ya tiene ese tipo",
+    @ApiResponse(responseCode = "409", description = "Email sin verificar, el usuario ya tiene ese tipo o falta cargar el cierre del cuatrimestre",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void changeDeclaredType(@AuthenticationPrincipal CurrentUser admin, @PathVariable UUID id,
                                    @Valid @RequestBody AssignDeclaredTypeRequest request) {

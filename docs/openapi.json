@@ -833,7 +833,7 @@
     },
     "/api/admin/users/{id}/declared-type" : {
       "put" : {
-        "description" : "Pasar a docente lo deja en la cola de validación, sin darle prioridad. Pasar a estudiante lo saca de la cola y le revoca la prioridad de docente si la tenía vigente.",
+        "description" : "Pasar a docente le da la prioridad de docente directamente, hasta el fin del cuatrimestre en curso. Pasar a estudiante le revoca la prioridad de docente si la tenía vigente.",
         "operationId" : "changeDeclaredType",
         "parameters" : [ {
           "in" : "path",
@@ -886,7 +886,7 @@
                 }
               }
             },
-            "description" : "Email sin verificar o el usuario ya tiene ese tipo"
+            "description" : "Email sin verificar, el usuario ya tiene ese tipo o falta cargar el cierre del cuatrimestre"
           },
           "500" : {
             "content" : {

@@ -17,108 +17,66 @@ const ROLES: Record<Role, string> = {
   ADMIN: 'Administrador',
 };
 
-const TYPES: Record<DeclaredUserType, string> = {
+const USER_TYPES: Record<DeclaredUserType, string> = {
   STUDENT: 'Estudiante',
   TEACHER: 'Docente',
 };
 
-/**
- * Tipo de usuario (estudiante o docente) y su cambio, con confirmación en el lugar. Pasar a docente lo deja
- * en la cola de validación; pasar a estudiante le quita la prioridad de docente. Exige el email verificado.
- */
-function TypeCell({
-  user,
-  busy,
-  onChange,
-}: {
-  user: AdminUser;
-  busy: boolean;
-  onChange: (type: DeclaredUserType) => void;
-}) {
-  const [asking, setAsking] = useState(false);
-  const target: DeclaredUserType = user.declaredUserType === 'TEACHER' ? 'STUDENT' : 'TEACHER';
-  let action;
-  if (asking) {
-    action = (
-      <div
-        role="group"
-        aria-label={`Cambiar tipo de ${user.fullName}`}
-        className="priority-actions"
-      >
-        <p className="priority-question">
-          ¿Pasar a {user.fullName} de {TYPES[user.declaredUserType]} a {TYPES[target]}?
-          {target === 'STUDENT' && ' Si tiene la prioridad de docente vigente, se la quitamos.'}
-          {target === 'TEACHER' && ' Queda en «Docentes a validar» hasta que lo apruebes.'}
-        </p>
-        <Button
-          block={false}
-          onClick={() => {
-            onChange(target);
-            setAsking(false);
-          }}
-        >
-          Sí, pasar
-        </Button>
-        <Button variant="secondary" block={false} autoFocus onClick={() => setAsking(false)}>
-          Cancelar
-        </Button>
-      </div>
-    );
-  } else if (!user.emailVerified) {
-    action = <span className="text-caption">Email sin verificar</span>;
-  } else {
-    action = (
-      <Button
-        variant="secondary"
-        block={false}
-        disabled={busy}
-        aria-label={`Pasar a ${user.fullName} a ${TYPES[target].toLowerCase()}`}
-        onClick={() => setAsking(true)}
-      >
-        Pasar a {TYPES[target].toLowerCase()}
-      </Button>
-    );
-  }
-  return (
-    <div className="priority-type">
-      <Chip tone={user.declaredUserType === 'TEACHER' ? 'docentes' : 'alumnos'}>
-        {TYPES[user.declaredUserType]}
-      </Chip>
-      {action}
-    </div>
-  );
-}
+type UserType = DeclaredUserType;
+/** Lo que se está por cambiar en una fila: el rol o el tipo. */
+type Edit = { field: 'role'; to: Role } | { field: 'type'; to: UserType };
 
-/** Fila con selector de rol; elegir otro rol pide confirmación en el lugar. */
-function RoleRow({
+/**
+ * Fila con el engranaje de gestión. Cambiar el rol o el tipo pide confirmación en el lugar.
+ * Bloquear la cuenta todavía no tiene endpoint: se muestra sin acción.
+ */
+function UserRow({
   user,
   isSelf,
   busy,
   onChange,
-  onChangeType,
 }: {
   user: AdminUser;
   isSelf: boolean;
-  /** Hay un cambio (de rol o de tipo) en vuelo para esta fila. */
+  /** Hay un cambio en vuelo para esta fila. */
   busy: boolean;
-  onChange: (role: Role) => void;
-  onChangeType: (type: DeclaredUserType) => void;
+  onChange: (edit: Edit) => void;
 }) {
-  const [picked, setPicked] = useState<Role>();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState<Edit['field']>();
+  const [picked, setPicked] = useState<Edit>();
+  const menuId = useId();
+  const close = () => {
+    setMenuOpen(false);
+    setEditing(undefined);
+    setPicked(undefined);
+  };
+  const labels: Record<string, string> = picked?.field === 'type' ? USER_TYPES : ROLES;
+  const current = picked?.field === 'type' ? user.declaredUserType : user.role;
   let action;
   if (isSelf) {
     action = 'Es tu cuenta';
   } else if (picked) {
     action = (
-      <div role="group" aria-label={`Cambiar rol de ${user.fullName}`} className="priority-actions">
+      <div
+        role="group"
+        aria-label={`Cambiar ${picked.field === 'type' ? 'tipo' : 'rol'} de ${user.fullName}`}
+        className="priority-actions"
+      >
         <p className="priority-question">
-          ¿Cambiar a {user.fullName} de {ROLES[user.role]} a {ROLES[picked]}?
+          ¿Cambiar a {user.fullName} de {labels[current]} a {labels[picked.to]}?
+          {picked.field === 'type' &&
+            picked.to === 'TEACHER' &&
+            ' Va a tener la prioridad de docente hasta fin del cuatrimestre.'}
+          {picked.field === 'type' &&
+            picked.to === 'STUDENT' &&
+            ' Pierde la prioridad de docente si la tenía vigente.'}
         </p>
         <Button
           block={false}
           onClick={() => {
             onChange(picked);
-            setPicked(undefined);
+            close();
           }}
         >
           Sí, cambiar
@@ -128,21 +86,129 @@ function RoleRow({
         </Button>
       </div>
     );
+  } else if (editing) {
+    // Desde el panel solo se asigna Usuario o Administrador; si la persona ya es Revisor, se lo muestra igual.
+    const options: Record<string, string> =
+      editing === 'type'
+        ? USER_TYPES
+        : Object.fromEntries(
+            Object.entries(ROLES).filter(
+              ([role]) => role !== 'REVIEWER' || user.role === 'REVIEWER',
+            ),
+          );
+    action = (
+      <div className="priority-actions">
+        <select
+          className="priority-select"
+          aria-label={`${editing === 'type' ? 'Tipo' : 'Rol'} de ${user.fullName}`}
+          disabled={busy}
+          value={editing === 'type' ? user.declaredUserType : user.role}
+          autoFocus
+          onChange={(e) =>
+            setPicked(
+              editing === 'type'
+                ? { field: 'type', to: e.target.value as UserType }
+                : { field: 'role', to: e.target.value as Role },
+            )
+          }
+        >
+          {Object.entries(options).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <Button variant="secondary" block={false} className="button--compact" onClick={close}>
+          Cerrar
+        </Button>
+      </div>
+    );
   } else {
     action = (
-      <select
-        className="priority-select"
-        aria-label={`Rol de ${user.fullName}`}
-        disabled={busy}
-        value={user.role}
-        onChange={(e) => setPicked(e.target.value as Role)}
+      <div
+        className="user-menu"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setMenuOpen(false);
+        }}
       >
-        {Object.entries(ROLES).map(([role, label]) => (
-          <option key={role} value={role}>
-            {label}
-          </option>
-        ))}
-      </select>
+        <Button
+          variant="secondary"
+          block={false}
+          className="button--compact user-menu__gear"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-controls={menuId}
+          aria-label={`Gestionar usuario ${user.fullName}`}
+          disabled={busy}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+          </svg>
+        </Button>
+        {menuOpen && (
+          <ul
+            id={menuId}
+            role="menu"
+            aria-label={`Gestionar a ${user.fullName}`}
+            className="user-menu__list"
+          >
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                className="user-menu__item"
+                autoFocus
+                onClick={() => {
+                  setMenuOpen(false);
+                  setEditing('role');
+                }}
+              >
+                Modificar rol
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                className="user-menu__item"
+                disabled={!user.emailVerified}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setEditing('type');
+                }}
+              >
+                Cambiar tipo
+                {!user.emailVerified && (
+                  <span className="user-menu__soon">Email sin verificar</span>
+                )}
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                className="user-menu__item"
+                aria-disabled="true"
+              >
+                Bloquear cuenta
+                <span className="user-menu__soon">Próximamente</span>
+              </button>
+            </li>
+          </ul>
+        )}
+      </div>
     );
   }
   return (
@@ -151,10 +217,10 @@ function RoleRow({
       <td>{user.email}</td>
       <td>{user.legajo}</td>
       <td>
-        <Chip tone={user.role === 'USER' ? 'neutral' : 'accent'}>{ROLES[user.role]}</Chip>
+        <Chip tone="neutral">{USER_TYPES[user.declaredUserType]}</Chip>
       </td>
       <td>
-        <TypeCell user={user} busy={busy} onChange={onChangeType} />
+        <Chip tone="neutral">{ROLES[user.role]}</Chip>
       </td>
       <td>{action}</td>
     </tr>
@@ -174,8 +240,9 @@ function Results({
   const { user: me } = useSession();
   const first = useResource(useCallback(() => searchUsers(term), [term]));
   const [more, setMore] = useState<{ items: AdminUser[]; next: string | null }>();
+  // Lo ya confirmado en esta búsqueda, para mostrarlo sin volver a pedir la lista.
   const [roles, setRoles] = useState<Record<string, Role>>({});
-  const [types, setTypes] = useState<Record<string, DeclaredUserType>>({});
+  const [types, setTypes] = useState<Record<string, UserType>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [saving, setSaving] = useState<string[]>([]);
   // La búsqueda cambió (o se desmontó): las respuestas de pedidos viejos se ignoran.
@@ -211,15 +278,17 @@ function Results({
     return <p className="page-placeholder">No encontramos usuarios para «{term}».</p>;
   }
 
-  // Un cambio de la fila: lo manda y, si sale bien, lo refleja sin recargar. 404 = la fila quedó vieja.
-  const save = (user: AdminUser, request: Promise<void>, applied: () => void) => {
+  const change = (user: AdminUser, edit: Edit) => {
     setActionError(undefined);
     setSaving((ids) => [...ids, user.id]);
     const done = () => setSaving((ids) => ids.filter((id) => id !== user.id));
+    const request =
+      edit.field === 'role' ? assignRole(user.id, edit.to) : changeDeclaredType(user.id, edit.to);
     request.then(
       () => {
         done();
-        applied();
+        if (edit.field === 'role') setRoles((r) => ({ ...r, [user.id]: edit.to }));
+        else setTypes((t) => ({ ...t, [user.id]: edit.to }));
       },
       (error: unknown) => {
         done();
@@ -232,12 +301,6 @@ function Results({
       },
     );
   };
-  const change = (user: AdminUser, role: Role) =>
-    save(user, assignRole(user.id, role), () => setRoles((r) => ({ ...r, [user.id]: role })));
-  const changeType = (user: AdminUser, type: DeclaredUserType) =>
-    save(user, changeDeclaredType(user.id, type), () =>
-      setTypes((t) => ({ ...t, [user.id]: type })),
-    );
   const loadMore = () => {
     if (!next) return;
     setLoadingMore(true);
@@ -269,14 +332,14 @@ function Results({
               <th scope="col">Nombre</th>
               <th scope="col">Email</th>
               <th scope="col">Legajo</th>
-              <th scope="col">Rol</th>
               <th scope="col">Tipo</th>
+              <th scope="col">Rol</th>
               <th scope="col">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {items.map((u) => (
-              <RoleRow
+              <UserRow
                 key={u.id}
                 user={{
                   ...u,
@@ -285,8 +348,7 @@ function Results({
                 }}
                 isSelf={u.id === me?.id}
                 busy={saving.includes(u.id)}
-                onChange={(role) => change(u, role)}
-                onChangeType={(type) => changeType(u, type)}
+                onChange={(edit) => change(u, edit)}
               />
             ))}
           </tbody>
@@ -301,7 +363,7 @@ function Results({
   );
 }
 
-/** Tarjeta "Roles de usuarios" (SCREENS.md 09b): buscador con debounce y cambio de rol y de tipo confirmados. */
+/** Tarjeta "Buscar usuarios" (SCREENS.md 09b): buscador con debounce y gestión por usuario. */
 export function RoleSearch() {
   const titleId = useId();
   const [query, setQuery] = useState('');
@@ -316,7 +378,7 @@ export function RoleSearch() {
   return (
     <section className="admin-card role-search" aria-labelledby={titleId}>
       <h2 id={titleId} className="text-card-title">
-        Roles de usuarios
+        Buscar usuarios
       </h2>
       <Input
         label="Buscar usuario"

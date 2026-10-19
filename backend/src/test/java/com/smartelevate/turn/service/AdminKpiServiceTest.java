@@ -57,7 +57,11 @@ class AdminKpiServiceTest {
         when(config.operatingHoursStart()).thenReturn(LocalTime.of(7, 0));
         when(config.operatingHoursEnd()).thenReturn(LocalTime.of(22, 30));
         when(config.morningShiftStart()).thenReturn(LocalTime.of(7, 0));
-        when(config.morningShiftEnd()).thenReturn(LocalTime.of(12, 15));
+        when(config.morningShiftEnd()).thenReturn(LocalTime.of(13, 0));
+        when(config.afternoonShiftStart()).thenReturn(LocalTime.of(13, 0));
+        when(config.afternoonShiftEnd()).thenReturn(LocalTime.of(18, 0));
+        when(config.nightShiftStart()).thenReturn(LocalTime.of(18, 0));
+        when(config.nightShiftEnd()).thenReturn(LocalTime.of(22, 30));
         when(config.noShowAfter()).thenReturn(Duration.ofSeconds(60));
         when(config.turnCapacity()).thenReturn(10);
         when(config.congestionMediumFrom()).thenReturn(60);
@@ -195,8 +199,8 @@ class AdminKpiServiceTest {
         Instant from = Instant.parse("2026-10-13T03:00:00Z");
         List<Reservation> today = new ArrayList<>();
         today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T10:00:00Z")), 1, 0, 0)); // 7:00 entra
-        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T15:14:00Z")), 1, 0, 0)); // 12:14 entra
-        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T15:15:00Z")), 1, 0, 0)); // 12:15 no
+        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T15:59:00Z")), 1, 0, 0)); // 12:59 entra
+        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T16:00:00Z")), 1, 0, 0)); // 13:00 no
         today.addAll(reservations(departure(IND1, Instant.parse("2026-10-13T11:00:00Z")), 1, 0, 0)); // otra sede
         when(events.reservations(from, Instant.parse("2026-10-14T03:00:00Z"))).thenReturn(today);
         when(events.reservations(Instant.parse("2026-10-12T03:00:00Z"), from))
@@ -217,18 +221,31 @@ class AdminKpiServiceTest {
 
         assertThatThrownBy(() -> service.kpis(AdminPeriod.TODAY, "CABA", null))
                 .isInstanceOf(ResponseStatusException.class).hasMessageContaining("La sede no existe");
-        assertThatThrownBy(() -> service.kpis(AdminPeriod.TODAY, null, "NIGHT"))
+        assertThatThrownBy(() -> service.kpis(AdminPeriod.TODAY, null, "DAWN"))
                 .isInstanceOf(ResponseStatusException.class).hasMessageContaining("turno de cursada");
     }
 
     @Test
     void shiftsComeFromConfig() {
-        assertThat(service(Instant.parse("2026-10-13T15:00:00Z")).shifts()).singleElement().satisfies(s -> {
-            assertThat(s.id()).isEqualTo("MORNING");
-            assertThat(s.name()).isEqualTo("Turno mañana");
-            assertThat(s.startsAt()).isEqualTo("07:00");
-            assertThat(s.endsAt()).isEqualTo("12:15");
-        });
+        assertThat(service(Instant.parse("2026-10-13T15:00:00Z")).shifts())
+                .extracting(s -> s.id() + "|" + s.name() + "|" + s.startsAt() + "|" + s.endsAt())
+                .containsExactly("MORNING|Turno mañana|07:00|13:00", "AFTERNOON|Turno tarde|13:00|18:00",
+                        "NIGHT|Turno noche|18:00|22:30");
+    }
+
+    @Test
+    void afternoonShiftFiltersByItsHours() {
+        AdminKpiService service = service(Instant.parse("2026-10-13T20:00:00Z"));
+        Instant from = Instant.parse("2026-10-13T03:00:00Z");
+        List<Reservation> today = new ArrayList<>();
+        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T15:59:00Z")), 1, 0, 0)); // 12:59 no
+        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T16:00:00Z")), 1, 0, 0)); // 13:00 entra
+        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T20:59:00Z")), 1, 0, 0)); // 17:59 entra
+        today.addAll(reservations(departure(L1, Instant.parse("2026-10-13T21:00:00Z")), 1, 0, 0)); // 18:00 no
+        when(events.reservations(from, Instant.parse("2026-10-14T03:00:00Z"))).thenReturn(today);
+        when(events.reservations(Instant.parse("2026-10-12T03:00:00Z"), from)).thenReturn(List.of());
+
+        assertThat(service.kpis(AdminPeriod.TODAY, null, "AFTERNOON").reservations()).isEqualTo(2);
     }
 
     @ParameterizedTest

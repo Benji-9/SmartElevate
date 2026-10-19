@@ -38,5 +38,6 @@ Lo implementa [#220](https://github.com/Benji-9/SmartElevate/issues/220) (`GET /
 
 El panel de administración filtra los KPIs por **período**, **sede** y **turno de cursada** ([#86](https://github.com/Benji-9/SmartElevate/issues/86)).
 
-- **Turno mañana: 7:00 a 12:15.** Cubre las dos formas de cursada de la mañana: **7:45–11:45** y **8:15–12:15**, con margen para la llegada.
-- Los turnos (nombre, inicio, fin) son **parámetros de la tabla de configuración**, en hora de Buenos Aires; el frontend los recibe del servidor (`GET /api/admin/shifts`). Por ahora solo está definido el turno mañana: sus horas son `morning_shift_start` y `morning_shift_end` (fin exclusivo); el nombre está en el código mientras haya uno solo.
+- **Turno mañana: 7:00 a 13:00. Turno tarde: 13:00 a 18:00. Turno noche: 18:00 a 22:30.** Los tres cubren todo el horario de operación sin huecos. El filtro asigna cada salida al turno de su hora de partida.
+- Los turnos (nombre, inicio, fin) son **parámetros de la tabla de configuración**, en hora de Buenos Aires; el frontend los recibe del servidor (`GET /api/admin/shifts`). Sus horas son `morning_shift_start/_end`, `afternoon_shift_start/_end` y `night_shift_start/_end` (fin exclusivo); los nombres están en el código. Los turnos no se pueden superponer (el fin de uno no supera el inicio del siguiente).
+- El panel muestra cuál es el turno actual (según la hora de Buenos Aires).

@@ -33,6 +33,19 @@ export const formatPeriod = (from: string, to: string) =>
 export const formatShift = ({ name, startsAt, endsAt }: AdminShift) =>
   `${name} (${startsAt.replace(/^0/, '')}–${endsAt.replace(/^0/, '')})`;
 
+const campusClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** El turno en curso a esta hora de Buenos Aires (`"HH:mm"` de texto compara bien; fin exclusivo). */
+export function currentShift(shifts: AdminShift[], now: Date): AdminShift | undefined {
+  const time = campusClock.format(now);
+  return shifts.find((s) => s.startsAt <= time && time < s.endsAt);
+}
+
 const dayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE });
 
 const dateTimeFormat = new Intl.DateTimeFormat('es-AR', {
