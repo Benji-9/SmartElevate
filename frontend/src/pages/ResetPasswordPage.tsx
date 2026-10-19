@@ -71,7 +71,6 @@ export function ResetPasswordPage() {
           label="Contraseña nueva"
           type="password"
           autoComplete="new-password"
-          placeholder="••••••••"
           value={newPassword}
           hint={PASSWORD_HINT}
           onChange={(e) => setNewPassword(e.target.value)}
@@ -81,7 +80,6 @@ export function ResetPasswordPage() {
           label="Repetí la contraseña"
           type="password"
           autoComplete="new-password"
-          placeholder="••••••••"
           value={repeat}
           onChange={(e) => setRepeat(e.target.value)}
           error={errors.repeat}

@@ -7,6 +7,7 @@
  * color de texto sobre blanco: solo en barras, puntos y fondos tenues.
  */
 :root {
+  color-scheme: light;
   /* Marca */
   --AstronautBlue: #00405c;
   --White: #ffffff;
@@ -113,6 +114,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --color-bg: var(--BlackPearl);
     --color-surface: color-mix(in srgb, var(--White) 6%, var(--BlackPearl));
     --color-text: var(--White);
@@ -143,6 +145,10 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 body {

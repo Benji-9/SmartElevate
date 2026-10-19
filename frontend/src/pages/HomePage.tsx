@@ -27,7 +27,7 @@ export function HomePage() {
               <h1 className="home__title text-title">Hola, {fullName.split(/\s+/)[0]}</h1>
               <p className="home__date text-body-sm">{formatDay(new Date())}</p>
             </div>
-            <Avatar name={fullName} />
+            <Avatar name={fullName} className="home__avatar" />
           </header>
           <ActiveTurnCard />
         </div>

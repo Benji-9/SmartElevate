@@ -187,7 +187,7 @@ describe('RegisterPage', () => {
     const placeholders = Object.keys(valid).map((label) =>
       screen.getByLabelText(label).getAttribute('placeholder'),
     );
-    expect(placeholders).toEqual(['Juana Martínez', 'jmartinez', 'Ej: 1234567', '••••••••']);
+    expect(placeholders).toEqual(['Juana Martínez', 'jmartinez', 'Ej: 1234567', null]);
   });
 
   it('crea la cuenta con el tipo declarado y pide verificar el email', async () => {

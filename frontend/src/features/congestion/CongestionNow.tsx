@@ -59,7 +59,9 @@ export function CongestionNow() {
         </h2>
         {snapshot && (
           <p className="congestion__updated text-caption">
-            Actualizado {minutesAgo.format(-minutesOld, 'minute')}
+            {minutesOld < 1
+              ? 'Actualizado recién'
+              : `Actualizado ${minutesAgo.format(-minutesOld, 'minute')}`}
           </p>
         )}
       </div>

@@ -12,8 +12,8 @@ const reservation = {
   destinationFloor: 7,
 };
 
-const congestion = (): CongestionSnapshot => ({
-  updatedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+const congestion = (minutesOld = 2): CongestionSnapshot => ({
+  updatedAt: new Date(Date.now() - minutesOld * 60_000).toISOString(),
   refreshAfterSeconds: 30,
   cores: [
     { coreId: 'L1', name: 'Lima 1', level: 'HIGH', occupancyPercent: 90 },
@@ -125,6 +125,17 @@ describe('HomePage', () => {
     expect(rows[1]).toHaveTextContent('Baja');
     expect(rows[1]).toHaveTextContent('12,5 % de los lugares reservados');
     expect(within(section).getByText('Actualizado hace 2 min')).toBeInTheDocument();
+  });
+
+  it('dice "Actualizado recién" si el dato tiene menos de un minuto', async () => {
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/active': { status: 204 },
+      'GET /congestion': { body: congestion(0) },
+    });
+    renderHome();
+
+    expect(await screen.findByText('Actualizado recién')).toBeInTheDocument();
   });
 
   it('vuelve a pedir la congestión cuando lo indica el servidor', async () => {
