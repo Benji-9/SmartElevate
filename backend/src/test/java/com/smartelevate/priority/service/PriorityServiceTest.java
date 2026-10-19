@@ -120,6 +120,21 @@ class PriorityServiceTest {
         assertThat(service.currentPriority(id)).isEqualTo(PriorityCategory.REDUCED_MOBILITY);
     }
 
+    @Test
+    void priorityUntilIsTheExpirationOfTheCurrentPriorityOrNull() {
+        UUID withExpiry = UUID.randomUUID();
+        approved(withExpiry, PriorityCategory.TEACHER, NOW.plusSeconds(60));
+        UUID noExpiry = UUID.randomUUID();
+        approved(noExpiry, PriorityCategory.REDUCED_MOBILITY, null);
+        UUID expired = UUID.randomUUID();
+        approved(expired, PriorityCategory.TEACHER, NOW);
+
+        assertThat(service.currentPriorityUntil(withExpiry)).isEqualTo(NOW.plusSeconds(60));
+        assertThat(service.currentPriorityUntil(noExpiry)).isNull();
+        assertThat(service.currentPriorityUntil(expired)).isNull();
+        assertThat(service.currentPriorityUntil(UUID.randomUUID())).isNull();
+    }
+
     // --- docentes ---
 
     private static final List<LocalDate> SEMESTER_ENDS = List.of(LocalDate.of(2026, 7, 31),

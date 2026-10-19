@@ -35,7 +35,7 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 
 ## Implementación
 
-`POST /api/check-ins` ([#230](https://github.com/Benji-9/SmartElevate/issues/230)), con la sesión del usuario y el token leído. La ventana y el umbral salen de `app_config` (`check_in_opens_before`, `check_in_closes_after`, `no_show_after`).
+`POST /api/check-ins` ([#230](https://github.com/Benji-9/SmartElevate/issues/230)), con la sesión del usuario y el token leído. La ventana y el umbral salen de `app_config` (`check_in_opens_before`, `check_in_closes_after`, `no_show_after`). La API de reservas expone el instante de apertura como `checkInOpensAt` (salida menos `check_in_opens_before`, UTC) para que el front no abra la cámara antes.
 
 - *Cumplida* (`ON_TIME`) y *otro ascensor* (`OTHER_ELEVATOR`): la reserva pasa a usada (`USED`). Hasta +60 s inclusive cuenta como a tiempo.
 - *Fuera de hora* (`LATE`): queda el check-in y la reserva pasa a no-show (`NO_SHOW`), la haya marcado ya el job de no-shows ([#231](https://github.com/Benji-9/SmartElevate/issues/231)) o no. Si además fue en otro ascensor, gana `LATE`; el ascensor escaneado queda guardado igual.

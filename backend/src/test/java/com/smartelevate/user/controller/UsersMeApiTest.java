@@ -80,13 +80,16 @@ class UsersMeApiTest {
                 .andExpect(jsonPath("$.legajo").value("1234567"))
                 .andExpect(jsonPath("$.role").value("USER"))
                 .andExpect(jsonPath("$.priority").value("NONE"))
+                .andExpect(jsonPath("$.priorityUntil").doesNotExist())
                 .andExpect(jsonPath("$.declaredUserType").value("TEACHER"));
 
         UserPriority teacher = new UserPriority(user.getId(), PriorityCategory.TEACHER);
-        teacher.decide(PriorityStatus.APPROVED, null, Instant.now(), user.getId());
+        Instant until = Instant.now().plusSeconds(86400).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+        teacher.decide(PriorityStatus.APPROVED, until, Instant.now(), user.getId());
         priorities.saveAndFlush(teacher);
 
         mockMvc.perform(get("/api/users/me").header("Authorization", token(user.getId())))
-                .andExpect(jsonPath("$.priority").value("TEACHER"));
+                .andExpect(jsonPath("$.priority").value("TEACHER"))
+                .andExpect(jsonPath("$.priorityUntil").value(until.toString()));
     }
 }

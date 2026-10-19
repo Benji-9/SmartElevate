@@ -78,7 +78,8 @@ public class DepartureService {
                             PrioritySeats.held(d, now, config), priorityUser);
                     return new DepartureResponse(d.getId(), d.getElevator().getCode(),
                             d.getElevator().getCore().getBuilding().getCode(), d.getDepartureAt(), d.getCapacity(),
-                            remaining, d.getStatus());
+                            remaining, (int) counts[0], d.getDepartureAt().minus(config.bookingClosesBefore()),
+                            d.getStatus());
                 })
                 .toList();
     }

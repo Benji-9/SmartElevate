@@ -895,6 +895,12 @@ export interface components {
       cores: components['schemas']['CoreResponse'][];
       /**
        * Format: int32
+       * @description Los pisos 1 a este valor no se pueden elegir de destino (van por escalera), salvo movilidad reducida
+       * @example 4
+       */
+      lowFloorsThreshold: number;
+      /**
+       * Format: int32
        * @example 10
        */
       maxFloor: number;
@@ -1047,6 +1053,18 @@ export interface components {
     };
     /** @description Salida de un ascensor reservable ahora, con su cupo restante */
     DepartureResponse: {
+      /**
+       * Format: int32
+       * @description Lugares ya reservados (de cualquier usuario). Es lo que mide la barra de ocupación; no incluye los guardados para prioritarios que nadie tomó
+       * @example 2
+       */
+      bookedSeats: number;
+      /**
+       * Format: date-time
+       * @description Cierre de la ventana de reserva, en UTC: desde ahí la salida ya no se puede reservar
+       * @example 2026-10-13T15:54:00Z
+       */
+      bookingClosesAt: string;
       /** @example INDEPENDENCIA */
       building: string;
       /**
@@ -1369,6 +1387,12 @@ export interface components {
        */
       cancelFreeUntil: string;
       /**
+       * Format: date-time
+       * @description Desde este instante (UTC) se puede hacer check-in: la salida menos check_in_opens_before.
+       * @example 2026-10-13T15:57:00Z
+       */
+      checkInOpensAt: string;
+      /**
        * @description Resultado del check-in, si hubo: ON_TIME, OTHER_ELEVATOR o LATE (cuenta como falta). Incluye los del simulador de admin.
        * @enum {string|null}
        */
@@ -1482,6 +1506,12 @@ export interface components {
        * @enum {string}
        */
       priority: 'NONE' | 'TEACHER' | 'REDUCED_MOBILITY';
+      /**
+       * Format: date-time
+       * @description Hasta cuándo (UTC) vale la prioridad vigente. Null si no hay prioridad o no vence
+       * @example 2027-03-31T02:59:59Z
+       */
+      priorityUntil?: string | null;
       /** @enum {string} */
       role: 'USER' | 'REVIEWER' | 'ADMIN';
     };

@@ -15,5 +15,12 @@ public record DepartureResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "8", description = "Lugares que puede "
                 + "tomar el usuario: a uno común no se le cuentan los reservados a prioritarios")
         int remainingSeats,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "2", description = "Lugares ya reservados "
+                + "(de cualquier usuario). Es lo que mide la barra de ocupación; no incluye los guardados para "
+                + "prioritarios que nadie tomó")
+        int bookedSeats,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Cierre de la ventana de reserva, en "
+                + "UTC: desde ahí la salida ya no se puede reservar", example = "2026-10-13T15:54:00Z")
+        Instant bookingClosesAt,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) DepartureStatus status) {
 }

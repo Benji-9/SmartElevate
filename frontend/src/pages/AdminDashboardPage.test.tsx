@@ -8,8 +8,15 @@ import { signedIn, stubApi, testUser } from '../test/stubApi';
 import type { AdminKpis, AdminShift, Building } from '../types/api';
 
 const buildings: Building[] = [
-  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [] },
-  { code: 'INDEPENDENCIA', name: 'Independencia', minFloor: -3, maxFloor: 10, cores: [] },
+  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [], lowFloorsThreshold: 4 },
+  {
+    code: 'INDEPENDENCIA',
+    name: 'Independencia',
+    minFloor: -3,
+    maxFloor: 10,
+    cores: [],
+    lowFloorsThreshold: 4,
+  },
 ];
 
 const shifts: AdminShift[] = [
