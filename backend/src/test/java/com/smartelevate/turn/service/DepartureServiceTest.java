@@ -100,6 +100,11 @@ class DepartureServiceTest {
         // A un común no se le cuentan los 2 reservados a prioritarios, salvo en la de 12:58 (ya liberados: faltan 3 min).
         assertThat(result.getFirst().remainingSeats()).isEqualTo(10);
         assertThat(result.subList(1, result.size())).allSatisfy(d -> assertThat(d.remainingSeats()).isEqualTo(8));
+        // Sin reservas, la barra de ocupación no cuenta los lugares guardados: 0 reservados, y cierra 2 min antes.
+        assertThat(result).allSatisfy(d -> {
+            assertThat(d.bookedSeats()).isZero();
+            assertThat(d.bookingClosesAt()).isEqualTo(d.departureAt().minusSeconds(120));
+        });
         assertThat(result).allSatisfy(d -> {
             assertThat(d.capacity()).isEqualTo(10);
             assertThat(d.elevator()).isEqualTo("33");
@@ -121,6 +126,7 @@ class DepartureServiceTest {
 
         assertThat(result.getFirst().remainingSeats()).isEqualTo(7);
         assertThat(result.get(1).remainingSeats()).isEqualTo(8);
+        assertThat(result.getFirst().bookedSeats()).isEqualTo(3);
     }
 
     private Departure repositoryDeparture(long id) {
