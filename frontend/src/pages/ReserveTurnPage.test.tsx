@@ -80,16 +80,20 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const group = (name: string) => within(screen.getByRole('radiogroup', { name }));
+const origin = (floor: string) => group('Piso de origen').getByRole('radio', { name: floor });
+const destination = (floor: string) => group('Piso de destino').getByRole('radio', { name: floor });
+
 async function renderReserve() {
   renderPage();
   await userEvent.click(await screen.findByRole('radio', { name: 'Lima 1' }));
-  await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), 'PB');
+  await userEvent.click(origin('PB'));
 }
 
 /** Elige PB → 5 y la salida de las 14:32, y confirma. */
 async function reserveAt1432() {
   await renderReserve();
-  await userEvent.click(screen.getByRole('radio', { name: '5' }));
+  await userEvent.click(destination('5'));
   await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar turno · 14:32' }));
 }
@@ -110,8 +114,8 @@ describe('ReserveTurnPage', () => {
     stubApi(routes);
     await renderReserve();
 
-    expect(screen.getByRole('radio', { name: '1' })).toBeDisabled();
-    expect(screen.getByRole('radio', { name: '5' })).toBeEnabled();
+    expect(destination('1')).toBeDisabled();
+    expect(destination('5')).toBeEnabled();
     expect(screen.getByText('Los pisos 1 a 4 van por escalera.')).toBeInTheDocument();
   });
 
@@ -128,7 +132,7 @@ describe('ReserveTurnPage', () => {
     stubApi({ ...routes, 'GET /buildings': { body: [{ ...lima, lowFloorsThreshold: 0 }] } });
     await renderReserve();
 
-    expect(screen.getByRole('radio', { name: '1' })).toBeEnabled();
+    expect(destination('1')).toBeEnabled();
     expect(screen.queryByText(/van por escalera/)).not.toBeInTheDocument();
   });
 
@@ -136,7 +140,7 @@ describe('ReserveTurnPage', () => {
     stubApi({ ...routes, ...signedIn({ ...testUser, priority: 'REDUCED_MOBILITY' }) });
     await renderReserve();
 
-    expect(screen.getByRole('radio', { name: '1' })).toBeEnabled();
+    expect(destination('1')).toBeEnabled();
     expect(screen.queryByText(/van por escalera/)).not.toBeInTheDocument();
   });
 
@@ -151,7 +155,7 @@ describe('ReserveTurnPage', () => {
       },
     });
     await renderReserve();
-    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+    await userEvent.click(destination('5'));
 
     expect(await screen.findByRole('radio', { name: /^14:34/ })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /^14:32/ })).not.toBeInTheDocument();
@@ -166,7 +170,7 @@ describe('ReserveTurnPage', () => {
       },
     });
     await renderReserve();
-    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+    await userEvent.click(destination('5'));
 
     const slot = (await screen.findByRole('radio', { name: /^14:32/ })).closest('label')!;
     expect(slot).toHaveTextContent('8 libres');
@@ -191,7 +195,7 @@ describe('ReserveTurnPage', () => {
     });
     renderPage();
 
-    const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
+    const cores = await screen.findByRole('radiogroup', { name: 'Núcleo' });
     expect(
       within(cores)
         .getAllByRole('radio')
@@ -204,10 +208,14 @@ describe('ReserveTurnPage', () => {
     await renderReserve();
 
     // El origen solo ofrece los pisos de los ascensores dentro del rango del edificio.
-    expect(screen.queryByRole('option', { name: '-2' })).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('radiogroup', { name: 'Piso de origen' })).queryByRole('radio', {
+        name: '-2',
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirmar turno/ })).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+    await userEvent.click(destination('5'));
     await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar turno · 14:32' }));
 
@@ -233,17 +241,17 @@ describe('ReserveTurnPage', () => {
     renderPage();
     const confirm = async () => screen.findByRole('button', { name: /Confirmar turno/ });
 
-    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el edificio');
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el núcleo');
 
     await userEvent.click(screen.getByRole('radio', { name: 'Lima 1' }));
     expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de origen');
     expect(screen.getByText('Lima 1', { selector: 'p' })).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), 'PB');
+    await userEvent.click(origin('PB'));
     await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de destino');
 
-    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+    await userEvent.click(destination('5'));
     expect(await confirm()).toBeEnabled();
     expect(await confirm()).not.toHaveAccessibleDescription();
     expect(screen.getByText('Lima 1 · Piso 5 · 14:32')).toBeInTheDocument();
@@ -277,7 +285,7 @@ describe('ReserveTurnPage', () => {
     expect(destinations()).toEqual(['-1', '1', '3', '5']);
 
     // Al 3 solo va el 02: sus salidas, nada más.
-    await userEvent.click(screen.getByRole('radio', { name: '3' }));
+    await userEvent.click(destination('3'));
     const slots = screen.getByRole('radiogroup', { name: 'Franja horaria' });
     expect(
       within(slots)
@@ -286,7 +294,7 @@ describe('ReserveTurnPage', () => {
     ).toEqual(['14:32 · Ascensor 02 3 libres']);
 
     // Desde el 1 solo para el 01: el 3 deja de ser destino.
-    await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), '1');
+    await userEvent.click(origin('1'));
     expect(destinations()).toEqual(['-1', 'PB', '5']);
   });
 
@@ -335,7 +343,7 @@ describe('ReserveTurnPage', () => {
       ...extra,
     });
     const offered = async () => {
-      const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
+      const cores = await screen.findByRole('radiogroup', { name: 'Núcleo' });
       return within(cores)
         .getAllByRole('radio')
         .map((r) => r.closest('label')!.textContent);
@@ -378,7 +386,11 @@ describe('ReserveTurnPage', () => {
       expect(await offered()).toEqual(['Indep. 1']);
       await userEvent.click(screen.getByRole('radio', { name: 'Indep. 1' }));
       // Los pisos del ascensor dedicado ajeno (-3 y 10) no cuentan para el origen.
-      expect(screen.queryByRole('option', { name: '-3' })).not.toBeInTheDocument();
+      expect(
+        within(screen.getByRole('radiogroup', { name: 'Piso de origen' })).queryByRole('radio', {
+          name: '-3',
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it('no precarga un último viaje a un núcleo que el usuario ya no puede usar', async () => {
@@ -462,7 +474,7 @@ describe('ReserveTurnPage', () => {
       await reserveAt1432();
 
       expect(await screen.findByRole('alert')).toHaveTextContent(message);
-      expect(screen.getByRole('radio', { name: '5' })).not.toBeChecked();
+      expect(destination('5')).not.toBeChecked();
       expect(screen.getByRole('button', { name: /Confirmar turno/ })).toHaveAccessibleDescription(
         'Falta elegir el piso de destino',
       );
@@ -540,7 +552,7 @@ describe('ReserveTurnPage', () => {
 
     expect(await screen.findByText(/Ya tenés un turno activo/)).toHaveTextContent('14:32');
     expect(screen.getByRole('link', { name: 'Ver mi turno' })).toHaveAttribute('href', '/turno/7');
-    expect(screen.queryByRole('radiogroup', { name: 'Edificio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Núcleo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Confirmar turno/ })).not.toBeInTheDocument();
   });
 
@@ -551,7 +563,7 @@ describe('ReserveTurnPage', () => {
     });
     renderPage();
 
-    expect(await screen.findByRole('radiogroup', { name: 'Edificio' })).toBeInTheDocument();
+    expect(await screen.findByRole('radiogroup', { name: 'Núcleo' })).toBeInTheDocument();
     expect(screen.queryByText(/Ya tenés un turno activo/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -564,9 +576,10 @@ describe('ReserveTurnPage', () => {
       stubApi(routes);
       renderPage();
 
-      expect(await screen.findByRole('radio', { name: '5' })).toBeChecked();
+      await screen.findByRole('radiogroup', { name: 'Piso de destino' });
+      expect(destination('5')).toBeChecked();
       expect(screen.getByRole('radio', { name: 'Lima 1' })).toBeChecked();
-      expect(screen.getByLabelText('Piso de origen')).toHaveDisplayValue('PB');
+      expect(origin('PB')).toBeChecked();
       expect(await screen.findByRole('radio', { name: /^14:32/ })).not.toBeChecked();
       expect(screen.getByText(/Usamos tu último viaje/)).toHaveTextContent(
         'Usamos tu último viaje: Lima 1 · PB → 5. Podés cambiarlo abajo.',
@@ -576,8 +589,8 @@ describe('ReserveTurnPage', () => {
       );
 
       // Se puede cambiar: al tocar otro piso el aviso se va.
-      await userEvent.click(screen.getByRole('radio', { name: '-1' }));
-      expect(screen.getByRole('radio', { name: '-1' })).toBeChecked();
+      await userEvent.click(destination('-1'));
+      expect(destination('-1')).toBeChecked();
       expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
     });
 
@@ -586,8 +599,13 @@ describe('ReserveTurnPage', () => {
       stubApi(routes);
       renderPage();
 
-      expect(await screen.findByLabelText('Piso de origen')).toHaveDisplayValue('PB');
-      expect(screen.queryByRole('radio', { name: '4' })).not.toBeInTheDocument();
+      expect(await screen.findByRole('radiogroup', { name: 'Piso de origen' })).toBeInTheDocument();
+      expect(origin('PB')).toBeChecked();
+      expect(
+        within(screen.getByRole('radiogroup', { name: 'Piso de destino' })).queryByRole('radio', {
+          name: '4',
+        }),
+      ).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
         'Falta elegir el piso de destino',
       );
@@ -612,7 +630,7 @@ describe('ReserveTurnPage', () => {
       expect(await screen.findByRole('radio', { name: 'Lima 1' })).not.toBeChecked();
       expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
-        'Falta elegir el edificio',
+        'Falta elegir el núcleo',
       );
     });
   });
