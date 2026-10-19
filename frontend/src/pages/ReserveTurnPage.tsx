@@ -132,7 +132,7 @@ export function ReserveTurnPage() {
     .join(' · ');
   // El próximo paso, para que el botón deshabilitado diga qué falta.
   const missing = !core
-    ? 'Falta elegir el edificio'
+    ? 'Falta elegir el núcleo'
     : origin === null
       ? 'Falta elegir el piso de origen'
       : validDestination === null
