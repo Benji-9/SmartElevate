@@ -2,11 +2,14 @@ import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Chip } from '../components/Chip';
+import { Mascot } from '../components/Mascot';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
 import '../features/check-in/check-in.css';
 import { formatFloor, formatTime } from '../features/turn/format';
 import '../features/turn/turn.css';
+import { useNow } from '../hooks/useNow';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { ApiError, checkIn, getActiveReservation } from '../services/api';
@@ -48,9 +51,14 @@ export function CheckInPage() {
   const turn = useResource(getActiveReservation);
   const turnTitleId = useId();
   const reservation = turn.data;
+  const now = useNow(1_000);
+  // Antes de la apertura no se pide la cámara: se avisa a qué hora abre (#285).
+  const opensAt = reservation?.checkInOpensAt;
+  const notYetOpen = opensAt !== undefined && now < Date.parse(opensAt);
   // La cámara se pide solo con turno activo (#152). Si falla la carga del turno se pide igual:
   // el servidor valida el check-in y no queremos trabar a quien sí tiene turno.
-  const wantsCamera = !turn.loading && (turn.error !== undefined || reservation != null);
+  const wantsCamera =
+    !turn.loading && !notYetOpen && (turn.error !== undefined || reservation != null);
   const scanDone = error?.code !== undefined && FINAL_CODES.includes(error.code);
 
   async function submit(token: string) {
@@ -124,11 +132,20 @@ export function CheckInPage() {
   }, [wantsCamera]);
 
   let cameraState;
-  if (!wantsCamera) {
+  if (notYetOpen) {
+    cameraState = (
+      <section className="check-in__message" aria-labelledby="check-in-closed-title">
+        <Mascot pose="duerme" size={96} />
+        <h2 id="check-in-closed-title">Abre a las {formatTime(opensAt)} hs</h2>
+        <p>Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.</p>
+      </section>
+    );
+  } else if (!wantsCamera) {
     cameraState = null;
   } else if (camera === 'denied' || camera === 'unavailable') {
     cameraState = (
       <section className="check-in__message" aria-labelledby="check-in-camera-title">
+        <Mascot pose="triste" size={96} />
         <h2 id="check-in-camera-title">
           {camera === 'denied'
             ? 'No tenemos permiso para usar la cámara'
@@ -147,7 +164,7 @@ export function CheckInPage() {
         <div className="check-in__finder" aria-hidden="true" />
         {camera === 'starting' && <p role="status">Pidiendo permiso para usar la cámara…</p>}
         <p className="check-in__instructions">Apuntá la cámara al QR de la pantalla del ascensor</p>
-        <p className="check-in__note">El código rota: escanealo desde dentro de la cabina</p>
+        <p className="check-in__note">{QR_INSTRUCTION} El código rota: no le saques foto.</p>
       </>
     );
   }
@@ -167,9 +184,12 @@ export function CheckInPage() {
     );
   } else if (!reservation) {
     turnContent = (
-      <p className="page-placeholder">
-        No tenés un turno activo. <Link to="/reservar">Reservá un turno</Link>
-      </p>
+      <div className="empty-state">
+        <Mascot pose="senala" size={96} />
+        <p className="page-placeholder">
+          No tenés un turno activo. <Link to="/reservar">Reservá un turno</Link>
+        </p>
+      </div>
     );
   } else {
     turnContent = (

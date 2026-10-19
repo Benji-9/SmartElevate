@@ -67,7 +67,9 @@ export function NotificationsPage() {
   } else {
     content = (
       <>
-        <p className="notifications__intro">Elegí qué avisos querés recibir en tu email.</p>
+        <p className="notifications__intro">
+          Elegí qué avisos querés recibir. Te escribimos solo cuando hace falta.
+        </p>
         {message && (
           <p role="alert" className="notifications__alert">
             {message}

@@ -1,19 +1,28 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
 import { NBSP } from '../features/admin/format';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
 import type { AdminKpis, AdminShift, Building } from '../types/api';
 
 const buildings: Building[] = [
-  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [] },
-  { code: 'INDEPENDENCIA', name: 'Independencia', minFloor: -3, maxFloor: 10, cores: [] },
+  { code: 'LIMA', name: 'Lima', minFloor: -2, maxFloor: 10, cores: [], lowFloorsThreshold: 4 },
+  {
+    code: 'INDEPENDENCIA',
+    name: 'Independencia',
+    minFloor: -3,
+    maxFloor: 10,
+    cores: [],
+    lowFloorsThreshold: 4,
+  },
 ];
 
 const shifts: AdminShift[] = [
-  { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '12:15' },
+  { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '13:00' },
+  { id: 'AFTERNOON', name: 'Turno tarde', startsAt: '13:00', endsAt: '18:00' },
+  { id: 'NIGHT', name: 'Turno noche', startsAt: '18:00', endsAt: '22:30' },
 ];
 
 // 29/9 03:00 UTC = 00:00 en Buenos Aires.
@@ -88,7 +97,7 @@ describe('AdminDashboardPage', () => {
     expect(screen.getByRole('article', { name: 'Ocupación promedio' })).toHaveTextContent(
       '6,8 / 10personas por franja',
     );
-    expect(screen.getByText('29 de septiembre de 2026 · Todas las sedes')).toBeInTheDocument();
+    expect(screen.getByText('29 de septiembre de 2026 · Todos los edificios')).toBeInTheDocument();
   });
 
   it('dice si la espera está peor o igual que la línea base, no solo con color', async () => {
@@ -111,7 +120,7 @@ describe('AdminDashboardPage', () => {
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/admin');
     // Sin `simulatorEnabled` del servidor no aparece el simulador de kiosco.
     expect(within(nav).getAllByRole('listitem')).toHaveLength(4);
-    expect(within(nav).getByRole('link', { name: 'Usuarios prioritarios' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Gestión de usuarios' })).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: 'Kioscos' })).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: 'Ascensores' })).toBeInTheDocument();
     expect(within(nav).queryByText('Próximamente')).not.toBeInTheDocument();
@@ -172,7 +181,7 @@ describe('AdminDashboardPage', () => {
 
     expect(
       await screen.findByText(
-        '29 de septiembre de 2026 · Todas las sedes · Turno mañana (7:00–12:15)',
+        '29 de septiembre de 2026 · Todos los edificios · Turno mañana (7:00–13:00)',
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('article', { name: 'Turnos reservados' })).toHaveTextContent('700');
@@ -180,6 +189,37 @@ describe('AdminDashboardPage', () => {
       '/api/admin/kpis?period=TODAY&shiftId=MORNING',
       expect.anything(),
     );
+  });
+
+  it('ofrece los tres turnos y avisa cuál es el actual', async () => {
+    // 15:30 en Buenos Aires.
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-29T18:30:00Z') });
+    try {
+      renderAdmin();
+
+      const group = await screen.findByRole('radiogroup', { name: 'Turno de cursada' });
+      for (const name of ['Todo el día', 'Turno mañana', 'Turno tarde', 'Turno noche']) {
+        expect(await within(group).findByRole('radio', { name })).toBeInTheDocument();
+      }
+      expect(await screen.findByText('Turno tarde (13:00–18:00)')).toBeInTheDocument();
+      expect(screen.getByText(/Ahora:/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('fuera del horario de los turnos no muestra el aviso', async () => {
+    // 23:00 en Buenos Aires.
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-30T02:00:00Z') });
+    try {
+      renderAdmin();
+
+      await screen.findByRole('radiogroup', { name: 'Turno de cursada' });
+      await screen.findByRole('radio', { name: 'Turno noche' });
+      expect(screen.queryByText(/Ahora:/)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('en pantallas angostas avisa que el panel es para computadora', async () => {

@@ -1,9 +1,15 @@
-/** Recordatorio de hacer check-in al subir al ascensor. */
+import { Mascot } from '../../components/Mascot';
+import { QR_INSTRUCTION } from '../check-in/qrInstruction';
+
+/** Recordatorio de hacer check-in al llegar al hall, con la cara de Elevy. */
 export function CheckinHint() {
   return (
-    <p className="turn-hint">
-      Al subir, escaneá el QR que aparece en la pantalla dentro del ascensor para registrar tu
-      viaje.
-    </p>
+    <div className="turn-hint turn-hint--mascot">
+      <Mascot pose="cara" size={32} />
+      <p>
+        <strong className="turn-hint__title">Elevy te guía</strong>
+        <span>{QR_INSTRUCTION}</span>
+      </p>
+    </div>
   );
 }

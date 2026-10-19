@@ -1,10 +1,13 @@
 import { useEffect, useId, useRef } from 'react';
 import { Button } from '../../components/Button';
+import { formatTime } from './format';
 
 type CancelTurnDialogProps = {
   open: boolean;
   /** Lo informa el servidor: si es `true`, avisamos antes de confirmar. */
   countsAsNoShow: boolean;
+  /** Instante UTC hasta el que se cancela sin falta (`cancelFreeUntil`). */
+  freeUntil: string;
   cancelling: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -15,6 +18,7 @@ type CancelTurnDialogProps = {
 export function CancelTurnDialog({
   open,
   countsAsNoShow,
+  freeUntil,
   cancelling,
   error,
   onConfirm,
@@ -52,7 +56,10 @@ export function CancelTurnDialog({
           Ya pasó el límite para cancelar sin que cuente como falta.
         </p>
       ) : (
-        <p id={descriptionId}>Vas a liberar tu lugar para que lo use otra persona.</p>
+        <p id={descriptionId}>
+          Vas a liberar tu lugar para que lo use otra persona. Podés cancelar sin falta hasta las{' '}
+          {formatTime(freeUntil)} hs; después, cancelar cuenta como falta.
+        </p>
       )}
       {error && (
         <p role="alert" className="turn-alert">

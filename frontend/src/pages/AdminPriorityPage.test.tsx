@@ -66,7 +66,7 @@ describe('AdminPriorityPage', () => {
     expect(within(queue).getByText('8/10/2026')).toBeInTheDocument();
     const priority = await screen.findByRole('table', { name: 'Usuarios con prioridad' });
     expect(within(priority).getByText('Movilidad reducida')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Usuarios prioritarios' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Gestión de usuarios' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -181,5 +181,59 @@ describe('AdminPriorityPage', () => {
 
     expect(await screen.findByText('No hay docentes para validar.')).toBeInTheDocument();
     expect(await screen.findByText('Todavía no hay usuarios con prioridad.')).toBeInTheDocument();
+  });
+
+  it('cambiar el tipo a Docente actualiza "Usuarios con prioridad" sin recargar', async () => {
+    let teacher = false;
+    stubApi({
+      ...signedIn({ ...testUser, role: 'ADMIN' }),
+      'GET /admin/teachers/pending': { body: [] },
+      'GET /admin/priority-users': () => ({
+        body: teacher ? [{ ...carla, id: 'a-1', fullName: 'Rubén Sosa', category: 'TEACHER' }] : [],
+      }),
+      'GET /admin/users?query=ruben': {
+        body: {
+          items: [
+            {
+              id: 'a-1',
+              fullName: 'Rubén Sosa',
+              email: 'ruben@uade.edu.ar',
+              legajo: '1000001',
+              role: 'USER',
+              declaredUserType: 'STUDENT',
+              emailVerified: true,
+            },
+          ],
+          nextCursor: null,
+        },
+      },
+      'PUT /admin/users/a-1/declared-type': () => {
+        teacher = true;
+        return { status: 204 };
+      },
+    });
+    render(
+      <MemoryRouter initialEntries={['/admin/prioritarios']}>
+        <App />
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+    expect(await screen.findByText('Todavía no hay usuarios con prioridad.')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar usuario' }), 'ruben');
+    await user.click(await screen.findByRole('button', { name: 'Gestionar usuario Rubén Sosa' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Cambiar tipo' }));
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Tipo de Rubén Sosa' }),
+      'TEACHER',
+    );
+    await user.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
+
+    const section = (
+      await screen.findByRole('heading', { name: 'Usuarios con prioridad' })
+    ).closest('section')!;
+    expect(
+      await within(section).findByRole('rowheader', { name: 'Rubén Sosa' }),
+    ).toBeInTheDocument();
   });
 });

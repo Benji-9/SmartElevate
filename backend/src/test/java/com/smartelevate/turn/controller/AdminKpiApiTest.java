@@ -196,18 +196,22 @@ class AdminKpiApiTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(as(admin, get("/api/admin/kpis")).param("period", "TODAY").param("buildingId", "CABA"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(as(admin, get("/api/admin/kpis")).param("period", "TODAY").param("shiftId", "NIGHT"))
+        mockMvc.perform(as(admin, get("/api/admin/kpis")).param("period", "TODAY").param("shiftId", "DAWN"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void shiftsListTheMorningShift() throws Exception {
+    void shiftsListMorningAfternoonAndNight() throws Exception {
         mockMvc.perform(as(admin, get("/api/admin/shifts")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$", hasSize(3)))
                 .andExpect(jsonPath("$[0].id").value("MORNING"))
                 .andExpect(jsonPath("$[0].name").value("Turno mañana"))
                 .andExpect(jsonPath("$[0].startsAt").value("07:00"))
-                .andExpect(jsonPath("$[0].endsAt").value("12:15"));
+                .andExpect(jsonPath("$[0].endsAt").value("13:00"))
+                .andExpect(jsonPath("$[1].id").value("AFTERNOON"))
+                .andExpect(jsonPath("$[1].startsAt").value("13:00"))
+                .andExpect(jsonPath("$[2].id").value("NIGHT"))
+                .andExpect(jsonPath("$[2].endsAt").value("22:30"));
     }
 }

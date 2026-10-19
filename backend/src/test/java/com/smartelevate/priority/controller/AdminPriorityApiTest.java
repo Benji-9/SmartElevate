@@ -244,22 +244,20 @@ class AdminPriorityApiTest {
     }
 
     @Test
-    void adminTurnsAStudentIntoATeacherAndTheyJoinTheQueue() throws Exception {
+    void adminTurnsAStudentIntoATeacherAndTheyGetThePriorityDirectly() throws Exception {
         mockMvc.perform(as(admin, declaredType(common, "TEACHER"))).andExpect(status().isNoContent());
 
         mockMvc.perform(as(admin, get("/api/admin/users").param("query", "comun@")))
                 .andExpect(jsonPath("$.items[0].declaredUserType").value("TEACHER"))
                 .andExpect(jsonPath("$.items[0].emailVerified").value(true));
-        // Entra a la cola, pero sin prioridad hasta que un ADMIN lo apruebe.
-        assertThat(priorityService.currentPriority(common.getId())).isEqualTo(PriorityCategory.NONE);
-        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
-                .andExpect(jsonPath("$.length()").value(2));
-        mockMvc.perform(as(admin, post("/api/admin/teachers/" + common.getId() + "/approve")))
-                .andExpect(status().isNoContent());
+        // Prioridad directa: no pasa por la cola "Docentes a validar".
         assertThat(priorityService.currentPriority(common.getId())).isEqualTo(PriorityCategory.TEACHER);
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
+                .andExpect(jsonPath("$.length()").value(1));
         assertThat(audit.findByTargetUserIdOrderByCreatedAtAsc(common.getId()))
-                .extracting("action", "detail").contains(
-                        org.assertj.core.api.Assertions.tuple("DECLARED_TYPE_CHANGED", "STUDENT->TEACHER"));
+                .extracting("action", "detail").containsExactly(
+                        org.assertj.core.api.Assertions.tuple("DECLARED_TYPE_CHANGED", "STUDENT->TEACHER"),
+                        org.assertj.core.api.Assertions.tuple("TEACHER_APPROVED", "expires 2027-01-01T03:00:00Z"));
     }
 
     @Test
@@ -280,17 +278,15 @@ class AdminPriorityApiTest {
     }
 
     @Test
-    void aRejectedTeacherTurnedStudentAndBackToTeacherReturnsToTheQueue() throws Exception {
+    void aRejectedTeacherTurnedStudentAndBackToTeacherGetsThePriority() throws Exception {
         mockMvc.perform(as(admin, post("/api/admin/teachers/" + teacher.getId() + "/reject")))
                 .andExpect(status().isNoContent());
-        mockMvc.perform(as(admin, get("/api/admin/teachers/pending"))).andExpect(jsonPath("$.length()").value(0));
 
         mockMvc.perform(as(admin, declaredType(teacher, "STUDENT"))).andExpect(status().isNoContent());
         mockMvc.perform(as(admin, declaredType(teacher, "TEACHER"))).andExpect(status().isNoContent());
 
-        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(teacher.getId().toString()));
+        assertThat(priorityService.currentPriority(teacher.getId())).isEqualTo(PriorityCategory.TEACHER);
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending"))).andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

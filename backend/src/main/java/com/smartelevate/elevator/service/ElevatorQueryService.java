@@ -1,5 +1,6 @@
 package com.smartelevate.elevator.service;
 
+import com.smartelevate.common.config.ConfigService;
 import com.smartelevate.elevator.dto.BuildingResponse;
 import com.smartelevate.elevator.dto.ElevatorResponse;
 import com.smartelevate.elevator.model.Core;
@@ -30,6 +31,7 @@ public class ElevatorQueryService {
     private final ElevatorRepository elevators;
     private final BuildingRepository buildings;
     private final CoreRepository cores;
+    private final ConfigService config;
 
     /** Ascensores activos, opcionalmente de un edificio y/o que paren en un piso (null = sin filtro). */
     // ponytail: filtra en memoria (son 18 ascensores); pasar a una query si la tabla crece.
@@ -52,7 +54,7 @@ public class ElevatorQueryService {
                                 Collectors.toList())));
         return buildings.findAll(Sort.by("code")).stream()
                 .map(b -> new BuildingResponse(b.getCode(), b.getName(), b.getMinFloor(), b.getMaxFloor(),
-                        coresByBuilding.getOrDefault(b.getCode(), List.of())))
+                        coresByBuilding.getOrDefault(b.getCode(), List.of()), config.lowFloorsThreshold()))
                 .toList();
     }
 }

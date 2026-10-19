@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -21,13 +22,9 @@ const FIELDS = ['fullName', 'email', 'legajo', 'password'] as const;
 type Field = (typeof FIELDS)[number];
 type Errors = Partial<Record<Field, string>>;
 
-const dot = (color: string) => (
-  <span className="user-type-dot" style={{ background: color }} aria-hidden="true" />
-);
-
 const userTypes: Option<DeclaredUserType>[] = [
-  { value: 'STUDENT', label: 'Estudiante', adornment: dot('var(--User-Alumnos)') },
-  { value: 'TEACHER', label: 'Docente', adornment: dot('var(--User-Docentes)') },
+  { value: 'STUDENT', label: 'Estudiante' },
+  { value: 'TEACHER', label: 'Docente' },
 ];
 
 function validate(form: RegisterRequest): Errors {
@@ -101,6 +98,7 @@ export function RegisterPage() {
     return (
       <div className="auth-card auth-card--register">
         <ScreenHeader title="Crear cuenta" backTo="/login" />
+        <AuthBrand />
         <div role="status" className="auth">
           <h2>Revisá tu email</h2>
           <p className="auth__lead">
@@ -117,6 +115,7 @@ export function RegisterPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Crear cuenta" backTo="/login" />
+      <AuthBrand />
       <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
@@ -143,7 +142,6 @@ export function RegisterPage() {
           label="Contraseña"
           type="password"
           autoComplete="new-password"
-          placeholder="••••••••"
           hint={PASSWORD_HINT}
           {...bind('password')}
         />

@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
 import { signedIn, stubApi, testUser } from '../test/stubApi';
 import type { Building, Departure, Elevator, Reservation } from '../types/api';
@@ -12,6 +12,7 @@ const lima: Building = {
   minFloor: -1,
   maxFloor: 5,
   cores: [{ code: 'L1', name: 'Lima 1' }],
+  lowFloorsThreshold: 4,
 };
 
 const elevator = (code: string, floors: number[], core = 'L1'): Elevator => ({
@@ -34,6 +35,9 @@ const departure = (id: number, code: string, at: string, remainingSeats: number)
   departureAt: `2026-09-29T${at}:00Z`,
   capacity: 10,
   remainingSeats,
+  bookedSeats: 10 - remainingSeats,
+  // La ventana cierra 2 min antes de la salida.
+  bookingClosesAt: `2026-09-29T${at.slice(0, 3)}${Number(at.slice(3)) - 2}:00Z`,
   status: 'SCHEDULED',
 });
 const departures = [
@@ -50,6 +54,7 @@ const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   buildingName: 'Lima',
   departureAt: '2026-09-29T17:32:00Z',
   cancelFreeUntil: '2026-09-29T17:22:00Z',
+  checkInOpensAt: '2026-09-29T17:31:00Z',
   seatNumber: 5,
   originFloor: 0,
   destinationFloor: 5,
@@ -75,16 +80,20 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const group = (name: string) => within(screen.getByRole('radiogroup', { name }));
+const origin = (floor: string) => group('Piso de origen').getByRole('radio', { name: floor });
+const destination = (floor: string) => group('Piso de destino').getByRole('radio', { name: floor });
+
 async function renderReserve() {
   renderPage();
   await userEvent.click(await screen.findByRole('radio', { name: 'Lima 1' }));
-  await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), 'PB');
+  await userEvent.click(origin('PB'));
 }
 
 /** Elige PB → 5 y la salida de las 14:32, y confirma. */
 async function reserveAt1432() {
   await renderReserve();
-  await userEvent.click(screen.getByRole('radio', { name: '5' }));
+  await userEvent.click(destination('5'));
   await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar turno · 14:32' }));
 }
@@ -95,15 +104,118 @@ const rejection = (status: number, code: string, message: string) => ({
 });
 
 describe('ReserveTurnPage', () => {
+  // 14:20 en Buenos Aires: las salidas de 14:32 y 14:34 siguen abiertas.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-29T17:20:00Z') });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('no deja elegir los pisos bajos y dice por qué', async () => {
+    stubApi(routes);
+    await renderReserve();
+
+    expect(destination('1')).toBeDisabled();
+    expect(destination('5')).toBeEnabled();
+    expect(screen.getByText('Los pisos 1 a 4 van por escalera.')).toBeInTheDocument();
+  });
+
+  it('asocia el motivo al grupo de pisos para lectores de pantalla', async () => {
+    stubApi(routes);
+    await renderReserve();
+
+    expect(screen.getByRole('radiogroup', { name: 'Piso de destino' })).toHaveAccessibleDescription(
+      'Los pisos 1 a 4 van por escalera.',
+    );
+  });
+
+  it('con umbral 0 no deshabilita pisos ni muestra el motivo', async () => {
+    stubApi({ ...routes, 'GET /buildings': { body: [{ ...lima, lowFloorsThreshold: 0 }] } });
+    await renderReserve();
+
+    expect(destination('1')).toBeEnabled();
+    expect(screen.queryByText(/van por escalera/)).not.toBeInTheDocument();
+  });
+
+  it('movilidad reducida puede elegir los pisos bajos', async () => {
+    stubApi({ ...routes, ...signedIn({ ...testUser, priority: 'REDUCED_MOBILITY' }) });
+    await renderReserve();
+
+    expect(destination('1')).toBeEnabled();
+    expect(screen.queryByText(/van por escalera/)).not.toBeInTheDocument();
+  });
+
+  it('no ofrece las franjas cuya ventana de reserva ya cerró', async () => {
+    stubApi({
+      ...routes,
+      'GET /departures?building=LIMA': {
+        body: [
+          { ...departure(1, '01', '17:32', 6), bookingClosesAt: '2026-09-29T17:19:00Z' },
+          departure(2, '01', '17:34', 5),
+        ],
+      },
+    });
+    await renderReserve();
+    await userEvent.click(destination('5'));
+
+    expect(await screen.findByRole('radio', { name: /^14:34/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /^14:32/ })).not.toBeInTheDocument();
+  });
+
+  it('la barra cuenta los lugares reservados, no los guardados para prioritarios', async () => {
+    // Sin reservas, un común ve 8 libres (2 guardados): la barra tiene que estar vacía.
+    stubApi({
+      ...routes,
+      'GET /departures?building=LIMA': {
+        body: [{ ...departure(1, '01', '17:32', 8), bookedSeats: 0 }],
+      },
+    });
+    await renderReserve();
+    await userEvent.click(destination('5'));
+
+    const slot = (await screen.findByRole('radio', { name: /^14:32/ })).closest('label')!;
+    expect(slot).toHaveTextContent('8 libres');
+    expect(slot.querySelector('.slot__bar > span')).toHaveStyle({ width: '0%' });
+  });
+
+  it('ordena los núcleos como la spec: Lima primero', async () => {
+    const ind: Building = {
+      code: 'INDEPENDENCIA',
+      name: 'Independencia',
+      minFloor: -1,
+      maxFloor: 5,
+      cores: [{ code: 'IND2', name: 'Independencia 2' }],
+      lowFloorsThreshold: 4,
+    };
+    stubApi({
+      ...routes,
+      'GET /buildings': { body: [ind, lima] },
+      'GET /elevators': {
+        body: [...elevators, { ...elevator('33', [0, 5], 'IND2'), building: 'INDEPENDENCIA' }],
+      },
+    });
+    renderPage();
+
+    const cores = await screen.findByRole('radiogroup', { name: 'Núcleo' });
+    expect(
+      within(cores)
+        .getAllByRole('radio')
+        .map((r) => r.closest('label')!.textContent),
+    ).toEqual(['Lima 1', 'Indep. 2']);
+  });
+
   it('con todo elegido reserva y va al turno', async () => {
     const fetchMock = stubApi({ ...routes, 'POST /reservations': { body: reservation() } });
     await renderReserve();
 
     // El origen solo ofrece los pisos de los ascensores dentro del rango del edificio.
-    expect(screen.queryByRole('option', { name: '-2' })).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('radiogroup', { name: 'Piso de origen' })).queryByRole('radio', {
+        name: '-2',
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirmar turno/ })).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+    await userEvent.click(destination('5'));
     await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar turno · 14:32' }));
 
@@ -129,17 +241,17 @@ describe('ReserveTurnPage', () => {
     renderPage();
     const confirm = async () => screen.findByRole('button', { name: /Confirmar turno/ });
 
-    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el edificio');
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el núcleo');
 
     await userEvent.click(screen.getByRole('radio', { name: 'Lima 1' }));
     expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de origen');
     expect(screen.getByText('Lima 1', { selector: 'p' })).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), 'PB');
+    await userEvent.click(origin('PB'));
     await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de destino');
 
-    await userEvent.click(screen.getByRole('radio', { name: '5' }));
+    await userEvent.click(destination('5'));
     expect(await confirm()).toBeEnabled();
     expect(await confirm()).not.toHaveAccessibleDescription();
     expect(screen.getByText('Lima 1 · Piso 5 · 14:32')).toBeInTheDocument();
@@ -161,7 +273,8 @@ describe('ReserveTurnPage', () => {
   });
 
   it('los destinos y las salidas salen de los ascensores que paran en los pisos elegidos', async () => {
-    stubApi(routes);
+    // Sin pisos bajos, para que el 3 sea elegible.
+    stubApi({ ...routes, 'GET /buildings': { body: [{ ...lima, lowFloorsThreshold: 0 }] } });
     await renderReserve();
 
     // Desde PB paran los dos: destinos de ambas baterías, sin el origen.
@@ -172,7 +285,7 @@ describe('ReserveTurnPage', () => {
     expect(destinations()).toEqual(['-1', '1', '3', '5']);
 
     // Al 3 solo va el 02: sus salidas, nada más.
-    await userEvent.click(screen.getByRole('radio', { name: '3' }));
+    await userEvent.click(destination('3'));
     const slots = screen.getByRole('radiogroup', { name: 'Franja horaria' });
     expect(
       within(slots)
@@ -181,7 +294,7 @@ describe('ReserveTurnPage', () => {
     ).toEqual(['14:32 · Ascensor 02 3 libres']);
 
     // Desde el 1 solo para el 01: el 3 deja de ser destino.
-    await userEvent.selectOptions(screen.getByLabelText('Piso de origen'), '1');
+    await userEvent.click(origin('1'));
     expect(destinations()).toEqual(['-1', 'PB', '5']);
   });
 
@@ -205,6 +318,7 @@ describe('ReserveTurnPage', () => {
       minFloor: -3,
       maxFloor: 10,
       cores: [{ code: 'IND1', name: 'Independencia 1' }],
+      lowFloorsThreshold: 4,
     };
     const dedicated = (code: string, usage: Elevator['usage']): Elevator => ({
       ...elevator(code, [0, 5], 'IND1'),
@@ -229,7 +343,7 @@ describe('ReserveTurnPage', () => {
       ...extra,
     });
     const offered = async () => {
-      const cores = await screen.findByRole('radiogroup', { name: 'Edificio' });
+      const cores = await screen.findByRole('radiogroup', { name: 'Núcleo' });
       return within(cores)
         .getAllByRole('radio')
         .map((r) => r.closest('label')!.textContent);
@@ -272,7 +386,11 @@ describe('ReserveTurnPage', () => {
       expect(await offered()).toEqual(['Indep. 1']);
       await userEvent.click(screen.getByRole('radio', { name: 'Indep. 1' }));
       // Los pisos del ascensor dedicado ajeno (-3 y 10) no cuentan para el origen.
-      expect(screen.queryByRole('option', { name: '-3' })).not.toBeInTheDocument();
+      expect(
+        within(screen.getByRole('radiogroup', { name: 'Piso de origen' })).queryByRole('radio', {
+          name: '-3',
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it('no precarga un último viaje a un núcleo que el usuario ya no puede usar', async () => {
@@ -356,7 +474,7 @@ describe('ReserveTurnPage', () => {
       await reserveAt1432();
 
       expect(await screen.findByRole('alert')).toHaveTextContent(message);
-      expect(screen.getByRole('radio', { name: '5' })).not.toBeChecked();
+      expect(destination('5')).not.toBeChecked();
       expect(screen.getByRole('button', { name: /Confirmar turno/ })).toHaveAccessibleDescription(
         'Falta elegir el piso de destino',
       );
@@ -434,7 +552,7 @@ describe('ReserveTurnPage', () => {
 
     expect(await screen.findByText(/Ya tenés un turno activo/)).toHaveTextContent('14:32');
     expect(screen.getByRole('link', { name: 'Ver mi turno' })).toHaveAttribute('href', '/turno/7');
-    expect(screen.queryByRole('radiogroup', { name: 'Edificio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Núcleo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Confirmar turno/ })).not.toBeInTheDocument();
   });
 
@@ -445,7 +563,7 @@ describe('ReserveTurnPage', () => {
     });
     renderPage();
 
-    expect(await screen.findByRole('radiogroup', { name: 'Edificio' })).toBeInTheDocument();
+    expect(await screen.findByRole('radiogroup', { name: 'Núcleo' })).toBeInTheDocument();
     expect(screen.queryByText(/Ya tenés un turno activo/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -458,9 +576,10 @@ describe('ReserveTurnPage', () => {
       stubApi(routes);
       renderPage();
 
-      expect(await screen.findByRole('radio', { name: '5' })).toBeChecked();
+      await screen.findByRole('radiogroup', { name: 'Piso de destino' });
+      expect(destination('5')).toBeChecked();
       expect(screen.getByRole('radio', { name: 'Lima 1' })).toBeChecked();
-      expect(screen.getByLabelText('Piso de origen')).toHaveDisplayValue('PB');
+      expect(origin('PB')).toBeChecked();
       expect(await screen.findByRole('radio', { name: /^14:32/ })).not.toBeChecked();
       expect(screen.getByText(/Usamos tu último viaje/)).toHaveTextContent(
         'Usamos tu último viaje: Lima 1 · PB → 5. Podés cambiarlo abajo.',
@@ -470,8 +589,8 @@ describe('ReserveTurnPage', () => {
       );
 
       // Se puede cambiar: al tocar otro piso el aviso se va.
-      await userEvent.click(screen.getByRole('radio', { name: '-1' }));
-      expect(screen.getByRole('radio', { name: '-1' })).toBeChecked();
+      await userEvent.click(destination('-1'));
+      expect(destination('-1')).toBeChecked();
       expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
     });
 
@@ -480,8 +599,13 @@ describe('ReserveTurnPage', () => {
       stubApi(routes);
       renderPage();
 
-      expect(await screen.findByLabelText('Piso de origen')).toHaveDisplayValue('PB');
-      expect(screen.queryByRole('radio', { name: '4' })).not.toBeInTheDocument();
+      expect(await screen.findByRole('radiogroup', { name: 'Piso de origen' })).toBeInTheDocument();
+      expect(origin('PB')).toBeChecked();
+      expect(
+        within(screen.getByRole('radiogroup', { name: 'Piso de destino' })).queryByRole('radio', {
+          name: '4',
+        }),
+      ).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
         'Falta elegir el piso de destino',
       );
@@ -506,7 +630,7 @@ describe('ReserveTurnPage', () => {
       expect(await screen.findByRole('radio', { name: 'Lima 1' })).not.toBeChecked();
       expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
-        'Falta elegir el edificio',
+        'Falta elegir el núcleo',
       );
     });
   });

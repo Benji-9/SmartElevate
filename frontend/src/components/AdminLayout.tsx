@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { useSession } from '../hooks/useSession';
 import { useResource } from '../hooks/useResource';
 import { getKiosks } from '../services/api';
 import './AdminLayout.css';
@@ -9,6 +10,12 @@ import './AdminLayout.css';
  */
 export function AdminLayout() {
   const kiosks = useResource(getKiosks);
+  const { logout } = useSession();
+  const navigate = useNavigate();
+  async function handleLogout() {
+    await logout();
+    navigate('/login', { replace: true });
+  }
   return (
     <div className="admin-shell">
       <div className="admin">
@@ -25,7 +32,7 @@ export function AdminLayout() {
               </li>
               <li>
                 <NavLink to="/admin/prioritarios" className="admin__link">
-                  Usuarios prioritarios
+                  Gestión de usuarios
                 </NavLink>
               </li>
               <li>
@@ -49,6 +56,14 @@ export function AdminLayout() {
               {/* Turnos, Núcleos y Reportes se suman cuando existan (#158). */}
             </ul>
           </nav>
+          <div className="admin__exit">
+            <Link to="/" className="admin__link">
+              Volver a la app
+            </Link>
+            <button type="button" className="admin__link" onClick={handleLogout}>
+              Cerrar sesión
+            </button>
+          </div>
         </aside>
         <main className="admin__main">
           <Outlet />

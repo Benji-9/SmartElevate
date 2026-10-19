@@ -49,7 +49,8 @@ class DepartureControllerTest {
     @Test
     void listsBookableDeparturesWithRemainingSeats() throws Exception {
         given(service.findBookable(USER, "33", null)).willReturn(List.of(new DepartureResponse(7, "33", "INDEPENDENCIA",
-                Instant.parse("2026-10-13T15:58:00Z"), 10, 10, DepartureStatus.SCHEDULED)));
+                Instant.parse("2026-10-13T15:58:00Z"), 10, 10, 0,
+                Instant.parse("2026-10-13T15:56:00Z"), DepartureStatus.SCHEDULED)));
 
         mockMvc.perform(get("/api/departures").with(asUser()).param("elevator", "33"))
                 .andExpect(status().isOk())
@@ -60,6 +61,8 @@ class DepartureControllerTest {
                 .andExpect(jsonPath("$[0].departureAt").value("2026-10-13T15:58:00Z"))
                 .andExpect(jsonPath("$[0].capacity").value(10))
                 .andExpect(jsonPath("$[0].remainingSeats").value(10))
+                .andExpect(jsonPath("$[0].bookedSeats").value(0))
+                .andExpect(jsonPath("$[0].bookingClosesAt").value("2026-10-13T15:56:00Z"))
                 .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
     }
 

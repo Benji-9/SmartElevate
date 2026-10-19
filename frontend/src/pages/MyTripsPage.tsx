@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
+import { Mascot } from '../components/Mascot';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { NoShowNotice } from '../features/trips/NoShowNotice';
 import { TripList } from '../features/trips/TripList';
@@ -39,6 +40,7 @@ export function MyTripsPage() {
   if (first.error) {
     content = (
       <div role="alert" className="trips__error">
+        <Mascot pose="triste" size={80} />
         <p>{first.error}</p>
         <Button variant="secondary" onClick={first.reload}>
           Reintentar
@@ -49,9 +51,13 @@ export function MyTripsPage() {
     content = <Skeleton label="Cargando tus viajes…" rows={3} height={72} />;
   } else if (trips.length === 0) {
     content = (
-      <p className="page-placeholder">
-        Todavía no tenés viajes. <Link to="/reservar">Reservá tu primer turno</Link>.
-      </p>
+      <div className="empty-state">
+        <Mascot pose="senala" size={96} />
+        <p className="page-placeholder">
+          Todavía no viajaste con SmartElevate. <Link to="/reservar">Reservá tu primer turno</Link>{' '}
+          y evitá la fila.
+        </p>
+      </div>
     );
   } else {
     content = (

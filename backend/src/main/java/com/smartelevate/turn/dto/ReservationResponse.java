@@ -20,6 +20,9 @@ public record ReservationResponse(
                 + "se cancela sin falta: la salida menos cancellation_deadline_before. Después, cancelar es tardío "
                 + "y cuenta como falta; desde la salida ya no se puede cancelar.",
                 example = "2026-10-13T15:48:00Z") Instant cancelFreeUntil,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Desde este instante (UTC) se puede "
+                + "hacer check-in: la salida menos check_in_opens_before.",
+                example = "2026-10-13T15:57:00Z") Instant checkInOpensAt,
         @Schema(description = "Número de lugar, de 1 a la capacidad. Null si la reserva está cancelada.",
                 example = "3", nullable = true) Integer seatNumber,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "0") int originFloor,

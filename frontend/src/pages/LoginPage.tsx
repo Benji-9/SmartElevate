@@ -9,7 +9,6 @@ import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
-import uadeLogo from '../assets/uade-logo.svg';
 import './AuthPages.css';
 
 type Errors = { email?: string; password?: string };
@@ -69,7 +68,6 @@ export function LoginPage() {
           label="Contraseña"
           type="password"
           autoComplete="current-password"
-          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
@@ -92,10 +90,7 @@ export function LoginPage() {
         ¿No tenés cuenta? <Link to="/registro">Registrate</Link>
       </p>
 
-      <footer className="auth__org">
-        <img className="auth__uade-logo" src={uadeLogo} alt="UADE" width={86} height={30} />
-      </footer>
-      <LegalFooter />
+      <LegalFooter withUadeLogo />
     </section>
   );
 }

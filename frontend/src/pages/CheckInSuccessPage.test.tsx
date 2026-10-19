@@ -38,7 +38,7 @@ describe('CheckInSuccessPage', () => {
       screen.getByRole('heading', { level: 2, name: 'Check-in a tiempo' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Subiste dentro de tu franja. ¡Gracias por usar tu turno!'),
+      screen.getByText('Subiste dentro de tu franja. ¡Gracias por ayudar a que el ascensor fluya!'),
     ).toBeInTheDocument();
     expect(screen.getByText('14:04 hs')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');

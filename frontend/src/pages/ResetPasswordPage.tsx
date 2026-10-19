@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { PASSWORD_HINT, validatePassword } from '../features/auth/validation';
@@ -71,7 +72,6 @@ export function ResetPasswordPage() {
           label="Contraseña nueva"
           type="password"
           autoComplete="new-password"
-          placeholder="••••••••"
           value={newPassword}
           hint={PASSWORD_HINT}
           onChange={(e) => setNewPassword(e.target.value)}
@@ -81,7 +81,6 @@ export function ResetPasswordPage() {
           label="Repetí la contraseña"
           type="password"
           autoComplete="new-password"
-          placeholder="••••••••"
           value={repeat}
           onChange={(e) => setRepeat(e.target.value)}
           error={errors.repeat}
@@ -102,6 +101,7 @@ export function ResetPasswordPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Contraseña nueva" backTo="/login" />
+      <AuthBrand />
       {content}
       <LegalFooter />
     </div>

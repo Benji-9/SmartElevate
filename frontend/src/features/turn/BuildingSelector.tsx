@@ -15,7 +15,7 @@ const shortName = (name: string) => name.replace(/\p{L}{9,}/u, (word) => `${word
 export function BuildingSelector({ cores, value, onChange }: BuildingSelectorProps) {
   return (
     <OptionGroup
-      label="Edificio"
+      label="Núcleo"
       name="core"
       className="reserve__cores"
       options={cores.map((core) => ({ value: core.code, label: shortName(core.name) }))}

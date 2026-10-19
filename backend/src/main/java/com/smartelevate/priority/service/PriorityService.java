@@ -45,12 +45,20 @@ public class PriorityService {
      */
     @Transactional(readOnly = true)
     public PriorityCategory currentPriority(UUID userId) {
+        return strongestCurrent(userId).map(UserPriority::getCategory).orElse(PriorityCategory.NONE);
+    }
+
+    /** Vencimiento de la prioridad vigente (la misma de {@link #currentPriority}); null si no hay o no vence. */
+    @Transactional(readOnly = true)
+    public Instant currentPriorityUntil(UUID userId) {
+        return strongestCurrent(userId).map(UserPriority::getExpiresAt).orElse(null);
+    }
+
+    private java.util.Optional<UserPriority> strongestCurrent(UUID userId) {
         Instant now = time.now();
         return priorities.findByUserIdAndStatus(userId, PriorityStatus.APPROVED).stream()
                 .filter(p -> p.isCurrent(now))
-                .map(UserPriority::getCategory)
-                .max(Comparator.naturalOrder()) // REDUCED_MOBILITY > TEACHER > NONE
-                .orElse(PriorityCategory.NONE);
+                .max(Comparator.comparing(UserPriority::getCategory)); // REDUCED_MOBILITY > TEACHER > NONE
     }
 
     @Transactional(readOnly = true)
@@ -93,6 +101,12 @@ public class PriorityService {
         if (p.isCurrent(now)) {
             throw new InvalidPriorityOperationException("El docente ya tiene la prioridad aprobada");
         }
+        grantTeacherPriority(actorId, userId, p);
+    }
+
+    /** Aprueba la prioridad de docente hasta el fin del cuatrimestre en curso (ver {@link #approveTeacher}). */
+    private void grantTeacherPriority(UUID actorId, UUID userId, UserPriority p) {
+        Instant now = time.now();
         LocalDate today = time.today();
         LocalDate semesterEnd = config.semesterEndDates().stream()
                 .filter(end -> !end.isBefore(today))
@@ -152,10 +166,10 @@ public class PriorityService {
     }
 
     /**
-     * Cambia el tipo de usuario (estudiante o docente) de una cuenta con email verificado. Pasar a docente la deja
-     * en la cola de validación, sin darle prioridad; si antes la habían rechazado, vuelve a la cola. Pasar a
-     * estudiante la saca de la cola y, si tenía la prioridad de docente vigente, se la revoca en el mismo paso.
-     * La prioridad de movilidad reducida no se toca.
+     * Cambia el tipo de usuario (estudiante o docente) de una cuenta con email verificado. Pasar a docente le da la
+     * prioridad de docente directamente (lo decide un ADMIN, así que no pasa por la cola) hasta el fin del cuatrimestre
+     * en curso; sin un cierre cargado falla y no cambia nada. Pasar a estudiante, si tenía la prioridad de docente
+     * vigente, se la revoca en el mismo paso. La prioridad de movilidad reducida no se toca.
      */
     @Transactional
     public void changeDeclaredType(UUID actorId, UUID userId, DeclaredUserType type) {
@@ -172,18 +186,16 @@ public class PriorityService {
         users.save(user);
         record(actorId, userId, "DECLARED_TYPE_CHANGED", previous + "->" + type);
         Instant now = time.now();
-        priorities.findByUserIdAndCategory(userId, PriorityCategory.TEACHER).ifPresent(row -> {
-            if (type == DeclaredUserType.TEACHER) {
-                // Un rechazo anterior lo sacaba de la cola: se lo vuelve a marcar a propósito, así que se reinicia.
-                if (row.getStatus() == PriorityStatus.REJECTED) {
-                    priorities.delete(row);
-                }
-            } else if (row.isCurrent(now)) {
-                row.decide(PriorityStatus.REJECTED, null, now, actorId);
-                priorities.save(row);
-                record(actorId, userId, "PRIORITY_REVOKED", PriorityCategory.TEACHER.name());
+        UserPriority row = teacherRow(userId);
+        if (type == DeclaredUserType.TEACHER) {
+            if (!row.isCurrent(now)) {
+                grantTeacherPriority(actorId, userId, row);
             }
-        });
+        } else if (row.isCurrent(now)) {
+            row.decide(PriorityStatus.REJECTED, null, now, actorId);
+            priorities.save(row);
+            record(actorId, userId, "PRIORITY_REVOKED", PriorityCategory.TEACHER.name());
+        }
     }
 
     private User declaredTeacher(UUID userId) {

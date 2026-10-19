@@ -1,7 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
 import { signedIn, stubApi, testReservation } from '../test/stubApi';
 import type { CheckIn } from '../types/api';
@@ -58,6 +59,32 @@ function renderCheckIn(path = '/check-in') {
 
 const withTurn = { ...signedIn(), 'GET /reservations/active': { body: reservation } };
 
+describe('CheckInPage antes de la apertura', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('avisa la hora y recién al abrir pide la cámara', async () => {
+    // 14:00 en Buenos Aires; abre a las 14:03.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-09-29T17:00:00Z') });
+    const getUserMedia = stubCamera();
+    stubApi(withTurn);
+    renderCheckIn();
+
+    expect(await screen.findByRole('heading', { name: 'Abre a las 14:03 hs' })).toBeInTheDocument();
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(screen.queryByText('Pidiendo permiso para usar la cámara…')).not.toBeInTheDocument();
+
+    await act(() => vi.advanceTimersByTimeAsync(3 * 60_000 + 2_000));
+
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Abre a las 14:03 hs' })).not.toBeInTheDocument();
+  });
+});
+
 describe('CheckInPage', () => {
   it('muestra el visor, las indicaciones y el turno activo', async () => {
     const getUserMedia = stubCamera();
@@ -70,7 +97,7 @@ describe('CheckInPage', () => {
     ).toBeInTheDocument();
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
     expect(
-      screen.getByText('El código rota: escanealo desde dentro de la cabina'),
+      screen.getByText(`${QR_INSTRUCTION} El código rota: no le saques foto.`),
     ).toBeInTheDocument();
     const sheet = screen.getByRole('region', { name: 'Tu turno' });
     expect(await within(sheet).findByText('14:04 hs')).toBeInTheDocument();

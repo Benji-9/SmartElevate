@@ -45,7 +45,11 @@ class ConfigServiceTest {
         v.put("congestion_medium_from", "60");
         v.put("congestion_high_from", "85");
         v.put("morning_shift_start", "07:00");
-        v.put("morning_shift_end", "12:15");
+        v.put("morning_shift_end", "13:00");
+        v.put("afternoon_shift_start", "13:00");
+        v.put("afternoon_shift_end", "18:00");
+        v.put("night_shift_start", "18:00");
+        v.put("night_shift_end", "22:30");
         return v;
     }
 
@@ -98,7 +102,10 @@ class ConfigServiceTest {
             "congestion_medium_from, 0",
             "congestion_medium_from, 85",
             "congestion_high_from, 101",
-            "morning_shift_start, 12:15",
+            "morning_shift_start, 13:00",
+            "afternoon_shift_start, 18:00",
+            "afternoon_shift_start, 12:59",
+            "night_shift_start, 22:30",
     })
     void outOfRangeValuesPreventStartup(String key, String value) {
         assertThatThrownBy(() -> load(with(key, value)))

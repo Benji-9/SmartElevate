@@ -216,11 +216,13 @@ describe('App', () => {
     expect(within(nav).queryByText('Reportes')).not.toBeInTheDocument();
   });
 
-  it('/admin sin rol ADMIN vuelve al inicio', async () => {
+  it('/admin sin rol ADMIN avisa que no tiene acceso', async () => {
     stubApi(signedIn());
     renderAt('/admin');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'No tenés acceso a esta sección' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Administración' })).not.toBeInTheDocument();
   });
 

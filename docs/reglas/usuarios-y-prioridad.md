@@ -48,9 +48,9 @@ Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
 - La prioridad se sigue evaluando **solo en el servidor al reservar**, nunca a partir de este campo.
 - **Cambiarlo después** ([#262](https://github.com/Benji-9/SmartElevate/issues/262)): quien ya tenía cuenta como estudiante y pasa a ser docente o ayudante no se registra de nuevo. Un ADMIN cambia el tipo desde la búsqueda de usuarios del panel (`PUT /api/admin/users/{id}/declared-type`), en los dos sentidos:
   - **Exige el email verificado**, igual que la cola. Si no lo verificó, 409.
-  - **Estudiante → docente:** entra a la cola "Docentes a validar" y un ADMIN lo aprueba como a cualquiera. El cambio **no da prioridad por sí solo**. Si antes lo habían rechazado, vuelve a la cola: el ADMIN lo está volviendo a marcar a propósito.
+  - **Estudiante → docente:** recibe la prioridad `TEACHER` **directamente**, sin pasar por la cola "Docentes a validar": lo decide un ADMIN, así que no hace falta una segunda aprobación. Vale hasta el fin del cuatrimestre en curso, igual que al aprobar, y se renueva igual (al vencer vuelve a la cola). Si antes lo habían rechazado, también la recibe. Si no hay un cierre de cuatrimestre cargado desde hoy, el cambio falla con 409 y no se modifica nada.
   - **Docente → estudiante:** sale de la cola y, si tenía la prioridad de docente vigente, **se le revoca en el mismo paso**. La prioridad de movilidad reducida no se toca.
-  - Cada cambio queda en `priority_audit` (`DECLARED_TYPE_CHANGED`, con `STUDENT->TEACHER` o `TEACHER->STUDENT`) y la revocación como `PRIORITY_REVOKED`.
+  - Cada cambio queda en `priority_audit` (`DECLARED_TYPE_CHANGED`, con `STUDENT->TEACHER` o `TEACHER->STUDENT`); el otorgamiento queda como `TEACHER_APPROVED` y la revocación como `PRIORITY_REVOKED`.
 
 ## Roles y prioridad
 
@@ -93,4 +93,5 @@ Decidido el 16/10 ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-o
 - **Access token corto (15 min) más refresh token (7 días)**, configurables con `JWT_ACCESS_TTL` y `JWT_REFRESH_TTL`.
 - Implementado en [#120](https://github.com/Benji-9/SmartElevate/issues/120): el JWT lleva solo `sub` (id de usuario); el rol se lee de la base en cada request. El refresh es opaco, de un solo uso y se guarda hasheado; reusar uno ya rotado revoca toda la sesión. Credenciales erróneas dan 401 sin distinguir si el email existe, y una cuenta sin verificar no puede loguearse (403, solo tras acertar la clave).
 - Decidido el 14/10 ([#204](https://github.com/Benji-9/SmartElevate/issues/204), [ADR 0019](../adr/0019-refresh-token-en-cookie-httponly.md)): el refresh pasa a una cookie `HttpOnly; Secure; SameSite=Lax`, a través del proxy del mismo origen de `vercel.json`. Implementado: login y refresh la setean (`Path=/api/auth`, `Max-Age` = TTL del refresh) y ya no devuelven el refresh en el body; `/auth/refresh` y `/auth/logout` la leen sin body y exigen el header `X-Requested-With: SmartElevate` y un `Origin` permitido ([ADR 0023](../adr/0023-defensa-csrf-del-refresh-por-cookie.md)). Reemplaza al [ADR 0014](../adr/0014-refresh-token-en-sessionstorage.md).
+- `GET /api/users/me` devuelve además `priorityUntil`: el vencimiento (`expires_at`, UTC) de la prioridad vigente, o `null` si no hay prioridad o no vence. Es informativo.
 - La **prioridad se evalúa en el servidor al reservar**, consultando el estado actual. **No se usa un claim del token**: la prioridad puede vencer o revocarse mientras el token sigue vigente.

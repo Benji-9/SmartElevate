@@ -8,6 +8,10 @@
   text-align: center;
 }
 
+.legal-footer__uade {
+  margin-bottom: 12px;
+}
+
 .legal-footer__links {
   display: flex;
   flex-wrap: wrap;

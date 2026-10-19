@@ -76,12 +76,13 @@ class ElevatorControllerTest {
     @Test
     void listsBuildingsWithCores() throws Exception {
         given(service.findBuildings()).willReturn(List.of(new BuildingResponse("LIMA", "Lima", -4, 10,
-                List.of(new BuildingResponse.CoreResponse("L1", "Lima 1"), new BuildingResponse.CoreResponse("L2", "Lima 2")))));
+                List.of(new BuildingResponse.CoreResponse("L1", "Lima 1"), new BuildingResponse.CoreResponse("L2", "Lima 2")), 4)));
 
         mockMvc.perform(get("/api/buildings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].code").value("LIMA"))
                 .andExpect(jsonPath("$[0].name").value("Lima"))
+                .andExpect(jsonPath("$[0].lowFloorsThreshold").value(4))
                 .andExpect(jsonPath("$[0].minFloor").value(-4))
                 .andExpect(jsonPath("$[0].maxFloor").value(10))
                 .andExpect(jsonPath("$[0].cores[1].code").value("L2"))

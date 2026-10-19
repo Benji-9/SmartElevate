@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -7,6 +7,7 @@ import {
   coreOptions,
   destinationFloorsOf,
   elevatorsServing,
+  isLowFloor,
   originFloorsOf,
   slotsOf,
 } from '../features/turn/catalog';
@@ -66,6 +67,13 @@ export function ReserveTurnPage() {
   // Lo elegido salió del último viaje y todavía no se tocó.
   const [fromLastTrip, setFromLastTrip] = useState(false);
 
+  // Las franjas cuya ventana cerró salen de la lista sin esperar a que el servidor las rechace.
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 5_000);
+    return () => clearInterval(id);
+  }, []);
+
   const catalog = useResource(loadCatalog);
   const active = useResource(loadActive);
   // La prioridad vigente decide qué núcleos con ascensores dedicados se ofrecen (el servidor igual la exige).
@@ -95,8 +103,11 @@ export function ReserveTurnPage() {
   const originFloors = originFloorsOf(core);
   const destinationFloors = core && origin !== null ? destinationFloorsOf(core, origin) : [];
   // Si la elección dejó de ser válida (p. ej. otro núcleo), no cuenta.
+  const blocked = (floor: number) => !!core && isLowFloor(core.building, floor, priority);
   const validDestination =
-    destination !== null && destinationFloors.includes(destination) ? destination : null;
+    destination !== null && destinationFloors.includes(destination) && !blocked(destination)
+      ? destination
+      : null;
   // Solo las salidas de los ascensores que paran en los pisos elegidos.
   const slots =
     core && departures.data
@@ -106,6 +117,7 @@ export function ReserveTurnPage() {
             core,
             [origin, validDestination].filter((f) => f !== null),
           ),
+          now,
         )
       : undefined;
   const slot = slots?.find((s) => s.departureAt === slotTime && s.departure.remainingSeats > 0);
@@ -120,7 +132,7 @@ export function ReserveTurnPage() {
     .join(' · ');
   // El próximo paso, para que el botón deshabilitado diga qué falta.
   const missing = !core
-    ? 'Falta elegir el edificio'
+    ? 'Falta elegir el núcleo'
     : origin === null
       ? 'Falta elegir el piso de origen'
       : validDestination === null
@@ -169,7 +181,7 @@ export function ReserveTurnPage() {
         destinationFloor: validDestination,
       });
       saveLastTrip({ coreId: core.code, originFloor: origin, destinationFloor: validDestination });
-      navigate(`/turno/${reservation.id}`);
+      navigate(`/turno/${reservation.id}`, { state: { justReserved: true } });
     } catch (error) {
       setSubmitError(errorMessage(error));
       const code = error instanceof ApiError ? error.code : undefined;
@@ -236,6 +248,8 @@ export function ReserveTurnPage() {
                 floors={destinationFloors}
                 value={validDestination}
                 onChange={chooseDestination}
+                blocked={blocked}
+                blockedReason={`Los pisos 1 a ${core?.building.lowFloorsThreshold} van por escalera.`}
               />
             )}
           </div>

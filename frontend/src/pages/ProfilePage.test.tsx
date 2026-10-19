@@ -28,6 +28,7 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Docente')).toBeInTheDocument();
     expect(screen.getByText('Legajo 1099999')).toBeInTheDocument();
     expect(screen.getByText('ana.perez@uade.edu.ar')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'UADE' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Mis viajes' })).toHaveAttribute(
       'href',
       '/perfil/viajes',
@@ -64,6 +65,37 @@ describe('ProfilePage', () => {
     expect(document.querySelector('input[type="file"]')).toBeNull();
     expect(screen.queryByLabelText(/certificado/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('con prioridad de docente muestra hasta cuándo vale, en hora de Buenos Aires', async () => {
+    // 02:59 UTC del 1/4 es todavía 31/3 en Buenos Aires.
+    stubApi(
+      signedIn({
+        ...testUser,
+        declaredUserType: 'TEACHER',
+        priority: 'TEACHER',
+        priorityUntil: '2027-04-01T02:59:59Z',
+      }),
+    );
+    renderProfile();
+
+    expect(
+      await screen.findByText('Prioridad de docente: vigente hasta el 31/03'),
+    ).toBeInTheDocument();
+  });
+
+  it('con prioridad de docente sin vencimiento dice solo "vigente"', async () => {
+    stubApi(
+      signedIn({
+        ...testUser,
+        declaredUserType: 'TEACHER',
+        priority: 'TEACHER',
+        priorityUntil: null,
+      }),
+    );
+    renderProfile();
+
+    expect(await screen.findByText('Prioridad de docente: vigente')).toBeInTheDocument();
   });
 
   it('"Cerrar sesión" vuelve a /login', async () => {

@@ -120,6 +120,21 @@ class PriorityServiceTest {
         assertThat(service.currentPriority(id)).isEqualTo(PriorityCategory.REDUCED_MOBILITY);
     }
 
+    @Test
+    void priorityUntilIsTheExpirationOfTheCurrentPriorityOrNull() {
+        UUID withExpiry = UUID.randomUUID();
+        approved(withExpiry, PriorityCategory.TEACHER, NOW.plusSeconds(60));
+        UUID noExpiry = UUID.randomUUID();
+        approved(noExpiry, PriorityCategory.REDUCED_MOBILITY, null);
+        UUID expired = UUID.randomUUID();
+        approved(expired, PriorityCategory.TEACHER, NOW);
+
+        assertThat(service.currentPriorityUntil(withExpiry)).isEqualTo(NOW.plusSeconds(60));
+        assertThat(service.currentPriorityUntil(noExpiry)).isNull();
+        assertThat(service.currentPriorityUntil(expired)).isNull();
+        assertThat(service.currentPriorityUntil(UUID.randomUUID())).isNull();
+    }
+
     // --- docentes ---
 
     private static final List<LocalDate> SEMESTER_ENDS = List.of(LocalDate.of(2026, 7, 31),
@@ -301,19 +316,24 @@ class PriorityServiceTest {
     }
 
     @Test
-    void studentToTeacherChangesTheTypeAndAudits() {
+    void studentToTeacherChangesTheTypeAndGrantsThePriorityDirectly() {
+        given(config.semesterEndDates()).willReturn(List.of(LocalDate.of(2026, 12, 31)));
         User u = verified(DeclaredUserType.STUDENT);
 
         service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER);
 
         assertThat(u.getDeclaredUserType()).isEqualTo(DeclaredUserType.TEACHER);
-        assertThat(auditedDetails()).containsExactly("DECLARED_TYPE_CHANGED:STUDENT->TEACHER");
-        // No recibe prioridad: la tiene que aprobar un ADMIN desde la cola.
-        verify(priorities, never()).save(any());
+        ArgumentCaptor<UserPriority> saved = ArgumentCaptor.forClass(UserPriority.class);
+        verify(priorities).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo(PriorityStatus.APPROVED);
+        assertThat(saved.getValue().getExpiresAt()).isEqualTo(Instant.parse("2027-01-01T03:00:00Z"));
+        assertThat(auditedDetails()).containsExactly("DECLARED_TYPE_CHANGED:STUDENT->TEACHER",
+                "TEACHER_APPROVED:expires 2027-01-01T03:00:00Z");
     }
 
     @Test
-    void studentToTeacherAfterARejectionPutsThemBackInTheQueue() {
+    void studentToTeacherAfterARejectionOrAnExpiredApprovalGetsThePriorityAgain() {
+        given(config.semesterEndDates()).willReturn(List.of(LocalDate.of(2026, 12, 31)));
         User u = verified(DeclaredUserType.STUDENT);
         UserPriority rejected = new UserPriority(u.getId(), PriorityCategory.TEACHER);
         rejected.decide(PriorityStatus.REJECTED, null, NOW.minusSeconds(3600), ADMIN);
@@ -322,20 +342,19 @@ class PriorityServiceTest {
 
         service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER);
 
-        verify(priorities).delete(rejected);
+        assertThat(rejected.isCurrent(NOW)).isTrue();
+        verify(priorities).save(rejected);
     }
 
     @Test
-    void studentToTeacherKeepsAnExpiredApprovalSoItRenewsFromTheQueue() {
+    void studentToTeacherWithoutASemesterEndFailsAndChangesNothingAudited() {
+        given(config.semesterEndDates()).willReturn(List.of());
         User u = verified(DeclaredUserType.STUDENT);
-        UserPriority expired = new UserPriority(u.getId(), PriorityCategory.TEACHER);
-        expired.decide(PriorityStatus.APPROVED, NOW.minusSeconds(1), NOW.minusSeconds(3600), ADMIN);
-        given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER))
-                .willReturn(Optional.of(expired));
 
-        service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER);
-
-        verify(priorities, never()).delete(any());
+        assertThatThrownBy(() -> service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER))
+                .isInstanceOf(InvalidPriorityOperationException.class)
+                .hasMessageContaining("cierre de cuatrimestre");
+        verify(priorities, never()).save(any());
     }
 
     @Test

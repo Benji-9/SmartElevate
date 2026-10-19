@@ -47,13 +47,3 @@
   --chip-dot: var(--Status-Alta);
   background: var(--Status-Alta-tint);
 }
-
-.chip--alumnos {
-  --chip-dot: var(--User-Alumnos);
-  background: var(--User-Alumnos-tint);
-}
-
-.chip--docentes {
-  --chip-dot: var(--User-Docentes);
-  background: var(--User-Docentes-tint);
-}

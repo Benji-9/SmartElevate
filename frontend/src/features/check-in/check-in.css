@@ -84,6 +84,7 @@
 .check-in__message {
   display: grid;
   gap: 8px;
+  justify-items: center;
   max-width: 320px;
 }
 

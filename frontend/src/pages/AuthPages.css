@@ -25,11 +25,6 @@
   margin-bottom: 8px;
 }
 
-.auth__org {
-  display: grid;
-  justify-items: center;
-}
-
 .auth__lead {
   font-size: var(--text-14);
 }
@@ -87,13 +82,6 @@
   font-size: var(--text-14);
   font-weight: var(--font-semibold);
   color: var(--color-primary);
-}
-
-.user-type-dot {
-  flex: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
 }
 
 .auth__footer {

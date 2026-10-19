@@ -10,8 +10,6 @@ describe('Chip', () => {
     ['baja', 'Baja'],
     ['media', 'Media'],
     ['alta', 'Alta'],
-    ['alumnos', 'Estudiante'],
-    ['docentes', 'Docente'],
   ])('con el tono %s muestra el texto, no solo el color', (tone, text) => {
     render(<Chip tone={tone}>{text}</Chip>);
     expect(screen.getByText(text)).toBeInTheDocument();

@@ -6,6 +6,7 @@ import { errorMessage, useResource } from '../hooks/useResource';
 import {
   ApiError,
   getAdminElevators,
+  getBuildings,
   markElevatorInService,
   markElevatorOutOfService,
 } from '../services/api';
@@ -30,17 +31,25 @@ function outageQuestion({ code, upcomingReservations: n }: AdminElevator) {
 export function AdminElevatorsPage() {
   const listId = useId();
   const list = useResource(getAdminElevators);
+  // Solo para el nombre visible del edificio: si falla, se muestra el código.
+  const buildings = useResource(getBuildings);
   const [done, setDone] = useState<string>();
   const [actionError, setActionError] = useState<string>();
   // Un solo pedido a la vez (evita doble POST) y nada de setState si la pantalla ya se desmontó.
   const [busy, setBusy] = useState(false);
   const mounted = useRef(true);
+  const feedback = useRef<HTMLDivElement>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
+
+  // El aviso queda arriba de la lista: si se scrolleó, se lo trae a la vista.
+  useEffect(() => {
+    if (done || actionError) feedback.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [done, actionError]);
 
   const change = (promise: Promise<unknown>, onOk: () => string | undefined) => {
     setDone(undefined);
@@ -74,7 +83,7 @@ export function AdminElevatorsPage() {
         cancelled = r.cancelledReservations;
       }),
       () =>
-        `Ascensor ${code} fuera de servicio. Se cancelaron ${plural(cancelled, 'reserva', 'reservas')}.`,
+        `Ascensor ${code} fuera de servicio. ${cancelled === 1 ? 'Se canceló 1 reserva' : `Se cancelaron ${cancelled} reservas`}.`,
     );
   };
 
@@ -100,56 +109,78 @@ export function AdminElevatorsPage() {
   } else if (list.data.length === 0) {
     content = <p className="page-placeholder">No hay ascensores para mostrar.</p>;
   } else {
+    const names = new Map((buildings.data ?? []).map((b) => [b.code, b.name]));
+    // Edificios y, dentro de cada uno, núcleos en el orden en que aparecen.
+    const byBuilding = new Map<string, Map<string, AdminElevator[]>>();
+    for (const e of list.data) {
+      const cores = byBuilding.get(e.building) ?? new Map<string, AdminElevator[]>();
+      cores.set(e.coreName, [...(cores.get(e.coreName) ?? []), e]);
+      byBuilding.set(e.building, cores);
+    }
     content = (
-      <div className="core-table__scroll">
-        <table className="core-table" aria-labelledby={listId}>
-          <thead>
-            <tr>
-              <th scope="col">Ascensor</th>
-              <th scope="col">Núcleo</th>
-              <th scope="col">Reservas próximas</th>
-              <th scope="col">Estado</th>
-              <th scope="col">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.map((e) => (
-              <tr key={e.code}>
-                <th scope="row">{e.code}</th>
-                <td>{e.coreName}</td>
-                <td>{e.upcomingReservations}</td>
-                <td>
-                  {e.active ? (
-                    <Chip>En servicio</Chip>
-                  ) : (
-                    <Chip tone="neutral">Fuera de servicio</Chip>
-                  )}
-                </td>
-                <td>
-                  {e.active ? (
-                    <ConfirmAction
-                      label="Marcar fuera de servicio"
-                      name={`Marcar fuera de servicio el ascensor ${e.code}`}
-                      question={outageQuestion(e)}
-                      confirmLabel="Sí, marcar"
-                      disabled={busy}
-                      onConfirm={() => markOut(e.code)}
-                    />
-                  ) : (
-                    <ConfirmAction
-                      label="Reactivar"
-                      name={`Reactivar el ascensor ${e.code}`}
-                      question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
-                      confirmLabel="Sí, reactivar"
-                      disabled={busy}
-                      onConfirm={() => markIn(e.code)}
-                    />
-                  )}
-                </td>
-              </tr>
+      <div className="elevator-buildings">
+        {[...byBuilding].map(([building, cores]) => (
+          <section key={building} aria-label={names.get(building) ?? building}>
+            <h3 className="text-label elevator-buildings__name">
+              {names.get(building) ?? building}
+            </h3>
+            {[...cores].map(([core, items]) => (
+              <section key={core} aria-label={core} className="elevator-core">
+                <h4 className="text-body-strong">{core}</h4>
+                <ul className="elevator-grid">
+                  {items.map((e) => (
+                    <li key={e.code}>
+                      <article
+                        className={`elevator-card${e.active ? '' : ' elevator-card--out'}`}
+                        aria-label={`Ascensor ${e.code}`}
+                      >
+                        <header className="elevator-card__head">
+                          <h5 className="text-card-title">{e.code}</h5>
+                          {e.active ? (
+                            <Chip>En servicio</Chip>
+                          ) : (
+                            <Chip tone="danger">Fuera de servicio</Chip>
+                          )}
+                        </header>
+                        {e.usage !== 'COMMON' && (
+                          <p>
+                            <Chip tone="neutral">
+                              {e.usage === 'TEACHERS'
+                                ? 'Dedicado a docentes'
+                                : 'Dedicado a movilidad reducida'}
+                            </Chip>
+                          </p>
+                        )}
+                        <p className="elevator-card__meta">
+                          {plural(e.upcomingReservations, 'reserva próxima', 'reservas próximas')}
+                        </p>
+                        {e.active ? (
+                          <ConfirmAction
+                            label="Marcar fuera de servicio"
+                            name={`Marcar fuera de servicio el ascensor ${e.code}`}
+                            question={outageQuestion(e)}
+                            confirmLabel="Sí, marcar"
+                            disabled={busy}
+                            onConfirm={() => markOut(e.code)}
+                          />
+                        ) : (
+                          <ConfirmAction
+                            label="Reactivar"
+                            name={`Reactivar el ascensor ${e.code}`}
+                            question={`¿Reactivar el ascensor ${e.code}? Vuelve a ofrecerse para reservar. Las reservas canceladas no se restauran.`}
+                            confirmLabel="Sí, reactivar"
+                            disabled={busy}
+                            onConfirm={() => markIn(e.code)}
+                          />
+                        )}
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </tbody>
-        </table>
+          </section>
+        ))}
       </div>
     );
   }
@@ -167,12 +198,14 @@ export function AdminElevatorsPage() {
         <h2 id={listId} className="text-card-title">
           Estado de los ascensores
         </h2>
-        {done && <p role="status">{done}</p>}
-        {actionError && (
-          <p role="alert" className="kiosk-error">
-            {actionError}
-          </p>
-        )}
+        <div ref={feedback}>
+          {done && <p role="status">{done}</p>}
+          {actionError && (
+            <p role="alert" className="kiosk-error">
+              {actionError}
+            </p>
+          )}
+        </div>
         {content}
       </section>
     </>

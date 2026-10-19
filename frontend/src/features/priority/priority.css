@@ -1,4 +1,8 @@
 /* Acceso prioritario (PriorityInfoCard) y la pantalla de perfil. */
+.profile-logo {
+  justify-self: start;
+}
+
 .profile-title {
   padding-block: 8px;
 }

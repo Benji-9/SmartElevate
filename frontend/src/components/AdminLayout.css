@@ -98,3 +98,28 @@
   gap: 24px;
   padding: 32px;
 }
+
+/* Panel de escritorio: los botones no necesitan la altura táctil de la app móvil. */
+.admin__main .button {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: var(--text-14);
+  line-height: 20px;
+}
+
+.admin__exit {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+button.admin__link {
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
