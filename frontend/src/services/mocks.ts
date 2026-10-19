@@ -304,13 +304,21 @@ const coresOf = (buildingCode: string) =>
   cores.filter((c) => c.buildingId === buildingCode).map((c) => ({ code: c.id, name: c.name }));
 
 const buildings: Building[] = [
-  { code: 'LIMA', name: 'Lima', minFloor: -4, maxFloor: 10, cores: coresOf('LIMA') },
+  {
+    code: 'LIMA',
+    name: 'Lima',
+    minFloor: -4,
+    maxFloor: 10,
+    cores: coresOf('LIMA'),
+    lowFloorsThreshold: LOW_FLOORS_THRESHOLD,
+  },
   {
     code: 'INDEPENDENCIA',
     name: 'Independencia',
     minFloor: -4,
     maxFloor: 11,
     cores: coresOf('INDEPENDENCIA'),
+    lowFloorsThreshold: LOW_FLOORS_THRESHOLD,
   },
 ];
 
@@ -403,6 +411,8 @@ function departureFor(id: number, user: User): Departure {
     departureAt: new Date(departureAt).toISOString(),
     capacity: CAPACITY,
     remainingSeats: Math.max(0, free - held),
+    bookedSeats: CAPACITY - free,
+    bookingClosesAt: new Date(departureAt - BOOKING_CLOSES_MS).toISOString(),
     status: 'SCHEDULED',
   };
 }

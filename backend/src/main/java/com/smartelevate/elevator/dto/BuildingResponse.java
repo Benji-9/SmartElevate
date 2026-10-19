@@ -10,7 +10,10 @@ public record BuildingResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "-4") int minFloor,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "10") int maxFloor,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Núcleos del edificio, ordenados por código")
-        List<CoreResponse> cores) {
+        List<CoreResponse> cores,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "4", description = "Los pisos 1 a este valor "
+                + "no se pueden elegir de destino (van por escalera), salvo movilidad reducida")
+        int lowFloorsThreshold) {
 
     public record CoreResponse(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "L3") String code,
