@@ -78,6 +78,11 @@ public class User {
         this.role = role;
     }
 
+    /** Solo lo llama el endpoint de ADMIN (#262). */
+    public void changeDeclaredUserType(DeclaredUserType declaredUserType) {
+        this.declaredUserType = declaredUserType;
+    }
+
     public void setNotificationPreferences(boolean departureReminder, boolean elevatorOutOfService) {
         this.notifyDepartureReminder = departureReminder;
         this.notifyElevatorOutOfService = elevatorOutOfService;

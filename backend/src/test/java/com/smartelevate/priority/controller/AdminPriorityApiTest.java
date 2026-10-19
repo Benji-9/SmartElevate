@@ -122,7 +122,8 @@ class AdminPriorityApiTest {
                 get("/api/admin/priority-users"),
                 get("/api/admin/users?query=usuario"),
                 delete("/api/admin/priority-users/" + id),
-                put("/api/admin/users/" + id + "/role").content("{\"role\":\"ADMIN\"}")
+                put("/api/admin/users/" + id + "/role").content("{\"role\":\"ADMIN\"}"),
+                put("/api/admin/users/" + id + "/declared-type").content("{\"declaredUserType\":\"STUDENT\"}")
         };
     }
 
@@ -237,6 +238,81 @@ class AdminPriorityApiTest {
                 .andExpect(status().isConflict());
     }
 
+    private MockHttpServletRequestBuilder declaredType(User target, String type) {
+        return put("/api/admin/users/" + target.getId() + "/declared-type")
+                .content("{\"declaredUserType\":\"" + type + "\"}");
+    }
+
+    @Test
+    void adminTurnsAStudentIntoATeacherAndTheyJoinTheQueue() throws Exception {
+        mockMvc.perform(as(admin, declaredType(common, "TEACHER"))).andExpect(status().isNoContent());
+
+        mockMvc.perform(as(admin, get("/api/admin/users").param("query", "comun@")))
+                .andExpect(jsonPath("$.items[0].declaredUserType").value("TEACHER"))
+                .andExpect(jsonPath("$.items[0].emailVerified").value(true));
+        // Entra a la cola, pero sin prioridad hasta que un ADMIN lo apruebe.
+        assertThat(priorityService.currentPriority(common.getId())).isEqualTo(PriorityCategory.NONE);
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
+                .andExpect(jsonPath("$.length()").value(2));
+        mockMvc.perform(as(admin, post("/api/admin/teachers/" + common.getId() + "/approve")))
+                .andExpect(status().isNoContent());
+        assertThat(priorityService.currentPriority(common.getId())).isEqualTo(PriorityCategory.TEACHER);
+        assertThat(audit.findByTargetUserIdOrderByCreatedAtAsc(common.getId()))
+                .extracting("action", "detail").contains(
+                        org.assertj.core.api.Assertions.tuple("DECLARED_TYPE_CHANGED", "STUDENT->TEACHER"));
+    }
+
+    @Test
+    void turningATeacherIntoAStudentRevokesTheirPriority() throws Exception {
+        mockMvc.perform(as(admin, post("/api/admin/teachers/" + teacher.getId() + "/approve")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(as(admin, declaredType(teacher, "STUDENT"))).andExpect(status().isNoContent());
+
+        assertThat(priorityService.currentPriority(teacher.getId())).isEqualTo(PriorityCategory.NONE);
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending"))).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(as(admin, get("/api/admin/priority-users"))).andExpect(jsonPath("$.length()").value(0));
+        assertThat(audit.findByTargetUserIdOrderByCreatedAtAsc(teacher.getId()))
+                .extracting("action", "detail").containsExactlyInAnyOrder(
+                        org.assertj.core.api.Assertions.tuple("TEACHER_APPROVED", "expires 2027-01-01T03:00:00Z"),
+                        org.assertj.core.api.Assertions.tuple("DECLARED_TYPE_CHANGED", "TEACHER->STUDENT"),
+                        org.assertj.core.api.Assertions.tuple("PRIORITY_REVOKED", "TEACHER"));
+    }
+
+    @Test
+    void aRejectedTeacherTurnedStudentAndBackToTeacherReturnsToTheQueue() throws Exception {
+        mockMvc.perform(as(admin, post("/api/admin/teachers/" + teacher.getId() + "/reject")))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending"))).andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(as(admin, declaredType(teacher, "STUDENT"))).andExpect(status().isNoContent());
+        mockMvc.perform(as(admin, declaredType(teacher, "TEACHER"))).andExpect(status().isNoContent());
+
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(teacher.getId().toString()));
+    }
+
+    @Test
+    void declaredTypeNeedsAVerifiedEmailAndARealChange() throws Exception {
+        User unverified = users.saveAndFlush(new User("Sin verificar", "nuevo@uade.edu.ar", "1000009", "x",
+                DeclaredUserType.STUDENT, Instant.now()));
+
+        mockMvc.perform(as(admin, declaredType(unverified, "TEACHER"))).andExpect(status().isConflict());
+        assertThat(users.findById(unverified.getId()).orElseThrow().getDeclaredUserType())
+                .isEqualTo(DeclaredUserType.STUDENT);
+        mockMvc.perform(as(admin, declaredType(teacher, "TEACHER"))).andExpect(status().isConflict());
+        mockMvc.perform(as(admin, put("/api/admin/users/" + UUID.randomUUID() + "/declared-type")
+                .content("{\"declaredUserType\":\"TEACHER\"}"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void declaredTypeValidation() throws Exception {
+        mockMvc.perform(as(admin, declaredType(common, "BOSS"))).andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, put("/api/admin/users/" + common.getId() + "/declared-type").content("{}")))
+                .andExpect(status().isBadRequest());
+    }
+
     private String search(String query) throws Exception {
         return mockMvc.perform(as(admin, get("/api/admin/users").param("query", query)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -299,9 +375,10 @@ class AdminPriorityApiTest {
     @Test
     void searchDoesNotExposeSensitiveFields() throws Exception {
         String body = search("usuario");
-        assertThat(body).doesNotContain("passwordHash", "password", "declaredUserType", "certificate", "priority");
+        assertThat(body).doesNotContain("passwordHash", "password", "certificate", "priority");
         mockMvc.perform(as(admin, get("/api/admin/users").param("query", "comun@")))
                 .andExpect(jsonPath("$.items[0].keys()").value(
-                        org.hamcrest.Matchers.containsInAnyOrder("id", "fullName", "email", "legajo", "role")));
+                        org.hamcrest.Matchers.containsInAnyOrder("id", "fullName", "email", "legajo", "role", "declaredUserType",
+                                "emailVerified")));
     }
 }

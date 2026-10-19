@@ -21,7 +21,7 @@ Términos del dominio, para que backend, frontend y docs hablen igual. Entre par
 | **Fuera de servicio** | Ascensor inactivo marcado por un ADMIN: no se ofrece para reservar ni recibe salidas nuevas hasta reactivarlo. |
 | **Cierre de cuatrimestre** | Fecha de `semester_end_dates` hasta la que vale la prioridad de un docente aprobado; vence al terminar ese día (hora de Buenos Aires). Hoy hay un único cierre provisorio, 2026-12-31 ([B-19](bloqueantes.md)). |
 | **Prioritario** | Usuario con prioridad aprobada y vigente: movilidad reducida (`REDUCED_MOBILITY`) o docente (`TEACHER`). |
-| **Tipo de usuario declarado** (`declaredUserType`) | Lo que la persona elige al registrarse: Estudiante (`STUDENT`) o Docente (`TEACHER`). No otorga nada; un docente declarado espera la aprobación de un ADMIN. |
+| **Tipo de usuario declarado** (`declaredUserType`) | Lo que la persona elige al registrarse (un ADMIN puede cambiarlo después, #262): Estudiante (`STUDENT`) o Docente (`TEACHER`). No otorga nada; un docente declarado espera la aprobación de un ADMIN. |
 | **Lugares reservados** | Hasta 2 de 10 lugares por salida en ascensores comunes, guardados para prioritarios. |
 | **Envejecimiento** (aging) | Aumento de prioridad de una solicitud que espera. **Fuera del MVP** ([#212](https://github.com/Benji-9/SmartElevate/issues/212)). |
 | **Edificio** (`Building`) | Lima (−4 a 10) o Independencia (−4 a 11). Agrupa núcleos. |

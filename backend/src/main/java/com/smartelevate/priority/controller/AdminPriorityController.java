@@ -4,6 +4,7 @@ import com.smartelevate.common.config.OpenApiConfig;
 import com.smartelevate.common.error.ApiError;
 import com.smartelevate.common.security.CurrentUser;
 import com.smartelevate.priority.dto.AdminUserPage;
+import com.smartelevate.priority.dto.AssignDeclaredTypeRequest;
 import com.smartelevate.priority.dto.AssignRoleRequest;
 import com.smartelevate.priority.dto.PendingTeacherResponse;
 import com.smartelevate.priority.dto.PriorityUserResponse;
@@ -106,5 +107,19 @@ public class AdminPriorityController {
     public void assignRole(@AuthenticationPrincipal CurrentUser admin, @PathVariable UUID id,
                            @Valid @RequestBody AssignRoleRequest request) {
         service.assignRole(admin.id(), id, request.role());
+    }
+
+    @PutMapping("/users/{id}/declared-type")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Cambia el tipo de usuario (STUDENT, TEACHER) de una cuenta con email verificado",
+            description = "Pasar a docente lo deja en la cola de validación, sin darle prioridad. Pasar a estudiante "
+                    + "lo saca de la cola y le revoca la prioridad de docente si la tenía vigente.")
+    @ApiResponse(responseCode = "404", description = "Usuario inexistente",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    @ApiResponse(responseCode = "409", description = "Email sin verificar o el usuario ya tiene ese tipo",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public void changeDeclaredType(@AuthenticationPrincipal CurrentUser admin, @PathVariable UUID id,
+                                   @Valid @RequestBody AssignDeclaredTypeRequest request) {
+        service.changeDeclaredType(admin.id(), id, request.declaredUserType());
     }
 }

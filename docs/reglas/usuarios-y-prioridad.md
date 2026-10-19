@@ -46,6 +46,11 @@ Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
   - Si el ADMIN aprueba, obtiene la prioridad `TEACHER`.
   - Si rechaza, sigue como usuario común.
 - La prioridad se sigue evaluando **solo en el servidor al reservar**, nunca a partir de este campo.
+- **Cambiarlo después** ([#262](https://github.com/Benji-9/SmartElevate/issues/262)): quien ya tenía cuenta como estudiante y pasa a ser docente o ayudante no se registra de nuevo. Un ADMIN cambia el tipo desde la búsqueda de usuarios del panel (`PUT /api/admin/users/{id}/declared-type`), en los dos sentidos:
+  - **Exige el email verificado**, igual que la cola. Si no lo verificó, 409.
+  - **Estudiante → docente:** entra a la cola "Docentes a validar" y un ADMIN lo aprueba como a cualquiera. El cambio **no da prioridad por sí solo**. Si antes lo habían rechazado, vuelve a la cola: el ADMIN lo está volviendo a marcar a propósito.
+  - **Docente → estudiante:** sale de la cola y, si tenía la prioridad de docente vigente, **se le revoca en el mismo paso**. La prioridad de movilidad reducida no se toca.
+  - Cada cambio queda en `priority_audit` (`DECLARED_TYPE_CHANGED`, con `STUDENT->TEACHER` o `TEACHER->STUDENT`) y la revocación como `PRIORITY_REVOKED`.
 
 ## Roles y prioridad
 

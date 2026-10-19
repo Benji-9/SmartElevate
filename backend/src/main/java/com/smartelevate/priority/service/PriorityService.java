@@ -151,6 +151,41 @@ public class PriorityService {
         record(actorId, userId, "ROLE_CHANGED", previous + "->" + role);
     }
 
+    /**
+     * Cambia el tipo de usuario (estudiante o docente) de una cuenta con email verificado. Pasar a docente la deja
+     * en la cola de validación, sin darle prioridad; si antes la habían rechazado, vuelve a la cola. Pasar a
+     * estudiante la saca de la cola y, si tenía la prioridad de docente vigente, se la revoca en el mismo paso.
+     * La prioridad de movilidad reducida no se toca.
+     */
+    @Transactional
+    public void changeDeclaredType(UUID actorId, UUID userId, DeclaredUserType type) {
+        User user = users.findById(userId).orElseThrow(() -> new PriorityNotFoundException("Usuario inexistente"));
+        if (!user.isEmailVerified()) {
+            throw new InvalidPriorityOperationException(
+                    "El usuario todavía no verificó su email: no se le puede cambiar el tipo");
+        }
+        DeclaredUserType previous = user.getDeclaredUserType();
+        if (previous == type) {
+            throw new InvalidPriorityOperationException("El usuario ya está declarado como " + type);
+        }
+        user.changeDeclaredUserType(type);
+        users.save(user);
+        record(actorId, userId, "DECLARED_TYPE_CHANGED", previous + "->" + type);
+        Instant now = time.now();
+        priorities.findByUserIdAndCategory(userId, PriorityCategory.TEACHER).ifPresent(row -> {
+            if (type == DeclaredUserType.TEACHER) {
+                // Un rechazo anterior lo sacaba de la cola: se lo vuelve a marcar a propósito, así que se reinicia.
+                if (row.getStatus() == PriorityStatus.REJECTED) {
+                    priorities.delete(row);
+                }
+            } else if (row.isCurrent(now)) {
+                row.decide(PriorityStatus.REJECTED, null, now, actorId);
+                priorities.save(row);
+                record(actorId, userId, "PRIORITY_REVOKED", PriorityCategory.TEACHER.name());
+            }
+        });
+    }
+
     private User declaredTeacher(UUID userId) {
         User user = users.findById(userId).orElseThrow(() -> new PriorityNotFoundException("Usuario inexistente"));
         if (user.getDeclaredUserType() != DeclaredUserType.TEACHER) {

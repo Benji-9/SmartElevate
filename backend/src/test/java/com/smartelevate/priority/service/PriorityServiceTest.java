@@ -285,4 +285,110 @@ class PriorityServiceTest {
         assertThatThrownBy(() -> service.assignRole(ADMIN, UUID.randomUUID(), Role.ADMIN))
                 .isInstanceOf(PriorityNotFoundException.class);
     }
+
+    // --- tipo de usuario (#262) ---
+
+    private User verified(DeclaredUserType type) {
+        User u = user(type);
+        u.verifyEmail();
+        return u;
+    }
+
+    private List<String> auditedDetails() {
+        ArgumentCaptor<PriorityAudit> captor = ArgumentCaptor.forClass(PriorityAudit.class);
+        verify(audit, org.mockito.Mockito.atLeastOnce()).save(captor.capture());
+        return captor.getAllValues().stream().map(a -> a.getAction() + ":" + a.getDetail()).toList();
+    }
+
+    @Test
+    void studentToTeacherChangesTheTypeAndAudits() {
+        User u = verified(DeclaredUserType.STUDENT);
+
+        service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER);
+
+        assertThat(u.getDeclaredUserType()).isEqualTo(DeclaredUserType.TEACHER);
+        assertThat(auditedDetails()).containsExactly("DECLARED_TYPE_CHANGED:STUDENT->TEACHER");
+        // No recibe prioridad: la tiene que aprobar un ADMIN desde la cola.
+        verify(priorities, never()).save(any());
+    }
+
+    @Test
+    void studentToTeacherAfterARejectionPutsThemBackInTheQueue() {
+        User u = verified(DeclaredUserType.STUDENT);
+        UserPriority rejected = new UserPriority(u.getId(), PriorityCategory.TEACHER);
+        rejected.decide(PriorityStatus.REJECTED, null, NOW.minusSeconds(3600), ADMIN);
+        given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER))
+                .willReturn(Optional.of(rejected));
+
+        service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER);
+
+        verify(priorities).delete(rejected);
+    }
+
+    @Test
+    void studentToTeacherKeepsAnExpiredApprovalSoItRenewsFromTheQueue() {
+        User u = verified(DeclaredUserType.STUDENT);
+        UserPriority expired = new UserPriority(u.getId(), PriorityCategory.TEACHER);
+        expired.decide(PriorityStatus.APPROVED, NOW.minusSeconds(1), NOW.minusSeconds(3600), ADMIN);
+        given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER))
+                .willReturn(Optional.of(expired));
+
+        service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER);
+
+        verify(priorities, never()).delete(any());
+    }
+
+    @Test
+    void teacherToStudentRevokesTheCurrentTeacherPriority() {
+        User u = verified(DeclaredUserType.TEACHER);
+        UserPriority current = new UserPriority(u.getId(), PriorityCategory.TEACHER);
+        current.decide(PriorityStatus.APPROVED, NOW.plusSeconds(3600), NOW.minusSeconds(3600), ADMIN);
+        given(priorities.findByUserIdAndCategory(u.getId(), PriorityCategory.TEACHER))
+                .willReturn(Optional.of(current));
+
+        service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.STUDENT);
+
+        assertThat(u.getDeclaredUserType()).isEqualTo(DeclaredUserType.STUDENT);
+        assertThat(current.isCurrent(NOW)).isFalse();
+        assertThat(current.getStatus()).isEqualTo(PriorityStatus.REJECTED);
+        verify(priorities).save(current);
+        assertThat(auditedDetails())
+                .containsExactly("DECLARED_TYPE_CHANGED:TEACHER->STUDENT", "PRIORITY_REVOKED:TEACHER");
+    }
+
+    @Test
+    void teacherToStudentWithoutAPriorityOnlyChangesTheType() {
+        User u = verified(DeclaredUserType.TEACHER);
+
+        service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.STUDENT);
+
+        assertThat(auditedDetails()).containsExactly("DECLARED_TYPE_CHANGED:TEACHER->STUDENT");
+        verify(priorities, never()).save(any());
+    }
+
+    @Test
+    void changingTheTypeRequiresAVerifiedEmail() {
+        User u = user(DeclaredUserType.STUDENT);
+
+        assertThatThrownBy(() -> service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER))
+                .isInstanceOf(InvalidPriorityOperationException.class)
+                .hasMessageContaining("verificó su email");
+        assertThat(u.getDeclaredUserType()).isEqualTo(DeclaredUserType.STUDENT);
+        verify(audit, never()).save(any());
+    }
+
+    @Test
+    void changingToTheSameTypeIsRejected() {
+        User u = verified(DeclaredUserType.TEACHER);
+
+        assertThatThrownBy(() -> service.changeDeclaredType(ADMIN, u.getId(), DeclaredUserType.TEACHER))
+                .isInstanceOf(InvalidPriorityOperationException.class);
+        verify(audit, never()).save(any());
+    }
+
+    @Test
+    void changingTheTypeOfAnUnknownUserIsNotFound() {
+        assertThatThrownBy(() -> service.changeDeclaredType(ADMIN, UUID.randomUUID(), DeclaredUserType.TEACHER))
+                .isInstanceOf(PriorityNotFoundException.class);
+    }
 }
