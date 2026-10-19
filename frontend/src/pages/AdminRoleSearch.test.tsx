@@ -151,13 +151,26 @@ describe('Gestión de usuarios (09b)', () => {
     expect(screen.queryByRole('combobox', { name: 'Rol de Ana Pérez' })).not.toBeInTheDocument();
   });
 
+  it('el selector de rol solo ofrece Usuario y Administrador', async () => {
+    renderPage();
+    await search('carla');
+
+    const select = await openRoleSelect('Carla Díaz');
+
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['Usuario', 'Administrador']);
+  });
+
   it('cambiar el rol pide confirmación y se puede cancelar', async () => {
     const fetchMock = renderPage();
     await search('carla');
 
-    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'REVIEWER');
+    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'ADMIN');
     expect(screen.getByRole('group', { name: 'Cambiar rol de Carla Díaz' })).toHaveTextContent(
-      '¿Cambiar a Carla Díaz de Usuario a Revisor?',
+      '¿Cambiar a Carla Díaz de Usuario a Administrador?',
     );
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
@@ -169,12 +182,13 @@ describe('Gestión de usuarios (09b)', () => {
     const fetchMock = renderPage({ 'PUT /admin/users/a-1/role': { status: 204 } });
     await search('carla');
 
-    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'REVIEWER');
+    await userEvent.selectOptions(await openRoleSelect('Carla Díaz'), 'ADMIN');
     await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
 
-    expect(await screen.findByText('Revisor')).toBeInTheDocument();
+    const row = (await screen.findByRole('rowheader', { name: 'Carla Díaz' })).closest('tr')!;
+    expect(await within(row).findByText('Administrador')).toBeInTheDocument();
     const put = fetchMock.mock.calls.find(([url]) => url === '/api/admin/users/a-1/role');
-    expect(JSON.parse(String(put?.[1]?.body))).toEqual({ role: 'REVIEWER' });
+    expect(JSON.parse(String(put?.[1]?.body))).toEqual({ role: 'ADMIN' });
   });
 
   it('si el cambio falla muestra el error y deja el rol como estaba', async () => {

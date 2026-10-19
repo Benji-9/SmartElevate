@@ -85,7 +85,15 @@ function UserRow({
       </div>
     );
   } else if (editing) {
-    const options = editing === 'type' ? USER_TYPES : ROLES;
+    // Desde el panel solo se asigna Usuario o Administrador; si la persona ya es Revisor, se lo muestra igual.
+    const options: Record<string, string> =
+      editing === 'type'
+        ? USER_TYPES
+        : Object.fromEntries(
+            Object.entries(ROLES).filter(
+              ([role]) => role !== 'REVIEWER' || user.role === 'REVIEWER',
+            ),
+          );
     action = (
       <div className="priority-actions">
         <select
