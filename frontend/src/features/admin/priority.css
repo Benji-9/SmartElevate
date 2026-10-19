@@ -48,21 +48,29 @@
   white-space: normal;
 }
 
-/* Menú "Gestionar usuario": se despliega en la celda (no flota) para que el scroll de la tabla no lo recorte. */
+/* Menú "Gestionar usuario": flota sobre la tabla, sin agrandar la fila. */
+.core-table__scroll--menu {
+  /* Admin es solo de escritorio: sin scroll horizontal, el menú no queda recortado. */
+  overflow: visible;
+}
+
 .user-menu {
-  display: grid;
-  justify-items: start;
-  gap: 4px;
+  position: relative;
 }
 
 .user-menu__list {
-  min-width: 200px;
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  min-width: 220px;
   margin: 0;
   padding: 4px;
   list-style: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 25%, transparent);
 }
 
 .user-menu__item {

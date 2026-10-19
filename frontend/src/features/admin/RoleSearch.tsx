@@ -46,6 +46,16 @@ function UserRow({
   const [editing, setEditing] = useState<Edit['field']>();
   const [picked, setPicked] = useState<Edit>();
   const menuId = useId();
+  const menuRef = useRef<HTMLDivElement>(null);
+  // El menú flota sobre la tabla: se cierra al hacer clic afuera.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [menuOpen]);
   const close = () => {
     setMenuOpen(false);
     setEditing(undefined);
@@ -126,6 +136,7 @@ function UserRow({
   } else {
     action = (
       <div
+        ref={menuRef}
         className="user-menu"
         onKeyDown={(e) => {
           if (e.key === 'Escape') setMenuOpen(false);
@@ -325,7 +336,7 @@ function Results({
           {actionError}
         </p>
       )}
-      <div className="core-table__scroll">
+      <div className="core-table__scroll core-table__scroll--menu">
         <table className="core-table priority-table" aria-labelledby={titleId}>
           <thead>
             <tr>
