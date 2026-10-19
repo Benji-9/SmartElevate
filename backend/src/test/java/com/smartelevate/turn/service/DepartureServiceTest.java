@@ -129,6 +129,21 @@ class DepartureServiceTest {
         assertThat(result.getFirst().bookedSeats()).isEqualTo(3);
     }
 
+    @Test
+    void bookedSeatsIgnoresCancelledReservations() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+        Departure first = repositoryDeparture(service.findBookable(COMMON, "33", null).getFirst().id());
+        reservations.save(new Reservation(user("active"), first, 1, 0, 8, NOW.get()));
+        Reservation cancelled = new Reservation(user("cancelled"), first, 2, 0, 8, NOW.get());
+        cancelled.cancelByOutage();
+        reservations.save(cancelled);
+
+        DepartureResponse result = service.findBookable(COMMON, "33", null).getFirst();
+
+        assertThat(result.bookedSeats()).isEqualTo(1);
+        assertThat(result.remainingSeats()).isEqualTo(9);
+    }
+
     private Departure repositoryDeparture(long id) {
         return repository.findById(id).orElseThrow();
     }
