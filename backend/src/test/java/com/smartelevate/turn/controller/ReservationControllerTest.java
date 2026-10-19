@@ -75,6 +75,7 @@ class ReservationControllerTest {
                 .andExpect(jsonPath("$.elevator").value("33"))
                 .andExpect(jsonPath("$.seatNumber").value(3))
                 .andExpect(jsonPath("$.cancelFreeUntil").value("2026-10-13T15:48:00Z"))
+                .andExpect(jsonPath("$.checkInOpensAt").value("2026-10-13T15:57:00Z"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
@@ -138,7 +139,8 @@ class ReservationControllerTest {
     private static ReservationResponse response(long id, Integer seat, ReservationStatus status,
                                                 CheckInOutcome outcome) {
         return new ReservationResponse(id, 7, "33", "Independencia 2", "Independencia",
-                Instant.parse("2026-10-13T15:58:00Z"), Instant.parse("2026-10-13T15:48:00Z"), seat, 0, 8, status,
+                Instant.parse("2026-10-13T15:58:00Z"), Instant.parse("2026-10-13T15:48:00Z"),
+                Instant.parse("2026-10-13T15:57:00Z"), seat, 0, 8, status,
                 Instant.parse("2026-10-13T15:55:00Z"), false, outcome);
     }
 

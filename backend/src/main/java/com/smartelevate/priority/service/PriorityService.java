@@ -45,12 +45,20 @@ public class PriorityService {
      */
     @Transactional(readOnly = true)
     public PriorityCategory currentPriority(UUID userId) {
+        return strongestCurrent(userId).map(UserPriority::getCategory).orElse(PriorityCategory.NONE);
+    }
+
+    /** Vencimiento de la prioridad vigente (la misma de {@link #currentPriority}); null si no hay o no vence. */
+    @Transactional(readOnly = true)
+    public Instant currentPriorityUntil(UUID userId) {
+        return strongestCurrent(userId).map(UserPriority::getExpiresAt).orElse(null);
+    }
+
+    private java.util.Optional<UserPriority> strongestCurrent(UUID userId) {
         Instant now = time.now();
         return priorities.findByUserIdAndStatus(userId, PriorityStatus.APPROVED).stream()
                 .filter(p -> p.isCurrent(now))
-                .map(UserPriority::getCategory)
-                .max(Comparator.naturalOrder()) // REDUCED_MOBILITY > TEACHER > NONE
-                .orElse(PriorityCategory.NONE);
+                .max(Comparator.comparing(UserPriority::getCategory)); // REDUCED_MOBILITY > TEACHER > NONE
     }
 
     @Transactional(readOnly = true)

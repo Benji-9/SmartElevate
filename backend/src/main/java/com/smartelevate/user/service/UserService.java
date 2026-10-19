@@ -39,7 +39,8 @@ public class UserService {
         User user = users.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido"));
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getLegajo(), user.getRole(),
-                priorityService.currentPriority(userId), user.getDeclaredUserType());
+                priorityService.currentPriority(userId), priorityService.currentPriorityUntil(userId),
+                user.getDeclaredUserType());
     }
 
     /**

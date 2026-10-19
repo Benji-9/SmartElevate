@@ -103,6 +103,7 @@ class ReservationServiceTest {
         lenient().when(config.prioritySeatsPerDeparture()).thenReturn(2);
         lenient().when(config.prioritySeatsReleaseBefore()).thenReturn(Duration.ofMinutes(3));
         lenient().when(config.cancellationDeadlineBefore()).thenReturn(Duration.ofMinutes(10));
+        lenient().when(config.checkInOpensBefore()).thenReturn(Duration.ofMinutes(1));
         lenient().when(priorities.currentPriority(USER)).thenReturn(PriorityCategory.NONE);
         lenient().when(reservations.saveAndFlush(any(Reservation.class))).thenAnswer(i -> {
             Reservation r = i.getArgument(0);
@@ -139,6 +140,7 @@ class ReservationServiceTest {
         assertThat(response.createdAt()).isEqualTo(NOW);
         // Salida a las 13:05 de Buenos Aires: sin falta hasta las 12:55, el plazo de app_config antes.
         assertThat(response.cancelFreeUntil()).isEqualTo(NOW);
+        assertThat(response.checkInOpensAt()).isEqualTo(NOW.plus(Duration.ofMinutes(9)));
     }
 
     @Test

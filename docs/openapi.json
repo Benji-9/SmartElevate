@@ -3279,6 +3279,12 @@
             "description" : "Hasta este instante (inclusive, UTC) se cancela sin falta: la salida menos cancellation_deadline_before. Después, cancelar es tardío y cuenta como falta; desde la salida ya no se puede cancelar.",
             "example" : "2026-10-13T15:48:00Z"
           },
+          "checkInOpensAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Desde este instante (UTC) se puede hacer check-in: la salida menos check_in_opens_before.",
+            "example" : "2026-10-13T15:57:00Z"
+          },
           "checkInOutcome" : {
             "type" : [ "string", "null" ],
             "description" : "Resultado del check-in, si hubo: ON_TIME, OTHER_ELEVATOR o LATE (cuenta como falta). Incluye los del simulador de admin.",
@@ -3335,7 +3341,7 @@
             "enum" : [ "ACTIVE", "CANCELLED", "CANCELLED_LATE", "USED", "NO_SHOW" ]
           }
         },
-        "required" : [ "buildingName", "cancelCountsAsNoShow", "cancelFreeUntil", "coreName", "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]
+        "required" : [ "buildingName", "cancelCountsAsNoShow", "cancelFreeUntil", "checkInOpensAt", "coreName", "createdAt", "departureAt", "departureId", "destinationFloor", "elevator", "id", "originFloor", "status" ]
       },
       "ReserveRequest" : {
         "type" : "object",
@@ -3429,6 +3435,12 @@
             "type" : "string",
             "description" : "Prioridad vigente, solo para mostrar: se vuelve a evaluar al reservar",
             "enum" : [ "NONE", "TEACHER", "REDUCED_MOBILITY" ]
+          },
+          "priorityUntil" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Hasta cuándo (UTC) vale la prioridad vigente. Null si no hay prioridad o no vence",
+            "example" : "2027-03-31T02:59:59Z"
           },
           "role" : {
             "type" : "string",
