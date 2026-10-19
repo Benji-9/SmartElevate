@@ -5,6 +5,7 @@ import com.smartelevate.common.error.ApiError;
 import com.smartelevate.common.security.CurrentUser;
 import com.smartelevate.priority.dto.AdminUserPage;
 import com.smartelevate.priority.dto.AssignRoleRequest;
+import com.smartelevate.priority.dto.ChangeUserTypeRequest;
 import com.smartelevate.priority.dto.PendingTeacherResponse;
 import com.smartelevate.priority.dto.PriorityUserResponse;
 import com.smartelevate.priority.service.PriorityService;
@@ -106,5 +107,18 @@ public class AdminPriorityController {
     public void assignRole(@AuthenticationPrincipal CurrentUser admin, @PathVariable UUID id,
                            @Valid @RequestBody AssignRoleRequest request) {
         service.assignRole(admin.id(), id, request.role());
+    }
+
+    @PutMapping("/users/{id}/type")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Cambia el tipo de usuario (STUDENT, TEACHER); a docente le da la prioridad directamente")
+    @ApiResponse(responseCode = "404", description = "Usuario inexistente",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    @ApiResponse(responseCode = "409",
+            description = "No se puede cambiar el tipo propio, o falta cargar el cierre del cuatrimestre",
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public void changeUserType(@AuthenticationPrincipal CurrentUser admin, @PathVariable UUID id,
+                               @Valid @RequestBody ChangeUserTypeRequest request) {
+        service.changeUserType(admin.id(), id, request.userType());
     }
 }

@@ -89,10 +89,15 @@ public class PriorityService {
     public void approveTeacher(UUID actorId, UUID userId) {
         User user = declaredTeacher(userId);
         Instant now = time.now();
-        UserPriority p = teacherRow(user.getId());
-        if (p.isCurrent(now)) {
+        if (teacherRow(user.getId()).isCurrent(now)) {
             throw new InvalidPriorityOperationException("El docente ya tiene la prioridad aprobada");
         }
+        grantTeacherPriority(actorId, user, "TEACHER_APPROVED");
+    }
+
+    private void grantTeacherPriority(UUID actorId, User user, String action) {
+        Instant now = time.now();
+        UserPriority p = teacherRow(user.getId());
         LocalDate today = time.today();
         LocalDate semesterEnd = config.semesterEndDates().stream()
                 .filter(end -> !end.isBefore(today))
@@ -103,7 +108,40 @@ public class PriorityService {
         Instant expiresAt = time.toInstant(semesterEnd.plusDays(1), LocalTime.MIDNIGHT);
         p.decide(PriorityStatus.APPROVED, expiresAt, now, actorId);
         priorities.save(p);
-        record(actorId, userId, "TEACHER_APPROVED", "expires " + expiresAt);
+        record(actorId, user.getId(), action, "expires " + expiresAt);
+    }
+
+    /**
+     * Cambia el tipo de usuario. Pasar a docente le da la prioridad de docente directamente (lo decide un ADMIN, así
+     * que no pasa por la cola) hasta el fin del cuatrimestre; pasar a estudiante le quita solo la de docente, no la de
+     * movilidad reducida. Nadie cambia el suyo.
+     */
+    @Transactional
+    public void changeUserType(UUID actorId, UUID userId, DeclaredUserType type) {
+        if (actorId.equals(userId)) {
+            throw new InvalidPriorityOperationException("No podés cambiar tu propio tipo");
+        }
+        User user = users.findById(userId).orElseThrow(() -> new PriorityNotFoundException("Usuario inexistente"));
+        DeclaredUserType previous = user.getDeclaredUserType();
+        if (previous == type) {
+            return;
+        }
+        user.changeUserType(type);
+        users.save(user);
+        record(actorId, userId, "USER_TYPE_CHANGED", previous + "->" + type);
+        Instant now = time.now();
+        if (type == DeclaredUserType.TEACHER) {
+            if (!teacherRow(userId).isCurrent(now)) {
+                grantTeacherPriority(actorId, user, "TEACHER_APPROVED");
+            }
+        } else {
+            UserPriority teacher = teacherRow(userId);
+            if (teacher.isCurrent(now)) {
+                teacher.decide(PriorityStatus.REJECTED, null, now, actorId);
+                priorities.save(teacher);
+                record(actorId, userId, "PRIORITY_REVOKED", PriorityCategory.TEACHER.name());
+            }
+        }
     }
 
     /** Rechaza a un docente declarado: sale de la cola y sigue como usuario común. */

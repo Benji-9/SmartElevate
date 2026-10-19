@@ -1040,6 +1040,23 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     },
   ],
   [
+    'PUT',
+    /^\/admin\/users\/([^/]+)\/type$/,
+    (body, [id]) => {
+      if (id === currentUser().id) throw new ApiError(409, 'No podés cambiar tu propio tipo');
+      const target = adminUsers.find((u) => u.id === id);
+      if (!target) throw new ApiError(404, 'Usuario inexistente');
+      target.userType = (body as { userType: AdminUser['userType'] }).userType;
+      // Como el backend: a docente, prioridad directa; a estudiante, se la quita.
+      priorityUsers = priorityUsers.filter((u) => !(u.id === id && u.category === 'TEACHER'));
+      if (target.userType === 'TEACHER') {
+        const { fullName, email, legajo } = target;
+        priorityUsers = [...priorityUsers, { id, fullName, email, legajo, category: 'TEACHER' }];
+      }
+      return undefined;
+    },
+  ],
+  [
     'DELETE',
     /^\/admin\/priority-users\/([^/]+)$/,
     (_, [id]) => {

@@ -905,6 +905,80 @@
         "tags" : [ "admin-priority" ]
       }
     },
+    "/api/admin/users/{id}/type" : {
+      "put" : {
+        "operationId" : "changeUserType",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeUserTypeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Usuario inexistente"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "No se puede cambiar el tipo propio, o falta cargar el cierre del cuatrimestre"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cambia el tipo de usuario (STUDENT, TEACHER); a docente le da la prioridad directamente",
+        "tags" : [ "admin-priority" ]
+      }
+    },
     "/api/auth/login" : {
       "post" : {
         "description" : "Las credenciales incorrectas dan 401 sin distinguir si el email existe. Con la clave correcta pero el email sin verificar responde 403. Demasiados intentos fallidos para la cuenta o la IP dan 429 con el header Retry-After (ventana deslizante, ADR 0015).",
@@ -2472,6 +2546,17 @@
           }
         },
         "required" : [ "code", "cores", "maxFloor", "minFloor", "name" ]
+      },
+      "ChangeUserTypeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userType" : {
+            "type" : "string",
+            "enum" : [ "STUDENT", "TEACHER" ],
+            "example" : "TEACHER"
+          }
+        },
+        "required" : [ "userType" ]
       },
       "CheckInRequest" : {
         "type" : "object",

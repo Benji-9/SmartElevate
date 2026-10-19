@@ -118,6 +118,7 @@ class AdminPriorityApiTest {
         return new MockHttpServletRequestBuilder[] {
                 get("/api/admin/teachers/pending"),
                 post("/api/admin/teachers/" + id + "/approve"),
+                put("/api/admin/users/" + id + "/type").content("{\"userType\":\"STUDENT\"}"),
                 post("/api/admin/teachers/" + id + "/reject"),
                 get("/api/admin/priority-users"),
                 get("/api/admin/users?query=usuario"),
@@ -235,6 +236,52 @@ class AdminPriorityApiTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(as(admin, put("/api/admin/users/" + admin.getId() + "/role").content("{\"role\":\"USER\"}")))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void changingToTeacherGivesPriorityDirectlyAndBackToStudentTakesItAway() throws Exception {
+        mockMvc.perform(as(admin, put("/api/admin/users/" + common.getId() + "/type")
+                        .content("{\"userType\":\"TEACHER\"}")))
+                .andExpect(status().isNoContent());
+
+        assertThat(priorityService.currentPriority(common.getId())).isEqualTo(PriorityCategory.TEACHER);
+        assertThat(users.findById(common.getId()).orElseThrow().getDeclaredUserType())
+                .isEqualTo(DeclaredUserType.TEACHER);
+        mockMvc.perform(as(admin, get("/api/admin/teachers/pending")))
+                .andExpect(jsonPath("$[?(@.id == '" + common.getId() + "')]").isEmpty());
+
+        mockMvc.perform(as(admin, put("/api/admin/users/" + common.getId() + "/type")
+                        .content("{\"userType\":\"STUDENT\"}")))
+                .andExpect(status().isNoContent());
+
+        assertThat(priorityService.currentPriority(common.getId())).isEqualTo(PriorityCategory.NONE);
+        assertThat(audit.findByTargetUserIdOrderByCreatedAtAsc(common.getId())).extracting("action")
+                .containsExactly("USER_TYPE_CHANGED", "TEACHER_APPROVED", "USER_TYPE_CHANGED", "PRIORITY_REVOKED");
+    }
+
+    @Test
+    void changingTheTypeToTheSameOneDoesNothing() throws Exception {
+        mockMvc.perform(as(admin, put("/api/admin/users/" + common.getId() + "/type")
+                        .content("{\"userType\":\"STUDENT\"}")))
+                .andExpect(status().isNoContent());
+
+        assertThat(audit.findByTargetUserIdOrderByCreatedAtAsc(common.getId())).isEmpty();
+    }
+
+    @Test
+    void typeChangeValidationAndSelfChange() throws Exception {
+        mockMvc.perform(as(admin, put("/api/admin/users/" + common.getId() + "/type")
+                        .content("{\"userType\":\"BOSS\"}")))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(as(admin, put("/api/admin/users/" + admin.getId() + "/type")
+                        .content("{\"userType\":\"TEACHER\"}")))
+                .andExpect(status().isConflict());
+        mockMvc.perform(as(admin, put("/api/admin/users/" + UUID.randomUUID() + "/type")
+                        .content("{\"userType\":\"TEACHER\"}")))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(as(common, put("/api/admin/users/" + teacher.getId() + "/type")
+                        .content("{\"userType\":\"STUDENT\"}")))
+                .andExpect(status().isForbidden());
     }
 
     private String search(String query) throws Exception {

@@ -45,7 +45,7 @@ const search = async (text: string) =>
 /** Abre "Gestionar usuario" de la fila y elige "Cambiar rol". */
 async function openRoleSelect(name: string) {
   await userEvent.click(await screen.findByRole('button', { name: `Gestionar usuario ${name}` }));
-  await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar rol' }));
+  await userEvent.click(screen.getByRole('menuitem', { name: 'Modificar rol' }));
   return screen.findByRole('combobox', { name: `Rol de ${name}` });
 }
 
@@ -81,7 +81,7 @@ describe('Gestión de usuarios (09b)', () => {
     expect(searches).toHaveLength(1);
   });
 
-  it('el menú ofrece cambiar rol y deja cambiar tipo y bloquear como próximamente', async () => {
+  it('el menú ofrece modificar rol y cambiar tipo, y deja bloquear para más adelante', async () => {
     renderPage();
     await search('carla');
 
@@ -90,15 +90,56 @@ describe('Gestión de usuarios (09b)', () => {
     );
 
     const menu = screen.getByRole('menu', { name: 'Gestionar a Carla Díaz' });
-    expect(within(menu).getByRole('menuitem', { name: 'Cambiar rol' })).toBeEnabled();
-    expect(within(menu).getByRole('menuitem', { name: /Cambiar tipo/ })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    expect(within(menu).getByRole('menuitem', { name: 'Modificar rol' })).toBeEnabled();
+    expect(within(menu).getByRole('menuitem', { name: 'Cambiar tipo' })).toBeEnabled();
     expect(within(menu).getByRole('menuitem', { name: /Bloquear cuenta/ })).toHaveAttribute(
       'aria-disabled',
       'true',
     );
+  });
+
+  it('cambiar el tipo avisa de la prioridad, manda el tipo y actualiza la fila', async () => {
+    const fetchMock = renderPage({ 'PUT /admin/users/a-1/type': { status: 204 } });
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Gestionar usuario Carla Díaz' }),
+    );
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar tipo' }));
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Tipo de Carla Díaz' }),
+      'TEACHER',
+    );
+    expect(screen.getByRole('group', { name: 'Cambiar tipo de Carla Díaz' })).toHaveTextContent(
+      '¿Cambiar a Carla Díaz de Estudiante a Docente? Va a tener prioridad de docente hasta fin del cuatrimestre.',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
+
+    const row = (await screen.findByRole('rowheader', { name: 'Carla Díaz' })).closest('tr')!;
+    expect(await within(row).findByText('Docente')).toBeInTheDocument();
+    const put = fetchMock.mock.calls.find(([url]) => url === '/api/admin/users/a-1/type');
+    expect(JSON.parse(String(put?.[1]?.body))).toEqual({ userType: 'TEACHER' });
+  });
+
+  it('si cambiar el tipo falla muestra el error y deja el tipo como estaba', async () => {
+    renderPage({
+      'PUT /admin/users/a-1/type': { status: 409, body: { message: 'Falta el cierre' } },
+    });
+    await search('carla');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Gestionar usuario Carla Díaz' }),
+    );
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar tipo' }));
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Tipo de Carla Díaz' }),
+      'TEACHER',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, cambiar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falta el cierre');
+    const row = screen.getByRole('rowheader', { name: 'Carla Díaz' }).closest('tr')!;
+    expect(within(row).getByText('Estudiante')).toBeInTheDocument();
   });
 
   it('la cuenta propia no ofrece cambiar el rol', async () => {

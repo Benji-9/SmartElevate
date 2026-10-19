@@ -24,6 +24,7 @@ import type {
   PriorityUser,
   AdminUserPage,
   Role,
+  DeclaredUserType,
   QrToken,
   RegisterRequest,
   Reservation,
@@ -330,6 +331,12 @@ export const searchUsers = (query: string, cursor?: string) =>
 /** Cambia el rol de otro usuario (el servidor rechaza con 409 el propio). Solo ADMIN. */
 export const assignRole = (id: string, role: Role) =>
   api.put<void>(`/admin/users/${encodeURIComponent(id)}/role`, { role });
+/**
+ * Pasa a un usuario de estudiante a docente o al revés. A docente le da la prioridad directamente;
+ * a estudiante le quita la de docente. El servidor rechaza con 409 el propio. Solo ADMIN.
+ */
+export const changeUserType = (id: string, userType: DeclaredUserType) =>
+  api.put<void>(`/admin/users/${encodeURIComponent(id)}/type`, { userType });
 /** Usuarios con prioridad vigente. */
 export const getPriorityUsers = () => api.get<PriorityUser[]>('/admin/priority-users');
 export const revokePriority = (id: string) =>

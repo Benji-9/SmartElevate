@@ -258,6 +258,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/users/{id}/type': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Cambia el tipo de usuario (STUDENT, TEACHER); a docente le da la prioridad directamente */
+    put: operations['changeUserType'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/login': {
     parameters: {
       query?: never;
@@ -876,6 +893,13 @@ export interface components {
       minFloor: number;
       /** @example Lima */
       name: string;
+    };
+    ChangeUserTypeRequest: {
+      /**
+       * @example TEACHER
+       * @enum {string}
+       */
+      userType: 'STUDENT' | 'TEACHER';
     };
     /** @description Check-in: el token leído del QR del ascensor. El usuario sale de la sesión, no del body. */
     CheckInRequest: {
@@ -2160,6 +2184,66 @@ export interface operations {
         };
       };
       /** @description No se puede cambiar el rol propio */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+    };
+  };
+  changeUserType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangeUserTypeRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description Usuario inexistente */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
+      /** @description No se puede cambiar el tipo propio, o falta cargar el cierre del cuatrimestre */
       409: {
         headers: {
           [name: string]: unknown;

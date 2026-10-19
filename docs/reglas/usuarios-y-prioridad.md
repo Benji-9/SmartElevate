@@ -45,6 +45,7 @@ Decidido en [#32](https://github.com/Benji-9/SmartElevate/issues/32).
 - Si declara **Docente**, queda en la cola **"Docentes a validar"** del panel de administración ([#140](https://github.com/Benji-9/SmartElevate/issues/140)):
   - Si el ADMIN aprueba, obtiene la prioridad `TEACHER`.
   - Si rechaza, sigue como usuario común.
+- Un **ADMIN** puede cambiar el tipo de otro usuario desde el panel (`PUT /api/admin/users/{id}/type`; nunca el propio). Pasar a **Docente** le da la prioridad `TEACHER` **directamente**, sin pasar por la cola, hasta el fin del cuatrimestre en curso (igual que al aprobar). Pasar a **Estudiante** le quita solo la prioridad `TEACHER` (no la de movilidad reducida). Ambos cambios quedan en la auditoría.
 - La prioridad se sigue evaluando **solo en el servidor al reservar**, nunca a partir de este campo.
 
 ## Roles y prioridad

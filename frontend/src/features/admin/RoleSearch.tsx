@@ -4,7 +4,7 @@ import { Chip } from '../../components/Chip';
 import { Input } from '../../components/Input';
 import { errorMessage, useResource } from '../../hooks/useResource';
 import { useSession } from '../../hooks/useSession';
-import { ApiError, assignRole, searchUsers } from '../../services/api';
+import { ApiError, assignRole, changeUserType, searchUsers } from '../../services/api';
 import type { AdminUser, Role } from '../../types/api';
 import './priority.css';
 
@@ -22,9 +22,13 @@ const USER_TYPES: Record<AdminUser['userType'], string> = {
   TEACHER: 'Docente',
 };
 
+type UserType = AdminUser['userType'];
+/** Lo que se está por cambiar en una fila: el rol o el tipo. */
+type Edit = { field: 'role'; to: Role } | { field: 'type'; to: UserType };
+
 /**
- * Fila con el menú "Gestionar usuario". Cambiar el rol pide confirmación en el lugar.
- * Cambiar el tipo y bloquear todavía no tienen endpoint: se muestran sin acción.
+ * Fila con el engranaje de gestión. Cambiar el rol o el tipo pide confirmación en el lugar.
+ * Bloquear la cuenta todavía no tiene endpoint: se muestra sin acción.
  */
 function UserRow({
   user,
@@ -34,27 +38,37 @@ function UserRow({
 }: {
   user: AdminUser;
   isSelf: boolean;
-  /** Hay un cambio de rol en vuelo para esta fila. */
+  /** Hay un cambio en vuelo para esta fila. */
   busy: boolean;
-  onChange: (role: Role) => void;
+  onChange: (edit: Edit) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState(false);
-  const [picked, setPicked] = useState<Role>();
+  const [editing, setEditing] = useState<Edit['field']>();
+  const [picked, setPicked] = useState<Edit>();
   const menuId = useId();
   const close = () => {
     setMenuOpen(false);
-    setEditingRole(false);
+    setEditing(undefined);
     setPicked(undefined);
   };
+  const labels: Record<string, string> = picked?.field === 'type' ? USER_TYPES : ROLES;
+  const current = picked?.field === 'type' ? user.userType : user.role;
   let action;
   if (isSelf) {
     action = 'Es tu cuenta';
   } else if (picked) {
     action = (
-      <div role="group" aria-label={`Cambiar rol de ${user.fullName}`} className="priority-actions">
+      <div
+        role="group"
+        aria-label={`Cambiar ${picked.field === 'type' ? 'tipo' : 'rol'} de ${user.fullName}`}
+        className="priority-actions"
+      >
         <p className="priority-question">
-          ¿Cambiar a {user.fullName} de {ROLES[user.role]} a {ROLES[picked]}?
+          ¿Cambiar a {user.fullName} de {labels[current]} a {labels[picked.to]}?
+          {picked.field === 'type' &&
+            picked.to === 'TEACHER' &&
+            ' Va a tener prioridad de docente hasta fin del cuatrimestre.'}
+          {picked.field === 'type' && picked.to === 'STUDENT' && ' Pierde la prioridad de docente.'}
         </p>
         <Button
           block={false}
@@ -70,19 +84,26 @@ function UserRow({
         </Button>
       </div>
     );
-  } else if (editingRole) {
+  } else if (editing) {
+    const options = editing === 'type' ? USER_TYPES : ROLES;
     action = (
       <div className="priority-actions">
         <select
           className="priority-select"
-          aria-label={`Rol de ${user.fullName}`}
+          aria-label={`${editing === 'type' ? 'Tipo' : 'Rol'} de ${user.fullName}`}
           disabled={busy}
-          value={user.role}
+          value={editing === 'type' ? user.userType : user.role}
           autoFocus
-          onChange={(e) => setPicked(e.target.value as Role)}
+          onChange={(e) =>
+            setPicked(
+              editing === 'type'
+                ? { field: 'type', to: e.target.value as UserType }
+                : { field: 'role', to: e.target.value as Role },
+            )
+          }
         >
-          {Object.entries(ROLES).map(([role, label]) => (
-            <option key={role} value={role}>
+          {Object.entries(options).map(([value, label]) => (
+            <option key={value} value={value}>
               {label}
             </option>
           ))}
@@ -141,10 +162,10 @@ function UserRow({
                 autoFocus
                 onClick={() => {
                   setMenuOpen(false);
-                  setEditingRole(true);
+                  setEditing('role');
                 }}
               >
-                Cambiar rol
+                Modificar rol
               </button>
             </li>
             <li role="none">
@@ -152,10 +173,12 @@ function UserRow({
                 type="button"
                 role="menuitem"
                 className="user-menu__item"
-                aria-disabled="true"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setEditing('type');
+                }}
               >
                 Cambiar tipo
-                <span className="user-menu__soon">Próximamente</span>
               </button>
             </li>
             <li role="none">
@@ -203,7 +226,9 @@ function Results({
   const { user: me } = useSession();
   const first = useResource(useCallback(() => searchUsers(term), [term]));
   const [more, setMore] = useState<{ items: AdminUser[]; next: string | null }>();
+  // Lo ya confirmado en esta búsqueda, para mostrarlo sin volver a pedir la lista.
   const [roles, setRoles] = useState<Record<string, Role>>({});
+  const [types, setTypes] = useState<Record<string, UserType>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [saving, setSaving] = useState<string[]>([]);
   // La búsqueda cambió (o se desmontó): las respuestas de pedidos viejos se ignoran.
@@ -239,14 +264,17 @@ function Results({
     return <p className="page-placeholder">No encontramos usuarios para «{term}».</p>;
   }
 
-  const change = (user: AdminUser, role: Role) => {
+  const change = (user: AdminUser, edit: Edit) => {
     setActionError(undefined);
     setSaving((ids) => [...ids, user.id]);
     const done = () => setSaving((ids) => ids.filter((id) => id !== user.id));
-    assignRole(user.id, role).then(
+    const request =
+      edit.field === 'role' ? assignRole(user.id, edit.to) : changeUserType(user.id, edit.to);
+    request.then(
       () => {
         done();
-        setRoles((r) => ({ ...r, [user.id]: role }));
+        if (edit.field === 'role') setRoles((r) => ({ ...r, [user.id]: edit.to }));
+        else setTypes((t) => ({ ...t, [user.id]: edit.to }));
       },
       (error: unknown) => {
         done();
@@ -299,10 +327,10 @@ function Results({
             {items.map((u) => (
               <UserRow
                 key={u.id}
-                user={{ ...u, role: roles[u.id] ?? u.role }}
+                user={{ ...u, role: roles[u.id] ?? u.role, userType: types[u.id] ?? u.userType }}
                 isSelf={u.id === me?.id}
                 busy={saving.includes(u.id)}
-                onChange={(role) => change(u, role)}
+                onChange={(edit) => change(u, edit)}
               />
             ))}
           </tbody>

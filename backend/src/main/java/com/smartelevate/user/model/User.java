@@ -78,6 +78,11 @@ public class User {
         this.role = role;
     }
 
+    /** Solo lo llama el endpoint de ADMIN: pasar de estudiante a docente y viceversa. */
+    public void changeUserType(DeclaredUserType userType) {
+        this.declaredUserType = userType;
+    }
+
     public void setNotificationPreferences(boolean departureReminder, boolean elevatorOutOfService) {
         this.notifyDepartureReminder = departureReminder;
         this.notifyElevatorOutOfService = elevatorOutOfService;
