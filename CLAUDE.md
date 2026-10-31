@@ -35,7 +35,7 @@ Antes de implementar algo de `turn`, `elevator`, `user` o `priority` (backend o 
 - La prioridad se evalúa **en el servidor al reservar**, nunca desde un claim del JWT. El rol y la prioridad no vienen del registro (ADR 0009).
 - **Movilidad reducida** (ADR 0024): la marca la pone UADE vía OFALU. SmartElevate **no sube, guarda, revisa ni muestra certificados** y no trata datos de salud. Hoy ningún endpoint asigna `REDUCED_MOBILITY`; no agregues uno ni vuelvas a tocar certificados sin ADR nuevo.
 
-Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` y `docs/bloqueantes.md` (hoy: accesibilidad de las conexiones, #22; calendario de cuatrimestres, #218). X y N quedaron fuera del MVP (`docs/alcance-mvp.md`): no los implementes.
+Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo pendiente está en `docs/reglas/turnos.md#preguntas-abiertas` y `docs/bloqueantes.md` (hoy: calendario de cuatrimestres, #218). X y N quedaron fuera del MVP (`docs/alcance-mvp.md`): no los implementes.
 
 ## Arquitectura
 

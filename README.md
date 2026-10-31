@@ -7,7 +7,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Los alumno
 ## Estado del proyecto
 
 - **Hecho** (backend y pantallas contra la API real): cuentas con email institucional, login con refresh en cookie HttpOnly, olvidé mi contraseña, reservas con cupo atómico y prioritario, cancelación, check-in con QR en kiosco web, no-shows y suspensión, notificaciones por email, ascensor fuera de servicio, KPIs y panel de administración (prioritarios, kioscos, ascensores, simulador).
-- **Pendiente**: deploy del backend en Render ([#222](https://github.com/Benji-9/SmartElevate/issues/222)), la integración con OFALU para la marca de movilidad reducida (Fase 2: la app no maneja certificados, [ADR 0024](docs/adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) y los [bloqueantes](docs/bloqueantes.md) abiertos (conexiones accesibles, calendario de UADE).
+- **Pendiente**: la integración con OFALU para la marca de movilidad reducida (Fase 2: la app no maneja certificados, [ADR 0024](docs/adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) y el [calendario de cierres de UADE](docs/bloqueantes.md) para los cuatrimestres.
 - **Fuera del MVP**: lista de espera, envejecimiento de prioridad, edificio alternativo, tolerancia X, ingreso manual del código y encuesta de espera.
 - Mapa de pantallas y qué está conectado: [docs/frontend/SCREENS.md](docs/frontend/SCREENS.md#estado-por-pantalla).
 
@@ -319,7 +319,6 @@ Detalles:
 
 ## Setup manual pendiente
 
-- **Clave HMAC del QR** ([ADR 0016](docs/adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)): cargar `APP_KIOSK_QR_SECRET` en Render antes del próximo deploy del backend ([#222](https://github.com/Benji-9/SmartElevate/issues/222)): sin ella no arranca en `prod`.
 - **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)); cada una se da de alta en `/admin/kioscos` y abre `/qr/<ascensor>`.
 - **Calendario de cierres de UADE** para `semester_end_dates`, antes del 31/12/2026 ([B-19](docs/bloqueantes.md)).
 - **Primer ADMIN** por SQL: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
