@@ -49,7 +49,7 @@ Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-i
 
 ## Estado por pantalla
 
-Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`services/mocks.ts`); en tests, build y producción siempre pega al backend ([README](../../README.md#frontend)). Qué está conectado hoy:
+Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`services/mocks.ts`); en tests, build y producción siempre pega al backend ([README del frontend](../../frontend/README.md#variables-de-entorno)). Qué está conectado hoy:
 
 | Pantalla | Estado | Endpoints / PR |
 |---|---|---|

@@ -63,7 +63,7 @@ Configuración del Web Service:
 
 ### Checklist maestra de variables de producción
 
-Es la única tabla con todo lo que hay que cargar en producción; el [README](../README.md#variables-de-entorno-del-backend) tiene la misma lista con la descripción de cada una para quien desarrolla. Verificada el 2026-10-16 contra `application*.yml` y las clases `@ConfigurationProperties`, y arrancando el jar con perfil `prod` (sin las cuatro de `RequiredProdProperties`, con `JWT_SECRET` corta, con mail activo sin `SPRING_MAIL_HOST` y sin `DATABASE_URL`).
+Es la única tabla con todo lo que hay que cargar en producción; la [referencia de variables](referencia/variables-de-entorno.md) tiene la misma lista con la descripción de cada una para quien desarrolla. Verificada el 2026-10-16 contra `application*.yml` y las clases `@ConfigurationProperties`, y arrancando el jar con perfil `prod` (sin las cuatro de `RequiredProdProperties`, con `JWT_SECRET` corta, con mail activo sin `SPRING_MAIL_HOST` y sin `DATABASE_URL`).
 
 - **Dónde:** *Render* = servicio `smartelevate` → **Environment** (cambiar una variable redeploya). *Vercel* = proyecto → **Settings → Environment Variables**. *GitHub* = repo → **Settings → Secrets and variables → Actions**.
 - **Secretos** (clave de la base, JWT, HMAC del QR, SMTP): solo en el dashboard de Render. Se generan con `openssl rand -base64 48` (64 caracteres; el mínimo es 32 **bytes**). Corré el comando y pegá el **resultado**, nunca el texto del comando. `JWT_SECRET` y `APP_KIOSK_QR_SECRET` tienen que ser distintas y generadas, nunca copiadas de un ejemplo: `RequiredProdProperties` corta el arranque si son iguales, si contienen `openssl` o `rand -base64`, `change-me`/`changeme`/`secret`, un `<...>`, si son una sola letra repetida, solo minúsculas o tienen menos de 16 caracteres distintos (los valores nunca se loguean).
@@ -150,7 +150,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | --- | --- | --- | --- |
 | `BACKEND_URL` | GitHub (*Variables*; puede ser por environment `preview` / `production`) | `https://smartelevate.onrender.com`, sin barra final. El workflow la escribe en el rewrite de `vercel.json` | El workflow avisa con un warning y quita el rewrite: el front deploya **sin backend**. También la usa `keep-alive-backend.yml` (sin ella, el job se saltea) |
 | `VITE_API_URL` | Vercel (*Production* y *Preview*) | `/api`. Con una URL absoluta la cookie del refresh sería cross-site y no se mantiene la sesión | Usa el default `/api` del cliente |
-| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | GitHub (*Secrets*) | Ver [README](../README.md#3-github-cargar-secrets-y-variables) | `deploy-frontend.yml` falla |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | GitHub (*Secrets*) | Ver [guía de setup](guias/configurar-vercel-y-github.md#3-github-cargar-secrets-y-variables) | `deploy-frontend.yml` falla |
 
 ### Cómo arranca el contenedor
 
@@ -226,7 +226,7 @@ La tabla es `app_user` y el rol vive en su columna `role` (`USER`, `REVIEWER`, `
 
 ## Frontend en Vercel
 
-Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ver [README](../README.md#cicd)). Lo que importa para el backend:
+Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ver [CI/CD](referencia/ci-cd.md)). Lo que importa para el backend:
 
 - La variable de GitHub **`BACKEND_URL`** = `https://smartelevate.onrender.com`. El workflow la escribe en el rewrite de `vercel.json` antes de buildear.
 - Si cambia `BACKEND_URL`, el front recién la toma **en el próximo deploy de producción**.
@@ -346,7 +346,7 @@ Lo que puede salir mal la primera vez y cómo se ve. Ninguno está probado contr
 5. **Instancia única.** El límite de pedidos de token de los kioscos está **en memoria por instancia** (`// ponytail:` en `KioskService`); con N instancias el tope real sería N veces el configurado, y un reinicio lo reinicia. El límite de logins sí vive en la base (tabla de fallos con hashes), aunque contar e insertar no es atómico (`// ponytail:` en `LoginThrottle`: dos fallos simultáneos pueden pasar el tope por uno o dos). Con una sola instancia en Render alcanza; **no subir el servicio a más de una** sin mover el de kioscos a la base o a un cache compartido.
 6. **Mails desde Brevo sin probar en producción.** El envío funcionó en una prueba manual (2026-10-06) pero no desde el backend desplegado. Sin dominio propio, el remitente sale reescrito a `@brevosend.com` y puede caer en spam. Si el SMTP falla, el registro igual se crea (el error queda en el log): el usuario no puede verificar su cuenta hasta que el reenvío funcione. Plan B para no bloquear a nadie: leer el link del log con `APP_MAIL_ENABLED=false`, o promover la verificación a mano en la base.
 7. **`qr_rotation` ya no está en `app_config`.** `V15` lo borró; la vida del QR es `APP_KIOSK_QR_TTL` (default `PT30S`). Si alguien busca la fila `qr_rotation` en Neon y no la encuentra, es lo esperado.
-8. **Swagger UI y `/v3/api-docs` son públicos** también en producción (decisión del README: documentación abierta); no exponen datos, pero listan todos los endpoints, incluidos los de admin. `/h2-console` no existe en `prod` (404).
+8. **Swagger UI y `/v3/api-docs` son públicos** también en producción (decisión de [Autenticación y endpoints protegidos](guias/autenticacion-y-endpoints.md): documentación abierta); no exponen datos, pero listan todos los endpoints, incluidos los de admin. `/h2-console` no existe en `prod` (404).
 9. **Memoria y cold start** del plan free (512 MB, 0.1 CPU): ver [Cómo arranca el contenedor](#cómo-arranca-el-contenedor) y [Keep-alive](#keep-alive).
 
 ### Redeployar sin cambios de código
