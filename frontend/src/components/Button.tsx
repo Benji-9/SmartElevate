@@ -1,7 +1,7 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ComponentProps } from 'react';
 import './Button.css';
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type ButtonProps = ComponentProps<'button'> & {
   /** `primary` (Figma Button/Primary) o `secondary` (Figma Button/Secondary). */
   variant?: 'primary' | 'secondary';
   /** Deshabilita el botón y anuncia `loadingLabel` a los lectores de pantalla. */

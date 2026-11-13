@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { Input } from '../components/Input';
 import { KioskQr } from '../features/kiosk/KioskQr';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import '../features/kiosk/kiosk.css';
 
 const storageKey = (elevator: string) => `smartelevate.kiosk.${elevator}`;
@@ -31,6 +32,7 @@ function writeSecret(elevator: string, secret: string | null) {
  * pega una vez y queda en este dispositivo; nunca va en la URL ni a la vista.
  */
 export function KioskPage() {
+  useDocumentTitle('Kiosco del ascensor');
   const { ascensor = '' } = useParams();
   const [secret, setSecret] = useState(() => readSecret(ascensor));
   const [draft, setDraft] = useState('');
@@ -55,7 +57,7 @@ export function KioskPage() {
 
   if (!secret) {
     return (
-      <main className="kiosk">
+      <main id="main" tabIndex={-1} className="kiosk">
         <h1 className="text-title-lg">Kiosco del ascensor {ascensor}</h1>
         <p className="kiosk__intro">
           Pegá la credencial que te dieron en el panel de administración al dar de alta este kiosco.
@@ -77,7 +79,7 @@ export function KioskPage() {
   }
 
   return (
-    <main className="kiosk">
+    <main id="main" tabIndex={-1} className="kiosk">
       <h1 className="text-title-lg">Ascensor {ascensor}</h1>
       <KioskQr
         key={secret}

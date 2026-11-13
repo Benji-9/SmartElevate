@@ -10,6 +10,7 @@ import { TurnDetails } from '../features/turn/TurnDetails';
 import '../features/turn/turn.css';
 import { ApiError, cancelReservation, getReservation } from '../services/api';
 import type { Reservation, ReservationStatus } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.';
@@ -24,6 +25,7 @@ const closedStatus: Record<Exclude<ReservationStatus, 'ACTIVE'>, string> = {
 const isFault = (status: ReservationStatus) => status === 'NO_SHOW' || status === 'CANCELLED_LATE';
 
 export function TurnPage() {
+  useDocumentTitle('Tu turno');
   const { id = '' } = useParams();
   const navigate = useNavigate();
   // El festejo es solo para quien acaba de reservar (lo manda ReserveTurnPage).

@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router';
+import { SkipLink } from './components/SkipLink';
 import { AdminLayout } from './components/AdminLayout';
 import { ScreenLayout, TabLayout } from './components/Layouts';
 import { RequireSession } from './features/auth/RequireSession';
@@ -40,6 +41,7 @@ export function App() {
     <ViewModeProvider>
       <DeviceStage>
         <SessionProvider>
+          <SkipLink />
           <Routes>
             <Route element={<RequireSession />}>
               <Route element={<TabLayout />}>

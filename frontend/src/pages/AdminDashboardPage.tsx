@@ -17,6 +17,7 @@ import {
 import { useResource } from '../hooks/useResource';
 import { getAdminKpis, getAdminShifts, getBuildings } from '../services/api';
 import type { AdminPeriod } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const periods: Option<AdminPeriod>[] = [
   { value: 'TODAY', label: 'Hoy' },
@@ -102,6 +103,7 @@ function KpiCard({
 
 /** Figma 09 · Panel de administración: KPIs de congestión (docs/reglas/kpis.md). */
 export function AdminDashboardPage() {
+  useDocumentTitle('Panel de congestión');
   const [period, setPeriod] = useState<AdminPeriod>('TODAY');
   const [buildingId, setBuildingId] = useState(ALL);
   const [shiftId, setShiftId] = useState(ALL);

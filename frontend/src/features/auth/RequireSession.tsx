@@ -16,7 +16,7 @@ export function RequireSession({ role }: RequireSessionProps) {
     // Mismo contenedor que las pantallas, así el texto no queda pegado al borde.
     return (
       <div className="screen">
-        <main className="screen__main">
+        <main id="main" tabIndex={-1} className="screen__main">
           <p role="status" className="page-placeholder">
             Cargando…
           </p>
@@ -30,7 +30,7 @@ export function RequireSession({ role }: RequireSessionProps) {
   if (role && user.role !== role) {
     return (
       <div className="screen">
-        <main className="screen__main">
+        <main id="main" tabIndex={-1} className="screen__main">
           <h1 className="text-heading">No tenés acceso a esta sección</h1>
           <p>Es solo para administradores.</p>
           <Link to="/">Volver al inicio</Link>

@@ -226,6 +226,16 @@ describe('App', () => {
     expect(screen.queryByRole('navigation', { name: 'Administración' })).not.toBeInTheDocument();
   });
 
+  it('el título de la pestaña sigue a la pantalla y el skip link lleva el foco al contenido', async () => {
+    stubApi(signedIn());
+    renderAt('/perfil');
+
+    await screen.findByRole('heading', { name: 'Mi perfil' });
+    expect(document.title).toBe('Mi perfil · SmartElevate');
+    await userEvent.click(screen.getByRole('link', { name: 'Saltar al contenido' }));
+    expect(screen.getByRole('main')).toHaveFocus();
+  });
+
   it('"Cerrar sesión" limpia la sesión y vuelve a /login', async () => {
     const fetchMock = stubApi(signedIn());
     renderAt('/perfil');

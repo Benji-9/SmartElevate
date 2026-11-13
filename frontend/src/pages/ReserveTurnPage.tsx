@@ -28,6 +28,7 @@ import {
   reserve,
 } from '../services/api';
 import { Skeleton } from '../components/Skeleton';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const loadCatalog = () => Promise.all([getBuildings(), getElevators()]);
 // Si no se puede saber, se muestra el formulario: el servidor rechaza la reserva igual.
@@ -51,6 +52,7 @@ const FLOOR_ERRORS = new Set([
 ]);
 
 export function ReserveTurnPage() {
+  useDocumentTitle('Reservar turno');
   const navigate = useNavigate();
   const [coreCode, setCoreCode] = useState<string | null>(null);
   // Las salidas son por edificio: se guarda aparte para no pedirlas de nuevo al cambiar de núcleo.

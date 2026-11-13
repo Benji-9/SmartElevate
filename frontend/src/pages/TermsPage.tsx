@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { CONTACT_EMAIL, LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './LegalPages.css';
 
 /**
@@ -8,6 +9,7 @@ import './LegalPages.css';
  * ventanas) no se escriben acá: salen de la configuración y la app los muestra donde aplican.
  */
 export function TermsPage() {
+  useDocumentTitle('Términos de uso');
   return (
     <article className="legal">
       <ScreenHeader title="Términos de uso" backTo="/login" />

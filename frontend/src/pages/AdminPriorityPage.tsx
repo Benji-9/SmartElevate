@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { PendingTeachers, PriorityUsers } from '../features/admin/PrioritySections';
 import { RoleSearch } from '../features/admin/RoleSearch';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import '../features/admin/admin.css';
 
 /** Figma-less 09b · Gestión de usuarios: cola de docentes y prioridades vigentes (#140). */
 export function AdminPriorityPage() {
+  useDocumentTitle('Gestión de usuarios');
   // Aprobar a un docente o cambiar un tipo mueve filas entre las listas: cambiar la key las vuelve a pedir.
   const [version, setVersion] = useState(0);
   const refresh = () => setVersion((v) => v + 1);

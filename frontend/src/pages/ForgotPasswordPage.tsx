@@ -7,10 +7,12 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { ApiError, requestPasswordReset } from '../services/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 /** Pide el link para elegir otra contraseña (SCREENS.md §01b). */
 export function ForgotPasswordPage() {
+  useDocumentTitle('Recuperar contraseña');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [serverError, setServerError] = useState<string | null>(null);

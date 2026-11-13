@@ -5,6 +5,7 @@ import { KioskQr } from '../features/kiosk/KioskQr';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { createKiosk, getKiosks } from '../services/api';
 import { simulatedKiosks as simulated } from '../features/kiosk/simulatedKiosks';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import '../features/admin/admin.css';
 import '../features/kiosk/kiosk.css';
 
@@ -13,6 +14,7 @@ import '../features/kiosk/kiosk.css';
  * `simulated`. Existe solo si el servidor dice `simulatorEnabled`; no hay flag en el front.
  */
 export function AdminKioskSimulatorPage() {
+  useDocumentTitle('Simulador de kiosco');
   const cardId = useId();
   const kiosks = useResource(getKiosks);
   const [elevator, setElevator] = useState('');

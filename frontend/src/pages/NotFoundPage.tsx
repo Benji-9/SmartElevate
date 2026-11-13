@@ -2,8 +2,10 @@ import { Link } from 'react-router';
 import '../components/Button.css';
 import { Mascot } from '../components/Mascot';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function NotFoundPage() {
+  useDocumentTitle('Página no encontrada');
   return (
     <>
       <ScreenHeader title="Página no encontrada" />

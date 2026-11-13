@@ -9,11 +9,13 @@ import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 type Errors = { email?: string; password?: string };
 
 export function LoginPage() {
+  useDocumentTitle('Ingresar');
   const { login } = useSession();
   const navigate = useNavigate();
   const from = (useLocation().state as { from?: Location } | null)?.from;
