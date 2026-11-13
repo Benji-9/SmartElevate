@@ -44,6 +44,11 @@
   border-color: transparent;
 }
 
+/* .text-body (15 px) le gana a la regla global: acá se mantiene el mínimo de 16 px contra el zoom de iOS. */
+.input .input__field {
+  font-size: max(16px, 1em);
+}
+
 .input__control .input__field {
   flex: 1;
   min-width: 0;
