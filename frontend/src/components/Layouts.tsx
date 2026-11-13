@@ -11,7 +11,7 @@ export function TabLayout() {
   return (
     <div className="screen">
       <TopBar />
-      <main className="screen__main page">
+      <main id="main" tabIndex={-1} className="screen__main page">
         <Outlet />
       </main>
       <BottomNav />
@@ -37,7 +37,7 @@ export function ScreenLayout({
   return (
     <div className="screen">
       {topBar && <TopBar />}
-      <main className={mainClass}>
+      <main id="main" tabIndex={-1} className={mainClass}>
         <Outlet />
       </main>
     </div>

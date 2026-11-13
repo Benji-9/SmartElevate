@@ -65,7 +65,7 @@ export function AdminLayout() {
             </button>
           </div>
         </aside>
-        <main className="admin__main">
+        <main id="main" tabIndex={-1} className="admin__main">
           <Outlet />
         </main>
       </div>
