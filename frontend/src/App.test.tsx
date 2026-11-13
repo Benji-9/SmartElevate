@@ -216,6 +216,14 @@ describe('App', () => {
     expect(within(nav).queryByText('Reportes')).not.toBeInTheDocument();
   });
 
+  it('las rutas lazy (legales) cargan su contenido al navegar', async () => {
+    stubApi(signedOut);
+    renderAt('/terminos');
+
+    expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(document.title).toContain('SmartElevate');
+  });
+
   it('/admin sin rol ADMIN avisa que no tiene acceso', async () => {
     stubApi(signedIn());
     renderAt('/admin');
