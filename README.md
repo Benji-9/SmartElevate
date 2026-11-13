@@ -292,7 +292,19 @@ fix(frontend): mostrar error cuando la franja está llena
 ci: cachear dependencias de Maven
 ```
 
-Commits chicos y atómicos. El título del PR también sigue la convención.
+Buenas prácticas:
+
+- **Un commit, un cambio lógico.** Si el mensaje necesita un "y", son dos commits.
+- **Título** en imperativo, hasta ~72 caracteres, sin punto final: `fix(turn): rechazar la reserva cuando el cupo está lleno`.
+- **Cuerpo** (opcional, separado por una línea en blanco) para explicar el **por qué**, no el qué: el diff ya muestra el qué.
+- **Referenciá el issue** al final del cuerpo (`Refs #12`). `Closes #12` va en la descripción del PR.
+- Cambios que rompen compatibilidad: `feat(api)!: ...` y una línea `BREAKING CHANGE:` en el cuerpo.
+
+## Cómo documentar issues y PRs
+
+- **Issue** (usá el formulario que corresponda: Feature, Bug, Tarea técnica, Documentación, Cambio de contrato API o Bloqueante): título que dice el objetivo, historia de usuario (`Como <rol>, quiero <qué>, para <por qué>`) cuando es visible para una persona, y **criterios de aceptación verificables**. Si no se puede comprobar, no es un criterio. Aclará también qué queda fuera de alcance.
+- **PR** (el template se completa solo): contexto y `Closes #N`, qué cambia y cómo, archivos y áreas tocadas, impacto (contrato OpenAPI, migraciones, reglas de negocio), cómo probarlo, riesgos y cómo revertirlo. Un PR hace una sola cosa y se revisa en una sentada.
+- Con **squash**, el título del PR es el commit que queda en `develop`: escribilo como tal.
 
 ## CI/CD
 
