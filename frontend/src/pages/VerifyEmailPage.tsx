@@ -4,7 +4,7 @@ import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
-import { ApiError, verifyEmail } from '../services/api';
+import { ApiError, networkErrorMessage, verifyEmail } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
@@ -34,8 +34,7 @@ export function VerifyEmailPage() {
       (error) =>
         setState({
           status: 'error',
-          message:
-            error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.',
+          message: error instanceof ApiError ? error.message : networkErrorMessage(),
         }),
     );
   }, [token]);

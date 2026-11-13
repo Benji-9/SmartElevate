@@ -6,7 +6,7 @@ import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { PASSWORD_HINT, validatePassword } from '../features/auth/validation';
-import { ApiError, resetPassword } from '../services/api';
+import { ApiError, networkErrorMessage, resetPassword } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
@@ -39,7 +39,7 @@ export function ResetPasswordPage() {
       setDone(true);
     } catch (error) {
       if (!(error instanceof ApiError)) {
-        setServerError('No pudimos conectarnos. Probá de nuevo.');
+        setServerError(networkErrorMessage());
       } else {
         // La política de contraseña la valida el servidor, igual que en el registro.
         const violation = error.violations.find((v) => v.field === 'newPassword');

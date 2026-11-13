@@ -7,7 +7,7 @@ import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
-import { ApiError } from '../services/api';
+import { ApiError, networkErrorMessage } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
@@ -47,9 +47,7 @@ export function LoginPage() {
       if (error instanceof ApiError && error.status === 403) {
         setUnverifiedEmail(toUadeEmail(email));
       }
-      setServerError(
-        error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.',
-      );
+      setServerError(error instanceof ApiError ? error.message : networkErrorMessage());
       setSubmitting(false);
     }
   }
