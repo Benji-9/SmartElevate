@@ -1,0 +1,56 @@
+name: Tarea técnica
+description: Refactor, tests, infraestructura o mantenimiento sin funcionalidad visible
+title: '[Tarea] '
+labels: ['type: chore']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Para trabajo que no cambia lo que ve la persona usuaria: refactor, tests, CI/CD, dependencias, tooling. Si cambia comportamiento visible, usá **Feature**; si es un error, **Bug**. Podés ajustar el label (`type: refactor`, `type: test`, `type: ci-cd`) después de crearlo.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Backend
+        - Frontend
+        - Backend + Frontend
+        - Infra / CI-CD
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Objetivo
+      description: Qué se quiere lograr, en una o dos frases.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Dónde aparece el problema o por qué hace falta ahora.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Alcance
+      description: Qué se toca y qué no.
+      placeholder: |
+        - Mover X a Y
+        - No cambiar la API pública
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      placeholder: |
+        - [ ] El comportamiento externo no cambia (los tests existentes pasan)
+        - [ ] Lint y build en verde
+    validations:
+      required: true
+  - type: textarea
+    id: technical
+    attributes:
+      label: Consideraciones técnicas
+      description: Dependencias, limitaciones, riesgos, alternativas descartadas.

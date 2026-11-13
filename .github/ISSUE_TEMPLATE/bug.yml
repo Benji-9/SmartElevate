@@ -3,11 +3,33 @@ description: Algo no funciona como debería
 title: '[Bug] '
 labels: ['type: bug']
 body:
-  - type: textarea
-    id: what
+  - type: markdown
     attributes:
-      label: Qué pasa
-      description: Comportamiento actual vs. esperado.
+      value: |
+        El título dice qué falla y dónde (ej. "El cupo permite 11 reservas en la misma salida"). No pegues tokens, contraseñas ni datos personales en logs o capturas.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Backend
+        - Frontend
+        - Backend + Frontend
+        - Infra / CI-CD
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamiento actual
+      description: Qué pasa hoy.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+      description: Qué debería pasar, citando la regla de `docs/reglas/` o la spec de `docs/frontend/` si existe.
     validations:
       required: true
   - type: textarea
@@ -15,23 +37,37 @@ body:
     attributes:
       label: Pasos para reproducir
       placeholder: |
-        1. Ir a /solicitar-turno
-        2. Elegir la franja de las 10:00
-        3. ...
+        1. Ingresar con un usuario alumno
+        2. Ir a /reservar y elegir la salida de las 10:00
+        3. Tocar "Reservar" con la salida llena
     validations:
       required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: Cómo sabemos que quedó arreglado.
+      placeholder: |
+        - [ ] Con la salida llena, la API responde 409 y la UI lo avisa
+        - [ ] Hay un test que falla sin el arreglo
   - type: dropdown
     id: env
     attributes:
-      label: Dónde
+      label: Dónde ocurre
       options:
         - Local
         - Vercel preview
         - Vercel producción
     validations:
       required: true
+  - type: input
+    id: context
+    attributes:
+      label: Rama o commit, y rol con el que probaste
+      placeholder: develop @ a1b2c3d, alumno prioritario
   - type: textarea
     id: logs
     attributes:
-      label: Logs / capturas
+      label: Evidencia
+      description: Respuesta HTTP, logs, capturas o enlaces.
       render: text

@@ -1,0 +1,53 @@
+name: Cambio de contrato API
+description: Cambio o consulta sobre endpoints, DTOs u OpenAPI que afecta al frontend u otros consumidores
+title: '[Contrato] '
+labels: ['type: chore']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        El contrato es `docs/openapi.json` (ADR 0006), generado desde el código. Este issue es para coordinar el cambio entre backend y frontend antes de implementarlo.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Objetivo
+      description: Qué cambia en la API y por qué.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Qué dispara el cambio (pantalla nueva, regla de negocio, deriva detectada, pedido del frontend).
+  - type: textarea
+    id: contract
+    attributes:
+      label: Contrato afectado
+      description: Endpoints y DTOs, campos que cambian. Mostrá antes y después.
+      placeholder: |
+        GET /api/departures
+        antes:  { id, remainingSeats }
+        después: { id, remainingSeats, priorityOnly }
+    validations:
+      required: true
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: ¿Rompe la compatibilidad?
+      options:
+        - 'No: solo agrega campos opcionales'
+        - 'Sí: hay que migrar al consumidor en el mismo release'
+        - No sé todavía
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      value: |
+        - [ ] Backend implementado, con `docs/openapi.json` regenerado (`./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true`)
+        - [ ] Frontend con tipos regenerados (`npm run gen:api`) y adaptado
+        - [ ] DTOs con `@Schema(requiredMode = REQUIRED)` en campos obligatorios
+        - [ ] Reglas de `docs/reglas/` actualizadas si cambia el comportamiento
+    validations:
+      required: true
