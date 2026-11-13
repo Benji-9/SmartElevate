@@ -7,6 +7,8 @@ import { formatPercent } from '../admin/format';
 import './CongestionNow.css';
 import { Skeleton } from '../../components/Skeleton';
 
+const RETRY_AFTER_ERROR_MS = 15_000;
+
 const minutesAgo = new Intl.RelativeTimeFormat('es-AR', { style: 'short', numeric: 'always' });
 
 const errorMessage = (error: unknown) =>
@@ -32,7 +34,10 @@ function useCongestion() {
         timer = setTimeout(() => setAttempt((n) => n + 1), data.refreshAfterSeconds * 1000);
       },
       (err: unknown) => {
-        if (active) setError(errorMessage(err));
+        if (!active) return;
+        setError(errorMessage(err));
+        // Sigue consultando: si vuelve la conexión, el dato se recupera solo.
+        timer = setTimeout(() => setAttempt((n) => n + 1), RETRY_AFTER_ERROR_MS);
       },
     );
     return () => {
