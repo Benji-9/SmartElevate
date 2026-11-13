@@ -62,6 +62,8 @@ export function ReserveTurnPage() {
   const [slotTime, setSlotTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Aviso de "salida llena": va arriba de la lista de salidas, no junto al botón.
+  const [slotFullNotice, setSlotFullNotice] = useState(false);
   const slotsLabel = useRef<HTMLSpanElement>(null);
   const missingId = useId();
   const [lastTrip] = useState(loadLastTrip);
@@ -151,10 +153,12 @@ export function ReserveTurnPage() {
     setDestination(null);
     setSlotTime(null);
     setSubmitError(null);
+    setSlotFullNotice(false);
   }
 
   function chooseSlot(departureAt: string) {
     setSlotTime(departureAt);
+    setSlotFullNotice(false);
     setSubmitError(null);
   }
 
@@ -176,6 +180,7 @@ export function ReserveTurnPage() {
     if (!core || origin === null || validDestination === null || !slot) return;
     setSubmitting(true);
     setSubmitError(null);
+    setSlotFullNotice(false);
     try {
       const reservation = await reserve({
         departureId: slot.departure.id,
@@ -185,8 +190,13 @@ export function ReserveTurnPage() {
       saveLastTrip({ coreId: core.code, originFloor: origin, destinationFloor: validDestination });
       navigate(`/turno/${reservation.id}`, { state: { justReserved: true } });
     } catch (error) {
-      setSubmitError(errorMessage(error));
       const code = error instanceof ApiError ? error.code : undefined;
+      // Sin respuesta o con un 5xx el servidor pudo haber guardado la reserva igual.
+      const unknownOutcome = !(error instanceof ApiError) || error.status >= 500;
+      if (code === 'TURN_FULL') setSlotFullNotice(true);
+      else if (unknownOutcome)
+        setSubmitError('No sabemos si se confirmó. Mirá Inicio antes de reintentar.');
+      else setSubmitError(errorMessage(error));
       if (code && SLOT_ERRORS.has(code)) {
         // Se muestran los lugares actuales y el foco va a las franjas para elegir otra.
         setSlotTime(null);
@@ -221,9 +231,12 @@ export function ReserveTurnPage() {
           </Link>
         </div>
       ) : catalog.error ? (
-        <p role="alert" className="reserve__alert">
-          {catalog.error}
-        </p>
+        <div role="alert" className="reserve__alert">
+          <p>{catalog.error}</p>
+          <Button variant="secondary" block={false} onClick={catalog.reload}>
+            Reintentar
+          </Button>
+        </div>
       ) : !cores.length ? (
         <p className="page-placeholder">Todavía no hay núcleos disponibles para reservar.</p>
       ) : (
@@ -259,22 +272,32 @@ export function ReserveTurnPage() {
           <div className="reserve__column reserve__column--aside">
             {core &&
               (departures.error ? (
-                <p role="alert" className="reserve__alert">
-                  {departures.error}
-                </p>
+                <div role="alert" className="reserve__alert">
+                  <p>{departures.error}</p>
+                  <Button variant="secondary" block={false} onClick={departures.reload}>
+                    Reintentar
+                  </Button>
+                </div>
               ) : !slots ? (
                 <Skeleton label="Cargando salidas…" rows={4} height={56} />
               ) : !slots.length ? (
                 <p className="page-placeholder">
-                  No hay salidas que puedas reservar en este núcleo ahora. Probá en unos minutos.
+                  Las salidas se abren 30 min antes. Volvé más cerca de la hora.
                 </p>
               ) : (
-                <SlotList
-                  slots={slots}
-                  value={slot?.departureAt ?? null}
-                  onChange={chooseSlot}
-                  labelRef={slotsLabel}
-                />
+                <>
+                  {slotFullNotice && (
+                    <p role="alert" className="reserve__alert">
+                      Esa salida se llenó. Ya actualizamos los lugares: elegí otra.
+                    </p>
+                  )}
+                  <SlotList
+                    slots={slots}
+                    value={slot?.departureAt ?? null}
+                    onChange={chooseSlot}
+                    labelRef={slotsLabel}
+                  />
+                </>
               ))}
 
             <div className="reserve__submit">
