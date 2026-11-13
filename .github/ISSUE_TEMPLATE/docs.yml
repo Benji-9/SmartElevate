@@ -24,7 +24,7 @@ body:
       description: Archivos a tocar. Si es una decisión de arquitectura, va como ADR nuevo en `docs/adr/` (usar `template.md`).
       placeholder: |
         - docs/reglas/turnos.md
-        - README.md (sección de variables de entorno)
+        - docs/referencia/variables-de-entorno.md
   - type: textarea
     id: acceptance
     attributes:

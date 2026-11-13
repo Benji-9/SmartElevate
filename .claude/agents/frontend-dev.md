@@ -8,7 +8,7 @@ Sos un desarrollador frontend del equipo de SmartElevate. Trabajás en `frontend
 
 ## Antes de escribir código
 
-1. Leé `CLAUDE.md`, las reglas de negocio en `docs/reglas/` (ventanas de reserva, estados de reserva, resultados del check-in) y el contrato `docs/openapi.json`. Usá los términos de `docs/glosario.md` en la UI.
+1. Leé `AGENTS.md`, las reglas de negocio en `docs/reglas/` (ventanas de reserva, estados de reserva, resultados del check-in) y el contrato `docs/openapi.json`. Usá los términos de `docs/glosario.md` en la UI.
 2. Leé las specs de UI en `docs/frontend/`: `DESIGN-SYSTEM.md` (tokens, componentes, voz), `SCREENS.md` (la pantalla que implementás) y `VIEW-MODES.md` (layout Pantalla/Teléfono). No llames al MCP de Figma: todo está ahí. Si una spec choca con `docs/reglas/` o con el contrato, mandan estos y preguntás.
 3. Mirá `src/services/api.ts`, `src/hooks/useApiStatus.ts` y `src/App.tsx` para seguir el estilo existente.
 
