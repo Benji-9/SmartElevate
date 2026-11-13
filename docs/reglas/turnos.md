@@ -1,6 +1,6 @@
 # Reglas de turnos
 
-> Estado: **aprobado** ([#7](https://github.com/Benji-9/SmartElevate/issues/7), con los cambios del 14/10 de [#218](https://github.com/Benji-9/SmartElevate/issues/218)). Decisión de diseño en los ADR [0007](../adr/0007-modelo-de-turnos-y-reservas.md) y [0018](../adr/0018-alcance-del-mvp-en-reglas-de-turnos.md); qué entra y qué no, en [alcance del MVP](../alcance-mvp.md). Los valores concretos viven en la [tabla de parámetros](README.md#parámetros-configurables): no hardcodearlos.
+> Estado: **aprobado** ([#7](https://github.com/Benji-9/SmartElevate/issues/7), con los cambios del 14/10 de [#218](https://github.com/Benji-9/SmartElevate/issues/218)). Decisión de diseño en el [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md); qué entra y qué no, en [alcance del MVP](../alcance-mvp.md). Los valores concretos viven en la [tabla de parámetros](README.md#parámetros-configurables): no hardcodearlos.
 
 ## 1. Franja y horario de operación
 
@@ -101,9 +101,9 @@ Resueltas en [#113](https://github.com/Benji-9/SmartElevate/issues/113):
 2. **Umbral de no-show vs. ventana de check-in.** Un escaneo entre **+60 s y +2 min** se registra como *fuera de hora* y **cuenta como no-show** (ver [check-in](check-in-qr.md#resultados)).
 3. **Tope diario:** 8 reservas por día.
 4. **Pisos bajos:** no se puede reservar con destino en los pisos 1 a 4, salvo movilidad reducida (ver [asignación](asignacion.md#elegibilidad)).
-5. **Rotación del QR:** cada 60 s. El 14/10 se bajó a ~30 s ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)).
+5. **Rotación del QR:** cada 60 s. El 14/10 se bajó a ~30 s ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)).
 
-Resueltas el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), [ADR 0018](../adr/0018-alcance-del-mvp-en-reglas-de-turnos.md)):
+Resueltas el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md)):
 
 6. **Plazo para cancelar sin falta:** 10 min antes de la salida, calibrable en el piloto ([sección 4](#4-cancelación)).
 7. **Cupo diario:** cancelar sin falta lo devuelve; la cancelación tardía no.

@@ -78,7 +78,7 @@ const USE_MOCKS =
 
 // Sesión (#204, ADR 0019): el access token vive solo en memoria; el refresh token (opaco, de un
 // solo uso) viaja en una cookie HttpOnly que el JS no ve y que sobrevive a recargar la pestaña.
-// El header custom es la defensa CSRF de /auth/refresh y /auth/logout (ADR 0023).
+// El header custom es la defensa CSRF de /auth/refresh y /auth/logout (ADR 0019).
 const COOKIE_AUTH: RequestInit = {
   method: 'POST',
   credentials: 'include',
@@ -162,7 +162,7 @@ function clearTokens() {
 /**
  * La cookie del refresh se comparte entre pestañas pero `refreshing` es por pestaña: dos pestañas
  * canjeando a la vez mandarían el mismo token y la segunda se tomaría por reuso (revoca la sesión).
- * El lock del navegador las serializa: la segunda manda la cookie ya rotada (ADR 0023).
+ * El lock del navegador las serializa: la segunda manda la cookie ya rotada (ADR 0019).
  * Sin `navigator.locks` (jsdom, navegadores viejos) se canjea sin lock.
  */
 function withRefreshLock<T>(action: () => Promise<T>): Promise<T> {

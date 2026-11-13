@@ -35,7 +35,7 @@ Y dónde se traba, duda o se equivoca.
 - **El teléfono de cada participante**, con su navegador de siempre. Que haya al menos un Android y un iPhone en la ronda.
 - **Una pasada en modo Pantalla** (laptop), con una de las personas, repitiendo la tarea 2.
 - **En el campus**, frente a un núcleo real (p. ej. Lima 1), en un horario de operación (7:00 a 22:30) y fuera del pico, para no molestar.
-- Para la tarea de check-in: el QR del ascensor si ya está instalado; si no, el simulador de kiosco del panel admin (`/admin/simulador`) en otra pantalla. No hay ingreso manual del código ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)). Anotar cuál se usó.
+- Para la tarea de check-in: el QR del ascensor si ya está instalado; si no, el simulador de kiosco del panel admin (`/admin/simulador`) en otra pantalla. No hay ingreso manual del código ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)). Anotar cuál se usó.
 - Las salidas se reservan **de 30 a 2 min antes** ([ventana de reserva](../reglas/turnos.md#2-ventana-de-reserva)): la persona que modera verifica antes de la tarea 2 que haya salidas abiertas.
 
 ## 4. Roles del equipo

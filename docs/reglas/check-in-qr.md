@@ -1,6 +1,6 @@
 # Check-in con QR
 
-> Estado: **aprobado**. Decisión de diseño en los ADR [0008](../adr/0008-check-in-con-qr-rotativo.md) y [0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) (firma y kiosco). Se implementa en [#219](https://github.com/Benji-9/SmartElevate/issues/219).
+> Estado: **aprobado**. Decisión de diseño en el [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md) (QR firmado, kiosco y sin ingreso manual). Se implementa en [#219](https://github.com/Benji-9/SmartElevate/issues/219).
 
 El check-in confirma que el usuario usó su reserva. Alimenta el no-show y los KPIs.
 
@@ -45,5 +45,5 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 
 ## Limitaciones del MVP
 
-- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)).
+- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)).
 - **Kiosco caído:** si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in mientras dure la caída.

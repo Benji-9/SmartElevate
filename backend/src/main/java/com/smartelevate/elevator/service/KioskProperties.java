@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Kioscos del QR (ADR 0016, 0020). Parámetros técnicos y de seguridad: van en {@code application.yml} con override
+ * Kioscos del QR (ADR 0008, 0020). Parámetros técnicos y de seguridad: van en {@code application.yml} con override
  * por variable de entorno (ADR 0017). La clave HMAC ({@code APP_KIOSK_QR_SECRET}) es un secreto: no tiene valor en
  * el repo; en prod la exige {@code RequiredProdProperties} (#222) y en dev/tests, si falta, se usa una efímera.
  *

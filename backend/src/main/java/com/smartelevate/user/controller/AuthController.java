@@ -77,7 +77,7 @@ public class AuthController {
     @Operation(summary = "Canjea el refresh token de la cookie por un access token nuevo (rotación)",
             description = "El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno "
                     + "nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header "
-                    + "X-Requested-With: SmartElevate (defensa CSRF, ADR 0023); sin él, o con un Origin no "
+                    + "X-Requested-With: SmartElevate (defensa CSRF, ADR 0019); sin él, o con un Origin no "
                     + "permitido, responde 403.")
     @ApiResponse(responseCode = "200", description = "Access token nuevo; Set-Cookie con el refresh rotado",
             content = @Content(schema = @Schema(implementation = TokenResponse.class)))
@@ -104,7 +104,7 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Cierra la sesión: revoca el refresh token de la cookie y la expira",
             description = "Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header "
-                    + "X-Requested-With: SmartElevate (ADR 0023).")
+                    + "X-Requested-With: SmartElevate (ADR 0019).")
     @ApiResponse(responseCode = "204", description = "Sesión cerrada; Set-Cookie expira la cookie")
     @ApiResponse(responseCode = "403", description = "Falta el header CSRF o el Origin no está permitido",
             content = @Content(schema = @Schema(implementation = ApiError.class)))

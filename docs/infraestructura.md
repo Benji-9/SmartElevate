@@ -104,7 +104,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | `JWT_ACCESS_TTL` | Render | `PT15M` | Vida del access token |
 | `JWT_REFRESH_TTL` | Render | `P7D` | Vida del refresh y `Max-Age` de la cookie |
 | `APP_REFRESH_COOKIE_SECURE` | Render | `true` | **No ponerla en `false` en producción.** Con `false` no arranca: `APP_REFRESH_COOKIE_SECURE no puede ser false en producción ...` (`RequiredProdProperties`). Mejor no cargarla: el default es `true` |
-| `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | Render | `refresh_token` / `Lax` / `/api/auth` | No tocar: el front y el rewrite de Vercel asumen estos valores (ADR 0019, 0023) |
+| `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | Render | `refresh_token` / `Lax` / `/api/auth` | No tocar: el front y el rewrite de Vercel asumen estos valores (ADR 0019) |
 | `APP_LOGIN_THROTTLE_WINDOW` | Render | `PT15M` | Ventana deslizante del límite de logins fallidos |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` | Render | `10` | Entre 1 y 100 (NIST); fuera de rango, no arranca |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` | Render | `100` | Mínimo 1. Depende de ver la IP real, ver [riesgos](#riesgos-del-primer-deploy) |
@@ -244,7 +244,7 @@ Los define `frontend/vercel.json` (sección `headers`, todas las rutas). Decisi�
 
 HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay que agregarlo a la CSP. Si #204 mantiene el proxy del mismo origen, `connect-src` queda en `'self'`.
 
-**Checklist del preview de Vercel** (CSP, [ADR 0022](adr/0022-csp-y-headers-de-seguridad-en-vercel.md); sesión por cookie, [ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md) y [0023](adr/0023-defensa-csrf-del-refresh-por-cookie.md)). Se corre una vez en el preview del PR de release (`develop` → `main`) y de nuevo en producción:
+**Checklist del preview de Vercel** (CSP, [ADR 0022](adr/0022-csp-y-headers-de-seguridad-en-vercel.md); sesión por cookie, [ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md)). Se corre una vez en el preview del PR de release (`develop` → `main`) y de nuevo en producción:
 
 *CSP y headers*
 
