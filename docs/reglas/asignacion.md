@@ -4,6 +4,8 @@
 
 Cómo se decide a qué ascensor y salida va cada solicitud.
 
+> **Propuesta en discusión:** zonas de pisos por ascensor para agrupar destinos. Ver [ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md). No cambia ninguna regla vigente hasta que se apruebe.
+
 ## Edificios, núcleos y ascensores
 
 Relevado en el campus ([#22](https://github.com/Benji-9/SmartElevate/issues/22)) a partir de los carteles de cada núcleo y del plano de UADE. Estos datos son el **seed** de la tabla de configuración; el código no los conoce.
