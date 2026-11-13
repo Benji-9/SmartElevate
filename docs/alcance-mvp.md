@@ -1,6 +1,6 @@
 # Alcance del MVP
 
-Qué entra en el MVP de SmartElevate y qué queda para una Fase 2, con el porqué. Lo decidió el equipo el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), [ADR 0018](adr/0018-alcance-del-mvp-en-reglas-de-turnos.md)). Las reglas en detalle están en [docs/reglas/](reglas/README.md).
+Qué entra en el MVP de SmartElevate y qué queda para una Fase 2, con el porqué. Lo decidió el equipo el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), [ADR 0007](adr/0007-modelo-de-turnos-y-reservas.md)). Las reglas en detalle están en [docs/reglas/](reglas/README.md).
 
 ## Entra en el MVP
 
@@ -11,7 +11,7 @@ Qué entra en el MVP de SmartElevate y qué queda para una Fase 2, con el porqu�
 | Cancelar sin falta hasta **10 min antes**; la cancelación a tiempo devuelve el cupo diario | [turnos §4](reglas/turnos.md#4-cancelación) |
 | Cupo prioritario (2 de 10) y ascensores dedicados: IND1 05 docentes, IND1 06 movilidad reducida | [asignación](reglas/asignacion.md#ascensores-dedicados) |
 | Prioridad de docente validada por un ADMIN, vigente hasta el fin del cuatrimestre | [usuarios y prioridad](reglas/usuarios-y-prioridad.md#roles-y-prioridad) |
-| Check-in con QR rotativo en un kiosco web, no-show y suspensión ([#219](https://github.com/Benji-9/SmartElevate/issues/219)) | [check-in](reglas/check-in-qr.md), [ADR 0016](adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) |
+| Check-in con QR rotativo en un kiosco web, no-show y suspensión ([#219](https://github.com/Benji-9/SmartElevate/issues/219)) | [check-in](reglas/check-in-qr.md), [ADR 0008](adr/0008-check-in-con-qr-rotativo.md) |
 | Ascensor fuera de servicio: cancelación automática sin falta y aviso ([#134](https://github.com/Benji-9/SmartElevate/issues/134)) | [turnos §8](reglas/turnos.md#8-ascensor-fuera-de-servicio) |
 | KPIs de congestión en el panel de administración | [KPIs](reglas/kpis.md) |
 
@@ -23,7 +23,7 @@ Qué entra en el MVP de SmartElevate y qué queda para una Fase 2, con el porqu�
 | **Lista de espera** | Suma estados, asignación automática y avisos en tiempo real. El cupo que libera una cancelación a tiempo, más la notificación, cubre parte del caso. |
 | **Edificio alternativo** ([#213](https://github.com/Benji-9/SmartElevate/issues/213)) | Necesita los tiempos de caminata por tramo y saber qué conexiones son accesibles, y todavía no están medidos. A lo sumo, un aviso informativo. |
 | **Tolerancia X** (cancelar sin falta si la espera real supera la estimada + X) | Hace falta el check-in y medir la espera real antes de elegir un valor. |
-| **Ingreso manual del código de check-in** ([#238](https://github.com/Benji-9/SmartElevate/issues/238), [ADR 0021](adr/0021-check-in-sin-ingreso-manual.md)) | El token del QR tiene unos 80 caracteres opacos y rota cada ~30 s: no se puede tipear. Tampoco cubría la caída del kiosco, que sin red no tiene token para mostrar. Limitación aceptada: si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in. |
+| **Ingreso manual del código de check-in** ([#238](https://github.com/Benji-9/SmartElevate/issues/238), [ADR 0008](adr/0008-check-in-con-qr-rotativo.md)) | El token del QR tiene unos 80 caracteres opacos y rota cada ~30 s: no se puede tipear. Tampoco cubría la caída del kiosco, que sin red no tiene token para mostrar. Limitación aceptada: si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in. |
 | **Encuesta de espera** | Medir la espera real necesita guardar la respuesta del usuario y decidir cómo se usa; sin eso la espera del panel queda en "Sin datos". |
 | **Integración con OFALU para la marca de movilidad reducida** ([ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) | UADE, a través de OFALU, recibe el aviso y marca a las personas con movilidad reducida, y maneja los certificados. SmartElevate no los sube ni los guarda. Falta definir con OFALU el formato, la vigencia y temporal vs permanente. Hasta entonces, ningún endpoint asigna la categoría. |
 | **MFA** | Fuera del alcance de un MVP universitario. Con un segundo factor, la contraseña de 8 caracteres cumple NIST tal cual ([ADR 0015](adr/0015-politica-de-contrasenas-nist-800-63b.md)). |
@@ -38,7 +38,7 @@ Al 16/10/2026 (la marca de movilidad reducida quedó fuera de la app el mismo d�
 | --- | --- | --- |
 | Registro con email @uade.edu.ar, verificación por link | Hecho | [#185](https://github.com/Benji-9/SmartElevate/pull/185), [#189](https://github.com/Benji-9/SmartElevate/pull/189), [#197](https://github.com/Benji-9/SmartElevate/pull/197) |
 | Login con JWT, límite de intentos, política de contraseñas NIST | Hecho | [#190](https://github.com/Benji-9/SmartElevate/pull/190), [#216](https://github.com/Benji-9/SmartElevate/pull/216), [#226](https://github.com/Benji-9/SmartElevate/pull/226) |
-| Refresh token en cookie HttpOnly con defensa CSRF | Hecho | [#248](https://github.com/Benji-9/SmartElevate/pull/248), [#250](https://github.com/Benji-9/SmartElevate/pull/250), [ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md), [0023](adr/0023-defensa-csrf-del-refresh-por-cookie.md) |
+| Refresh token en cookie HttpOnly con defensa CSRF | Hecho | [#248](https://github.com/Benji-9/SmartElevate/pull/248), [#250](https://github.com/Benji-9/SmartElevate/pull/250), [ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md) |
 | Olvidé mi contraseña | Hecho | [#199](https://github.com/Benji-9/SmartElevate/pull/199) |
 | Salidas, reserva con cupo atómico, reserva activa e historial | Hecho | [#187](https://github.com/Benji-9/SmartElevate/pull/187), [#201](https://github.com/Benji-9/SmartElevate/pull/201), [#243](https://github.com/Benji-9/SmartElevate/pull/243) |
 | Cancelación (sin falta hasta 10 min antes, tardía con falta) | Hecho | [#209](https://github.com/Benji-9/SmartElevate/pull/209), [#240](https://github.com/Benji-9/SmartElevate/pull/240) |

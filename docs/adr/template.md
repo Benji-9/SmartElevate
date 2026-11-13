@@ -119,5 +119,5 @@ Formato [MADR](https://adr.github.io/madr/) (Markdown Architectural Decision Rec
    | Deprecated | Ya no se recomienda |
    | Superseded | La reemplazó una decisión posterior (indicar `by ADR-YYY`) |
 
-4. Un ADR aceptado es un registro histórico inmutable: si la decisión cambia, se escribe un ADR nuevo y el viejo pasa a *Superseded*. Lo único que se agrega a uno aceptado es una nota fechada (`> Nota del AAAA-MM-DD: …`).
-5. Los ADR 001 a 013 usan la plantilla anterior (Estado, Contexto, Decisión, Alternativas, Consecuencias, Referencias) y no se reescriben, justamente por ser registros históricos. Desde el 014 se usa esta.
+4. Un ADR aceptado es un registro histórico inmutable: si la decisión cambia, se escribe un ADR nuevo y el viejo pasa a *Superseded*.
+5. Todos los ADRs usan esta plantilla (se reescribieron el 2026-11-13). Cuando varios tratan lo mismo se pueden fusionar dejando una lápida en el índice.

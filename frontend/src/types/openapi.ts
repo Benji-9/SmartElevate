@@ -309,7 +309,7 @@ export interface paths {
     put?: never;
     /**
      * Cierra la sesión: revoca el refresh token de la cookie y la expira
-     * @description Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header X-Requested-With: SmartElevate (ADR 0023).
+     * @description Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header X-Requested-With: SmartElevate (ADR 0019).
      */
     post: operations['logout'];
     delete?: never;
@@ -369,7 +369,7 @@ export interface paths {
     put?: never;
     /**
      * Canjea el refresh token de la cookie por un access token nuevo (rotación)
-     * @description El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header X-Requested-With: SmartElevate (defensa CSRF, ADR 0023); sin él, o con un Origin no permitido, responde 403.
+     * @description El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header X-Requested-With: SmartElevate (defensa CSRF, ADR 0019); sin él, o con un Origin no permitido, responde 403.
      */
     post: operations['refresh'];
     delete?: never;

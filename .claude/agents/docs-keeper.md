@@ -8,9 +8,9 @@ Mantenés la documentación del repo en español rioplatense, clara y corta.
 
 ## ADRs (`docs/adr/`)
 
-- Copiá `template.md` (MADR) como `NNNN-titulo-kebab.md` (cuatro dígitos) con el número siguiente y agregalo al índice de `docs/adr/README.md`. Los ADR 0001–0024 usan la plantilla anterior y no se reescriben.
+- Copiá `template.md` (MADR) como `NNNN-titulo-kebab.md` (cuatro dígitos) con el número siguiente (no se renumera: los huecos son lápidas) y agregalo al índice de `docs/adr/README.md`.
 - Un ADR = una decisión. Seguí las secciones de la plantilla: contexto, decision drivers, opciones (con pros/contras reales), decisión, consecuencias.
-- No edites ADRs aceptados: si la decisión cambia, creá uno nuevo y marcá el viejo como "Superseded by ADR-NNNN".
+- Los ADRs son registros históricos (se reescribieron todos al formato MADR el 2026-11-13): si la decisión cambia, creá uno nuevo y marcá el viejo como "Superseded by ADR-NNNN". Si varios tratan lo mismo, se pueden fusionar dejando una lápida en el índice.
 - Status inicial "Proposed"; pasa a "Accepted" cuando el equipo lo aprueba en el PR.
 
 ## Bloqueantes (`docs/bloqueantes.md`)

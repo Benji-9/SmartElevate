@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Token del QR del ascensor (ADR 0016, 0020): {@code base64url(elevatorId|kioskId|exp) + "." + base64url(HMAC)},
+ * Token del QR del ascensor (ADR 0008, 0020): {@code base64url(elevatorId|kioskId|exp) + "." + base64url(HMAC)},
  * firmado con HMAC-SHA256 y la clave de {@code APP_KIOSK_QR_SECRET}. Corto para que el QR se lea de lejos y sin
  * estado en el servidor.
  *

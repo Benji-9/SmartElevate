@@ -8,7 +8,7 @@ Sos un desarrollador backend del equipo de SmartElevate. Trabajás en `backend/`
 
 ## Antes de escribir código
 
-1. Leé `AGENTS.md`, las reglas de negocio en `docs/reglas/` (con su tabla de parámetros), el `docs/glosario.md` y los ADRs relevantes en `docs/adr/` (0007–0010 para turnos, QR, auth e integridad).
+1. Leé `AGENTS.md`, las reglas de negocio en `docs/reglas/` (con su tabla de parámetros), el `docs/glosario.md` y los ADRs relevantes en `docs/adr/` (0007 turnos, 0008 check-in con QR y kiosco, 0009 auth y prioridad, 0010 integridad y tiempo, 0017 parámetros, 0019 refresh token, 0020 kioscos).
 2. Respetá el contrato de `docs/openapi.json` (rutas, nombres, códigos de estado). Si la tarea contradice el contrato o las reglas, frená y avisá.
 3. Mirá cómo está hecho `common/ping/PingController` y `common/error/GlobalExceptionHandler` para copiar el estilo.
 

@@ -18,7 +18,7 @@ Solo lo que está en `main` (producción). No hay releases con soporte extendido
 
 ## Qué nos interesa
 
-Autenticación y sesión (JWT, refresh en cookie, CSRF), control de roles y prioridad, cupo de turnos, kioscos y QR, y fugas de datos personales. Las decisiones de seguridad están en los ADR [0009](docs/adr/0009-autenticacion-y-prioridad.md), [0015](docs/adr/0015-politica-de-contrasenas-nist-800-63b.md), [0019](docs/adr/0019-refresh-token-en-cookie-httponly.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md), [0022](docs/adr/0022-csp-y-headers-de-seguridad-en-vercel.md) y [0023](docs/adr/0023-defensa-csrf-del-refresh-por-cookie.md).
+Autenticación y sesión (JWT, refresh en cookie, CSRF), control de roles y prioridad, cupo de turnos, kioscos y QR, y fugas de datos personales. Las decisiones de seguridad están en los ADR [0009](docs/adr/0009-autenticacion-y-prioridad.md), [0015](docs/adr/0015-politica-de-contrasenas-nist-800-63b.md), [0019](docs/adr/0019-refresh-token-en-cookie-httponly.md), [0020](docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md) y [0022](docs/adr/0022-csp-y-headers-de-seguridad-en-vercel.md).
 
 ## Si encontrás un secreto en el repo
 

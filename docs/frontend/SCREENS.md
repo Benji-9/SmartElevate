@@ -30,7 +30,7 @@ Convenciones: medidas en px; "pad 16" = padding 16 en los cuatro lados, "pad 12/
 | `/admin/kioscos` | 09c Kioscos del QR, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/ascensores` | 09e Ascensores fuera de servicio, dentro del layout de `/admin` | — (escritorio) | rol administrador |
 | `/admin/simulador` | 09d Simulador de kiosco, dentro del layout de `/admin` (solo si el servidor lo habilita) | — (escritorio) | rol administrador |
-| `/qr/:ascensor` | 10 Kiosco QR del hall ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md), [ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)) | no | público, con la credencial del kiosco |
+| `/qr/:ascensor` | 10 Kiosco QR del hall ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md), [ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)) | no | público, con la credencial del kiosco |
 | `*` | 404 | no | público |
 
 Flujo principal: `Login → Inicio → Reservar → Turno confirmado → Check-in → Viaje registrado → Inicio`. La tab "Reservar" lleva a `/reservar`, "Check-in" a `/check-in` y "Perfil" a `/perfil`.
@@ -55,7 +55,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 |---|---|---|
 | 01 Login, 02 Registro, 02b/02c Recuperar contraseña, 02d Verificar email | Backend real | `/api/auth/*` ([#199](https://github.com/Benji-9/SmartElevate/pull/199), [#202](https://github.com/Benji-9/SmartElevate/pull/202), [#248](https://github.com/Benji-9/SmartElevate/pull/248)) |
 | 03 Inicio, 04 Reservar, 05 Turno, Mis viajes | Backend real | `/api/reservations`, `/api/departures`, `/api/congestion` ([#241](https://github.com/Benji-9/SmartElevate/pull/241), [#243](https://github.com/Benji-9/SmartElevate/pull/243)) |
-| 06 Check-in, 07 Viaje registrado | Backend real | `POST /api/check-ins` ([#239](https://github.com/Benji-9/SmartElevate/pull/239)). Sin ingreso manual ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)) |
+| 06 Check-in, 07 Viaje registrado | Backend real | `POST /api/check-ins` ([#239](https://github.com/Benji-9/SmartElevate/pull/239)). Sin ingreso manual ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)) |
 | 08 Perfil: cabecera y Notificaciones | Backend real | `/api/users/me`, `/api/me/notification-preferences` ([#246](https://github.com/Benji-9/SmartElevate/pull/246)) |
 | 08 Perfil: tarjeta "Acceso prioritario" | Solo informativa, sin API | [ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md) |
 | 09 Panel (KPIs, congestión) | Backend real | `/api/admin/kpis`, `/api/admin/shifts` ([#242](https://github.com/Benji-9/SmartElevate/pull/242)) |
@@ -248,7 +248,7 @@ Pantalla **oscura**: fondo `--surface-dark`; barra de estado, título y textos e
 1. **Vista de cámara** (columna centrada, pad 40/20/24/20, gap 20): visor de **250 × 250**, `--radius-2xl`, borde 3 px `--on-dark`, con la imagen de la cámara adentro (en el mockup, un cuadrado de 160 px translúcido); texto 16 px / 600 `--on-dark` centrado "Apuntá la cámara al QR de la pantalla del ascensor"; texto 13 px `--on-dark-muted` con el texto único del QR y "El código rota: no le saques foto."
 2. **Hoja inferior** (`--surface`, esquinas superiores `--radius-2xl`, pad 20/20/32/20, gap 12): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "7:25 hs" (`departureAt` de `GET /api/reservations/active`); 14 px `--ink-muted` "Lima 3 · Ascensor 33 · Piso 7".
 
-Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y con la respuesta va a `/check-in/ok`. **No hay ingreso manual del código** ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)): el token tiene ~80 caracteres opacos.
+Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y con la respuesta va a `/check-in/ok`. **No hay ingreso manual del código** ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)): el token tiene ~80 caracteres opacos.
 
 **Rechazos** (aviso `role="alert"` sobre la cámara con el `message` del servidor; se decide por `code`):
 
@@ -420,7 +420,7 @@ Sin frame de Figma. Pantalla de una tablet o monitor del hall que muestra el QR 
 
 - **Credencial de otro ascensor:** la respuesta trae el `elevatorId` de la credencial. Si no coincide con `:ascensor`, deja de pedir y **no muestra el QR** (registraría los check-ins en el otro ascensor). Aviso `--danger-tint` (`role="alert"`): título "Esta credencial es de otro ascensor" y "La credencial es del ascensor 34 y esta pantalla es del ascensor 33. Para no registrar viajes en otro ascensor, no mostramos el QR. Cargá la credencial del ascensor 33." Con la misma acción que el 401 ("Borrar credencial" en `/qr`, "Crear otro kiosco simulado" en 09d).
 
-El ascensor que vale es el de la credencial; el de la URL es el que la pantalla espera. El texto del token es opaco y largo, así que no se muestra, y no hay ingreso manual ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)).
+El ascensor que vale es el de la credencial; el de la URL es el que la pantalla espera. El texto del token es opaco y largo, así que no se muestra, y no hay ingreso manual ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)).
 
 
 ---
