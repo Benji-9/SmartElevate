@@ -7,6 +7,7 @@ import { ElevatorSelect } from '../features/kiosk/ElevatorSelect';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { ApiError, createKiosk, getKiosks, revokeKiosk } from '../services/api';
 import type { CreatedKiosk } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import '../features/admin/admin.css';
 import '../features/kiosk/kiosk.css';
 
@@ -44,6 +45,7 @@ function NewKioskSecret({ kiosk, onDone }: { kiosk: CreatedKiosk; onDone: () => 
 
 /** 09c · Kioscos del QR: alta (con la credencial a la vista una sola vez), lista y revocación. */
 export function AdminKiosksPage() {
+  useDocumentTitle('Kioscos del QR');
   const createId = useId();
   const listId = useId();
   const list = useResource(getKiosks);

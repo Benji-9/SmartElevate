@@ -6,11 +6,13 @@ import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
-import { ApiError, requestPasswordReset } from '../services/api';
+import { ApiError, networkErrorMessage, requestPasswordReset } from '../services/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 /** Pide el link para elegir otra contraseña (SCREENS.md §01b). */
 export function ForgotPasswordPage() {
+  useDocumentTitle('Recuperar contraseña');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function ForgotPasswordPage() {
       await requestPasswordReset({ email: toUadeEmail(email) });
       setSentTo(toUadeEmail(email));
     } catch (e) {
-      setServerError(e instanceof ApiError ? e.message : 'No pudimos conectarnos. Probá de nuevo.');
+      setServerError(e instanceof ApiError ? e.message : networkErrorMessage());
     } finally {
       setSubmitting(false);
     }

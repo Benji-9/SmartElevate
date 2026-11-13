@@ -14,8 +14,9 @@ import {
   validatePassword,
   validateUadeUser,
 } from '../features/auth/validation';
-import { ApiError, register } from '../services/api';
+import { ApiError, networkErrorMessage, register } from '../services/api';
 import type { DeclaredUserType, RegisterRequest } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 const FIELDS = ['fullName', 'email', 'legajo', 'password'] as const;
@@ -41,6 +42,7 @@ function validate(form: RegisterRequest): Errors {
 }
 
 export function RegisterPage() {
+  useDocumentTitle('Crear cuenta');
   const [form, setForm] = useState<RegisterRequest>({
     fullName: '',
     email: '',
@@ -78,7 +80,7 @@ export function RegisterPage() {
       setRegisteredEmail(payload.email);
     } catch (error) {
       if (!(error instanceof ApiError)) {
-        setServerError('No pudimos conectarnos. Probá de nuevo.');
+        setServerError(networkErrorMessage());
       } else {
         // Email o legajo ya registrados: el error va al lado del campo.
         const fieldErrors: Errors = Object.fromEntries(

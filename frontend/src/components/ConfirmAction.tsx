@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from './Button';
 import './ConfirmAction.css';
 
@@ -21,9 +21,36 @@ export function ConfirmAction({
   disabled?: boolean;
 }) {
   const [asking, setAsking] = useState(false);
+  const questionId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  // Foco pendiente de devolver al botón inicial cuando vuelve a renderizarse.
+  const restoreFocus = useRef(false);
+
+  useEffect(() => {
+    if (!asking && restoreFocus.current) {
+      restoreFocus.current = false;
+      trigger.current?.focus();
+    }
+  }, [asking]);
+
+  // Si al confirmar la fila desaparece, el foco no se pierde: va al contenido principal.
+  useEffect(
+    () => () => {
+      if (restoreFocus.current) document.getElementById('main')?.focus();
+    },
+    [],
+  );
+
+  function close(confirmed: boolean) {
+    restoreFocus.current = true;
+    setAsking(false);
+    if (confirmed) onConfirm();
+  }
+
   if (!asking) {
     return (
       <Button
+        ref={trigger}
         variant="secondary"
         block={false}
         aria-label={name}
@@ -35,20 +62,13 @@ export function ConfirmAction({
     );
   }
   return (
-    <div role="group" aria-label={question} className="confirm-action">
-      <p>{question}</p>
-      <Button
-        block={false}
-        disabled={disabled}
-        onClick={() => {
-          setAsking(false);
-          onConfirm();
-        }}
-      >
+    <div role="group" aria-labelledby={questionId} className="confirm-action">
+      <p id={questionId}>{question}</p>
+      <Button block={false} disabled={disabled} onClick={() => close(true)}>
         {confirmLabel}
       </Button>
       {/* El foco empieza en la opción segura. */}
-      <Button variant="secondary" block={false} autoFocus onClick={() => setAsking(false)}>
+      <Button variant="secondary" block={false} autoFocus onClick={() => close(false)}>
         Cancelar
       </Button>
     </div>

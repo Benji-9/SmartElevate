@@ -1,0 +1,37 @@
+name: Documentación
+description: Crear, corregir o sincronizar documentación (docs/, README, ADRs, specs de UI)
+title: '[Docs] '
+labels: ['type: docs', 'area: docs']
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Objetivo
+      description: Qué documento se crea o corrige, y para quién.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Qué está faltante, desactualizado o en contradicción con el código o con otro documento.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Alcance
+      description: Archivos a tocar. Si es una decisión de arquitectura, va como ADR nuevo en `docs/adr/` (usar `template.md`).
+      placeholder: |
+        - docs/reglas/turnos.md
+        - README.md (sección de variables de entorno)
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      placeholder: |
+        - [ ] El documento coincide con el código
+        - [ ] Los enlaces internos funcionan
+        - [ ] Está en español rioplatense
+    validations:
+      required: true

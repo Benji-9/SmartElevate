@@ -5,6 +5,7 @@ import { Switch } from '../components/Switch';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { getNotificationPreferences, saveNotificationPreferences } from '../services/api';
 import type { NotificationPreferences } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './NotificationsPage.css';
 
 // Los avisos salen por email desde el servidor (#221): no hace falta permiso del navegador. "Lugar
@@ -25,6 +26,7 @@ const options: { key: keyof NotificationPreferences; label: string; description:
 ];
 
 export function NotificationsPage() {
+  useDocumentTitle('Notificaciones');
   const { data, error, loading, reload } = useResource(getNotificationPreferences);
   // Cambios locales (optimistas) sobre lo que vino del servidor.
   const [edited, setEdited] = useState<NotificationPreferences | null>(null);

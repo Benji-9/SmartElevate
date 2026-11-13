@@ -1,8 +1,12 @@
-name: Feature / tarea
-description: Funcionalidad nueva o tarea de desarrollo
+name: Feature
+description: Funcionalidad nueva o capacidad visible para un usuario
 title: '[Feature] '
 labels: ['type: feature']
 body:
+  - type: markdown
+    attributes:
+      value: |
+        El título dice el objetivo en una frase (ej. "Reservar un turno en una franja con cupo"). Antes de abrirlo, revisá que no exista ya y, si toca turnos, ascensores, usuarios o prioridades, leé `docs/reglas/`.
   - type: dropdown
     id: area
     attributes:
@@ -15,23 +19,47 @@ body:
     validations:
       required: true
   - type: textarea
+    id: goal
+    attributes:
+      label: Objetivo
+      description: Qué se quiere lograr y qué problema resuelve, en una o dos frases.
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: Historia de usuario
+      description: Quién lo necesita y para qué.
+      placeholder: |
+        Como alumno,
+        quiero reservar un turno en una salida con cupo,
+        para llegar a mi clase sin esperar en la fila.
+    validations:
+      required: true
+  - type: textarea
     id: description
     attributes:
-      label: Descripción
-      description: Qué hay que hacer y por qué. Si es una historia de usuario, "Como <rol> quiero <acción> para <beneficio>".
+      label: Descripción funcional
+      description: Cómo debería comportarse, incluidos los casos borde (cupo lleno, prioridad, sin conexión, vencimientos).
     validations:
       required: true
   - type: textarea
     id: acceptance
     attributes:
       label: Criterios de aceptación
+      description: Condiciones verificables, una por línea. Si no se puede comprobar, no es un criterio.
       placeholder: |
         - [ ] Un alumno puede reservar un turno con cupo disponible
         - [ ] Si el turno tiene 10 personas, la API responde 409
     validations:
       required: true
   - type: textarea
-    id: notes
+    id: considerations
     attributes:
-      label: Notas técnicas
-      description: Endpoints del API contract involucrados, pantallas, dependencias con otros issues (#N).
+      label: Consideraciones
+      description: Reglas de negocio y ADRs que aplican, endpoints o DTOs del contrato OpenAPI, pantallas de `docs/frontend/`, permisos y roles, dependencias con otros issues (#N).
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Fuera de alcance
+      description: Qué NO incluye este issue, para no estirarlo.

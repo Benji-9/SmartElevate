@@ -257,7 +257,7 @@ describe('ReserveTurnPage', () => {
     expect(screen.getByText('Lima 1 · Piso 5 · 14:32')).toBeInTheDocument();
   });
 
-  it('agrupa por hora, ofrece el ascensor con más lugar y deshabilita las completas', async () => {
+  it('agrupa por hora, ofrece el ascensor con más lugar y marca como no elegibles las completas', async () => {
     stubApi(routes);
     await renderReserve();
 
@@ -268,7 +268,11 @@ describe('ReserveTurnPage', () => {
       '14:32 · Ascensor 01 6 libres',
     );
     const full = within(slots).getByRole('radio', { name: /^14:34/ });
-    expect(full).toBeDisabled();
+    // Enfocable (aria-disabled) para que se pueda llegar con teclado y oír por qué no se elige.
+    expect(full).toHaveAttribute('aria-disabled', 'true');
+    expect(full).toBeEnabled();
+    await userEvent.click(full);
+    expect(full).not.toBeChecked();
     expect(full).toHaveAccessibleName('14:34 · Ascensor 01 Completo');
   });
 
@@ -411,7 +415,7 @@ describe('ReserveTurnPage', () => {
     await renderReserve();
 
     expect(
-      await screen.findByText(/No hay salidas que puedas reservar en este núcleo/),
+      await screen.findByText(/Las salidas se abren 30 min antes. Volvé más cerca de la hora./),
     ).toBeInTheDocument();
     expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
   });
@@ -424,6 +428,41 @@ describe('ReserveTurnPage', () => {
     await renderReserve();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error interno');
+  });
+
+  it('si no cargan las salidas, Reintentar las vuelve a pedir', async () => {
+    let calls = 0;
+    stubApi({
+      ...routes,
+      'GET /departures?building=LIMA': () =>
+        calls++ ? { body: departures } : { status: 500, body: { message: 'Error interno' } },
+    });
+    await renderReserve();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByRole('radiogroup', { name: 'Franja horaria' })).toBeInTheDocument();
+  });
+
+  it('si no carga el catálogo, Reintentar lo vuelve a pedir', async () => {
+    let calls = 0;
+    stubApi({
+      ...routes,
+      'GET /buildings': () =>
+        calls++ ? { body: [lima] } : { status: 500, body: { message: 'Error interno' } },
+    });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByRole('radio', { name: 'Lima 1' })).toBeInTheDocument();
+  });
+
+  it('con un 5xx al confirmar también avisa que no sabe si se confirmó', async () => {
+    stubApi({ ...routes, 'POST /reservations': { status: 500, body: { message: 'Error' } } });
+    await reserveAt1432();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No sabemos si se confirmó');
   });
 
   describe('rechazos al confirmar, por code', () => {
@@ -453,11 +492,16 @@ describe('ReserveTurnPage', () => {
         });
         await reserveAt1432();
 
-        expect(await screen.findByRole('alert')).toHaveTextContent(message);
+        // La salida llena avisa arriba de la lista, con texto propio.
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          code === 'TURN_FULL'
+            ? 'Esa salida se llenó. Ya actualizamos los lugares: elegí otra.'
+            : message,
+        );
         expect(screen.getByText('Franja horaria')).toHaveFocus();
         expect(
           await screen.findByRole('radio', { name: '14:32 · Ascensor 01 Completo' }),
-        ).toBeDisabled();
+        ).toHaveAttribute('aria-disabled', 'true');
         expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
           'Falta elegir la franja horaria',
         );
@@ -527,7 +571,7 @@ describe('ReserveTurnPage', () => {
       );
     });
 
-    it('sin code (p. ej. sin conexión) muestra un mensaje genérico y deja lo elegido', async () => {
+    it('sin conexión avisa que no sabe si se confirmó y deja lo elegido', async () => {
       stubApi({
         ...routes,
         'POST /reservations': () => {
@@ -537,7 +581,7 @@ describe('ReserveTurnPage', () => {
       await reserveAt1432();
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
-        'No pudimos conectarnos. Probá de nuevo.',
+        'No sabemos si se confirmó. Mirá Inicio antes de reintentar.',
       );
       expect(screen.getByRole('radio', { name: /^14:32/ })).toBeChecked();
     });

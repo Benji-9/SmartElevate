@@ -1,0 +1,20 @@
+.skip-link {
+  position: absolute;
+  top: var(--space-screen);
+  left: var(--space-screen);
+  z-index: 100;
+  padding: 8px 16px;
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* El foco programático al cambiar de ruta no pinta aro: no es un control. */
+main:focus {
+  outline: none;
+}

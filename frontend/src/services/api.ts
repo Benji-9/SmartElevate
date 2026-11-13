@@ -39,6 +39,12 @@ import type {
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
+/** Mensaje cuando el pedido no llegó al servidor (sin red, caído, cortado). */
+export const networkErrorMessage = () =>
+  navigator.onLine === false
+    ? 'Sin conexión. Revisá tu wifi o tus datos.'
+    : 'No pudimos conectarnos. Probá de nuevo.';
+
 export class ApiError extends Error {
   readonly status: number;
   /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */
@@ -176,9 +182,14 @@ function refreshAccessToken(): Promise<boolean> {
         saveTokens(tokens);
         return true;
       },
-      () => {
-        clearTokens();
-        return false;
+      (error: unknown) => {
+        // Solo 401/403 significa que el refresh ya no sirve. Un corte de red o un 5xx se propaga:
+        // la sesión sigue y la persona puede reintentar.
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearTokens();
+          return false;
+        }
+        throw error;
       },
     )
     .finally(() => {
@@ -197,8 +208,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       accessToken !== null &&
       !path.startsWith('/auth/');
     if (!expired) throw error;
-    // Un solo intento de renovación; si falla, la sesión terminó.
-    if (await refreshAccessToken()) return send<T>(path, init);
+    // Un solo intento de renovación; si el servidor la rechaza, la sesión terminó. Si el refresh
+    // falla por red o 5xx, no se cierra la sesión: se devuelve el 401 original.
+    let renewed: boolean;
+    try {
+      renewed = await refreshAccessToken();
+    } catch {
+      throw error;
+    }
+    if (renewed) return send<T>(path, init);
     expiredListeners.forEach((listener) => listener());
     throw error;
   }
@@ -235,7 +253,11 @@ export async function login(body: LoginRequest): Promise<User> {
 
 /** Recupera la sesión al abrir la app con la cookie del refresh. `null` si no hay sesión (401). */
 export async function restoreSession(): Promise<User | null> {
-  if (!(await refreshAccessToken())) return null;
+  try {
+    if (!(await refreshAccessToken())) return null;
+  } catch {
+    return null; // sin red al abrir la app: no hay forma de confirmar la sesión
+  }
   return getMe().catch(() => null);
 }
 

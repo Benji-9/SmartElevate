@@ -79,6 +79,29 @@ describe('sesión en services/api', () => {
     unsubscribe();
   });
 
+  it('si el refresh falla por el servidor (5xx) no cierra la sesión', async () => {
+    await signIn();
+    stubApi({
+      'POST /auth/refresh': { status: 503, body: { message: 'Servidor caído' } },
+      'GET /users/me': meAccepting('token-2'),
+    });
+    const expired = vi.fn();
+    const unsubscribe = onSessionExpired(expired);
+
+    const error = await getMe().catch((e: unknown) => e);
+
+    expect((error as ApiError).status).toBe(401);
+    expect(expired).not.toHaveBeenCalled();
+
+    // La sesión sigue viva: cuando el servidor vuelve, el siguiente pedido renueva y anda.
+    stubApi({
+      'POST /auth/refresh': { body: tokens(2) },
+      'GET /users/me': meAccepting('token-2'),
+    });
+    await expect(getMe()).resolves.toEqual(testUser);
+    unsubscribe();
+  });
+
   it('sin sesión un 401 no intenta renovar', async () => {
     const fetchMock = stubApi({
       'GET /users/me': { status: 401, body: { message: 'Sin sesión' } },

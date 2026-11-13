@@ -13,7 +13,7 @@ type SlotListProps = {
 
 /**
  * Salidas para reservar, con su ascensor y los lugares que el usuario puede tomar (los manda el
- * servidor). Las que no tienen lugar no se pueden elegir.
+ * servidor). Las que no tienen lugar siguen enfocables (aria-disabled) pero no se pueden elegir.
  */
 export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
   const labelId = useId();
@@ -53,8 +53,11 @@ export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
                 name="departure"
                 value={departureAt}
                 checked={value === departureAt}
-                disabled={full}
-                onChange={() => onChange(departureAt)}
+                aria-disabled={full || undefined}
+                onChange={() => {
+                  // Enfocable pero no elegible: el lector anuncia "no disponible" y no cambia nada.
+                  if (!full) onChange(departureAt);
+                }}
               />
             </label>
           );

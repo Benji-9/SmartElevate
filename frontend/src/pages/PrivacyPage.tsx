@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { CONTACT_EMAIL, LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './LegalPages.css';
 
 const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
@@ -10,6 +11,7 @@ const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
  * la AAIP, con los derechos del RGPD. No es asesoramiento legal: validar con la cátedra (#24).
  */
 export function PrivacyPage() {
+  useDocumentTitle('Política de privacidad');
   return (
     <article className="legal">
       <ScreenHeader title="Política de privacidad" backTo="/login" />

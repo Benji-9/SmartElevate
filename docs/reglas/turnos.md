@@ -118,5 +118,4 @@ Resueltas el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), 
 No quedan reglas de turnos sin decidir. X y N quedaron fuera del MVP (`cancellation_wait_tolerance` y `priority_aging` siguen en NULL y no se usan). Lo que falta:
 
 1. **Calibrar en el piloto** el plazo de cancelación (10 min) y los tiempos de salida estimados.
-2. **Accesibilidad de las conexiones** en silla de ruedas ([#22](https://github.com/Benji-9/SmartElevate/issues/22), [asignación](asignacion.md#ascensor-accesible)).
-3. Lo que no es de turnos está en [bloqueantes](../bloqueantes.md).
+2. Lo que no es de turnos está en [bloqueantes](../bloqueantes.md).

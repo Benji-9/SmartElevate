@@ -34,7 +34,7 @@ Los carteles listan los pisos donde para cada batería; conviene validarlos cont
 
 Según el plano, los núcleos forman una cadena: **IND2 – IND1 – L3 – L2 – L1**. Están conectados en **todos los pisos que comparten**, sin paredes divisorias, salvo el **piso 11 de IND2**, que queda aislado. Los rangos de abajo se toman de los pisos servidos de cada núcleo.
 
-Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22): cruzar de **punta a punta** (Independencia 2 a Lima 1) tarda **~45–70 s** caminando. No se midió cada tramo por separado, y **falta confirmar** si se puede hacer en silla de ruedas.
+Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22): cruzar de **punta a punta** (Independencia 2 a Lima 1) tarda **~45–70 s** caminando. No se midió cada tramo por separado; el relevamiento también confirmó las conexiones accesibles para movilidad reducida.
 
 | Conexión | Pisos | Tiempo de caminata (tramo) | Accesible |
 | --- | --- | --- | --- |
@@ -91,4 +91,4 @@ Los dos ascensores de IND1 no se usan como ascensores comunes:
 
 ## Ascensor accesible
 
-El ascensor accesible es **IND1 06**, con los pisos −4 a 10. En el plano, el acceso para sillas de ruedas está en IND1, sobre Av. Independencia (entrada del estacionamiento). Para los prioritarios con movilidad reducida, las conexiones entre núcleos son **críticas**: si no hay conexión accesible desde su piso de origen hasta IND1, la app no debe ofrecerles una alternativa que no pueden usar. Qué conexiones son accesibles sigue **a confirmar** ([#22](https://github.com/Benji-9/SmartElevate/issues/22)).
+El ascensor accesible es **IND1 06**, con los pisos −4 a 10. En el plano, el acceso para sillas de ruedas está en IND1, sobre Av. Independencia (entrada del estacionamiento). Para los prioritarios con movilidad reducida, las conexiones entre núcleos son **críticas**: la app no debe ofrecer una alternativa que requiera una conexión no accesible. Las conexiones accesibles quedaron relevadas en [#22](https://github.com/Benji-9/SmartElevate/issues/22).

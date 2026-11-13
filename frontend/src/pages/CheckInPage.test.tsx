@@ -218,7 +218,11 @@ describe('CheckInPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'No tenemos permiso para usar la cámara' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Habilitá la cámara desde la configuración/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Tocá el candado junto a la dirección, permití la cámara y recargá la página/,
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /manualmente/ })).not.toBeInTheDocument();
   });
@@ -256,6 +260,21 @@ describe('CheckInPage', () => {
       '/api/check-ins',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'DEMO' }) }),
     );
+  });
+
+  it('si falla la carga del turno, Reintentar lo vuelve a pedir', async () => {
+    stubCamera();
+    let calls = 0;
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/active': () =>
+        calls++ ? { body: reservation } : { status: 500, body: { message: 'Error interno' } },
+    });
+    renderCheckIn();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText(/Ascensor 33/)).toBeInTheDocument();
   });
 
   it('el escaneo simulado muestra el error de la API sin salir', async () => {

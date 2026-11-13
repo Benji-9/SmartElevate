@@ -56,7 +56,7 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Umbral de pisos bajos | 4 | Sin reserva con destino en los pisos 1 a 4; movilidad reducida exenta |
 | Edificios | Lima −4 a 10 · Independencia −4 a 11 | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Ascensores y pisos servidos | Ver [asignación](asignacion.md#ascensores-y-pisos-servidos) | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
-| Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Punta a punta ~45–70 s; accesibilidad **a confirmar** |
+| Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Punta a punta ~45–70 s; accesibilidad relevada en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Ascensores dedicados | IND1 05 docentes · IND1 06 movilidad reducida | Ver [asignación](asignacion.md#ascensores-dedicados) |
 | Umbrales de congestión | Media desde 60 % · alta desde 85 % de ocupación | `congestion_medium_from`, `congestion_high_from`. Propuesta **a calibrar en el piloto** ([KPIs](kpis.md#congestión), [#220](https://github.com/Benji-9/SmartElevate/issues/220)) |
 | Turno mañana | 07:00 – 13:00 | `morning_shift_start`, `morning_shift_end`. Filtro del panel ([KPIs](kpis.md#filtros)) |
@@ -87,7 +87,7 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 
 | Issue | Tema | Estado |
 | --- | --- | --- |
-| [#22](https://github.com/Benji-9/SmartElevate/issues/22) | Ascensores, pisos servidos y conexiones | Relevado. Punta a punta ~45–70 s, sin paredes divisorias. Falta confirmar la accesibilidad en silla de ruedas |
+| [#22](https://github.com/Benji-9/SmartElevate/issues/22) | Ascensores, pisos servidos y conexiones | Relevado, incluidas las conexiones accesibles para movilidad reducida. Punta a punta ~45–70 s, sin paredes divisorias |
 | [#23](https://github.com/Benji-9/SmartElevate/issues/23) | Dispositivo para mostrar el QR | Decidido: kiosco web en una tablet o pantalla del hall ([ADR 0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md)). Falta conseguir las pantallas |
 | [#24](https://github.com/Benji-9/SmartElevate/issues/24) | Tratamiento de datos de salud (Ley 25.326) | Sin objeto: SmartElevate no trata datos de salud, la marca de movilidad reducida viene de OFALU ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) |
 | [#25](https://github.com/Benji-9/SmartElevate/issues/25) | Proveedor de email | Resuelto: Brevo ([ADR 0013](../adr/0013-email-con-brevo-y-storage-en-r2.md)) |

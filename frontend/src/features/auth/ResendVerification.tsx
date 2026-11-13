@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '../../components/Button';
-import { ApiError, resendVerification } from '../../services/api';
+import { ApiError, networkErrorMessage, resendVerification } from '../../services/api';
 import { UadeEmailInput } from './UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from './validation';
 
@@ -44,8 +44,7 @@ export function ResendVerification({ email }: { email?: string }) {
       } else {
         setMessage({
           kind: 'error',
-          text:
-            error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.',
+          text: error instanceof ApiError ? error.message : networkErrorMessage(),
         });
       }
     } finally {

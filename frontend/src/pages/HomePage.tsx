@@ -5,9 +5,11 @@ import { CongestionNow } from '../features/congestion/CongestionNow';
 import { ActiveTurnCard } from '../features/turn/ActiveTurnCard';
 import { formatDay } from '../features/turn/format';
 import { useSession } from '../hooks/useSession';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './HomePage.css';
 
 export function HomePage() {
+  useDocumentTitle('Inicio');
   const { user } = useSession();
   const location = useLocation();
   const notice = (location.state as { notice?: string } | null)?.notice;

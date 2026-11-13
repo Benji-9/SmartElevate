@@ -51,6 +51,6 @@ Al 16/10/2026 (la marca de movilidad reducida quedó fuera de la app el mismo d�
 | Notificaciones por email (recordatorio, cancelaciones) y preferencias | Hecho | [#246](https://github.com/Benji-9/SmartElevate/pull/246), [#247](https://github.com/Benji-9/SmartElevate/pull/247) |
 | Ascensor fuera de servicio (cancelación sin falta y aviso) | Hecho | [#249](https://github.com/Benji-9/SmartElevate/pull/249) |
 | KPIs de congestión y panel de administración | Hecho. La espera promedio sale "Sin datos" (necesita la encuesta, fuera del MVP) | [#242](https://github.com/Benji-9/SmartElevate/pull/242) |
-| Deploy del backend en Render con las variables de `prod` | Pendiente | [#222](https://github.com/Benji-9/SmartElevate/issues/222) |
+| Deploy del backend en Render con las variables de `prod` | Hecho | [#222](https://github.com/Benji-9/SmartElevate/issues/222) |
 
 Fuera del MVP y sin código: envejecimiento, lista de espera (la UI de "Lugar liberado" se ocultó en [#178](https://github.com/Benji-9/SmartElevate/pull/178)), edificio alternativo, tolerancia X, ingreso manual del código y integración con OFALU, encuesta de espera (el panel la necesitaría para la espera real).

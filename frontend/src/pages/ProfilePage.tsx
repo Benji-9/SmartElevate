@@ -9,6 +9,7 @@ import { PriorityInfoCard } from '../features/priority/PriorityInfoCard';
 import '../features/priority/priority.css';
 import { useSession } from '../hooks/useSession';
 import type { DeclaredUserType, User } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const userTypes: Record<DeclaredUserType, { label: string; tone: ChipTone }> = {
   STUDENT: { label: 'Estudiante', tone: 'neutral' },
@@ -36,6 +37,7 @@ function priorityStatus(user: User) {
 }
 
 export function ProfilePage() {
+  useDocumentTitle('Mi perfil');
   const { user, logout } = useSession();
   const navigate = useNavigate();
 

@@ -85,6 +85,10 @@
   outline-offset: 2px;
 }
 
+.slot:not(.slot--full):active {
+  filter: brightness(0.97);
+}
+
 .slot__info {
   display: grid;
   gap: 6px;
