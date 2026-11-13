@@ -17,6 +17,28 @@ coverage/
 *.local
 npm-debug.log*
 
+# --- Caches de herramientas (tsc, eslint, vite) ---
+*.tsbuildinfo
+.eslintcache
+.vite/
+
+# --- Tests de navegador / Playwright / DevTools (salidas locales) ---
+.playwright/
+.playwright-mcp/
+playwright-report/
+playwright/.cache/
+test-results/
+blob-report/
+*.heapsnapshot
+*.cpuprofile
+*.trace
+
+# --- Temporales ---
+tmp/
+.tmp/
+*.tmp
+*.swp
+
 # --- Vercel ---
 .vercel/
 
