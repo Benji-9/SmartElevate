@@ -257,7 +257,7 @@ describe('ReserveTurnPage', () => {
     expect(screen.getByText('Lima 1 · Piso 5 · 14:32')).toBeInTheDocument();
   });
 
-  it('agrupa por hora, ofrece el ascensor con más lugar y deshabilita las completas', async () => {
+  it('agrupa por hora, ofrece el ascensor con más lugar y marca como no elegibles las completas', async () => {
     stubApi(routes);
     await renderReserve();
 
@@ -268,7 +268,11 @@ describe('ReserveTurnPage', () => {
       '14:32 · Ascensor 01 6 libres',
     );
     const full = within(slots).getByRole('radio', { name: /^14:34/ });
-    expect(full).toBeDisabled();
+    // Enfocable (aria-disabled) para que se pueda llegar con teclado y oír por qué no se elige.
+    expect(full).toHaveAttribute('aria-disabled', 'true');
+    expect(full).toBeEnabled();
+    await userEvent.click(full);
+    expect(full).not.toBeChecked();
     expect(full).toHaveAccessibleName('14:34 · Ascensor 01 Completo');
   });
 
@@ -457,7 +461,7 @@ describe('ReserveTurnPage', () => {
         expect(screen.getByText('Franja horaria')).toHaveFocus();
         expect(
           await screen.findByRole('radio', { name: '14:32 · Ascensor 01 Completo' }),
-        ).toBeDisabled();
+        ).toHaveAttribute('aria-disabled', 'true');
         expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
           'Falta elegir la franja horaria',
         );
