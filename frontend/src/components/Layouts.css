@@ -17,7 +17,9 @@
   flex: 1;
   align-content: start;
   gap: 16px;
-  padding: 12px var(--space-screen) 24px;
+  padding: calc(12px + env(safe-area-inset-top, 0px))
+    max(var(--space-screen), env(safe-area-inset-right, 0px)) 24px
+    max(var(--space-screen), env(safe-area-inset-left, 0px));
 }
 
 /* Pantallas a sangre (check-in): el contenido llena la columna sin el pad de main. */
