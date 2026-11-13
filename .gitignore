@@ -33,9 +33,12 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# --- Claude Code (config local personal) ---
+# --- Claude Code (personal; agents/ y settings.json sí se versionan) ---
+.claude/skills/
 .claude/settings.local.json
 .claude/worktrees/
+.claude/scheduled_tasks.lock
+CLAUDE.local.md
 
 # --- Archivos pesados o de trabajo (van a Drive, no al repo) ---
 *.pdf
