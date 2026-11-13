@@ -37,4 +37,4 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 | [0022](0022-csp-y-headers-de-seguridad-en-vercel.md) | CSP y headers de seguridad en Vercel | Aceptado |
 | [0023](0023-defensa-csrf-del-refresh-por-cookie.md) | Defensa CSRF del refresh por cookie | Aceptado |
 | [0024](0024-movilidad-reducida-la-marca-viene-de-ofalu.md) | Movilidad reducida: la marca viene de OFALU | Aceptado; supersede en parte 0009 y 0013 |
-| [0025](0025-zonas-de-pisos-por-ascensor.md) | Zonas de pisos por ascensor para agrupar destinos antes de reservar | Proposed |
+| [0025](0025-zonas-de-pisos-por-ascensor.md) | Zonas de pisos por ascensor para agrupar destinos antes de reservar | Accepted |

@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-13
 - **Deciders:** Equipo SmartElevate
 - **Owner:** @Benji-9
@@ -120,26 +120,48 @@ El front sigue ofreciendo, en cada hora, la salida con más lugares libres.
 
 ### Rationale
 
-> **Esta es una propuesta pendiente de aprobación del equipo.** El ADR queda en *Proposed* hasta que el equipo la apruebe en el PR; ningún valor ni regla de abajo está decidido.
-
 La opción A responde a los drivers principales: el cupo atómico y `ReserveRequest` no cambian, lo que se muestra coincide con lo que se reserva, y la decisión (zonas, prioridades, ocupación) pasa a quien la conoce, el servidor. La B se descarta por tocar el contrato más delicado y por cupos aproximados en la lista. La C desperdicia capacidad y en L1 no ordena nada. La D no cumple el objetivo.
 
-Forma de la propuesta (a validar):
+#### Decisiones del equipo (13/11/2026)
 
-1. **Rangos de pisos, no pisos.** Ej.: el 01 atiende 5–6 y el 02 atiende 7. Viven en la tabla de configuración de ascensores, como el uso (común, docentes, movilidad reducida).
-2. **Preferencia, no asignación fija.** El servidor busca, dentro del núcleo elegido, la salida que ya lleva destinos cercanos. Si faltan N minutos para la salida y no se llenó, se abre a cualquier destino que el ascensor sirva (N en `app_config`).
-3. **Respetar lo vigente:** zonas solo en comunes, 2 lugares reservados para prioritarios por salida, movilidad reducida a IND1 06 sin zonificar, elegibilidad en el servidor ([ADR-0009](0009-autenticacion-y-prioridad.md)).
-4. **Mostrar el ascensor asignado después de reservar** (turno y check-in) y **dejar de mostrarlo en la lista de franjas**.
+Se resolvieron las cinco preguntas que estaban abiertas:
 
-#### Open questions
+1. **Las zonas cambian con la demanda.** No son fijas por franja horaria: el servidor agrupa según los destinos que ya tiene cada salida.
+2. **Se adaptan a un ascensor no disponible.** Un ascensor inactivo no es candidato y los destinos de su zona pasan a los demás ascensores del núcleo por la misma regla de cercanía. Se apoya en [turnos §8](../reglas/turnos.md#8-ascensor-fuera-de-servicio), que ya no ofrece el ascensor inactivo ni le asigna reservas.
+3. **N = 5 minutos** (valor recomendado, `zone_open_to_any_before` en `app_config`, a calibrar en el piloto). Razones: tiene que ser mayor que los 2 min en que cierra la ventana de reserva; ya pasó el plazo de cancelación sin falta (10 min), así que el cupo está estable; deja 3 min de ventana abierta antes del cierre; y coincide con el recordatorio de salida (`departure_reminder_before`, 5 min).
+4. **Zonas iniciales a mano**, con la tabla de abajo (valores recomendados, a calibrar con la demanda del piloto). Son una semilla: la asignación real se ajusta con la demanda (decisión 1).
+5. **Opción A.**
 
-Pendientes de definir por el equipo; no hay respuesta ni valor propuesto todavía.
+#### Cómo resuelve el servidor la oferta de cada hora
 
-- [ ] ¿Las zonas son fijas por franja horaria o cambian según la demanda del día?
-- [ ] ¿Qué pasa si el ascensor de la zona está fuera de servicio? (reasignar a otra zona, avisar, etc.) Hoy un ascensor inactivo no se ofrece y se cancelan sus reservas futuras ([turnos §8](../reglas/turnos.md#8-ascensor-fuera-de-servicio)).
-- [ ] ¿Cuántos minutos antes de la salida (N) se abre a cualquier destino?
-- [ ] ¿Cómo se definen las zonas iniciales de cada núcleo? (con datos de demanda del piloto o a mano)
-- [ ] Opción A o B para el contrato de reserva (la recomendación es A, pero la confirma el equipo).
+Entre las salidas de esa hora del núcleo elegido, se consideran candidatas las de ascensores **comunes y activos** que sirven origen y destino y tienen lugar para esa persona (con los 2 lugares reservados a prioritarios, `PrioritySeats`). Los dedicados (IND1 05 y 06) no se zonifican, y movilidad reducida sigue yendo a IND1 06. Después:
+
+1. Si faltan **N minutos o menos** para la salida, **abierta**: se elige entre todas las candidatas por más lugares libres.
+2. Si no, por **afinidad**: la salida cuyos destinos ya reservados estén más cerca del pedido (menor distancia en pisos).
+3. Si ninguna tiene reservas, la del ascensor cuya **zona semilla** contiene el destino.
+4. Si tampoco hay, la de más lugares libres.
+5. Desempate: la más ocupada que todavía tenga lugar, para llenar una salida antes de abrir otra. Es una regla a validar en el piloto.
+
+`ReservationService.reserve` sigue revalidando todo con el lock pesimista, así que si entre listar y confirmar la salida se llenó, responde `TURN_FULL` como hoy.
+
+#### Zonas iniciales (semilla, a mano)
+
+Destinos válidos: pisos −4 a 0 y 5 en adelante, porque la regla de pisos bajos bloquea los destinos 1 a 4 ([asignación](../reglas/asignacion.md#elegibilidad)). Los subsuelos se asignan al ascensor del rango más bajo del núcleo, porque casi nadie los pide. Los rangos se guardan en la configuración de ascensores, no en el código.
+
+| Núcleo | Ascensores | Destinos de la zona |
+| --- | --- | --- |
+| IND2 | 33 | −4 a 0 y 5 a 8 |
+| IND2 | 34 | 9 a 11 |
+| L3 | 10, 11 | −3 a 0 y 5 a 6 |
+| L3 | 12, 13 | 7 a 8 |
+| L3 | 14, 15 | 9 a 10 |
+| L2 (baja) | 07, 08 | −4 a 0 y 5 |
+| L2 (alta) | 35 | 6 a 8 |
+| L2 (alta) | 36 | 9 a 10 |
+| L1 | 01, 02 | −3 a 0 y 5 a 6 |
+| L1 | 03, 04 | 7 |
+
+Criterio: un grupo de ascensores por tramo de pisos, con tramos más cortos arriba, donde cada piso suma 3 s al viaje. En L1 casi no hay qué ordenar (solo quedan 5, 6 y 7 tras la regla de pisos bajos), así que el efecto allí será chico. Estos valores son una recomendación sin datos de demanda: se calibran en el piloto.
 
 ---
 
@@ -172,12 +194,12 @@ Pendientes de definir por el equipo; no hay respuesta ni valor propuesto todaví
 
 ## 6. Implementation and Validation
 
-Nada de esto se hace hasta que el equipo apruebe el ADR y resuelva las *Open questions*.
+La decisión está tomada; la implementación sigue pendiente y se rastrea en los sub-issues de [#298](https://github.com/Benji-9/SmartElevate/issues/298).
 
-- [ ] Resolver las *Open questions* y pasar el ADR a *Accepted* en el PR.
-- [ ] Actualizar [`docs/reglas/asignacion.md`](../reglas/asignacion.md) con la regla de zonas (hoy solo tiene una nota de que está en discusión).
-- [ ] Backend: modelo de zonas por ascensor (rango de pisos) y migración Flyway `V<n>__...sql` compatible con H2 y Postgres.
-- [ ] Backend: parámetro N en `app_config` (nunca hardcodeado).
+- [x] Resolver las preguntas abiertas y pasar el ADR a *Accepted*.
+- [x] Actualizar [`docs/reglas/asignacion.md`](../reglas/asignacion.md) con la regla de zonas.
+- [ ] Backend: modelo de zonas por ascensor (rango de pisos como semilla) y migración Flyway `V<n>__...sql` compatible con H2 y Postgres, con la tabla de zonas iniciales de arriba.
+- [ ] Backend: parámetro `zone_open_to_any_before` (N = 5 min) en `app_config` (nunca hardcodeado) y en la tabla de parámetros de [turnos](../reglas/turnos.md).
 - [ ] Backend: `GET /api/departures` con núcleo, origen y destino que devuelve la oferta por hora resuelta; zonas solo en comunes; respeta lugares reservados para prioritarios y dedicados.
 - [ ] Backend: tests unitarios de la resolución (zona, apertura tras N minutos con `Clock.fixed`, ascensor inactivo, dedicados, prioritarios) y de que `reserve` sigue revalidando.
 - [ ] Contrato: regenerar `docs/openapi.json` y `frontend/src/types/openapi.ts`.
