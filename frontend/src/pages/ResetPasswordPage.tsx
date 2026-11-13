@@ -7,12 +7,14 @@ import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { PASSWORD_HINT, validatePassword } from '../features/auth/validation';
 import { ApiError, resetPassword } from '../services/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 type Errors = { newPassword?: string; repeat?: string };
 
 /** Contraseña nueva desde el link del mail, `/recuperar/nueva?token=…` (SCREENS.md §01b). */
 export function ResetPasswordPage() {
+  useDocumentTitle('Contraseña nueva');
   const token = useSearchParams()[0].get('token');
   const [newPassword, setNewPassword] = useState('');
   const [repeat, setRepeat] = useState('');

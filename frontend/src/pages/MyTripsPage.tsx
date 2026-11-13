@@ -10,8 +10,10 @@ import { errorMessage, useResource } from '../hooks/useResource';
 import { getNoShowStatus, getTrips } from '../services/api';
 import type { ReservationPage } from '../types/api';
 import { Skeleton } from '../components/Skeleton';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function MyTripsPage() {
+  useDocumentTitle('Mis viajes');
   const first = useResource(getTrips);
   // El aviso de faltas es secundario: si falla, la lista se muestra igual sin él.
   const noShows = useResource(getNoShowStatus);

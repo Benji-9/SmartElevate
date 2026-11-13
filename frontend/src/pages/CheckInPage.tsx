@@ -13,6 +13,7 @@ import { useNow } from '../hooks/useNow';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { errorMessage, useResource } from '../hooks/useResource';
 import { ApiError, checkIn, getActiveReservation } from '../services/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type Camera = 'starting' | 'on' | 'denied' | 'unavailable';
 type CheckInError = { message: string; code?: string };
@@ -39,6 +40,7 @@ function ErrorAction({ code }: { code?: string }) {
  * es largo y opaco (docs/alcance-mvp.md).
  */
 export function CheckInPage() {
+  useDocumentTitle('Check-in');
   const navigate = useNavigate();
   const demo = useDemoMode();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -84,6 +86,7 @@ export function CheckInPage() {
 
   useEffect(() => {
     if (!wantsCamera || !('mediaDevices' in navigator)) return;
+    const node = videoRef.current;
     let stopped = false;
     let stream: MediaStream | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -104,16 +107,18 @@ export function CheckInPage() {
       const video = videoRef.current;
       if (stopped || !video) return release();
       video.srcObject = stream;
-      setCamera('on');
 
       let read;
       try {
         read = await createQrReader();
       } catch {
         release();
+        video.srcObject = null;
         if (!stopped) setCamera('unavailable');
         return;
       }
+      if (stopped) return;
+      setCamera('on');
       const tick = async () => {
         if (stopped) return;
         const value = await read(video).catch(() => null);
@@ -128,6 +133,9 @@ export function CheckInPage() {
       stopped = true;
       clearTimeout(timer);
       release();
+      // Sin esto el <video> sigue mostrando el último cuadro y `camera` queda en 'on'.
+      if (node) node.srcObject = null;
+      setCamera('starting');
     };
   }, [wantsCamera]);
 
@@ -153,7 +161,7 @@ export function CheckInPage() {
         </h2>
         <p>
           {camera === 'denied'
-            ? 'Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador.'
+            ? 'Para hacer check-in hay que escanear el QR del ascensor. Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
             : 'Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular.'}
         </p>
       </section>

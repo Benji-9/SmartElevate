@@ -11,6 +11,7 @@ import {
   markElevatorOutOfService,
 } from '../services/api';
 import type { AdminElevator } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import '../features/admin/admin.css';
 import '../features/kiosk/kiosk.css';
 
@@ -29,6 +30,7 @@ function outageQuestion({ code, upcomingReservations: n }: AdminElevator) {
 
 /** 09e · Ascensores: marcar fuera de servicio por avería (cancela las reservas sin falta) o reactivar. */
 export function AdminElevatorsPage() {
+  useDocumentTitle('Ascensores');
   const listId = useId();
   const list = useResource(getAdminElevators);
   // Solo para el nombre visible del edificio: si falla, se muestra el código.

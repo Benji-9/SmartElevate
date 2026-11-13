@@ -5,6 +5,7 @@ import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
 import { ApiError, verifyEmail } from '../services/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 type State = { status: 'loading' } | { status: 'ok' } | { status: 'error'; message: string };
@@ -16,6 +17,7 @@ const USED = 'Este link ya se usó.';
 
 /** Verifica el email con el token del link, `/verificar-email?token=…` (SCREENS.md §02d). */
 export function VerifyEmailPage() {
+  useDocumentTitle('Verificar email');
   const token = useSearchParams()[0].get('token');
   const [state, setState] = useState<State>(
     token

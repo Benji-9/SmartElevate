@@ -5,6 +5,7 @@ import { formatTime } from '../features/turn/format';
 import { SuccessHero } from '../features/turn/SuccessHero';
 import '../features/turn/turn.css';
 import type { CheckIn } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 // El resultado llega por `navigate('/check-in/ok', { state: result })` desde el check-in.
 const isResult = (state: unknown): state is CheckIn =>
@@ -25,6 +26,7 @@ const heroes = {
  * guardarla (SCREENS.md §07).
  */
 export function CheckInSuccessPage() {
+  useDocumentTitle('Check-in registrado');
   const { state } = useLocation();
   // Entrada directa o recarga: no hay check-in reciente que mostrar.
   if (!isResult(state)) return <Navigate to="/" replace />;

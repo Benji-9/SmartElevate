@@ -16,6 +16,7 @@ import {
 } from '../features/auth/validation';
 import { ApiError, register } from '../services/api';
 import type { DeclaredUserType, RegisterRequest } from '../types/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
 const FIELDS = ['fullName', 'email', 'legajo', 'password'] as const;
@@ -41,6 +42,7 @@ function validate(form: RegisterRequest): Errors {
 }
 
 export function RegisterPage() {
+  useDocumentTitle('Crear cuenta');
   const [form, setForm] = useState<RegisterRequest>({
     fullName: '',
     email: '',
