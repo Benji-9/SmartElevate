@@ -4,12 +4,31 @@ Cada decisión de arquitectura o de proceso que sea difícil de revertir o que v
 
 ## Cómo agregar uno
 
-1. Copiar [`template.md`](template.md) como `NNNN-titulo-en-kebab-case.md` (número siguiente).
-2. Completar contexto, decisión y consecuencias. Estado inicial: **Propuesto**.
-3. Abrir PR (`docs(adr): ...`). Al mergearse con acuerdo del equipo pasa a **Aceptado**.
-4. Si una decisión cambia, **no se edita** el ADR viejo: se crea uno nuevo y el viejo pasa a **Reemplazado por NNNN**.
+1. Copiar [`template.md`](template.md) (formato [MADR](https://adr.github.io/madr/)) como `NNNN-titulo-corto.md` con el número siguiente y reemplazar `ADR-XXX` por `ADR-NNNN`.
+2. Completar todas las secciones; si alguna no aplica, dejarla en blanco en vez de borrarla. Status inicial: **Proposed**.
+3. Agregar la fila al [índice](#índice) (al final de la tabla).
+4. Abrir PR (`docs(adr): ...`). Al mergearse con acuerdo del equipo pasa a **Accepted**. Un ADR es siempre un cambio **crítico**: sin automerge ([CONTRIBUTING](../../CONTRIBUTING.md#automerge-y-cambios-críticos)).
+5. Si una decisión cambia, **no se edita** el ADR viejo: se crea uno nuevo y el viejo pasa a **Superseded by ADR-NNNN**. Lo único que se agrega a un ADR aceptado es una nota fechada (`> Nota del AAAA-MM-DD: …`).
+
+## Status
+
+| Status | Significado |
+| --- | --- |
+| Proposed | Propuesta, pendiente de revisión |
+| Accepted | Aprobada |
+| Rejected | Evaluada y no adoptada |
+| Deprecated | Ya no se recomienda |
+| Superseded | La reemplazó una decisión posterior (indicar `by ADR-NNNN`) |
+
+## Plantillas: ADRs históricos y nuevos
+
+- Los ADR **0001 a 0024 son registros históricos inmutables** y **no se reescriben**, aunque usen la plantilla anterior (Estado, Contexto, Opciones, Decisión, Consecuencias) y los estados en español (Propuesto, Aceptado, Rechazado, Reemplazado por).
+- La plantilla MADR actual rige **desde el 0025**.
+- Los archivos se nombran con **cuatro dígitos** (`NNNN-titulo-corto.md`), como los existentes. La plantilla dice tres (`adr-NNN-...`) y su nota sobre qué ADR usan qué formato es genérica: vale lo de esta sección.
 
 ## Índice
+
+La columna Estado de los ADR 0001–0024 conserva los valores en español de su plantilla; los nuevos usan los de la tabla de arriba.
 
 | # | Título | Estado |
 | --- | --- | --- |

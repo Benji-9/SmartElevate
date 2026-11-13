@@ -28,7 +28,7 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 
 ## Flujo de trabajo
 
-1. **Issue primero**: el trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver README). Cada PR referencia su issue (`Closes #N`).
+1. **Issue primero**: el trabajo se trackea en GitHub Issues con labels `type:*`, `area:*`, `priority:*` (ver [CONTRIBUTING](CONTRIBUTING.md#issues-y-labels)). Cada PR referencia su issue (`Closes #N`).
 2. **Leer antes de escribir**: reglas de negocio en `docs/reglas/`, glosario, specs de UI y ADRs (ver más abajo).
 3. **Rama** desde `develop`: `<prefijo>/<issue>-<kebab-case>` (p. ej. `feature/12-reservar-turno`). Prefijos: `feature/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/`, `ci/`; `hotfix/` sale de `main`. Lo valida `branch-policy.yml`. Nunca commitear ni pushear a `main`/`develop` directamente.
 4. **Commits** chicos y atómicos, Conventional Commits: `feat(turn): ...`, `fix(frontend): ...`, `ci: ...`, `docs(adr): ...`.
@@ -36,7 +36,9 @@ Antes de dar una tarea por terminada, corré los comandos del lado que tocaste y
 6. **PR** contra `develop` con `Closes #N`, solo cuando la tarea está terminada (no abrir PRs de trabajo a medias).
 7. **Automerge**: si el cambio no es crítico, `gh pr merge --auto --squash`. Es **crítico** (sin automerge, esperar revisión humana) si toca: cupo/prioridades/reglas de `docs/reglas/`, auth/seguridad/JWT, la marca de movilidad reducida, migraciones Flyway, workflows de `.github/` o deploy, o un ADR. Ante la duda, tratarlo como crítico.
 
-Decisiones de arquitectura → nuevo ADR en `docs/adr/` (usar `template.md`). Algo que bloquea → `docs/bloqueantes.md`. Al fijar versiones de dependencias o actions, verificá la última versión real (Maven Central, npm, GitHub releases); no uses versiones de memoria.
+Detalle de ramas, commits y PRs: [CONTRIBUTING](CONTRIBUTING.md). Índice de toda la documentación: [docs/README.md](docs/README.md). README propio de cada paquete: [backend](backend/README.md), [frontend](frontend/README.md).
+
+Decisiones de arquitectura → nuevo ADR en `docs/adr/` (plantilla MADR en `docs/adr/template.md`, ver [cómo](docs/adr/README.md#cómo-agregar-uno)). Algo que bloquea → `docs/bloqueantes.md`. Al fijar versiones de dependencias o actions, verificá la última versión real (Maven Central, npm, GitHub releases); no uses versiones de memoria.
 
 ## Reglas de negocio
 
@@ -58,7 +60,7 @@ Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo
 - Controllers bajo `/api/...`, delgados: validan (`@Valid`), delegan en el service y devuelven DTOs (records). **Nunca exponer entidades JPA** en la API.
 - La lógica de negocio (cupo de 10, prioridades) vive en los services y se testea con tests unitarios.
 - Errores: lanzar excepciones y dejar que `common/error/GlobalExceptionHandler` arme el `ApiError`. Si hace falta un caso nuevo (p. ej. `TurnFullException` → 409), agregá el handler ahí; no armes respuestas de error a mano en los controllers.
-- Configuración de despliegue por variables de entorno (ver tabla en README), según la regla de parámetros. **Nunca hardcodear secretos** ni URLs de producción.
+- Configuración de despliegue por variables de entorno (ver [variables de entorno](docs/referencia/variables-de-entorno.md)), según la regla de parámetros. **Nunca hardcodear secretos** ni URLs de producción.
 - Perfiles: `dev` (H2, default) y `prod` (Postgres). Los tests usan `dev`.
 - **Base de datos con Flyway** (ADR 0004): el schema lo crean las migraciones de `src/main/resources/db/migration/V<n>__<descripcion>.sql`, en todos los perfiles, y Hibernate solo valida (`ddl-auto: validate`). Toda entidad nueva o cambio de columnas trae su migración en el mismo PR; una migración ya mergeada no se edita. SQL compatible con H2 (`MODE=PostgreSQL`) y con Postgres.
 - Lombok está disponible; preferir `record` para DTOs y `@RequiredArgsConstructor` para inyección.
