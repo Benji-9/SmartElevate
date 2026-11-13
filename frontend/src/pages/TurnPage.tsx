@@ -8,12 +8,10 @@ import { CheckinHint } from '../features/turn/CheckinHint';
 import { SuccessHero } from '../features/turn/SuccessHero';
 import { TurnDetails } from '../features/turn/TurnDetails';
 import '../features/turn/turn.css';
+import { errorMessage } from '../hooks/useResource';
 import { ApiError, cancelReservation, getReservation } from '../services/api';
 import type { Reservation, ReservationStatus } from '../types/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-
-const errorMessage = (error: unknown) =>
-  error instanceof ApiError ? error.message : 'No pudimos conectarnos. Probá de nuevo.';
 
 const closedStatus: Record<Exclude<ReservationStatus, 'ACTIVE'>, string> = {
   USED: 'Viaje cumplido',
@@ -36,6 +34,7 @@ export function TurnPage() {
     reservation?: Reservation;
     error?: unknown;
   } | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -52,7 +51,7 @@ export function TurnPage() {
     return () => {
       ignore = true;
     };
-  }, [id]);
+  }, [id, attempt]);
 
   async function confirmCancel() {
     if (!reservation) return;
@@ -85,9 +84,18 @@ export function TurnPage() {
     );
   } else if (loadError) {
     content = (
-      <p role="alert" className="turn-alert">
-        {errorMessage(loadError)}
-      </p>
+      <div role="alert" className="turn-alert">
+        <p>{errorMessage(loadError)}</p>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setLoaded(null);
+            setAttempt((n) => n + 1);
+          }}
+        >
+          Reintentar
+        </Button>
+      </div>
     );
   } else if (!reservation) {
     content = (

@@ -39,6 +39,12 @@ import type {
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
+/** Mensaje cuando el pedido no llegó al servidor (sin red, caído, cortado). */
+export const networkErrorMessage = () =>
+  navigator.onLine === false
+    ? 'Sin conexión. Revisá tu wifi o tus datos.'
+    : 'No pudimos conectarnos. Probá de nuevo.';
+
 export class ApiError extends Error {
   readonly status: number;
   /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */

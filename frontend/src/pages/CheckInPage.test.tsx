@@ -262,6 +262,21 @@ describe('CheckInPage', () => {
     );
   });
 
+  it('si falla la carga del turno, Reintentar lo vuelve a pedir', async () => {
+    stubCamera();
+    let calls = 0;
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/active': () =>
+        calls++ ? { body: reservation } : { status: 500, body: { message: 'Error interno' } },
+    });
+    renderCheckIn();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText(/Ascensor 33/)).toBeInTheDocument();
+  });
+
   it('el escaneo simulado muestra el error de la API sin salir', async () => {
     const message = 'No tenés un turno activo para hacer check-in.';
     stubApi({ ...withTurn, 'POST /check-ins': { status: 409, body: { message } } });
