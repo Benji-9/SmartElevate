@@ -186,9 +186,12 @@ export function CheckInPage() {
     );
   } else if (turn.error) {
     turnContent = (
-      <p role="alert" className="turn-alert">
-        {turn.error}
-      </p>
+      <div role="alert" className="turn-alert">
+        <p>{turn.error}</p>
+        <Button variant="secondary" onClick={turn.reload}>
+          Reintentar
+        </Button>
+      </div>
     );
   } else if (!reservation) {
     turnContent = (

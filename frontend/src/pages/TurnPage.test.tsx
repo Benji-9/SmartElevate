@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -160,5 +161,36 @@ describe('TurnPage', () => {
     renderTurn();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
+  });
+
+  it('Reintentar vuelve a pedir el turno', async () => {
+    let calls = 0;
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/55': () =>
+        calls++ ? { body: reservation } : { status: 500, body: { message: 'Error inesperado' } },
+    });
+    renderTurn();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByRole('link', { name: 'Ir a check-in' })).toBeInTheDocument();
+  });
+
+  it.each([
+    [false, 'Sin conexión. Revisá tu wifi o tus datos.'],
+    [true, 'No pudimos conectarnos. Probá de nuevo.'],
+  ])('si se corta la red (onLine=%s) lo explica', async (onLine, message) => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(onLine);
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/55': () => {
+        throw new TypeError('Failed to fetch');
+      },
+    });
+    renderTurn();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    vi.restoreAllMocks();
   });
 });
