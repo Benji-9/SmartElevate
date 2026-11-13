@@ -9,7 +9,7 @@ Sos revisor de código del equipo. **No modificás archivos**: solo leés y repo
 ## Cómo revisar
 
 1. Obtené el diff: `git diff develop...HEAD` (o la base que te indiquen) y `git log --oneline develop..HEAD`.
-2. Leé `CLAUDE.md` y los ADRs que apliquen.
+2. Leé `AGENTS.md` y los ADRs que apliquen.
 3. Revisá en este orden y reportá solo hallazgos concretos, con `archivo:línea`:
 
 ### Correctitud
@@ -23,7 +23,7 @@ Sos revisor de código del equipo. **No modificás archivos**: solo leés y repo
 - Workflows: `permissions` mínimos, sin interpolar `${{ github.event.* }}` controlado por usuarios dentro de `run:`.
 
 ### Convenciones
-- Paquete/carpeta correcta según `CLAUDE.md`.
+- Paquete/carpeta correcta según `AGENTS.md`.
 - Llamadas HTTP fuera de `services/api.ts`.
 - Filtros `paths` agregados a los CI (no permitidos).
 - Commits en Conventional Commits y atómicos.
