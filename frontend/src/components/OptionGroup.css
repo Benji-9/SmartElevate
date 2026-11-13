@@ -59,6 +59,10 @@
   cursor: not-allowed;
 }
 
+.option:not(.option--disabled):active {
+  filter: brightness(0.95);
+}
+
 @media (hover: hover) {
   .option:not(.option--disabled, :has(input:checked)):hover {
     background: var(--color-disabled-bg);

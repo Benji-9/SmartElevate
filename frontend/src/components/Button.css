@@ -79,7 +79,24 @@
   }
 }
 
+/* Feedback táctil: la pantalla "responde" al toque sin depender de hover. */
+.button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.button {
+  transition: transform 0.1s;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button:not(:disabled):active {
+    transform: none;
+  }
+
   .button__spinner {
     animation-duration: 2.4s;
   }
