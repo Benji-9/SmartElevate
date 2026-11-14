@@ -8,11 +8,14 @@ Workflows de GitHub Actions. Las reglas de ramas y los checks requeridos están 
 | [`ci-frontend.yml`](../../.github/workflows/ci-frontend.yml) | PR y push a `main`/`develop` | Node 24 + cache npm, `npm ci`, chequeo de que `src/types/openapi.ts` coincide con `docs/openapi.json`, lint, tests, build |
 | [`branch-policy.yml`](../../.github/workflows/branch-policy.yml) | PR a `main`/`develop` | Valida el nombre y el destino de la rama y agrega el label `type:` según el prefijo |
 | [`deploy-frontend.yml`](../../.github/workflows/deploy-frontend.yml) | Cuando **CI Frontend** termina OK (`workflow_run`) | PR → preview + comentario con la URL · push a `develop` → preview · push a `main` → producción |
+| [`gitleaks.yml`](../../.github/workflows/gitleaks.yml) | PR y push a `main`/`develop` | Job `gitleaks`: escanea el historial completo (`fetch-depth: 0`) y falla si encuentra secretos. Allowlist mínima en [`.gitleaks.toml`](../../.gitleaks.toml) (fixtures de tests) |
+| [`codeql.yml`](../../.github/workflows/codeql.yml) | PR y push a `main`/`develop`, y semanal (miércoles) | Job `analyze` por lenguaje (`java-kotlin` con build Maven, `javascript-typescript`); sube resultados a Security → Code scanning |
 | [`keep-alive-backend.yml`](../../.github/workflows/keep-alive-backend.yml) | Cada 10 min, 07:00–22:59 (Buenos Aires) | `GET /api/ping` para que Render no duerma el backend ([detalle](../infraestructura.md#keep-alive)) |
 
 Detalles:
 
 - Los CI no usan filtros `paths`, así pueden configurarse como **required checks** sin quedar en "pending".
+- `gitleaks.yml` y `codeql.yml` tampoco llevan `paths`. Si se los quiere como required checks hay que sumarlos en la protección de rama (lo decide el dueño del repo, issue #349). Sus actions están fijadas por SHA.
 - Cada workflow tiene `concurrency` (cancela corridas viejas del mismo PR/rama; nunca un deploy de producción) y `permissions` mínimos.
 - El deploy nunca corre para PRs de forks (el workflow tiene acceso a secrets).
 - Los deploys automáticos de Vercel por Git están apagados (`"git": { "deploymentEnabled": false }` en `vercel.json`): **el único camino de deploy es el workflow**.
