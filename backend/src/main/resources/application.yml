@@ -1,4 +1,9 @@
 spring:
+  config:
+    # Carga el .env de la raíz del repo (el mismo que lee docker compose; ver .env.example). Solo local: es
+    # opcional, así que en Docker/Render, donde no existe, se ignora. Las variables reales del entorno pisan a las
+    # del archivo. APP_ENV_FILE permite apuntar a otro archivo (los tests lo desvían para no leer el del dev).
+    import: optional:file:${APP_ENV_FILE:../.env}[.properties]
   application:
     name: smartelevate-api
   profiles:

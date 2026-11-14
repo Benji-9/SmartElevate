@@ -19,6 +19,9 @@ App para reducir la congestión de los ascensores del campus de UADE. Cada salid
 Requisitos: **JDK 25**, **Node.js 24** (`frontend/.nvmrc`) y, opcional, Docker. No hace falta instalar Maven: se usa `./mvnw` (en Windows, `mvnw.cmd`).
 
 ```bash
+# Opcional para dev (arranca sin variables); para prod o Postgres local:
+cp .env.example .env
+
 # Terminal 1: backend (perfil dev, H2 en memoria)
 cd backend && ./mvnw spring-boot:run   # http://localhost:8080/api/ping, Swagger en /swagger-ui.html
 
@@ -26,7 +29,7 @@ cd backend && ./mvnw spring-boot:run   # http://localhost:8080/api/ping, Swagger
 cd frontend && npm ci && npm run dev   # http://localhost:5173
 ```
 
-Para que el frontend use el backend real: `VITE_USE_MOCKS=false npm run dev` ([detalle](frontend/README.md#variables-de-entorno)). Postgres local, opcional: `docker compose up -d` y las variables del perfil `prod` ([pasos](backend/README.md#con-postgres-perfil-prod)).
+Para que el frontend use el backend real: `VITE_USE_MOCKS=false npm run dev` ([detalle](frontend/README.md#variables-de-entorno)). Postgres local, opcional: `docker compose up -d` y las variables del perfil `prod` del [`.env.example`](.env.example) ([pasos](backend/README.md#con-postgres-perfil-prod)).
 
 ## Documentación
 
@@ -45,7 +48,7 @@ Para que el frontend use el backend real: `VITE_USE_MOCKS=false npm run dev` ([d
 - Referencia
   - [docs/referencia/der.md](docs/referencia/der.md): diagrama entidad-relación de la base
   - [docs/openapi.json](docs/openapi.json): contrato de la API (generado)
-  - [docs/referencia/variables-de-entorno.md](docs/referencia/variables-de-entorno.md): variables del backend y checklist de `prod`
+  - [.env.example](.env.example): todas las variables del backend, con defaults y la checklist de `prod`
   - [docs/referencia/ci-cd.md](docs/referencia/ci-cd.md): workflows de GitHub Actions
 - Guías y operación
   - [docs/guias/autenticacion-y-endpoints.md](docs/guias/autenticacion-y-endpoints.md): endpoints públicos, protegidos o por rol

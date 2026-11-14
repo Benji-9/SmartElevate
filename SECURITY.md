@@ -56,4 +56,4 @@ ADR [0009](docs/adr/0009-autenticacion-y-prioridad.md), [0015](docs/adr/0015-pol
 
 ## Si encontrás un secreto en el repo
 
-Avisá por el mismo canal. Hay que **rotarlo** (ver [`docs/infraestructura.md`](docs/infraestructura.md#rotar-la-clave) y la [referencia de variables](docs/referencia/variables-de-entorno.md)); borrarlo del historial no alcanza.
+Avisá por el mismo canal. Hay que **rotarlo** (ver [`docs/infraestructura.md`](docs/infraestructura.md#rotar-la-clave) y el [`.env.example`](.env.example)); borrarlo del historial no alcanza.
