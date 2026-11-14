@@ -1,0 +1,14 @@
+title = "SmartElevate gitleaks"
+
+[extend]
+useDefault = true
+
+# Fixtures de tests: valores inventados para probar la validación de propiedades de prod
+# y la firma de QR. No son credenciales reales de ningún entorno.
+[[allowlists]]
+description = "Secretos de prueba en tests unitarios"
+targetRules = ["generic-api-key"]
+paths = [
+  '''backend/src/test/java/com/smartelevate/common/config/RequiredProdPropertiesTest\.java''',
+  '''backend/src/test/java/com/smartelevate/elevator/service/QrTokenServiceTest\.java''',
+]
