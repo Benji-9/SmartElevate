@@ -76,6 +76,8 @@ Las reglas completas para agentes y personas están en [`AGENTS.md`](../AGENTS.m
 
 El schema lo crean los scripts de `src/main/resources/db/migration/`, igual en dev (H2), en los tests y en prod (Postgres). Hibernate solo valida que las entidades coincidan (`ddl-auto: validate`). Decisión en el [ADR 0004](../docs/adr/0004-migraciones-de-base-de-datos.md).
 
+El esquema resultante está en el [diagrama entidad-relación](../docs/referencia/der.md); si una migración cambia tablas o constraints, actualizalo en el mismo PR.
+
 - Un script por cambio, con nombre `V<n>__<descripcion>.sql` (p. ej. `V2__agregar_ascensor_a_reservas.sql`), en el mismo PR que el cambio de entidades.
 - **Una migración ya mergeada no se edita**: Flyway detecta el cambio y la app no arranca. Se corrige con una migración nueva.
 - SQL compatible con H2 (`MODE=PostgreSQL`) y con Postgres: sin tipos ni funciones exclusivas de Postgres.

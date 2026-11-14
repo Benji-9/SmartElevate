@@ -6,7 +6,7 @@
 
 Para levantar el proyecto y orientarte.
 
-- [README del repo](../README.md): qué es, inicio rápido y mapa del repo.
+- [README del repo](../README.md): qué es, stack, cómo levantarla en local y árbol de la documentación.
 - [Backend](../backend/README.md): requisitos, comandos, estructura, migraciones, tests.
 - [Frontend](../frontend/README.md): requisitos, comandos, estructura, convenciones, tests.
 - [Cómo contribuir](../CONTRIBUTING.md): ramas, commits, issues y PRs.
@@ -31,6 +31,7 @@ Para consultar un dato exacto.
 - [Reglas de negocio](reglas/README.md): [turnos](reglas/turnos.md), [asignación](reglas/asignacion.md), [check-in con QR](reglas/check-in-qr.md), [usuarios y prioridad](reglas/usuarios-y-prioridad.md), [KPIs](reglas/kpis.md).
 - [Contrato de la API (`openapi.json`)](openapi.json): generado desde el código; Swagger UI en `/swagger-ui.html`.
 - [Variables de entorno del backend](referencia/variables-de-entorno.md) (las del frontend, en su [README](../frontend/README.md#variables-de-entorno)).
+- [Diagrama entidad-relación (DER)](referencia/der.md): tablas, relaciones y constraints de la base.
 - [CI/CD: workflows](referencia/ci-cd.md).
 - [Specs de UI](frontend/README.md): [design system](frontend/DESIGN-SYSTEM.md), [pantallas](frontend/SCREENS.md), [modos de vista](frontend/VIEW-MODES.md).
 

@@ -49,7 +49,7 @@ Como **<rol>**, quiero **<qué>**, para **<por qué>**.
 
 - [ ] Cambia una regla de negocio (`docs/reglas/`) o requiere un ADR
 - [ ] Cambia el contrato de la API (`docs/openapi.json` y `src/types/openapi.ts` regenerados)
-- [ ] Agrega una migración Flyway (`V<n>__...sql`)
+- [ ] Agrega una migración Flyway (`V<n>__...sql`) y actualicé el DER (`docs/referencia/der.md`)
 - [ ] Agrega o cambia variables de entorno o `app_config`
 - [ ] Rompe compatibilidad (describí cómo migrar)
 - [ ] Toca auth, cupo, prioridades o workflows: requiere revisión humana (sin automerge)
