@@ -60,7 +60,7 @@ Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo
 - Controllers bajo `/api/...`, delgados: validan (`@Valid`), delegan en el service y devuelven DTOs (records). **Nunca exponer entidades JPA** en la API.
 - La lógica de negocio (cupo de 10, prioridades) vive en los services y se testea con tests unitarios.
 - Errores: lanzar excepciones y dejar que `common/error/GlobalExceptionHandler` arme el `ApiError`. Si hace falta un caso nuevo (p. ej. `TurnFullException` → 409), agregá el handler ahí; no armes respuestas de error a mano en los controllers.
-- Configuración de despliegue por variables de entorno (ver [variables de entorno](docs/referencia/variables-de-entorno.md)), según la regla de parámetros. **Nunca hardcodear secretos** ni URLs de producción.
+- Configuración de despliegue por variables de entorno (referencia única: [`.env.example`](.env.example); si agregás o cambiás una variable, actualizalo), según la regla de parámetros. **Nunca hardcodear secretos** ni URLs de producción.
 - Perfiles: `dev` (H2, default) y `prod` (Postgres). Los tests usan `dev`.
 - **Base de datos con Flyway** (ADR 0004): el schema lo crean las migraciones de `src/main/resources/db/migration/V<n>__<descripcion>.sql`, en todos los perfiles, y Hibernate solo valida (`ddl-auto: validate`). Toda entidad nueva o cambio de columnas trae su migración en el mismo PR; una migración ya mergeada no se edita. SQL compatible con H2 (`MODE=PostgreSQL`) y con Postgres.
 - Lombok está disponible; preferir `record` para DTOs y `@RequiredArgsConstructor` para inyección.

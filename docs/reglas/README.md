@@ -16,7 +16,7 @@ Decisiones de diseño: [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md) (t
 
 Los valores de `app_config` se leen y validan al arrancar: **un cambio en la tabla se aplica reiniciando la app**.
 
-Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-parametros.md): las **reglas de negocio** en la tabla `app_config` (validada al arrancar, [ADR 0010](../adr/0010-integridad-de-reservas-tiempo-y-configuracion.md)), **nunca hardcodeadas**, para que QA pruebe variantes y el equipo calibre sin redeployar; los **técnicos y de seguridad** en `application.yml` con override por variable de entorno; los **secretos**, solo en variables de entorno ([variables de entorno](../referencia/variables-de-entorno.md)).
+Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-parametros.md): las **reglas de negocio** en la tabla `app_config` (validada al arrancar, [ADR 0010](../adr/0010-integridad-de-reservas-tiempo-y-configuracion.md)), **nunca hardcodeadas**, para que QA pruebe variantes y el equipo calibre sin redeployar; los **técnicos y de seguridad** en `application.yml` con override por variable de entorno; los **secretos**, solo en variables de entorno ([`.env.example`](../../.env.example)).
 
 **Regla práctica:** si alguien necesita cambiarlo en caliente sin que un deploy lo deje registrado → `app_config`; si no → `application.yml`. Casos decididos ([#222](https://github.com/Benji-9/SmartElevate/issues/222), [#226](https://github.com/Benji-9/SmartElevate/issues/226)):
 

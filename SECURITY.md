@@ -22,4 +22,4 @@ Autenticación y sesión (JWT, refresh en cookie, CSRF), control de roles y prio
 
 ## Si encontrás un secreto en el repo
 
-Avisá por el mismo canal. Hay que **rotarlo** (ver [`docs/infraestructura.md`](docs/infraestructura.md#rotar-la-clave) y la [referencia de variables](docs/referencia/variables-de-entorno.md)); borrarlo del historial no alcanza.
+Avisá por el mismo canal. Hay que **rotarlo** (ver [`docs/infraestructura.md`](docs/infraestructura.md#rotar-la-clave) y el [`.env.example`](.env.example)); borrarlo del historial no alcanza.

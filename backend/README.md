@@ -38,11 +38,11 @@ export DATABASE_PASSWORD=smartelevate
 ./mvnw spring-boot:run                     # Flyway crea el schema al arrancar
 ```
 
-El perfil `prod` exige más variables (JWT, CORS, mail, QR): sin ellas la app no arranca. Están en la [checklist de `prod`](../docs/referencia/variables-de-entorno.md); generá los secretos, no copies ejemplos.
+El perfil `prod` exige más variables (JWT, CORS, mail, QR): sin ellas la app no arranca. Están en la sección de `prod` del [`.env.example`](../.env.example) (`cp ../.env.example ../.env` y completá; el backend lo carga solo); generá los secretos, no copies ejemplos.
 
 ## Variables de entorno
 
-Todas las variables, sus defaults y la checklist de `prod`: [`docs/referencia/variables-de-entorno.md`](../docs/referencia/variables-de-entorno.md). La fuente de verdad son los `src/main/resources/application*.yml`. Los secretos van solo en variables de entorno, nunca en el repo ([ADR 0017](../docs/adr/0017-donde-viven-los-parametros.md)).
+Todas las variables, sus defaults y la checklist de `prod`: [`.env.example`](../.env.example) en la raíz. La fuente de verdad de los defaults son los `src/main/resources/application*.yml`. En local, `application.yml` importa `../.env` si existe (el mismo que lee docker compose); las variables reales del entorno lo pisan, en Docker/Render no existe y se ignora, y `./mvnw test` no lo lee. `APP_ENV_FILE` apunta a otro archivo. Los secretos van solo en variables de entorno, nunca en el repo ([ADR 0017](../docs/adr/0017-donde-viven-los-parametros.md)).
 
 ## Estructura
 
@@ -120,4 +120,4 @@ docker build -t smartelevate-api .
 docker run --rm -p 8080:8080 -e DATABASE_URL=... -e DATABASE_USER=... -e DATABASE_PASSWORD=... smartelevate-api
 ```
 
-La imagen corre con perfil `prod`, usuario no root y respeta la variable `PORT`. Con `prod` hacen falta además las variables obligatorias de la [checklist](../docs/referencia/variables-de-entorno.md). Operación en Render: [`docs/infraestructura.md`](../docs/infraestructura.md#backend-en-render).
+La imagen corre con perfil `prod`, usuario no root y respeta la variable `PORT`. Con `prod` hacen falta además las variables obligatorias de la [checklist de `prod`](../.env.example). Operación en Render: [`docs/infraestructura.md`](../docs/infraestructura.md#backend-en-render).

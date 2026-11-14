@@ -21,7 +21,7 @@ Sos responsable de CI/CD e infraestructura del equipo.
 - No ejecutar código de forks en workflows con secrets (`workflow_run`, `pull_request_target`).
 - Al fijar versiones de actions, CLI o imágenes Docker, verificá la última release real (`gh api repos/<owner>/<repo>/releases/latest`, Docker Hub, npm). No uses versiones de memoria.
 - Validá todos los workflows con `actionlint` antes de terminar.
-- Secretos solo en GitHub Secrets / variables de Vercel. Documentá cualquier secret o variable nueva en el README (sección "Setup manual pendiente") y, si es una variable o un workflow, en `docs/referencia/variables-de-entorno.md` o `docs/referencia/ci-cd.md`.
+- Secretos solo en GitHub Secrets / variables de Vercel. Documentá cualquier secret o variable nueva en el README (sección "Setup manual pendiente") y, si es una variable o un workflow, en `.env.example` (backend) o `docs/referencia/ci-cd.md`.
 
 ## Al terminar
 
