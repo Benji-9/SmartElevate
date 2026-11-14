@@ -1,81 +1,58 @@
 # SmartElevate
 
-App para reducir la congestión de los ascensores del campus de UADE. Los alumnos reservan **turnos por franja horaria** con capacidad limitada (10 personas por turno), hay **usuarios prioritarios** (movilidad reducida, docentes) y una capa de **estadísticas / KPIs de congestión**.
+## Qué es
 
-> Estado: **MVP casi completo, sin deploy de producción del backend todavía**. Qué entra, qué queda para la Fase 2 y el estado por funcionalidad: [alcance del MVP](docs/alcance-mvp.md).
-
-## Estado del proyecto
-
-- **Hecho** (backend y pantallas contra la API real): cuentas con email institucional, login con refresh en cookie HttpOnly, olvidé mi contraseña, reservas con cupo atómico y prioritario, cancelación, check-in con QR en kiosco web, no-shows y suspensión, notificaciones por email, ascensor fuera de servicio, KPIs y panel de administración (prioritarios, kioscos, ascensores, simulador).
-- **Pendiente**: la integración con OFALU para la marca de movilidad reducida (Fase 2: la app no maneja certificados, [ADR 0024](docs/adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)) y el [calendario de cierres de UADE](docs/bloqueantes.md) para los cuatrimestres.
-- **Fuera del MVP**: lista de espera, envejecimiento de prioridad, edificio alternativo, tolerancia X, ingreso manual del código y encuesta de espera.
-- Mapa de pantallas y qué está conectado: [docs/frontend/SCREENS.md](docs/frontend/SCREENS.md#estado-por-pantalla).
+App para reducir la congestión de los ascensores del campus de UADE. Cada salida de ascensor (~2 min) es una franja con **cupo de 10 personas**: el alumno elige origen, destino y hora, y el servidor le asigna la salida. Hay **usuarios prioritarios** (movilidad reducida, docentes), **check-in con QR** rotativo en un kiosco del hall y **KPIs de congestión** para el panel de administración. La usan alumnos y docentes (reservan) y revisores y administradores (prioridades, kioscos, ascensores, KPIs). MVP de 6 estudiantes de UADE; estado y alcance en [docs/alcance-mvp.md](docs/alcance-mvp.md).
 
 ## Stack
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, Flyway, H2 (dev) / PostgreSQL (prod), springdoc-openapi |
-| Frontend | React 19, Vite 8, TypeScript, React Router, Vitest + React Testing Library, ESLint + Prettier |
+| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, springdoc-openapi |
+| Frontend | React 19, Vite 8, TypeScript 6, React Router 8, Vitest + Testing Library |
+| Base de datos | H2 en memoria (dev) y PostgreSQL 18 (prod, en Neon), migraciones con Flyway |
 | CI/CD | GitHub Actions |
-| Deploy | Frontend en Vercel (vía GitHub Actions + Vercel CLI), backend en Render (Docker) y Postgres en Neon. Accesos y operación en [`docs/infraestructura.md`](docs/infraestructura.md) |
+| Deploy | Frontend en Vercel, backend en Render (Docker): [infraestructura](docs/infraestructura.md) |
 
-## Inicio rápido
+## Levantarla en local
 
-Necesitás **JDK 25** y **Node.js 24 LTS** (`frontend/.nvmrc`). Docker es opcional. No hace falta instalar Maven: se usa `./mvnw` (en Windows, `mvnw.cmd`).
+Requisitos: **JDK 25**, **Node.js 24** (`frontend/.nvmrc`) y, opcional, Docker. No hace falta instalar Maven: se usa `./mvnw` (en Windows, `mvnw.cmd`).
 
 ```bash
 # Terminal 1: backend (perfil dev, H2 en memoria)
-cd backend
-./mvnw spring-boot:run        # http://localhost:8080/api/ping → {"status":"ok"}
+cd backend && ./mvnw spring-boot:run   # http://localhost:8080/api/ping, Swagger en /swagger-ui.html
 
-# Terminal 2: frontend
-cd frontend
-npm install
-npm run dev                   # http://localhost:5173 (Vite hace proxy de /api al backend)
+# Terminal 2: frontend (con datos simulados por defecto)
+cd frontend && npm ci && npm run dev   # http://localhost:5173
 ```
 
-Por defecto `npm run dev` usa datos simulados; para pegarle al backend real, `VITE_USE_MOCKS=false` ([detalle](frontend/README.md#variables-de-entorno)). Swagger UI: http://localhost:8080/swagger-ui.html.
-
-Para correr tests, Postgres local, migraciones, variables de entorno e imagen Docker, ver el README de cada paquete.
-
-## Mapa del repo
-
-```
-.
-├── backend/          API REST (Spring Boot)           → backend/README.md
-├── frontend/         SPA (Vite + React + TS)          → frontend/README.md
-├── docs/             reglas, ADRs, referencia, guías, specs de UI → docs/README.md
-├── scripts/          smoke-test.sh del backend desplegado
-├── .github/          workflows, PR template, issue forms, dependabot, CODEOWNERS
-├── .claude/          agentes de Claude Code para el equipo
-├── AGENTS.md         contexto del repo para agentes de código (CLAUDE.md lo importa)
-├── CONTRIBUTING.md   ramas, commits, issues, PRs
-├── SECURITY.md       cómo reportar una vulnerabilidad
-└── docker-compose.yml   Postgres local
-```
+Para que el frontend use el backend real: `VITE_USE_MOCKS=false npm run dev` ([detalle](frontend/README.md#variables-de-entorno)). Postgres local, opcional: `docker compose up -d` y las variables del perfil `prod` ([pasos](backend/README.md#con-postgres-perfil-prod)).
 
 ## Documentación
 
-Índice completo, ordenado por propósito: [`docs/README.md`](docs/README.md). Lo más usado:
-
-- [Reglas de negocio](docs/reglas/README.md) y [glosario](docs/glosario.md)
-- [Contribuir](CONTRIBUTING.md): ramas, commits, PRs, automerge
-- [Variables de entorno](docs/referencia/variables-de-entorno.md) y [CI/CD](docs/referencia/ci-cd.md)
-- [Infraestructura y operación](docs/infraestructura.md)
-- [ADRs](docs/adr/README.md) y [bloqueantes](docs/bloqueantes.md)
-- [Contrato de la API](docs/openapi.json) (Swagger UI en `/swagger-ui.html`)
-
-## Setup manual pendiente
-
-- **Pantallas del kiosco QR**: conseguir una tablet o pantalla con red por ascensor ([#23](https://github.com/Benji-9/SmartElevate/issues/23)); cada una se da de alta en `/admin/kioscos` y abre `/qr/<ascensor>`.
-- **Calendario de cierres de UADE** para `semester_end_dates`, antes del 31/12/2026 ([B-19](docs/bloqueantes.md)).
-- **Primer ADMIN** por SQL: [`docs/infraestructura.md`](docs/infraestructura.md#crear-el-primer-admin).
-
-Las previews de Vercel no tienen Deployment Protection: cualquiera con la URL las puede abrir ([bloqueantes](docs/bloqueantes.md), B-07).
-
-El setup inicial de Vercel y GitHub ya está hecho; queda como referencia en [Configurar Vercel y GitHub](docs/guias/configurar-vercel-y-github.md).
-
-## Equipo
-
-Proyecto de 6 estudiantes de UADE.
+- [docs/README.md](docs/README.md): índice completo
+- Primeros pasos
+  - [CONTRIBUTING.md](CONTRIBUTING.md): ramas, commits, issues, PRs y automerge
+  - [backend/README.md](backend/README.md): comandos, estructura, migraciones, tests
+  - [frontend/README.md](frontend/README.md): comandos, estructura, convenciones, tests
+  - [docs/glosario.md](docs/glosario.md): términos del dominio
+  - [docs/alcance-mvp.md](docs/alcance-mvp.md): qué entra en el MVP y qué queda para la Fase 2
+- Reglas de negocio
+  - [docs/reglas/](docs/reglas/README.md): turnos, asignación, check-in con QR, usuarios y prioridad, KPIs
+- Decisiones
+  - [docs/adr/](docs/adr/README.md): decisiones de arquitectura (ADRs)
+  - [docs/bloqueantes.md](docs/bloqueantes.md): decisiones abiertas y setup manual pendiente (kiosco QR, calendario de cuatrimestres, previews de Vercel)
+- Referencia
+  - [docs/referencia/der.md](docs/referencia/der.md): diagrama entidad-relación de la base
+  - [docs/openapi.json](docs/openapi.json): contrato de la API (generado)
+  - [docs/referencia/variables-de-entorno.md](docs/referencia/variables-de-entorno.md): variables del backend y checklist de `prod`
+  - [docs/referencia/ci-cd.md](docs/referencia/ci-cd.md): workflows de GitHub Actions
+- Guías y operación
+  - [docs/guias/autenticacion-y-endpoints.md](docs/guias/autenticacion-y-endpoints.md): endpoints públicos, protegidos o por rol
+  - [docs/infraestructura.md](docs/infraestructura.md): Render, Neon, Vercel, Brevo, primer ADMIN, smoke test, rollback
+  - [docs/guias/configurar-vercel-y-github.md](docs/guias/configurar-vercel-y-github.md): setup inicial de Vercel y GitHub
+  - [SECURITY.md](SECURITY.md): cómo reportar una vulnerabilidad
+- UI
+  - [docs/frontend/](docs/frontend/README.md): design system, pantallas, modos de vista y prueba de usabilidad
+- Agentes de código
+  - [AGENTS.md](AGENTS.md): contexto del repo (comandos, flujo, reglas que no se negocian)
