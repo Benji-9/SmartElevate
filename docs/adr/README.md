@@ -65,3 +65,4 @@ Los bloqueantes y decisiones pendientes viven en [`docs/bloqueantes.md`](../bloq
 | 0023 | Defensa CSRF del refresh por cookie | Fusionado en 0019 |
 | [0024](0024-movilidad-reducida-la-marca-viene-de-ofalu.md) | Movilidad reducida: la marca viene de OFALU, SmartElevate no maneja certificados | Accepted |
 | [0025](0025-zonas-de-pisos-por-ascensor.md) | Zonas de pisos por ascensor para agrupar destinos antes de reservar | Accepted |
+| [0026](0026-qr-del-kiosco-por-turno-de-clase.md) | El QR del kiosco cambia por turno de clase, no cada 30 s | Accepted |

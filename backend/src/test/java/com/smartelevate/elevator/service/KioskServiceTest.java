@@ -16,11 +16,13 @@ import com.smartelevate.elevator.repository.KioskRepository;
 import com.smartelevate.priority.model.PriorityAudit;
 import com.smartelevate.priority.repository.PriorityAuditRepository;
 import com.smartelevate.user.service.AuthService;
+import com.smartelevate.common.time.CampusTime;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,10 +45,14 @@ class KioskServiceTest {
         when(kiosks.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
+    private CampusTime campus() {
+        return new CampusTime(clock, ZoneId.of("America/Argentina/Buenos_Aires"));
+    }
+
     private KioskService service(boolean simulatorEnabled, int maxRequests) {
-        var props = new KioskProperties("una-clave-de-prueba-de-al-menos-32-bytes", Duration.ofSeconds(30),
+        var props = new KioskProperties("una-clave-de-prueba-de-al-menos-32-bytes", List.of("07:00", "13:00", "18:00", "23:00"),
                 simulatorEnabled, maxRequests, Duration.ofMinutes(1));
-        return new KioskService(kiosks, elevators, audit, new QrTokenService(props, kiosks, clock), props, clock);
+        return new KioskService(kiosks, elevators, audit, new QrTokenService(props, kiosks, campus()), props, clock);
     }
 
     @Test
@@ -124,9 +130,9 @@ class KioskServiceTest {
         var token = service.issueQrToken(new CurrentKiosk(kiosk.getId(), "33"));
 
         assertThat(kiosk.getLastSeenAt()).isEqualTo(T0.plusSeconds(5));
-        var props = new KioskProperties("una-clave-de-prueba-de-al-menos-32-bytes", Duration.ofSeconds(30),
+        var props = new KioskProperties("una-clave-de-prueba-de-al-menos-32-bytes", List.of("07:00", "13:00", "18:00", "23:00"),
                 false, 10, Duration.ofMinutes(1));
-        assertThat(new QrTokenService(props, kiosks, clock).validate(token.token()).elevatorId()).isEqualTo("33");
+        assertThat(new QrTokenService(props, kiosks, campus()).validate(token.token()).elevatorId()).isEqualTo("33");
     }
 
     @Test
