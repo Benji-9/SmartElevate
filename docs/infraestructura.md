@@ -116,7 +116,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | Variable | Define | Default | Notas |
 | --- | --- | --- | --- |
 | `APP_KIOSK_SIMULATOR_ENABLED` | Render | `false` | **Tiene que quedar apagada (sin definir) en producción.** Con `true` un ADMIN puede crear kioscos simulados y sus check-ins se cuentan como simulados. Apagada, `POST /api/admin/kiosks` con `simulated: true` da 409 `SIMULATOR_DISABLED` |
-| `APP_KIOSK_QR_TTL` | Render | `PT30S` | Vida de cada token del QR (se acepta también el del ciclo anterior). Reemplaza a `qr_rotation` de `app_config`, que `V15` borró |
+| `APP_KIOSK_QR_SHIFT_BOUNDARIES` | Render | `07:00,13:00,18:00,23:00` | Horas del campus (`HH:mm`, separadas por coma) en que cambia el QR: el token vale hasta la próxima ([ADR 0026](adr/0026-qr-del-kiosco-por-turno-de-clase.md)). Reemplaza a `APP_KIOSK_QR_TTL` y a `qr_rotation` de `app_config`, que `V15` borró. Tras rotar `APP_KIOSK_QR_SECRET`, recargar los kioscos |
 | `APP_KIOSK_RATE_LIMIT_MAX_REQUESTS` / `APP_KIOSK_RATE_LIMIT_WINDOW` | Render | `10` / `PT1M` | Pedidos de token por kiosco; al pasarse, 429 con `Retry-After`. En memoria, por instancia |
 
 #### Hora y jobs
@@ -345,7 +345,7 @@ Lo que puede salir mal la primera vez y cómo se ve. Ninguno está probado contr
 4. **Scheduler.** En `prod` el pool de `@Scheduled` tiene **2 hilos** (`spring.task.scheduling.pool.size`): un mail lento del recordatorio no frena el job de no-shows. Con 0.1 CPU, si el SMTP se cuelga, los timeouts de `APP_MAIL_SMTP_*` (5 s / 10 s) acotan cuánto. Si Brevo falla de forma sostenida: `APP_REMINDER_JOB_ENABLED=false`.
 5. **Instancia única.** El límite de pedidos de token de los kioscos está **en memoria por instancia** (`// ponytail:` en `KioskService`); con N instancias el tope real sería N veces el configurado, y un reinicio lo reinicia. El límite de logins sí vive en la base (tabla de fallos con hashes), aunque contar e insertar no es atómico (`// ponytail:` en `LoginThrottle`: dos fallos simultáneos pueden pasar el tope por uno o dos). Con una sola instancia en Render alcanza; **no subir el servicio a más de una** sin mover el de kioscos a la base o a un cache compartido.
 6. **Mails desde Brevo sin probar en producción.** El envío funcionó en una prueba manual (2026-10-06) pero no desde el backend desplegado. Sin dominio propio, el remitente sale reescrito a `@brevosend.com` y puede caer en spam. Si el SMTP falla, el registro igual se crea (el error queda en el log): el usuario no puede verificar su cuenta hasta que el reenvío funcione. Plan B para no bloquear a nadie: leer el link del log con `APP_MAIL_ENABLED=false`, o promover la verificación a mano en la base.
-7. **`qr_rotation` ya no está en `app_config`.** `V15` lo borró; la vida del QR es `APP_KIOSK_QR_TTL` (default `PT30S`). Si alguien busca la fila `qr_rotation` en Neon y no la encuentra, es lo esperado.
+7. **`qr_rotation` ya no está en `app_config`.** `V15` lo borró; el vencimiento del QR es `APP_KIOSK_QR_SHIFT_BOUNDARIES`. Si alguien busca la fila `qr_rotation` en Neon y no la encuentra, es lo esperado.
 8. **Swagger UI y `/v3/api-docs` son públicos** también en producción (decisión de [Autenticación y endpoints protegidos](guias/autenticacion-y-endpoints.md): documentación abierta); no exponen datos, pero listan todos los endpoints, incluidos los de admin. `/h2-console` no existe en `prod` (404).
 9. **Memoria y cold start** del plan free (512 MB, 0.1 CPU): ver [Cómo arranca el contenedor](#cómo-arranca-el-contenedor) y [Keep-alive](#keep-alive).
 

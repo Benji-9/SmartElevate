@@ -23,7 +23,7 @@ Dónde vive cada parámetro lo fija el [ADR 0017](../adr/0017-donde-viven-los-pa
 | Tipo | Dónde vive | Ejemplos |
 | --- | --- | --- |
 | Regla de negocio | `app_config` | Cupo por salida, ventanas de reserva y check-in, `boarding_time` (tiempo de carga), `time_per_floor` (tiempo por piso) |
-| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), rotación del QR (`app.kiosk.qr-ttl`, movido de `app_config` en [#229](https://github.com/Benji-9/SmartElevate/issues/229)), job de recordatorios (`app.reminder-job.interval` 30 s y `app.reminder-job.enabled`, `APP_REMINDER_JOB_INTERVAL` y `APP_REMINDER_JOB_ENABLED`, [#221](https://github.com/Benji-9/SmartElevate/issues/221)) |
+| Técnico o de seguridad | `application.yml`, con override por variable de entorno | TTL de JWT, límites de login, `app.time.zone` (`APP_TIME_ZONE`), cambio de turno del QR (`app.kiosk.qr-shift-boundaries`, antes `app.kiosk.qr-ttl`, movido de `app_config` en [#229](https://github.com/Benji-9/SmartElevate/issues/229)), job de recordatorios (`app.reminder-job.interval` 30 s y `app.reminder-job.enabled`, `APP_REMINDER_JOB_INTERVAL` y `APP_REMINDER_JOB_ENABLED`, [#221](https://github.com/Benji-9/SmartElevate/issues/221)) |
 | Dato del despliegue | Variable de entorno, **obligatoria en `prod`** (sin default); el default `localhost` vive solo en `application-dev.yml` | `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` |
 | Secreto | Solo variable de entorno, **obligatoria en `prod`** | `JWT_SECRET`, `APP_KIOSK_QR_SECRET` (clave HMAC del QR, [#229](https://github.com/Benji-9/SmartElevate/issues/229)) |
 | Constante en el código | El código: cambia solo por PR | Parámetros de Argon2id ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)), `maxAge` de CORS (1 h) |
@@ -68,7 +68,7 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Parámetro | Valor | Dónde vive |
 | --- | --- | --- |
 | Zona horaria | America/Argentina/Buenos_Aires | `app.time.zone`, override por `APP_TIME_ZONE` (Render corre en UTC). Los instantes se guardan en UTC |
-| Rotación del QR | 30 s, y se acepta el del ciclo anterior | `app.kiosk.qr-ttl`, override por `APP_KIOSK_QR_TTL` ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md), [0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)). Movido en [#229](https://github.com/Benji-9/SmartElevate/issues/229): era `qr_rotation` de `app_config` y `V15` borró la fila |
+| Vencimiento del QR | Cambia por turno de clase (`07:00,13:00,18:00,23:00`), con 1 min de tolerancia | `app.kiosk.qr-shift-boundaries`, override por `APP_KIOSK_QR_SHIFT_BOUNDARIES` ([ADR 0026](../adr/0026-qr-del-kiosco-por-turno-de-clase.md); antes 30 s, [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)). Movido en [#229](https://github.com/Benji-9/SmartElevate/issues/229): era `qr_rotation` de `app_config` y `V15` borró la fila |
 | Access token | 15 min | `JWT_ACCESS_TTL` (`app.security.jwt.access-ttl`) |
 | Refresh token | 7 días | `JWT_REFRESH_TTL` (`app.security.jwt.refresh-ttl`) |
 | Link de verificación de email | Vale 24 h · reenvío cada 1 min | `app.verification.*` |

@@ -5,14 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.elevator.dto.QrTokenResponse;
+import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.elevator.model.Kiosk;
+import com.smartelevate.common.time.CampusTime;
 import com.smartelevate.elevator.repository.KioskRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Base64;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,8 +26,9 @@ import org.junit.jupiter.api.Test;
 class QrTokenServiceTest {
 
     private static final String SECRET = "una-clave-de-prueba-de-al-menos-32-bytes";
-    // Inicio exacto de un ciclo de 30 s.
+    // 12:40 en Buenos Aires: el turno mañana termina a las 13:00 (T0 + 20 min).
     private static final Instant T0 = Instant.parse("2026-10-14T15:40:00Z");
+    private static final Instant SHIFT_END = T0.plus(Duration.ofMinutes(20));
 
     private final KioskRepository kiosks = mock(KioskRepository.class);
     private Kiosk kiosk;
@@ -38,15 +44,16 @@ class QrTokenServiceTest {
     }
 
     private QrTokenService at(Instant now, String secret) {
-        return new QrTokenService(new KioskProperties(secret, Duration.ofSeconds(30), false, 10, Duration.ofMinutes(1)),
-                kiosks, Clock.fixed(now, ZoneOffset.UTC));
+        return new QrTokenService(new KioskProperties(secret, List.of("07:00", "13:00", "18:00", "23:00"), false, 10,
+                Duration.ofMinutes(1)), kiosks,
+                new CampusTime(Clock.fixed(now, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires")));
     }
 
     @Test
     void validTokenCarriesTheKioskElevatorAndId() {
         QrTokenResponse issued = at(T0.plusSeconds(10)).issue(kiosk);
 
-        assertThat(issued.expiresAt()).isEqualTo(T0.plusSeconds(30));
+        assertThat(issued.expiresAt()).isEqualTo(SHIFT_END);
         assertThat(issued.elevatorId()).isEqualTo("33");
         var claims = at(T0.plusSeconds(12)).validate(issued.token());
         assertThat(claims.elevatorId()).isEqualTo("33");
@@ -55,24 +62,36 @@ class QrTokenServiceTest {
     }
 
     @Test
-    void sameCycleGivesTheSameToken() {
-        assertThat(at(T0.plusSeconds(1)).issue(kiosk)).isEqualTo(at(T0.plusSeconds(29)).issue(kiosk));
+    void sameShiftGivesTheSameToken() {
+        assertThat(at(T0).issue(kiosk)).isEqualTo(at(SHIFT_END.minusSeconds(1)).issue(kiosk));
     }
 
     @Test
-    void tokenOfThePreviousCycleIsAccepted() {
-        String token = at(T0.plusSeconds(29)).issue(kiosk).token();
-
-        // Ya rotó (vence a T0+30) pero sigue dentro de la tolerancia de un ciclo.
-        assertThat(at(T0.plusSeconds(30)).validate(token).elevatorId()).isEqualTo("33");
-        assertThat(at(T0.plusSeconds(59)).validate(token).elevatorId()).isEqualTo("33");
+    void newShiftGivesANewToken() {
+        assertThat(at(SHIFT_END).issue(kiosk).token()).isNotEqualTo(at(T0).issue(kiosk).token());
+        assertThat(at(SHIFT_END).issue(kiosk).expiresAt()).isEqualTo(Instant.parse("2026-10-14T21:00:00Z")); // 18:00
     }
 
     @Test
-    void tokenOlderThanOneCycleIsRejected() {
-        String token = at(T0.plusSeconds(29)).issue(kiosk).token();
+    void afterTheLastShiftTheTokenLastsUntilTheNextMorning() {
+        // 23:30 en Buenos Aires -> 07:00 del día siguiente.
+        assertThat(at(Instant.parse("2026-10-15T02:30:00Z")).issue(kiosk).expiresAt())
+                .isEqualTo(Instant.parse("2026-10-15T10:00:00Z"));
+    }
 
-        assertThatThrownBy(() -> at(T0.plusSeconds(60)).validate(token)).isInstanceOf(InvalidQrTokenException.class);
+    @Test
+    void tokenJustAfterTheShiftChangeIsStillAccepted() {
+        String token = at(T0).issue(kiosk).token();
+
+        assertThat(at(SHIFT_END.minusSeconds(1)).validate(token).elevatorId()).isEqualTo("33");
+        assertThat(at(SHIFT_END.plusSeconds(59)).validate(token).elevatorId()).isEqualTo("33");
+    }
+
+    @Test
+    void tokenOlderThanTheGraceIsRejected() {
+        String token = at(T0).issue(kiosk).token();
+
+        assertThatThrownBy(() -> at(SHIFT_END.plusSeconds(60)).validate(token)).isInstanceOf(InvalidQrTokenException.class);
     }
 
     @Test
@@ -91,7 +110,7 @@ class QrTokenServiceTest {
         String token = at(T0).issue(kiosk).token();
         String sig = token.split("\\.")[1];
         String forged = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                ("34|" + kiosk.getId() + "|" + T0.plusSeconds(30).getEpochSecond()).getBytes(StandardCharsets.UTF_8));
+                ("34|" + kiosk.getId() + "|" + SHIFT_END.getEpochSecond()).getBytes(StandardCharsets.UTF_8));
 
         assertThatThrownBy(() -> at(T0).validate(forged + "." + sig)).isInstanceOf(InvalidQrTokenException.class);
     }

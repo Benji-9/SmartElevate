@@ -541,7 +541,7 @@ export interface paths {
     };
     /**
      * Token del QR del ascensor del kiosco
-     * @description El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.
+     * @description El ascensor sale de la credencial, no de un parámetro. El token vale hasta el cambio de turno de clase (mañana, tarde, noche): el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.
      */
     get: operations['qrToken'];
     put?: never;

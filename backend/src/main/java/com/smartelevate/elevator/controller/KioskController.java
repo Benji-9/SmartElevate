@@ -30,7 +30,7 @@ public class KioskController {
 
     @GetMapping("/me/qr-token")
     @Operation(summary = "Token del QR del ascensor del kiosco",
-            description = "El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el "
+            description = "El ascensor sale de la credencial, no de un parámetro. El token vale hasta el cambio de turno de clase (mañana, tarde, noche): el "
                     + "kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.")
     @ApiResponse(responseCode = "200", description = "Token vigente")
     @ApiResponse(responseCode = "401", description = "Sin credencial de kiosco, inválida o revocada",

@@ -8,6 +8,7 @@
 - **Owner:** @Benji-9
 - **Related Issues:** [#229](https://github.com/Benji-9/SmartElevate/issues/229), parte de [#219](https://github.com/Benji-9/SmartElevate/issues/219); [#232](https://github.com/Benji-9/SmartElevate/issues/232) (carga manual del secreto)
 - **Related ADRs:** Complementa [ADR-0008](0008-check-in-con-qr-rotativo.md) (que absorbió al ex ADR-0016, cuya parte sobre `qr_rotation` este ADR reemplaza); [ADR-0017](0017-donde-viven-los-parametros.md)
+- **Nota:** `app.kiosk.qr-ttl` (30 s) fue reemplazado por `app.kiosk.qr-shift-boundaries` en [ADR-0026](0026-qr-del-kiosco-por-turno-de-clase.md).
 - **Nota:** reescrito al formato MADR el 2026-11-13 (versión anterior: `git show d5a37be:docs/adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md`)
 
 ---

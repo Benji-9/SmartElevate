@@ -8,6 +8,7 @@
 - **Owner:** @Benji-9
 - **Related Issues:** [#7](https://github.com/Benji-9/SmartElevate/issues/7), [#23](https://github.com/Benji-9/SmartElevate/issues/23), [#219](https://github.com/Benji-9/SmartElevate/issues/219), [#238](https://github.com/Benji-9/SmartElevate/issues/238), [#113](https://github.com/Benji-9/SmartElevate/issues/113) (decisiones de reglas), [#230](https://github.com/Benji-9/SmartElevate/issues/230) (token implementado)
 - **Related ADRs:** Absorbe ADR-0016 (QR firmado con HMAC-SHA256 y kiosco web, 2026-10-14) y ADR-0021 (check-in sin ingreso manual, 2026-10-14); [ADR-0017](0017-donde-viven-los-parametros.md); [ADR-0020](0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md) (reemplaza parte de lo que decía el ex 0016 sobre `qr_rotation`)
+- **Nota:** la rotación de ~30 s fue reemplazada por el cambio por turno de clase en [ADR-0026](0026-qr-del-kiosco-por-turno-de-clase.md).
 - **Nota:** reescrito al formato MADR el 2026-11-13 (versión anterior: `git show d5a37be:docs/adr/0008-check-in-con-qr-rotativo.md`)
 
 ---

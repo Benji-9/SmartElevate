@@ -281,7 +281,7 @@ class CheckInApiTest {
                             + "pantalla."));
         }
 
-        clock.now = NOW.plusSeconds(61); // pasó el ciclo vigente y el de tolerancia (TTL 30 s)
+        clock.now = NOW.plus(java.time.Duration.ofDays(1)); // pasó el turno del token y la tolerancia
         scan(token).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_QR_TOKEN"));
 
         clock.now = NOW;
