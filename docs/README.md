@@ -19,7 +19,7 @@ Para resolver una tarea concreta.
 - [Autenticación y endpoints protegidos](guias/autenticacion-y-endpoints.md): agregar un endpoint público, protegido o por rol.
 - [Contrato OpenAPI](../backend/README.md#contrato-openapi): regenerar `openapi.json` y los tipos del frontend.
 - [Migraciones de la base](../backend/README.md#migraciones-de-la-base-flyway).
-- [Infraestructura y operación](infraestructura.md): Render, Neon, Vercel, Brevo, primer ADMIN, smoke test, rollback.
+- [Infraestructura y operación](infraestructura.md): Render, Supabase, Vercel, Brevo, primer ADMIN, smoke test, rollback.
 - [Configurar Vercel y GitHub](guias/configurar-vercel-y-github.md): setup inicial (ya hecho), para rearmarlo.
 - [Prueba de usabilidad](frontend/usabilidad.md): plan y guion.
 - [Reportar una vulnerabilidad](../SECURITY.md).

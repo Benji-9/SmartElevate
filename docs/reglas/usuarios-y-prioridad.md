@@ -73,7 +73,7 @@ Modelo implementado (roles en `V5`, prioridad y auditoría en `V10`, [#121](http
 No hay endpoint, seed ni migración que cree administradores: así no queda ningún dato del admin en el repo, que es público.
 
 1. La persona se **registra normalmente** con su email @uade.edu.ar y lo **verifica**.
-2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Neon**. En dev, lo mismo en `/h2-console`. La sentencia exacta está en [`infraestructura.md`](../infraestructura.md#crear-el-primer-admin).
+2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Supabase**. En dev, lo mismo en `/h2-console`. La sentencia exacta está en [`infraestructura.md`](../infraestructura.md#crear-el-primer-admin).
 3. Desde ahí, los demás `ADMIN` y `REVIEWER` los asigna un ADMIN desde el panel.
 
 Render free no permite SSH ni comandos sueltos, así que no hay un comando para correr dentro del servidor.
