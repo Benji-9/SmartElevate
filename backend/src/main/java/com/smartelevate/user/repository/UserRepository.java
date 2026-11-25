@@ -1,13 +1,34 @@
 package com.smartelevate.user.repository;
 
 import com.smartelevate.user.model.User;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+
+    /**
+     * Borra las cuentas que nunca verificaron el email y se crearon antes de {@code before} (#344): así nadie retiene
+     * un email o un legajo ajeno. Solo borra las que no dejaron nada atrás (sin reservas, prioridad, auditoría ni
+     * suspensiones: esas tablas referencian al usuario sin cascada). {@code email_token} y {@code refresh_token} caen
+     * solos por el {@code ON DELETE CASCADE} de la base. Devuelve cuántas borró.
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            delete from User u
+            where u.emailVerified = false and u.createdAt < :before
+              and not exists (select 1 from Reservation r where r.userId = u.id)
+              and not exists (select 1 from UserPriority p where p.userId = u.id)
+              and not exists (select 1 from PriorityAudit a where a.targetUserId = u.id or a.actorId = u.id)
+              and not exists (select 1 from NoShowSuspension s where s.userId = u.id)""")
+    int deleteStaleUnverified(@Param("before") Instant before);
 
     boolean existsByEmail(String email);
 

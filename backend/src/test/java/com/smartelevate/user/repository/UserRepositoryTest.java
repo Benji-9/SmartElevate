@@ -3,8 +3,13 @@ package com.smartelevate.user.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartelevate.priority.model.PriorityCategory;
+import com.smartelevate.priority.model.PriorityStatus;
+import com.smartelevate.priority.model.UserPriority;
+import com.smartelevate.priority.repository.UserPriorityRepository;
 import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.User;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -24,6 +29,9 @@ class UserRepositoryTest {
 
     @Autowired
     private UserRepository users;
+
+    @Autowired
+    private UserPriorityRepository priorities;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -107,5 +115,55 @@ class UserRepositoryTest {
         insertByHand("ADMIN");
 
         assertThat(jdbc.queryForObject("SELECT role FROM app_user", String.class)).isEqualTo("ADMIN");
+    }
+
+    // --- Limpieza de cuentas que nunca verificaron el email (#344) ---
+
+    private static final Instant NOW = Instant.parse("2026-11-25T15:00:00Z");
+    private static final Instant CUTOFF = NOW.minus(Duration.ofDays(7));
+
+    private static User createdAt(String email, String legajo, Instant at) {
+        return new User("Ana Pérez", email, legajo, "$2a$10$hashDeEjemplo", DeclaredUserType.STUDENT, at);
+    }
+
+    @Test
+    void deleteStaleUnverifiedRemovesOnlyOldAccountsThatNeverVerified() {
+        users.save(createdAt("abandonada@uade.edu.ar", "1000001", CUTOFF.minusSeconds(1)));
+        users.save(createdAt("reciente@uade.edu.ar", "1000002", CUTOFF.plusSeconds(1)));
+        User oldButVerified = createdAt("verificada@uade.edu.ar", "1000003", CUTOFF.minus(Duration.ofDays(30)));
+        oldButVerified.verifyEmail();
+        users.save(oldButVerified);
+        users.flush();
+
+        int deleted = users.deleteStaleUnverified(CUTOFF);
+
+        assertThat(deleted).isEqualTo(1);
+        assertThat(users.findAll()).extracting(User::getEmail)
+                .containsExactlyInAnyOrder("reciente@uade.edu.ar", "verificada@uade.edu.ar");
+    }
+
+    @Test
+    void anOldUnverifiedAccountThatLeftSomethingBehindIsKept() {
+        User withHistory = users.saveAndFlush(createdAt("con-historia@uade.edu.ar", "1000004", CUTOFF.minusSeconds(1)));
+        UserPriority row = new UserPriority(withHistory.getId(), PriorityCategory.TEACHER);
+        row.decide(PriorityStatus.PENDING, null, NOW, UUID.randomUUID());
+        priorities.saveAndFlush(row);
+
+        assertThat(users.deleteStaleUnverified(CUTOFF)).isZero();
+        assertThat(users.existsByEmail("con-historia@uade.edu.ar")).isTrue();
+    }
+
+    @Test
+    void deletingAnAccountAlsoDeletesItsPendingEmailTokens() {
+        User abandoned = users.saveAndFlush(createdAt("abandonada@uade.edu.ar", "1000005", CUTOFF.minusSeconds(1)));
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        jdbc.update("""
+                INSERT INTO email_token (id, user_id, purpose, token_hash, created_at, expires_at)
+                VALUES (?, ?, 'VERIFY_EMAIL', 'hash-de-prueba', ?, ?)""",
+                UUID.randomUUID(), abandoned.getId(), at, at);
+
+        assertThat(users.deleteStaleUnverified(CUTOFF)).isEqualTo(1);
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM email_token", Integer.class)).isZero();
     }
 }

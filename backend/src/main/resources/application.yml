@@ -92,6 +92,11 @@ app:
     # false lo desactiva (p. ej. sin SMTP configurado). Una pasada cada 30 s alcanza para una ventana de minutos.
     enabled: ${APP_REMINDER_JOB_ENABLED:true}
     interval: ${APP_REMINDER_JOB_INTERVAL:PT30S}
+  unverified-cleanup:
+    # Cuentas que nunca verificaron el email (#344): se borran pasado este plazo, así nadie retiene un email o un legajo
+    # ajeno. interval es cada cuánto corre el job y también la espera antes de su primera pasada.
+    ttl: ${APP_UNVERIFIED_CLEANUP_TTL:P7D}
+    interval: ${APP_UNVERIFIED_CLEANUP_INTERVAL:PT1H}
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app". Obligatoria en
     # prod; el default localhost vive solo en application-dev.yml.
