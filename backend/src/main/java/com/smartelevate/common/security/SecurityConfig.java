@@ -3,6 +3,7 @@ package com.smartelevate.common.security;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -24,7 +25,9 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  * <h2>Públicos</h2>
  * {@code /api/ping}, {@code /api/auth/**} (registro, login, refresh, logout), {@code GET /api/elevators},
  * {@code GET /api/buildings}, la documentación ({@code /v3/api-docs/**}, {@code /swagger-ui*}),
- * {@code /actuator/health} y {@code /h2-console/**} (solo existe en dev). Todo lo demás exige un access token válido.
+ * y {@code /actuator/health}. {@code /h2-console/**} es público solo si la consola está habilitada
+ * ({@code spring.h2.console.enabled}, que solo prende el perfil dev): en prod queda cerrada y con
+ * {@code X-Frame-Options: DENY}. Todo lo demás exige un access token válido.
  *
  * <h2>Cómo agregar un endpoint</h2>
  * <ul>
@@ -49,28 +52,40 @@ public class SecurityConfig {
 
     static final String[] PUBLIC_ANY = {
             "/api/ping", "/api/auth/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**",
-            "/actuator/health/**", "/h2-console/**"
+            "/actuator/health/**"
     };
     static final String[] PUBLIC_GET = {"/api/elevators", "/api/buildings"};
+    /** Solo es público (y se deja en un iframe) si la consola está habilitada: hoy, solo en el perfil dev (#345). */
+    static final String H2_CONSOLE = "/h2-console/**";
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             Converter<Jwt, AbstractAuthenticationToken> converter,
                                             AuthenticationEntryPoint entryPoint,
-                                            AccessDeniedHandler deniedHandler) {
+                                            AccessDeniedHandler deniedHandler,
+                                            @Value("${spring.h2.console.enabled:false}") boolean h2Console) {
         http
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .headers(h -> h.frameOptions(f -> f.sameOrigin())) // consola de H2 en dev
+                // La consola de H2 corre en un iframe del mismo origen; sin consola queda el DENY por defecto.
+                .headers(h -> {
+                    if (h2Console) {
+                        h.frameOptions(f -> f.sameOrigin());
+                    }
+                })
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a -> a
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(PUBLIC_ANY).permitAll()
-                        .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
-                        // El rol se mira antes de que el controller valide parámetros o cuerpo: así un usuario
-                        // común recibe 403 y no un 400 que le muestre la forma del pedido (#345).
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(a -> {
+                    a.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                    a.requestMatchers(PUBLIC_ANY).permitAll();
+                    if (h2Console) {
+                        a.requestMatchers(H2_CONSOLE).permitAll();
+                    }
+                    a.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll();
+                    // El rol se mira antes de que el controller valide parámetros o cuerpo: así un usuario
+                    // común recibe 403 y no un 400 que le muestre la forma del pedido (#345).
+                    a.requestMatchers("/api/admin/**").hasRole("ADMIN");
+                    a.anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(o -> o
                         .jwt(j -> j.jwtAuthenticationConverter(converter))
                         .authenticationEntryPoint(entryPoint)
