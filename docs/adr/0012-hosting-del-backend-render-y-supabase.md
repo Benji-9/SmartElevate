@@ -121,7 +121,7 @@ Planes gratuitos (verificados el 2026-10-06; Supabase, el 2026-11-25 contra [sup
 - [x] Web Service en Render (Docker desde `backend/`, branch `main`) y Postgres en Supabase (`us-west-2`, Session pooler).
 - [x] `BACKEND_URL` configurada y rewrite de Vercel.
 - [x] Workflow de keep-alive sobre `/api/ping` en horario de campus.
-- [ ] Confirmar en los logs de Render que Flyway aplica todas las migraciones sobre Supabase.
+- [x] Confirmado en los logs de Render (2026-11-25): Flyway aplicó todas las migraciones sobre Supabase.
 - [ ] Evaluar Render Starter si el arranque o la memoria no alcanzan.
 
 ---
