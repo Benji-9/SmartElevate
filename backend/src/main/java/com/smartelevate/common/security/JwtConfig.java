@@ -3,6 +3,7 @@ package com.smartelevate.common.security;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Duration;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
@@ -20,6 +22,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 public class JwtConfig {
 
     static final int MIN_SECRET_BYTES = 32;
+    /** Desfase que se tolera al comprobar el vencimiento del token. */
+    static final Duration CLOCK_SKEW = Duration.ofSeconds(5);
 
     @Bean
     SecretKey jwtSecretKey(JwtProperties props) {
@@ -46,6 +50,11 @@ public class JwtConfig {
 
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
-        return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
+        NimbusJwtDecoder decoder =
+                NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
+        // Quien firma y quien verifica es el mismo servidor: no hace falta el margen de 60 s que Nimbus trae por
+        // defecto, con el que un token seguía valiendo un minuto después de vencer (#345).
+        decoder.setJwtValidator(new JwtTimestampValidator(CLOCK_SKEW));
+        return decoder;
     }
 }
