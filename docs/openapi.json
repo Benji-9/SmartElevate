@@ -2984,12 +2984,14 @@
           "email" : {
             "type" : "string",
             "example" : "jmartinez@uade.edu.ar",
+            "maxLength" : 254,
             "minLength" : 1
           },
           "password" : {
             "type" : "string",
             "format" : "password",
             "example" : "una-clave-larga",
+            "maxLength" : 256,
             "minLength" : 1
           }
         },

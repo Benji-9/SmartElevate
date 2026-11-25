@@ -65,6 +65,17 @@ class LoginApiTest {
                 .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
     }
 
+    /** Tope técnico (#345): no se normaliza ni se hashea un texto enorme, y tampoco cuenta como intento fallido. */
+    @Test
+    void aPasswordLongerThanTheTechnicalCapIsRejectedWithoutCountingAsAFailedAttempt() throws Exception {
+        legacyUser("una-clave-larga");
+
+        login(EMAIL, "x".repeat(257)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("password"));
+
+        assertThat(failures.count()).isZero();
+    }
+
     @Test
     void aLegacyBcryptAccountLogsInAndIsRehashedWithArgon2id() throws Exception {
         legacyUser("una-clave-larga");
