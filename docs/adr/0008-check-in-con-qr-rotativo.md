@@ -10,6 +10,8 @@
 - **Related ADRs:** Absorbe ADR-0016 (QR firmado con HMAC-SHA256 y kiosco web, 2026-10-14) y ADR-0021 (check-in sin ingreso manual, 2026-10-14); [ADR-0017](0017-donde-viven-los-parametros.md); [ADR-0020](0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md) (reemplaza parte de lo que decía el ex 0016 sobre `qr_rotation`)
 - **Nota:** la rotación de ~30 s fue reemplazada por el cambio por turno de clase en [ADR-0026](0026-qr-del-kiosco-por-turno-de-clase.md).
 - **Nota:** reescrito al formato MADR el 2026-11-13 (versión anterior: `git show d5a37be:docs/adr/0008-check-in-con-qr-rotativo.md`)
+- **Nota (2026-11-25, [#346](https://github.com/Benji-9/SmartElevate/issues/346)):** el token del QR no está atado al usuario y, desde el [ADR-0026](0026-qr-del-kiosco-por-turno-de-clase.md), una foto del QR sirve todo el turno. Se acepta el riesgo para el MVP: lo siguen limitando la reserva propia en ese ascensor, la ventana de −1 a +2 min y un solo check-in por reserva.
+- **Nota (2026-11-25, [#331](https://github.com/Benji-9/SmartElevate/issues/331)):** se evaluó una alternativa manual al QR para quien no puede usar la cámara y se descartó. Para entrar a la facultad ya hace falta el celular, así que es muy poco probable que alguien no tenga cámara, y un código manual sumaría chances de un check-in falso. Se mantiene "sin ingreso manual".
 
 ---
 
