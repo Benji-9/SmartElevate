@@ -17,17 +17,20 @@ import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
 import com.smartelevate.user.service.ResendTooSoonException;
 import com.smartelevate.user.service.TooManyLoginAttemptsException;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -100,6 +103,42 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
                                                              HttpServletRequest request) {
         return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request, List.of());
+    }
+
+    /**
+     * Errores de Spring MVC que ya traen su propio status de cliente (Content-Type no soportado, header faltante...):
+     * se responde con ese status y no con un 500 (#345). Sin {@code @ResponseStatus}: el status cambia según la
+     * excepción y no hay que documentarlo en todos los endpoints. Los que tienen su handler más arriba (método no
+     * soportado, parámetro faltante, recurso inexistente) no pasan por acá.
+     */
+    @ExceptionHandler(ServletException.class)
+    public ResponseEntity<ApiError> handleServletException(ServletException ex, HttpServletRequest request) {
+        if (ex instanceof ErrorResponse errorResponse && errorResponse.getStatusCode().is4xxClientError()) {
+            HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
+            return build(status, clientMessage(status), request, List.of());
+        }
+        return handleUnexpected(ex, request);
+    }
+
+    private static String clientMessage(HttpStatus status) {
+        return switch (status) {
+            case UNSUPPORTED_MEDIA_TYPE -> "El tipo de contenido del pedido no es compatible. Mandalo como JSON";
+            case NOT_ACCEPTABLE -> "No podemos responder en el formato pedido. Pedí application/json";
+            default -> "El pedido es inválido";
+        };
+    }
+
+    /**
+     * Un UNIQUE o una clave foránea de la base saltó por una carrera que ninguna regla de negocio había previsto
+     * (dos pedidos a la vez): es un conflicto con el estado actual, no una falla del servidor (#345). No se devuelve
+     * ni se loguea el mensaje de la base, que trae nombres de constraints y los valores en conflicto (p. ej. un email).
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
+                                                        HttpServletRequest request) {
+        log.warn("Conflicto de integridad de datos en {}", request.getRequestURI());
+        return build(HttpStatus.CONFLICT, "La operación choca con el estado actual de los datos. Probá de nuevo.",
+                request, List.of());
     }
 
     @ExceptionHandler(ResponseStatusException.class)
