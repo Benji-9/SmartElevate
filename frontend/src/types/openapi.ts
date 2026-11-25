@@ -409,7 +409,7 @@ export interface paths {
     put?: never;
     /**
      * Reenvía el link de verificación
-     * @description Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.
+     * @description Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace menos de un minuto no manda otro y también responde 202: el cliente cuenta su propia espera.
      */
     post: operations['resendVerification'];
     delete?: never;
@@ -2619,15 +2619,6 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ApiError'];
-        };
-      };
-      /** @description Ya se mandó un mail hace poco */
-      429: {
         headers: {
           [name: string]: unknown;
         };

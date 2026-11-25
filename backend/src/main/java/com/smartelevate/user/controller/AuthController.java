@@ -138,9 +138,8 @@ public class AuthController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Reenvía el link de verificación",
             description = "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. "
-                    + "Si ya se mandó uno hace poco responde 429 con el header Retry-After.")
-    @ApiResponse(responseCode = "429", description = "Ya se mandó un mail hace poco",
-            content = @Content(schema = @Schema(implementation = ApiError.class)))
+                    + "Si ya se mandó uno hace menos de un minuto no manda otro y también responde 202: el cliente "
+                    + "cuenta su propia espera.")
     public void resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         emailVerification.resend(request.email());
     }

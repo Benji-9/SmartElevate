@@ -1304,7 +1304,7 @@
     },
     "/api/auth/resend-verification" : {
       "post" : {
-        "description" : "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.",
+        "description" : "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace menos de un minuto no manda otro y también responde 202: el cliente cuenta su propia espera.",
         "operationId" : "resendVerification",
         "requestBody" : {
           "content" : {
@@ -1329,16 +1329,6 @@
               }
             },
             "description" : "Bad Request"
-          },
-          "429" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Ya se mandó un mail hace poco"
           },
           "500" : {
             "content" : {

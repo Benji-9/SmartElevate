@@ -5,9 +5,15 @@ import { UadeEmailInput } from './UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from './validation';
 
 /**
+ * Espera entre reenvíos. El servidor tiene la suya (1 minuto) pero la calla: ya no responde 429 por cuenta, porque
+ * solo lo hacía para cuentas reales sin verificar y delataba cuáles existen (#344). Se cuenta acá, igual para todos.
+ */
+const RESEND_COOLDOWN_SECONDS = 60;
+
+/**
  * Reenvío del link de verificación (SCREENS.md §02d). Con `email` lo reenvía directo; sin él
- * pide el email institucional. El 429 trae `Retry-After`: se muestra la espera y el botón
- * vuelve cuando termina.
+ * pide el email institucional. Después de cada pedido el botón espera un minuto. Un 429 (tope de
+ * pedidos de la red) trae `Retry-After`: se muestra la espera y el botón vuelve cuando termina.
  */
 export function ResendVerification({ email }: { email?: string }) {
   const [typed, setTyped] = useState('');
@@ -37,10 +43,11 @@ export function ResendVerification({ email }: { email?: string }) {
         kind: 'ok',
         text: `Si ${target} tiene una cuenta sin verificar, te mandamos un link nuevo.`,
       });
+      setWait(RESEND_COOLDOWN_SECONDS);
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {
-        setWait(error.retryAfter ?? 60);
-        setMessage({ kind: 'error', text: 'Ya te mandamos un email hace poco.' });
+        setWait(error.retryAfter ?? RESEND_COOLDOWN_SECONDS);
+        setMessage({ kind: 'error', text: error.message });
       } else {
         setMessage({
           kind: 'error',

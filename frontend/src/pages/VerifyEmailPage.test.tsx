@@ -48,6 +48,22 @@ describe('VerifyEmailPage', () => {
     );
   });
 
+  // El servidor ya no avisa con un 429 que hay que esperar (delataba qué cuentas existen, #344): la espera
+  // de un minuto entre reenvíos se cuenta en el cliente, igual para todos.
+  it('después de reenviar, el botón espera un minuto aunque el servidor siempre conteste 202', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/verify': { status: 400, body: { message: 'El link venció.' } },
+      'POST /auth/resend-verification': { status: 202 },
+    });
+    renderAt('/verificar-email?token=viejo');
+
+    await userEvent.type(await screen.findByLabelText('Email institucional'), 'ana.perez');
+    await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
+
+    expect(await screen.findByRole('button', { name: 'Podés pedir otro en 60 s' })).toBeDisabled();
+  });
+
   it('sin token no llama al servidor', async () => {
     const fetchMock = stubApi(signedOut);
     renderAt('/verificar-email');
@@ -87,10 +103,13 @@ describe('VerifyEmailPage', () => {
     const base = globalThis.fetch;
     vi.stubGlobal('fetch', async (url: string, init?: RequestInit) =>
       url === '/api/auth/resend-verification'
-        ? new Response(JSON.stringify({ message: 'Esperá.' }), {
-            status: 429,
-            headers: { 'Retry-After': '45' },
-          })
+        ? new Response(
+            JSON.stringify({ message: 'Hiciste demasiados pedidos. Probá de nuevo en 1 minuto.' }),
+            {
+              status: 429,
+              headers: { 'Retry-After': '45' },
+            },
+          )
         : base(url, init),
     );
     renderAt('/verificar-email?token=x');
@@ -99,7 +118,10 @@ describe('VerifyEmailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
 
     expect(await screen.findByRole('button', { name: 'Podés pedir otro en 45 s' })).toBeDisabled();
-    expect(screen.getByText('Ya te mandamos un email hace poco.')).toBeInTheDocument();
+    // El texto lo manda el servidor: ahora el 429 es el tope de pedidos de la red, no "ya te mandamos un mail".
+    expect(
+      screen.getByText('Hiciste demasiados pedidos. Probá de nuevo en 1 minuto.'),
+    ).toBeInTheDocument();
   });
 
   it('un link ya usado no se muestra como falla del servidor: sugiere ingresar', async () => {

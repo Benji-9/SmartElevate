@@ -97,14 +97,14 @@ class EmailVerificationServiceTest {
         verify(sender, never()).send(any(), any(), any());
     }
 
+    /** #344: un error solo para cuentas reales sin verificar revelaría cuáles existen, así que se calla. */
     @Test
-    void resendIsRejectedInsideTheCooldownAndReportsTheRemainingWait() {
+    void resendIsSilentInsideTheCooldownSoItDoesNotRevealWhichAccountsExist() {
         given(users.findByEmail("jmartinez@uade.edu.ar")).willReturn(Optional.of(user));
         given(tokens.lastIssuedAt(any(), eq(TokenPurpose.VERIFY_EMAIL))).willReturn(Optional.of(NOW.minusSeconds(20)));
 
-        assertThatThrownBy(() -> service.resend("jmartinez@uade.edu.ar"))
-                .isInstanceOfSatisfying(ResendTooSoonException.class,
-                        e -> assertThat(e.getRetryAfter()).isEqualTo(Duration.ofSeconds(40)));
+        assertThatCode(() -> service.resend("jmartinez@uade.edu.ar")).doesNotThrowAnyException();
+
         verify(sender, never()).send(any(), any(), any());
     }
 

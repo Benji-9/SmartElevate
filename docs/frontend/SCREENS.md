@@ -140,8 +140,8 @@ Estados:
 Bloque reutilizable en 02d, en 02 (pantalla "Revisá tu email" tras registrarse) y en 01 (login con 403 por email sin verificar). `POST /api/auth/resend-verification` con `{ email }`.
 
 - `Button` secondary "Reenviar email de verificación". Si el email no se conoce (02d) se pide antes con el campo "Email institucional" (ver abajo); en 01 y 02 se usa el ya tipeado.
-- **202** (exista o no la cuenta): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo." No confirma que la cuenta exista.
-- **429**: aviso `--danger-tint` "Ya te mandamos un email hace poco." y el botón queda deshabilitado con cuenta regresiva "Podés pedir otro en {n} s" según el header `Retry-After` (60 s si falta). Al llegar a 0 vuelve a "Reenviar email de verificación".
+- **202** (exista o no la cuenta, y también si el último mail salió hace menos de un minuto): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo." No confirma que la cuenta exista. Después de cada 202 el botón queda deshabilitado con la cuenta regresiva "Podés pedir otro en 60 s": el servidor ya no avisa con un 429 que hay que esperar (solo lo hacía para cuentas reales sin verificar y delataba cuáles existen, #344), así que la espera se cuenta en el cliente.
+- **429**: es el tope de pedidos de la red (IP). Aviso `--danger-tint` con el texto que manda el servidor y el botón deshabilitado con cuenta regresiva "Podés pedir otro en {n} s" según el header `Retry-After` (60 s si falta). Al llegar a 0 vuelve a "Reenviar email de verificación".
 - Otro error: aviso `--danger-tint` con `ApiError.message`.
 
 ## Email institucional

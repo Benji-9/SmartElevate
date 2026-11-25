@@ -23,7 +23,6 @@ import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailVerificationService;
 import com.smartelevate.user.service.InvalidTokenException;
-import com.smartelevate.user.service.ResendTooSoonException;
 import java.time.Duration;
 import com.smartelevate.user.service.UserService;
 import java.util.List;
@@ -249,16 +248,6 @@ class AuthControllerTest {
                 .andExpect(status().isAccepted());
 
         verify(emailVerification).resend("jmartinez@uade.edu.ar");
-    }
-
-    @Test
-    void resendTooSoonIs429WithRetryAfter() throws Exception {
-        willThrow(new ResendTooSoonException(Duration.ofSeconds(42))).given(emailVerification).resend(any());
-
-        postJson("/api/auth/resend-verification", "{\"email\":\"jmartinez@uade.edu.ar\"}")
-                .andExpect(status().isTooManyRequests())
-                .andExpect(header().string("Retry-After", "42"))
-                .andExpect(jsonPath("$.status").value(429));
     }
 
     // ---- reset de contraseña
