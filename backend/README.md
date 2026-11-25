@@ -1,6 +1,6 @@
 # Backend
 
-API REST de SmartElevate: Java 25 + Spring Boot 4.1 (Maven, Spring Data JPA, Flyway, H2 en dev y PostgreSQL en prod, springdoc-openapi). Decisiones: [ADR 0011](../docs/adr/0011-spring-boot-4-y-java-25.md) (stack) y [ADR 0012](../docs/adr/0012-hosting-del-backend-render-y-neon.md) (hosting).
+API REST de SmartElevate: Java 25 + Spring Boot 4.1 (Maven, Spring Data JPA, Flyway, H2 en dev y PostgreSQL en prod, springdoc-openapi). Decisiones: [ADR 0011](../docs/adr/0011-spring-boot-4-y-java-25.md) (stack) y [ADR 0012](../docs/adr/0012-hosting-del-backend-render-y-supabase.md) (hosting).
 
 ## Requisitos
 

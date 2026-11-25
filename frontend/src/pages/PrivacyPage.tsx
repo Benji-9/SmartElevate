@@ -92,7 +92,7 @@ export function PrivacyPage() {
             Unidos.
           </li>
           <li>
-            <strong>Neon</strong> (base de datos), en Estados Unidos (región AWS Ohio).
+            <strong>Supabase</strong> (base de datos), en Estados Unidos (región AWS Oregón).
           </li>
           <li>
             <strong>Brevo</strong> (envío de emails), con servidores en la Unión Europea.

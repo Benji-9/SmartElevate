@@ -35,7 +35,7 @@ Fuera de alcance:
 
 - Denegación de servicio y ataques volumétricos.
 - Ingeniería social.
-- Hallazgos de proveedores terceros (Render, Neon, Vercel, Brevo): reportalos a ellos.
+- Hallazgos de proveedores terceros (Render, Supabase, Vercel, Brevo): reportalos a ellos.
 - Reportes automáticos de escáneres sin impacto demostrado.
 
 ## Datos al probar
