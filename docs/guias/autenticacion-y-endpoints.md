@@ -7,6 +7,8 @@ Cómo funciona la sesión y cómo agregar un endpoint (público, protegido o por
 Públicos: `/api/ping`, `/api/auth/**`, `GET /api/elevators`, `GET /api/buildings`, la documentación (`/v3/api-docs`, `/swagger-ui.html`) y `/actuator/health`. **Todo lo demás exige `Authorization: Bearer <accessToken>`**. Para agregar un endpoint:
 
 - Protegido: no hay que hacer nada, es el default. Por rol, `@PreAuthorize("hasRole('ADMIN')")` en el método (sin token da 401, con otro rol 403).
+- Admin: todo lo que cuelga de `/api/admin/**` exige ADMIN ya a nivel de URL (`SecurityConfig`), antes de que el controller valide parámetros o cuerpo: un usuario común recibe 403 y nunca un 400 que le muestre la forma del pedido (#345). Un endpoint nuevo de admin ya queda cubierto; el `@PreAuthorize` del controller es la segunda barrera.
+- Consola de H2 (`/h2-console/**`): solo es pública con `spring.h2.console.enabled=true`, que prende únicamente el perfil dev. En prod la ruta pide sesión y las páginas salen con `X-Frame-Options: DENY`.
 - Usuario actual: parámetro `@AuthenticationPrincipal CurrentUser user` (`common/security`).
 - Documentarlo en OpenAPI: `@SecurityRequirement(name = OpenApiConfig.BEARER)` en el controller.
 - Público: sumarlo a `SecurityConfig.PUBLIC_ANY` / `PUBLIC_GET`, solo con motivo.
