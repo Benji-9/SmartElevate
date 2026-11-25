@@ -10,6 +10,8 @@
 - El email se guarda en **minúsculas**: `Ana@UADE.edu.ar` y `ana@uade.edu.ar` son la misma cuenta. El legajo son solo dígitos, hasta 10.
 - La cuenta nace **común y sin verificar**. El pedido de registro (`POST /api/auth/register`) no tiene campo de rol ni de prioridad, y si el JSON trae alguno se ignora.
 - Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe.
+- Una cuenta que **nunca verifica el email se borra a los 7 días** ([#344](https://github.com/Benji-9/SmartElevate/issues/344), `app.unverified-cleanup.ttl`): así nadie retiene un email o un legajo ajeno registrándose antes que su dueño. Una cuenta sin verificar no puede iniciar sesión ni reservar, y solo se borran las que no dejaron reservas, prioridad, auditoría ni suspensiones.
+- `POST /api/auth/resend-verification` responde **202 siempre**, exista o no la cuenta y haya o no un mail reciente: dentro del minuto de espera simplemente no manda otro. Un 429 solo para cuentas reales sin verificar delataba cuáles existen (#344). La pantalla cuenta ese minuto por su cuenta.
 
 ### Contraseña
 
@@ -26,6 +28,7 @@ Alineada a NIST SP 800-63B en [#211](https://github.com/Benji-9/SmartElevate/iss
 - Por **cuenta** y por **IP**, en una **ventana deslizante**: con **10 fallos de la cuenta** o **100 de la IP** en los últimos **15 minutos**, el login responde **429** con `Retry-After` (sin mirar la contraseña) hasta que el fallo más viejo sale de la ventana. El tope por cuenta no puede pasar de 100 (NIST). Es un límite **por ventana más un tope por IP**, no la lectura literal de NIST de "100 seguidos"; el tope por IP es conservador porque la red de la universidad sale por pocas IPs (NAT) y se calibra en el piloto ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). Los tres valores viven en `application.yml` (`app.login-throttle.*`), con override por `APP_LOGIN_THROTTLE_WINDOW`, `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` y `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` ([#225](https://github.com/Benji-9/SmartElevate/issues/225), [ADR 0017](../adr/0017-donde-viven-los-parametros.md)).
 - El bloqueo siempre es **temporal**: un tercero no puede dejar bloqueada una cuenta para siempre. Un **login correcto** o un **reset de contraseña** borran los fallos de la cuenta.
 - Cuenta igual un email que no existe: el 429 no revela qué cuentas hay. Se guarda el hash de la cuenta y de la IP, nunca el email ni la IP.
+- **Pendiente de decidir** ([#344](https://github.com/Benji-9/SmartElevate/issues/344), cambiaría el [ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)): hoy alguien que conozca un email puede dejar a esa persona sin poder entrar 15 minutos con 10 intentos fallidos. Se evalúa contar por cuenta **e IP** (tope de 10 por par y uno global por cuenta de hasta 100). **A verificar antes**: detrás del proxy de Vercel y de Render, `getRemoteAddr()` podría ser la IP del proxy y no la de cada persona, según qué `X-Forwarded-For` llegue. Si fuera así, el tope por IP (100) ya es compartido por todos, y sumar topes por IP al registro, al reenvío y a "olvidé" (también parte de #344) bloquearía usuarios reales.
 
 ### Olvidé mi contraseña
 
@@ -33,8 +36,8 @@ Implementado en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
 
 - `POST /api/auth/password/forgot` responde **202 siempre**, exista o no la cuenta (y también si hubo un pedido reciente: la espera entre pedidos, 1 minuto, se aplica en silencio porque un 429 delataría qué cuentas existen).
 - El link vale **30 minutos**, se usa **una sola vez** y se guarda hasheado. Pedir otro invalida el anterior. Vencimiento y espera son configuración (`app.password-reset.*`).
-- **Cuenta sin verificar que pide reset**: no se manda link de reset; se le **reenvía el link de verificación** (con su propia espera). Primero tiene que verificar el email.
-- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
+- **Cuenta sin verificar que pide reset** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)): recibe el mismo link de reset que las demás. Antes se le reenviaba el de verificación, y si alguien se había registrado primero con ese email, al usarlo la cuenta quedaba verificada con la clave del otro.
+- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo, **marca el email como verificado** (usar el link prueba que la persona controla ese mail, y con eso quien se registró antes pierde su clave) y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
 
 ### Tipo de usuario declarado
 
