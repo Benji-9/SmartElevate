@@ -37,10 +37,9 @@ class PasswordResetServiceTest {
     private final RefreshTokenRepository refreshTokens = mock(RefreshTokenRepository.class);
     private final PasswordEncoder encoder = mock(PasswordEncoder.class);
     private final EmailSender sender = mock(EmailSender.class);
-    private final EmailVerificationService verification = mock(EmailVerificationService.class);
     private final LoginThrottle loginThrottle = mock(LoginThrottle.class);
     private final PasswordResetService service = new PasswordResetService(tokens, users, refreshTokens, encoder,
-            sender, verification,
+            sender,
             new PasswordResetProperties(Duration.ofMinutes(30), Duration.ofMinutes(1)),
             new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test"),
             Clock.fixed(NOW, ZoneOffset.UTC), loginThrottle);
@@ -98,22 +97,29 @@ class PasswordResetServiceTest {
         verify(sender).send(eq("jmartinez@uade.edu.ar"), anyString(), anyString());
     }
 
+    /** #344: si alguien se registró antes con un email ajeno, el dueño del mail tiene que poder elegir su clave. */
     @Test
-    void unverifiedAccountsGetTheVerificationLinkAgainAndNoResetLink() {
+    void unverifiedAccountsGetARealResetLinkTooNotTheVerificationOne() {
         existingUser(false);
+        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.PASSWORD_RESET))).willReturn(Optional.empty());
+        given(tokens.issue(any(), eq(TokenPurpose.PASSWORD_RESET), eq(Duration.ofMinutes(30)))).willReturn("tokSinVerificar");
 
         service.request("jmartinez@uade.edu.ar");
 
-        verify(verification).resend("jmartinez@uade.edu.ar");
-        verify(tokens, never()).issue(any(), any(), any());
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(sender).send(eq("jmartinez@uade.edu.ar"), anyString(), body.capture());
+        assertThat(body.getValue()).contains("https://app.test/recuperar/nueva?token=tokSinVerificar");
+        assertThat(body.getValue()).doesNotContain("verificar-email");
     }
 
     @Test
-    void unverifiedAccountInsideTheVerificationCooldownIsSilent() {
+    void unverifiedAccountInsideTheCooldownIsSilentlyIgnoredLikeAnyOther() {
         existingUser(false);
-        willThrow(new ResendTooSoonException(Duration.ofSeconds(10))).given(verification).resend(any());
+        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.PASSWORD_RESET)))
+                .willReturn(Optional.of(NOW.minusSeconds(30)));
 
         assertThatCode(() -> service.request("jmartinez@uade.edu.ar")).doesNotThrowAnyException();
+        verify(sender, never()).send(any(), any(), any());
     }
 
     @Test
@@ -139,6 +145,20 @@ class PasswordResetServiceTest {
         verify(refreshTokens).revokeAllByUser(user.getId(), NOW);
         // Recuperó la cuenta por mail: el límite de intentos no la deja esperando.
         verify(loginThrottle).clearAccount("jmartinez@uade.edu.ar");
+    }
+
+    /** Usar el link del mail prueba que la persona controla el email: la cuenta queda verificada (#344). */
+    @Test
+    void resetAlsoVerifiesTheEmail() {
+        UUID id = UUID.randomUUID();
+        given(tokens.consume("tok", TokenPurpose.PASSWORD_RESET)).willReturn(id);
+        given(users.findById(id)).willReturn(Optional.of(user));
+        given(encoder.encode("nueva-clave-1")).willReturn("hash-nuevo");
+        assertThat(user.isEmailVerified()).isFalse();
+
+        service.reset("tok", "nueva-clave-1");
+
+        assertThat(user.isEmailVerified()).isTrue();
     }
 
     @Test
