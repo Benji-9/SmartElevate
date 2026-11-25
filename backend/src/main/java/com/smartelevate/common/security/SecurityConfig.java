@@ -31,6 +31,9 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  *   <li><b>Protegido (default):</b> no hay que tocar nada. Cualquier ruta nueva queda autenticada.</li>
  *   <li><b>Por rol:</b> {@code @PreAuthorize("hasRole('ADMIN')")} en el método del controller (o
  *       {@code hasAnyRole('ADMIN','REVIEWER')}). Sin token da 401; con otro rol, 403.</li>
+ *   <li><b>Admin:</b> todo lo que cuelga de {@code /api/admin/**} exige ADMIN ya a nivel de URL, antes de que el
+ *       controller valide parámetros o cuerpo (un usuario común recibe 403, no 400). El {@code @PreAuthorize} de
+ *       cada controller queda como segunda barrera.</li>
  *   <li><b>Usuario actual:</b> parámetro {@code @AuthenticationPrincipal CurrentUser user}.</li>
  *   <li><b>Público:</b> sumarlo a {@link #PUBLIC_ANY} o {@link #PUBLIC_GET}. Hacerlo solo con motivo.</li>
  * </ul>
@@ -64,6 +67,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_ANY).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
+                        // El rol se mira antes de que el controller valide parámetros o cuerpo: así un usuario
+                        // común recibe 403 y no un 400 que le muestre la forma del pedido (#345).
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o
                         .jwt(j -> j.jwtAuthenticationConverter(converter))
