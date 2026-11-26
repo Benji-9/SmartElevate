@@ -329,6 +329,29 @@ describe('CheckInPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('las regiones de estado están siempre montadas y solo cambia su texto', async () => {
+    stubCamera();
+    let reply: (value: Response) => void = () => {};
+    const fetchMock = stubApi(withTurn);
+    const respond = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url, init) =>
+      url === '/api/check-ins' ? new Promise<Response>((r) => (reply = r)) : respond(url, init),
+    );
+    renderCheckIn('/check-in?demo=1');
+    const [scan, turn] = screen.getAllByRole('status');
+    expect(turn).toHaveTextContent('Cargando tu turno…');
+
+    await screen.findByText('14:04 hs');
+    await waitFor(() => expect(scan).toBeEmptyDOMElement());
+    expect(turn).toBeEmptyDOMElement();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Simular escaneo del QR' }));
+    expect(scan).toHaveTextContent('Registrando tu check-in…');
+    expect(screen.getAllByRole('status')).toEqual([scan, turn]);
+    reply(new Response(JSON.stringify(result), { status: 200 }));
+    expect(await screen.findByText(/^Resultado:/)).toBeInTheDocument();
+  });
+
   it('libera la cámara al salir de la pantalla', async () => {
     stubCamera();
     stubApi(withTurn);

@@ -91,7 +91,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 7. "¿No tenés cuenta? Registrate" — 14 px, `--ink-muted`, centrado; "Registrate" es un link a `/registro` en `--accent`.
 8. Footer legal con el logotipo de UADE arriba (`LegalFooter withUadeLogo`, 86 px de ancho).
 
-Estados: error de credenciales → aviso `--danger-tint` (`role="alert"`) con el mensaje del servidor sobre el botón. **Sesión vencida:** cuando un pedido autenticado responde 401 y no se puede renovar, la app vuelve acá con el aviso "Tu sesión venció. Ingresá de nuevo." (lo arma `services/api.ts`; no aplica a `/auth/*`). Un 403 no es sesión vencida: muestra el mensaje del servidor donde ocurrió.
+Estados: error de credenciales → aviso `--danger-tint` (`role="alert"`) con el mensaje del servidor sobre el botón; los dos campos quedan con `aria-invalid` y descriptos por ese aviso. **Sesión vencida:** cuando un pedido autenticado responde 401 y no se puede renovar, la app vuelve acá con el aviso "Tu sesión venció. Ingresá de nuevo." (lo arma `services/api.ts`; no aplica a `/auth/*`). Un 403 no es sesión vencida: muestra el mensaje del servidor donde ocurrió.
 
 ## 02 · Registro — `/registro`
 
@@ -327,7 +327,7 @@ Escritorio **1440 × 900**. Layout en dos columnas.
 Turnos, check-ins y ocupación llevan debajo un `Chip` `neutral` contra el período anterior (`previous`, [#180](https://github.com/Benji-9/SmartElevate/issues/180)): "▲ Subió 8 % vs. ayer" / "los 7 días anteriores" / "los 30 días anteriores" (check-ins, en puntos), o "Igual que ayer"; sin `previous` no se muestra. Un KPI en `null` muestra **"Sin datos"** como cifra y no se compara; hoy la espera siempre (necesita la encuesta, fuera del MVP), y check-ins u ocupación mientras no haya salidas resueltas. En la tabla por núcleo, igual: "Sin datos" en la celda y en el `Chip` de estado.
 
 3. **Fila de dos tarjetas** (gap 16, mismo ancho):
-   - **Gráfico "Reservas por hora"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (11 px `--ink-muted`). Una barra por hora de `reservationsByHour` (alto proporcional al máximo). Barras de las horas más cargadas (≥ 80 % del máximo) en `--accent` sólido, el resto en `--accent` al 45 %.
+   - **Gráfico "Reservas por hora"** (pad 20, gap 16, `--radius-lg`, borde `--line`): título `.text-card-title`; barras verticales de 28 px de ancho, `--radius` 6, área de 240 px de alto, alineadas al fondo, con la hora debajo (12 px `--ink-muted`). Una barra por hora de `reservationsByHour` (alto proporcional al máximo; ancho mínimo de columna 28 px, y si no entran el gráfico scrollea). Barras de las horas más cargadas (≥ 80 % del máximo) en `--accent` sólido, el resto en `--accent` al 45 %; la tabla equivalente para lectores de pantalla las marca con "(hora pico)".
    - **Tabla "Estado por núcleo"** (pad 20, `--radius-lg`, borde `--line`): columnas **Núcleo · Reservas · Ocupación · Espera · Estado**; encabezado 13 px / 600 `--ink-muted`; filas 13 px con pad 12/0 y divisor `--line`. La columna Estado es un `Chip` con tono `baja` / `media` / `alta`.
 
 | Núcleo | Reservas | Ocupación | Espera | Estado |
@@ -445,3 +445,6 @@ El ascensor que vale es el de la credencial; el de la URL es el que la pantalla 
 - El estado de congestión, de franja ("Completo") y de validación siempre con texto, no solo color.
 - Selectores (edificio, piso, franja, tipo de usuario) navegables con teclado; el elegido con `aria-pressed` o `aria-checked`; los pisos no elegibles con `disabled`.
 - Foco visible con `--focus`. Áreas táctiles ≥ 44 × 44 px.
+- Al fallar un envío en login y registro, el foco va al primer campo con `aria-invalid` (si el error no es de un campo, al botón). Una acción que saca su propio botón (p. ej. "Reintentar" de la congestión) deja el foco en un lugar estable.
+- Los mensajes `role="status"` están siempre montados y solo cambia su texto (clase `live-status`).
+- Texto de 12 px como mínimo, salvo el rótulo `.text-overline` y la etiqueta de las tabs.

@@ -33,7 +33,6 @@
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
-  --text-11: 0.6875rem;
   --text-12: 0.75rem;
   --text-13: 0.8125rem;
   --text-14: 0.875rem;
@@ -134,7 +133,8 @@
     --color-primary: color-mix(in srgb, var(--AstronautBlue) 45%, var(--White));
     --color-on-primary: var(--BlackPearl);
     --color-primary-tint: color-mix(in srgb, var(--White) 8%, transparent);
-    --color-primary-tint-strong: color-mix(in srgb, var(--White) 14%, transparent);
+    /* 8 %: --color-primary encima llega a 4,5:1 sobre --color-surface (WCAG 1.4.3). */
+    --color-primary-tint-strong: color-mix(in srgb, var(--White) 8%, transparent);
     --color-danger: color-mix(in srgb, var(--Status-Alta) 60%, var(--White));
     --color-danger-tint: color-mix(in srgb, var(--Status-Alta) 18%, transparent);
     --color-focus: var(--White);
@@ -285,6 +285,14 @@ a {
   color: var(--color-text-muted);
 }
 
+/*
+ * `role="status"` siempre montado (para que se anuncie cuando cambia su texto): vacío sale del
+ * flujo, sin hueco en la grilla, pero sigue en el árbol de accesibilidad.
+ */
+.live-status:empty {
+  position: absolute;
+}
+
 /* Elevy con el mensaje de una pantalla vacía. */
 .empty-state {
   display: grid;
@@ -304,6 +312,7 @@ a {
   .trips__notice,
   .trips__error,
   .auth__alert,
+  .auth__info[role='status'],
   .notifications__alert,
   .kiosk-alert,
   .kiosk-error,

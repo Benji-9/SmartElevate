@@ -22,25 +22,27 @@ export function ViewModeToggle() {
   }
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Vista de la aplicación"
-      className="view-toggle"
-      onKeyDown={onKeyDown}
-    >
-      {options.map(([value, label]) => (
-        <button
-          key={value}
-          type="button"
-          role="radio"
-          aria-checked={mode === value}
-          tabIndex={mode === value ? 0 : -1}
-          className="view-toggle__option text-body-sm-strong"
-          onClick={() => setMode(value)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <aside aria-label="Vista" className="view-toggle">
+      <div
+        role="radiogroup"
+        aria-label="Vista de la aplicación"
+        className="view-toggle__group"
+        onKeyDown={onKeyDown}
+      >
+        {options.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={mode === value}
+            tabIndex={mode === value ? 0 : -1}
+            className="view-toggle__option text-body-sm-strong"
+            onClick={() => setMode(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </aside>
   );
 }

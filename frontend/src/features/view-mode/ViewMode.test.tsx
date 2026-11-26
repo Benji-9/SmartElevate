@@ -34,6 +34,12 @@ describe('Modos de vista', () => {
     expect(statusBar()).not.toBeInTheDocument();
   });
 
+  it('el selector queda dentro de un landmark "Vista"', async () => {
+    await renderLogin();
+
+    expect(screen.getByRole('complementary', { name: 'Vista' })).toContainElement(toggle());
+  });
+
   it('al elegir Teléfono dibuja el marco con la barra de estado y lo guarda', async () => {
     await renderLogin();
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -75,6 +75,23 @@ describe('AdminElevatorsPage', () => {
     ).toBeInTheDocument();
     const updated = (await screen.findAllByText('Fuera de servicio')).length;
     expect(updated).toBe(2);
+  });
+
+  it('el resultado se anuncia en una región de estado que ya estaba montada', async () => {
+    renderPage([elevator('33', true, 4)]);
+    const user = userEvent.setup();
+    await screen.findByRole('article', { name: 'Ascensor 33' });
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Marcar fuera de servicio el ascensor 33' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Sí, marcar' }));
+
+    await waitFor(() =>
+      expect(status).toHaveTextContent('Ascensor 33 fuera de servicio. Se cancelaron 4 reservas.'),
+    );
   });
 
   it('deshabilita las acciones mientras el pedido está en curso', async () => {

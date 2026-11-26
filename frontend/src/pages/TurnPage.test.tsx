@@ -137,6 +137,25 @@ describe('TurnPage', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('La salida ya partió');
   });
 
+  it('el error se mantiene mientras el diálogo se cierra y se limpia al volver a abrirlo', async () => {
+    stubApi({
+      ...signedIn(),
+      'GET /reservations/55': { body: reservation },
+      'DELETE /reservations/55': { status: 409, body: { message: 'La salida ya partió' } },
+    });
+    renderTurn();
+
+    const dialog = await openCancelDialog();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar turno' }));
+    await within(dialog).findByRole('alert');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Mantener turno' }));
+    // El diálogo se va con su contenido (no cambia de alto durante la salida).
+    expect(within(dialog).getByText('La salida ya partió')).toBeInTheDocument();
+
+    const reopened = await openCancelDialog();
+    expect(within(reopened).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('si el turno no existe o no es del usuario, muestra el estado de error', async () => {
     stubApi(signedIn());
     renderTurn('42');

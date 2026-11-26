@@ -1,49 +1,16 @@
 /*
- * Panel admin (Figma 09: 1440×900), solo de escritorio (VIEW-MODES.md §7).
- * Móvil por defecto: con el contenedor `app` (.app-shell de DeviceStage) de menos de 900 px
- * se ve el aviso; desde 900 px, el panel.
+ * Panel admin (Figma 09: 1440×900), pensado para escritorio (VIEW-MODES.md §7). Con el
+ * contenedor `app` (.app-shell de DeviceStage) de menos de 900 px (celular o zoom) va en una
+ * columna: navegación arriba, contenido abajo y tablas con scroll propio.
  */
-.admin-shell {
+.admin {
   display: flex;
   flex-direction: column;
 }
 
-.admin {
-  display: none;
-}
-
-.admin-narrow {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  flex: 1;
-  gap: 8px;
-  padding: 24px var(--space-screen);
-  text-align: center;
-}
-
-.admin-narrow p {
-  font-size: var(--text-15);
-  color: var(--color-text-muted);
-}
-
-@container app (min-width: 900px) {
-  .admin {
-    display: grid;
-    flex: 1;
-    grid-template-columns: 248px minmax(0, 1fr);
-  }
-
-  .admin-narrow {
-    display: none;
-  }
-}
-
 /* El sidebar es oscuro también en modo claro. */
 .admin__sidebar {
-  padding: 28px 16px;
-  /* En modo oscuro separa el sidebar del fondo, que también es oscuro. */
-  border-right: 1px solid var(--color-border);
+  padding: 16px;
   background: var(--surface-dark);
   color: var(--on-dark);
 }
@@ -64,7 +31,8 @@
 }
 
 .admin__sidebar ul {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -96,30 +64,60 @@
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 24px;
-  padding: 32px;
-}
-
-/* Panel de escritorio: los botones no necesitan la altura táctil de la app móvil. */
-.admin__main .button {
-  min-height: 36px;
-  padding: 0 14px;
-  font-size: var(--text-14);
-  line-height: 20px;
+  padding: 24px var(--space-screen);
 }
 
 .admin__exit {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border);
+  margin-top: 6px;
 }
 
 button.admin__link {
-  width: 100%;
   border: 0;
   background: none;
   font-family: inherit;
   cursor: pointer;
   text-align: left;
+}
+
+@container app (min-width: 900px) {
+  .admin {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+
+  .admin__sidebar {
+    padding: 28px 16px;
+    /* En modo oscuro separa el sidebar del fondo, que también es oscuro. */
+    border-right: 1px solid var(--color-border);
+  }
+
+  .admin__sidebar ul,
+  .admin__exit {
+    display: grid;
+  }
+
+  .admin__exit {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  button.admin__link {
+    width: 100%;
+  }
+
+  .admin__main {
+    padding: 32px;
+  }
+
+  /* Con mouse los botones no necesitan la altura táctil; en angosto quedan en 48 px. */
+  .admin__main .button {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: var(--text-14);
+    line-height: 20px;
+  }
 }

@@ -10,7 +10,7 @@
   background: var(--color-bg);
 }
 
-/* Las pantallas (.screen, .admin-shell) llenan el alto del shell. */
+/* Las pantallas (.screen, .admin) llenan el alto del shell. */
 .app-shell > * {
   flex: 1;
 }
@@ -123,12 +123,15 @@
   right: 24px;
   bottom: 24px;
   z-index: 1000;
-  display: flex;
-  gap: 4px;
   padding: 4px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
+}
+
+.view-toggle__group {
+  display: flex;
+  gap: 4px;
 }
 
 .view-toggle__option {
