@@ -13,7 +13,7 @@ export function TermsPage() {
   return (
     <article className="legal">
       <ScreenHeader title="Términos de uso" backTo="/login" />
-      <p className="legal__updated">Última actualización: octubre de 2026</p>
+      <p className="legal__updated">Última actualización: noviembre de 2026</p>
 
       <p>
         Estos términos regulan el uso de SmartElevate, un proyecto académico de estudiantes de UADE
