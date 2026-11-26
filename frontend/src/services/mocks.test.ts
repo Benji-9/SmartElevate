@@ -157,6 +157,45 @@ describe('mocks', () => {
     expect(new Set(departures.map((d) => d.elevator))).toEqual(new Set(['33', '34']));
   });
 
+  it('en la ventana siempre hay una franja completa y otras con lugar, en cada núcleo', async () => {
+    await loginAna();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const start = Date.now();
+    const elevators = await call<Elevator[]>('GET', '/elevators');
+    // Sea cual sea la hora a la que se grabe la demo.
+    for (let minutes = 0; minutes < 30; minutes += 2) {
+      vi.setSystemTime(start + minutes * MIN);
+      const departures = await call<Departure[]>('GET', '/departures');
+      for (const core of ['L1', 'L2', 'L3', 'IND2']) {
+        const codes = elevators.filter((e) => e.core === core).map((e) => e.code);
+        const seats = new Map<string, number>();
+        for (const d of departures.filter((x) => codes.includes(x.elevator))) {
+          seats.set(d.departureAt, Math.max(seats.get(d.departureAt) ?? 0, d.remainingSeats));
+        }
+        expect(Math.min(...seats.values()), `${core} +${minutes} min`).toBe(0);
+        expect(Math.max(...seats.values()), `${core} +${minutes} min`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('el turno inicial no cae en una franja completa', async () => {
+    for (let minutes = 0; minutes < 16; minutes += 2) {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(Date.parse('2026-11-27T15:00:00Z') + minutes * MIN);
+      vi.resetModules();
+      const fresh = await import('./mocks');
+      await fresh.mockRequest(
+        'POST',
+        '/auth/login',
+        JSON.stringify({ email: 'ana.perez@uade.edu.ar', password: 'x' }),
+        0,
+      );
+      const active = (await fresh.mockRequest('GET', '/reservations/active', undefined, 0))!
+        .data as Reservation;
+      expect(active.seatNumber, `+${minutes} min`).toBeLessThanOrEqual(10);
+    }
+  });
+
   it('arranca con un turno activo en el 33 con su núcleo y la regla de cancelación', async () => {
     await loginAna();
     const active = await call<Reservation>('GET', '/reservations/active');
@@ -475,4 +514,22 @@ describe('mocks', () => {
     }
   });
 
+  it.each([
+    ['', 'ON_TIME', 'USED'],
+    ['&checkin=otro', 'OTHER_ELEVATOR', 'USED'],
+    ['&checkin=tarde', 'LATE', 'NO_SHOW'],
+  ])('el botón de demo con ?demo=1%s da %s', async (scenario, outcome, reservationStatus) => {
+    await loginAna();
+    await cancelActive();
+    await reserveOn(await freeDeparture());
+    window.history.replaceState(null, '', `/check-in?demo=1${scenario}`);
+    try {
+      expect(await call<CheckIn>('POST', '/check-ins', { token: 'DEMO' })).toMatchObject({
+        outcome,
+        reservationStatus,
+      });
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
+  });
 });

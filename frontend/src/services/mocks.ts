@@ -21,8 +21,10 @@
 // - Un solo turno activo por usuario se chequea sin distinguir usuarios (hay un estado global).
 // - Tokens de QR: no se firman; los tokens `DEMO`, `TARDE` y `OTRO` saltean la ventana horaria
 //   para poder probar cada resultado sin esperar la hora de salida.
+// Para probar sin QR: con `?demo=1&checkin=tarde` o `&checkin=otro` en la URL, el botón "Simular
+// escaneo del QR" da fuera de hora u otro ascensor en vez de a tiempo.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
-// halls y ocupación siguen siendo de ejemplo.
+// KPIs y ocupación siguen siendo de ejemplo.
 import type {
   AdminElevator,
   AdminKpis,
@@ -368,6 +370,9 @@ function adminKpis(query: URLSearchParams): AdminKpis {
 // Ocupación de ejemplo por salida, rotada por ascensor: hay llenas para probar TURN_FULL y casi
 // llenas (8–9) donde lo que queda es de prioritarios.
 const OCCUPANCY = [4, 10, 7, 2, 9, 0, 5, 3, 8, 1, 6, 2, 0, 4, 1];
+// Una de cada 7 salidas (cada 14 min) va llena en todos los ascensores: Reservar ofrece por hora el
+// más libre, así que sin esto la franja "Completo" no se vería nunca.
+const FULL_EVERY = 7;
 
 // Misma forma que GET /api/buildings: los núcleos van con código y nombre visible.
 const coresOf = (buildingCode: string) =>
@@ -455,7 +460,9 @@ const holdsSeat = (r: Reservation) =>
   r.status === 'ACTIVE' || r.status === 'USED' || r.status === 'NO_SHOW';
 
 function occupied(departureId: number) {
-  const base = OCCUPANCY[(Math.floor(departureId / 100) + (departureId % 100)) % OCCUPANCY.length];
+  const slot = Math.floor(departureId / 100);
+  const base =
+    slot % FULL_EVERY === 0 ? CAPACITY : OCCUPANCY[(slot + (departureId % 100)) % OCCUPANCY.length];
   const booked = reservations.filter((r) => r.departureId === departureId && holdsSeat(r)).length;
   return Math.min(CAPACITY, base + booked);
 }
@@ -649,11 +656,10 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
 // Arranca con un turno activo en el ascensor 33 (Independencia 2), PB → 7, a unos 16 min.
 {
   // A más de 10 min: cancelarlo todavía es sin falta.
-  const at = firstSlot() + 8 * STEP_MS;
-  const departureId = departureIdOf(
-    at,
-    ELEVATORS.findIndex((e) => e.code === '33'),
-  );
+  const elevatorIndex = ELEVATORS.findIndex((e) => e.code === '33');
+  let at = firstSlot() + 8 * STEP_MS;
+  while (occupied(departureIdOf(at, elevatorIndex)) >= CAPACITY) at += STEP_MS;
+  const departureId = departureIdOf(at, elevatorIndex);
   reservations = [
     {
       id: ++reservationCounter,
@@ -942,7 +948,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/check-ins$/,
     (body) => {
       const active = activeReservation();
-      const scan = scanned((body as CheckInRequest).token, active?.elevator ?? '33');
+      const { token } = body as CheckInRequest;
+      const demoScenario =
+        token === 'DEMO' && new URLSearchParams(window.location.search).get('checkin');
+      const scan = scanned(demoScenario || token, active?.elevator ?? '33');
       const { elevator } = scan;
       let { late } = scan;
       if (!active) {
