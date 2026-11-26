@@ -56,6 +56,8 @@ class ConfigServiceSeedTest {
         assertThat(config.afternoonShiftEnd()).isEqualTo(LocalTime.of(18, 0));
         assertThat(config.nightShiftStart()).isEqualTo(LocalTime.of(18, 0));
         assertThat(config.nightShiftEnd()).isEqualTo(LocalTime.of(22, 30));
+        assertThat(config.zoneOpenToAnyBefore()).isEqualTo(Duration.ofMinutes(5));
+        assertThat(config.zoneAffinityMaxFloors()).isEqualTo(2);
         assertThat(config.semesterEndDates()).isNotEmpty();
     }
 
