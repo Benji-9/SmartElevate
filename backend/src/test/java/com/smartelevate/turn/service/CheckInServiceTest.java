@@ -87,7 +87,7 @@ class CheckInServiceTest {
         CampusTime time = new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires"));
         service = new CheckInService(qrTokens, reservations, checkIns, users, audit, config, time, departures, entityManager);
         Core core = new Core("IND2", new Building("INDEPENDENCIA", "Independencia", -4, 11), "Independencia 2");
-        e33 = new Elevator("33", core, ElevatorUsage.COMMON, true, Set.of(0, 8));
+        e33 = new Elevator("33", core, ElevatorUsage.COMMON, true, Set.of(0, 8), Set.of());
         lenient().when(users.lockById(USER)).thenReturn(Optional.of(org.mockito.Mockito.mock(User.class)));
         lenient().when(config.checkInOpensBefore()).thenReturn(Duration.ofMinutes(1));
         lenient().when(config.checkInClosesAfter()).thenReturn(Duration.ofMinutes(2));
