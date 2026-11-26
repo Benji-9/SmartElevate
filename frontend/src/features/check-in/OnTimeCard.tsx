@@ -9,7 +9,7 @@ const titles: Record<CheckInOutcome, string> = {
 
 function detail({ outcome, elevator, reservedElevator }: CheckIn) {
   if (outcome === 'ON_TIME')
-    return 'Subiste dentro de tu franja. ¡Gracias por ayudar a que el ascensor fluya!';
+    return 'Subiste a tiempo a tu salida. ¡Gracias por ayudar a que el ascensor fluya!';
   if (outcome === 'OTHER_ELEVATOR') {
     return `Reservaste el ascensor ${reservedElevator} y escaneaste el ${elevator}. Quedó registrado y no cuenta como falta.`;
   }

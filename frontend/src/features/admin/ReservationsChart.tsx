@@ -4,7 +4,7 @@ import { formatNumber } from './format';
 
 type ReservationsChartProps = { data: AdminKpis['reservationsByHour'] };
 
-/** Desde qué parte del máximo una franja cuenta como de las más cargadas (barra sólida). */
+/** Desde qué parte del máximo una hora cuenta como de las más cargadas (barra sólida). */
 const PEAK_RATIO = 0.8;
 
 /**
@@ -19,7 +19,7 @@ export function ReservationsChart({ data }: ReservationsChartProps) {
     <figure className="admin-card hour-chart" aria-labelledby={titleId}>
       <figcaption>
         <h2 id={titleId} className="text-card-title">
-          Reservas por franja
+          Reservas por hora
         </h2>
       </figcaption>
 

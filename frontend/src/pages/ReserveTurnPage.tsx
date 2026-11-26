@@ -134,7 +134,7 @@ export function ReserveTurnPage() {
       : validDestination === null
         ? 'Falta elegir el piso de destino'
         : !slot
-          ? 'Falta elegir la franja horaria'
+          ? 'Falta elegir el horario de salida'
           : null;
 
   /** Con otro viaje la oferta es otra: la franja y los avisos de la anterior no valen. */

@@ -4,7 +4,7 @@ import { formatTime } from './format';
 
 type SlotListProps = {
   slots: Slot[];
-  /** `departureAt` de la franja elegida. */
+  /** `departureAt` de la salida elegida. */
   value: string | null;
   onChange: (departureAt: string) => void;
   /** Para llevar el foco al título (p. ej. cuando la salida elegida se llenó). */
@@ -21,7 +21,7 @@ export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
   return (
     <div className="option-group">
       <span id={labelId} ref={labelRef} tabIndex={-1} className="option-group__label">
-        Franja horaria
+        Horario de salida
       </span>
       <div role="radiogroup" aria-labelledby={labelId} className="slot-list">
         {slots.map(({ departureAt, departure: d }) => {

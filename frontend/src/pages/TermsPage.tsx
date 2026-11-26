@@ -25,8 +25,8 @@ export function TermsPage() {
         <h2 id="terms-service">1. El servicio</h2>
         <p>
           SmartElevate permite reservar un lugar en una salida de ascensor, hacer check-in con el QR
-          de la cabina y ver la congestión de cada núcleo. Es gratuito y se ofrece como prototipo
-          (MVP) en el marco de una materia: no es un servicio oficial de UADE, puede cambiar,
+          del hall y ver la congestión de cada núcleo. Es gratuito y se ofrece como prototipo (MVP)
+          en el marco de una materia: no es un servicio oficial de UADE, puede cambiar,
           interrumpirse o terminar al finalizar el proyecto. No reemplaza las indicaciones del
           personal de la universidad ni las señales de seguridad del edificio.
         </p>

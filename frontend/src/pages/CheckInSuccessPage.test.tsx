@@ -38,7 +38,9 @@ describe('CheckInSuccessPage', () => {
       screen.getByRole('heading', { level: 2, name: 'Check-in a tiempo' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Subiste dentro de tu franja. ¡Gracias por ayudar a que el ascensor fluya!'),
+      screen.getByText(
+        'Subiste a tiempo a tu salida. ¡Gracias por ayudar a que el ascensor fluya!',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('14:04 hs')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
@@ -52,7 +54,7 @@ describe('CheckInSuccessPage', () => {
   });
 
   it.each([
-    ['ON_TIME', 'Viaje registrado', 'Check-in a tiempo', /dentro de tu franja/],
+    ['ON_TIME', 'Viaje registrado', 'Check-in a tiempo', /Subiste a tiempo a tu salida/],
     [
       'OTHER_ELEVATOR',
       'Viaje registrado en otro ascensor',

@@ -116,6 +116,15 @@ describe('ReserveTurnPage', () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it('explica qué es un núcleo con un ejemplo del catálogo', async () => {
+    stubApi(routes);
+    renderPage();
+
+    expect(await screen.findByRole('radiogroup', { name: 'Núcleo' })).toHaveAccessibleDescription(
+      'Un núcleo es un grupo de ascensores, por ejemplo Lima 1.',
+    );
+  });
+
   it('no deja elegir los pisos bajos y dice por qué', async () => {
     stubApi(routes);
     await renderReserve();
@@ -255,7 +264,7 @@ describe('ReserveTurnPage', () => {
     expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de destino');
 
     await userEvent.click(destination('5'));
-    expect(await confirm()).toHaveAccessibleDescription('Falta elegir la franja horaria');
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir el horario de salida');
 
     await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     expect(await confirm()).toBeEnabled();
@@ -268,11 +277,13 @@ describe('ReserveTurnPage', () => {
     await renderReserve();
 
     expect(departureRequests(fetchMock)).toEqual([]);
-    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Horario de salida' })).not.toBeInTheDocument();
 
     await userEvent.click(destination('5'));
 
-    expect(await screen.findByRole('radiogroup', { name: 'Franja horaria' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('radiogroup', { name: 'Horario de salida' }),
+    ).toBeInTheDocument();
     expect(departureRequests(fetchMock)).toEqual([
       '/api/departures?core=L1&origin=0&destination=5',
     ]);
@@ -282,7 +293,7 @@ describe('ReserveTurnPage', () => {
     stubApi({ ...routes, [offerFor(0, 5)]: { body: [...departures].reverse() } });
     await renderSlots();
 
-    const slots = await screen.findByRole('radiogroup', { name: 'Franja horaria' });
+    const slots = await screen.findByRole('radiogroup', { name: 'Horario de salida' });
     const [first, full] = within(slots).getAllByRole('radio');
     expect(first).toHaveAccessibleName('14:32 6 libres');
     expect(full).toHaveAccessibleName('14:34 Completo');
@@ -308,7 +319,7 @@ describe('ReserveTurnPage', () => {
     expect(await screen.findByRole('radio', { name: '14:32 3 libres' })).not.toBeChecked();
     const confirm = screen.getByRole('button', { name: 'Confirmar turno' });
     expect(confirm).toBeDisabled();
-    expect(confirm).toHaveAccessibleDescription('Falta elegir la franja horaria');
+    expect(confirm).toHaveAccessibleDescription('Falta elegir el horario de salida');
     expect(departureRequests(fetchMock)).toEqual([
       '/api/departures?core=L1&origin=0&destination=5',
       '/api/departures?core=L1&origin=0&destination=-1',
@@ -326,7 +337,7 @@ describe('ReserveTurnPage', () => {
     await userEvent.click(destination('-1'));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error interno');
-    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Horario de salida' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirmar turno' })).toBeDisabled();
   });
 
@@ -340,7 +351,7 @@ describe('ReserveTurnPage', () => {
 
     await userEvent.click(origin('-1'));
 
-    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Horario de salida' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirmar turno' })).toBeDisabled();
 
     await userEvent.click(destination('5'));
@@ -372,7 +383,7 @@ describe('ReserveTurnPage', () => {
     stubApi(routes);
     await renderSlots();
 
-    const slots = await screen.findByRole('radiogroup', { name: 'Franja horaria' });
+    const slots = await screen.findByRole('radiogroup', { name: 'Horario de salida' });
     within(slots)
       .getByRole('radio', { name: /^14:32/ })
       .focus();
@@ -483,7 +494,7 @@ describe('ReserveTurnPage', () => {
     expect(
       await screen.findByText(/Las salidas se abren 30 min antes. Volvé más cerca de la hora./),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Horario de salida' })).not.toBeInTheDocument();
   });
 
   it('si no cargan las salidas muestra el error', async () => {
@@ -507,7 +518,9 @@ describe('ReserveTurnPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
 
-    expect(await screen.findByRole('radiogroup', { name: 'Franja horaria' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('radiogroup', { name: 'Horario de salida' }),
+    ).toBeInTheDocument();
   });
 
   it('si no carga el catálogo, Reintentar lo vuelve a pedir', async () => {
@@ -564,13 +577,13 @@ describe('ReserveTurnPage', () => {
             ? 'Esa salida se llenó. Ya actualizamos los lugares: elegí otra.'
             : message,
         );
-        expect(screen.getByText('Franja horaria')).toHaveFocus();
+        expect(screen.getByText('Horario de salida')).toHaveFocus();
         expect(await screen.findByRole('radio', { name: '14:32 Completo' })).toHaveAttribute(
           'aria-disabled',
           'true',
         );
         expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
-          'Falta elegir la franja horaria',
+          'Falta elegir el horario de salida',
         );
       },
     );
@@ -696,7 +709,7 @@ describe('ReserveTurnPage', () => {
         'Usamos tu último viaje: Lima 1 · PB → 5. Podés cambiarlo abajo.',
       );
       expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
-        'Falta elegir la franja horaria',
+        'Falta elegir el horario de salida',
       );
 
       // Se puede cambiar: al tocar otro piso el aviso se va.
