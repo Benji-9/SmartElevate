@@ -23,9 +23,8 @@ import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailVerificationService;
 import com.smartelevate.user.service.InvalidTokenException;
-import com.smartelevate.user.service.ResendTooSoonException;
-import java.time.Duration;
 import com.smartelevate.user.service.UserService;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -58,6 +57,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private EmailVerificationService emailVerification;
+
+    @MockitoBean
+    private com.smartelevate.user.service.RequestThrottle requestThrottle;
 
     private ResultActions register(String json) throws Exception {
         return mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json));
@@ -259,14 +261,27 @@ class AuthControllerTest {
         verify(emailVerification).resend("jmartinez@uade.edu.ar");
     }
 
-    @Test
-    void resendTooSoonIs429WithRetryAfter() throws Exception {
-        willThrow(new ResendTooSoonException(Duration.ofSeconds(42))).given(emailVerification).resend(any());
+    @ParameterizedTest
+    @ValueSource(strings = {"register", "resend-verification", "password/forgot"})
+    void tooManyRequestsFromOneIpIs429WithRetryAfterAndSkipsTheService(String path) throws Exception {
+        String action = path.replace('/', '-');
+        willThrow(new com.smartelevate.user.service.TooManyRequestsException(Duration.ofMillis(89_001)))
+                .given(requestThrottle).check(eq(action), eq("198.51.100.4"));
 
-        postJson("/api/auth/resend-verification", "{\"email\":\"jmartinez@uade.edu.ar\"}")
+        mockMvc.perform(post("/api/auth/" + path).contentType(MediaType.APPLICATION_JSON)
+                        .content(validJson(""))
+                        .with(request -> {
+                            request.setRemoteAddr("198.51.100.4");
+                            return request;
+                        }))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(header().string("Retry-After", "42"))
-                .andExpect(jsonPath("$.status").value(429));
+                .andExpect(header().string("Retry-After", "90"))
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.message").value("Hubo demasiados pedidos desde tu red. Probá de nuevo en 2 minutos."));
+
+        verify(service, never()).register(any());
+        verify(emailVerification, never()).resend(any());
+        verify(passwordReset, never()).request(any());
     }
 
     // ---- reset de contraseña
