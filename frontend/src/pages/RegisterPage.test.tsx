@@ -55,6 +55,24 @@ describe('RegisterPage', () => {
     );
   });
 
+  it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    const button = screen.getByRole('button', { name: 'Crear cuenta' });
+    const clarification =
+      'El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.';
+    for (const block of [
+      screen.getByText(clarification),
+      screen.getByRole('heading', { name: '¿Tenés movilidad reducida?' }),
+    ]) {
+      expect(button.compareDocumentPosition(block)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+    expect(screen.getByRole('radiogroup', { name: 'Tipo de usuario' })).toHaveAccessibleDescription(
+      clarification,
+    );
+  });
+
   it('pide todos los campos', async () => {
     const fetchMock = stubApi(signedOut);
     await renderRegister();
