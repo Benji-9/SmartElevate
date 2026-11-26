@@ -173,17 +173,30 @@
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
-                        <!-- El jar (y la imagen de prod) no lleva H2 ni su consola; spring-boot:run y los tests sí. -->
-                        <exclude>
-                            <groupId>com.h2database</groupId>
-                            <artifactId>h2</artifactId>
-                        </exclude>
-                        <exclude>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-h2console</artifactId>
-                        </exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                    <!-- El jar (y la imagen de prod) no lleva H2 ni su consola. Va solo en repackage: en la
+                         configuración del plugin también los sacaría de spring-boot:run, que en dev los necesita. -->
+                    <execution>
+                        <id>repackage</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <excludes combine.children="append">
+                                <exclude>
+                                    <groupId>com.h2database</groupId>
+                                    <artifactId>h2</artifactId>
+                                </exclude>
+                                <exclude>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-h2console</artifactId>
+                                </exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
