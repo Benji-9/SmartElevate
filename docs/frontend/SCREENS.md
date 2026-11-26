@@ -335,8 +335,8 @@ Turnos, check-ins y ocupación llevan debajo un `Chip` `neutral` contra el perí
 | Lima 1 | 212 | 58% | 2,1 min | Baja |
 | Lima 2 | 298 | 71% | 3,4 min | Media |
 | Lima 3 | 356 | 86% | 5,2 min | Alta |
-| Indep. 1 | 241 | 90% | 6,0 min | Alta |
-| Indep. 2 | 177 | 66% | 3,0 min | Media |
+| Independencia 1 | 241 | 90% | 6,0 min | Alta |
+| Independencia 2 | 177 | 66% | 3,0 min | Media |
 
 
 ### 09b · Gestión de usuarios — `/admin/prioritarios`
