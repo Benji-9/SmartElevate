@@ -27,7 +27,6 @@ public class PasswordResetService {
     private final RefreshTokenRepository refreshTokens;
     private final PasswordEncoder passwordEncoder;
     private final EmailSender emailSender;
-    private final EmailVerificationService emailVerification;
     private final PasswordResetProperties properties;
     private final VerificationProperties verificationProperties;
     private final Clock clock;
@@ -35,8 +34,9 @@ public class PasswordResetService {
 
     /**
      * Manda el link de reset. Si el email no existe, o ya se pidió hace menos de la espera mínima, no hace nada:
-     * un 429 solo para cuentas reales revelaría cuáles existen. Una cuenta sin verificar recibe de nuevo el link
-     * de verificación (con su propia espera). Los fallos de envío se loguean y no se propagan.
+     * un 429 solo para cuentas reales revelaría cuáles existen. Una cuenta sin verificar también recibe un reset real
+     * (#344): si otra persona la registró con su clave, la dueña del email la recupera eligiendo la suya. Los fallos
+     * de envío se loguean y no se propagan.
      */
     public void request(String email) {
         User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
@@ -44,10 +44,6 @@ public class PasswordResetService {
             return;
         }
         try {
-            if (!user.isEmailVerified()) {
-                emailVerification.resend(user.getEmail());
-                return;
-            }
             Instant now = clock.instant();
             boolean tooSoon = tokens.lastIssuedAt(user.getId(), TokenPurpose.PASSWORD_RESET)
                     .filter(last -> Duration.between(last, now).compareTo(properties.requestCooldown()) < 0)
@@ -55,8 +51,6 @@ public class PasswordResetService {
             if (!tooSoon) {
                 send(user);
             }
-        } catch (ResendTooSoonException e) {
-            // Igual que arriba: se calla.
         } catch (RuntimeException e) {
             log.error("No se pudo mandar el mail de reset al usuario {}", user.getId(), e);
         }
@@ -72,7 +66,8 @@ public class PasswordResetService {
     }
 
     /**
-     * Gasta el token, guarda la contraseña nueva y cierra todas las sesiones del usuario, todo o nada.
+     * Gasta el token, guarda la contraseña nueva, marca el email como verificado y cierra todas las sesiones del
+     * usuario, todo o nada.
      *
      * @throws InvalidTokenException si el token no existe, ya se usó o venció
      */
@@ -81,6 +76,8 @@ public class PasswordResetService {
         User user = users.findById(tokens.consume(token, TokenPurpose.PASSWORD_RESET))
                 .orElseThrow(() -> new InvalidTokenException(InvalidTokenException.Reason.INVALID));
         user.changePasswordHash(passwordEncoder.encode(PasswordPolicy.normalize(newPassword)));
+        // Usar el link prueba que el email es suyo: una cuenta pre-registrada por otro queda verificada y con su clave.
+        user.verifyEmail();
         // Quien recupera la cuenta por mail no tiene que esperar a que venza el límite de intentos.
         loginThrottle.clearAccount(user.getEmail());
         refreshTokens.revokeAllByUser(user.getId(), clock.instant());

@@ -1105,7 +1105,7 @@
     },
     "/api/auth/password/forgot" : {
       "post" : {
-        "description" : "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.",
+        "description" : "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.",
         "operationId" : "forgotPassword",
         "requestBody" : {
           "content" : {
@@ -1130,6 +1130,16 @@
               }
             },
             "description" : "Bad Request"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar"
           },
           "500" : {
             "content" : {
@@ -1251,7 +1261,7 @@
     },
     "/api/auth/register" : {
       "post" : {
-        "description" : "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.",
+        "description" : "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.",
         "operationId" : "register",
         "requestBody" : {
           "content" : {
@@ -1287,6 +1297,16 @@
             },
             "description" : "El email o el legajo ya tienen cuenta"
           },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar"
+          },
           "500" : {
             "content" : {
               "application/json" : {
@@ -1304,7 +1324,7 @@
     },
     "/api/auth/resend-verification" : {
       "post" : {
-        "description" : "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.",
+        "description" : "Responde 202 exista o no la cuenta (y haya o no un mail reciente: la espera entre mails se aplica en silencio), para no revelar qué emails están registrados. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.",
         "operationId" : "resendVerification",
         "requestBody" : {
           "content" : {
@@ -1338,7 +1358,7 @@
                 }
               }
             },
-            "description" : "Ya se mandó un mail hace poco"
+            "description" : "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar"
           },
           "500" : {
             "content" : {
