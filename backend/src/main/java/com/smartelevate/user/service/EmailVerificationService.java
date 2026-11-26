@@ -59,10 +59,8 @@ public class EmailVerificationService {
     }
 
     /**
-     * Reenvía el link. Si el email no existe o ya está verificado no hace nada (y no lo dice, para no revelar
-     * qué cuentas hay).
-     *
-     * @throws ResendTooSoonException si el último mail salió hace menos de la espera mínima
+     * Reenvía el link. Si el email no existe, ya está verificado o el último mail salió hace menos de la espera
+     * mínima, no hace nada y no lo dice: un 429 solo para cuentas sin verificar revelaría cuáles existen (#344).
      */
     public void resend(String email) {
         User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
@@ -70,12 +68,11 @@ public class EmailVerificationService {
             return;
         }
         Instant now = clock.instant();
-        tokens.lastIssuedAt(user.getId(), TokenPurpose.VERIFY_EMAIL).ifPresent(last -> {
-            Duration wait = properties.resendCooldown().minus(Duration.between(last, now));
-            if (wait.isPositive()) {
-                throw new ResendTooSoonException(wait);
-            }
-        });
-        sendVerification(user);
+        boolean tooSoon = tokens.lastIssuedAt(user.getId(), TokenPurpose.VERIFY_EMAIL)
+                .filter(last -> Duration.between(last, now).compareTo(properties.resendCooldown()) < 0)
+                .isPresent();
+        if (!tooSoon) {
+            sendVerification(user);
+        }
     }
 }

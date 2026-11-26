@@ -102,13 +102,11 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void resendIsRejectedInsideTheCooldownAndReportsTheRemainingWait() {
+    void resendIsSilentInsideTheCooldown() {
         given(users.findByEmail("jmartinez@uade.edu.ar")).willReturn(Optional.of(user));
-        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.VERIFY_EMAIL))).willReturn(Optional.of(NOW.minusSeconds(20)));
+        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.VERIFY_EMAIL))).willReturn(Optional.of(NOW.minusSeconds(59)));
 
-        assertThatThrownBy(() -> service.resend("jmartinez@uade.edu.ar"))
-                .isInstanceOfSatisfying(ResendTooSoonException.class,
-                        e -> assertThat(e.getRetryAfter()).isEqualTo(Duration.ofSeconds(40)));
+        assertThatCode(() -> service.resend("jmartinez@uade.edu.ar")).doesNotThrowAnyException();
         verify(sender, never()).send(any(), any(), any());
     }
 

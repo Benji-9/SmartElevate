@@ -15,7 +15,6 @@ import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
-import com.smartelevate.user.service.ResendTooSoonException;
 import com.smartelevate.user.service.TooManyLoginAttemptsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -214,11 +213,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
-    }
-
-    @ExceptionHandler(ResendTooSoonException.class)
-    public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
-        return tooManyRequests(ex.getMessage(), ex.getRetryAfter().toSeconds(), request);
     }
 
     @ExceptionHandler(TooManyLoginAttemptsException.class)
