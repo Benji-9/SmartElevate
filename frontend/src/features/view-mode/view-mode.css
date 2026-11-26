@@ -58,6 +58,8 @@
 }
 
 .stage[data-mode='telefono'] .phone-screen {
+  /* Contiene a los absolutos: el skip link oculto queda recortado y no asoma sobre el marco. */
+  position: relative;
   display: flex;
   flex-direction: column;
   width: var(--phone-w);
