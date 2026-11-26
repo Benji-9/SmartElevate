@@ -1,3 +1,4 @@
+import { Mascot } from '../../components/Mascot';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { encode } from 'uqr';
 import { ApiError, getKioskQrToken } from '../../services/api';
@@ -145,7 +146,10 @@ export function KioskQr({
           <p role="status">{state.kind === 'loading' ? 'Cargando el código…' : state.message}</p>
         </div>
       )}
-      <p className="text-heading">Escaneá el QR desde la app SmartElevate</p>
+      <p className="kiosk-qr__title text-heading">
+        <Mascot pose="cara" size={40} />
+        Escaneá el QR desde la app SmartElevate
+      </p>
       <p className="kiosk-qr__hint">
         El código cambia con cada turno de clase: escanealo acá, no le saques foto.
       </p>

@@ -15,6 +15,14 @@
   flex: 1;
 }
 
+/*
+ * Con el selector a la vista en Pantalla, el final de cada pantalla deja libre su lugar (24 de
+ * margen + 54 de alto + aire) para que no tape el último botón (p. ej. "Confirmar turno").
+ */
+.stage[data-mode='pantalla']:has(> .view-toggle) {
+  --toggle-clearance: 112px;
+}
+
 /* ---- Pantalla: el marco no existe visualmente ---- */
 .stage[data-mode='pantalla'] .phone-slot,
 .stage[data-mode='pantalla'] .phone,
@@ -50,6 +58,8 @@
 }
 
 .stage[data-mode='telefono'] .phone-screen {
+  /* Contiene a los absolutos: el skip link oculto queda recortado y no asoma sobre el marco. */
+  position: relative;
   display: flex;
   flex-direction: column;
   width: var(--phone-w);

@@ -213,7 +213,7 @@ describe('ReserveTurnPage', () => {
       within(cores)
         .getAllByRole('radio')
         .map((r) => r.closest('label')!.textContent),
-    ).toEqual(['Lima 1', 'Indep. 2']);
+    ).toEqual(['Lima 1', 'Independencia 2']);
   });
 
   it('con todo elegido reserva y va al turno', async () => {
@@ -269,7 +269,7 @@ describe('ReserveTurnPage', () => {
     await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     expect(await confirm()).toBeEnabled();
     expect(await confirm()).not.toHaveAccessibleDescription();
-    expect(screen.getByText('Lima 1 · Piso 5 · 14:32')).toBeInTheDocument();
+    expect(screen.getByText('Lima 1 · Piso PB → 5 · 14:32')).toBeInTheDocument();
   });
 
   it('pide las salidas recién con núcleo, origen y destino', async () => {
@@ -437,18 +437,18 @@ describe('ReserveTurnPage', () => {
       expect(await offered()).toEqual(['Lima 1']);
     });
 
-    it('un docente con prioridad vigente ve Independencia 1, con nombre corto y en orden', async () => {
+    it('un docente con prioridad vigente ve Independencia 1, con el nombre completo y en orden', async () => {
       stubApi(catalogRoutes('TEACHER'));
       renderPage();
 
-      expect(await offered()).toEqual(['Lima 1', 'Indep. 1']);
+      expect(await offered()).toEqual(['Lima 1', 'Independencia 1']);
     });
 
     it('movilidad reducida también lo ve', async () => {
       stubApi(catalogRoutes('REDUCED_MOBILITY'));
       renderPage();
 
-      expect(await offered()).toEqual(['Lima 1', 'Indep. 1']);
+      expect(await offered()).toEqual(['Lima 1', 'Independencia 1']);
     });
 
     it('un núcleo con ascensores comunes y dedicados se ofrece, pero solo con los que puede usar', async () => {
@@ -464,8 +464,8 @@ describe('ReserveTurnPage', () => {
       );
       renderPage();
 
-      expect(await offered()).toEqual(['Indep. 1']);
-      await userEvent.click(screen.getByRole('radio', { name: 'Indep. 1' }));
+      expect(await offered()).toEqual(['Independencia 1']);
+      await userEvent.click(screen.getByRole('radio', { name: 'Independencia 1' }));
       // Los pisos del ascensor dedicado ajeno (-3 y 10) no cuentan para el origen.
       expect(
         within(screen.getByRole('radiogroup', { name: 'Piso de origen' })).queryByRole('radio', {
@@ -692,6 +692,39 @@ describe('ReserveTurnPage', () => {
     expect(await screen.findByRole('radiogroup', { name: 'Núcleo' })).toBeInTheDocument();
     expect(screen.queryByText(/Ya tenés un turno activo/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  describe('scroll hacia las salidas', () => {
+    const scroll = vi.fn();
+    // jsdom no implementa scrollIntoView.
+    beforeEach(() => {
+      scroll.mockReset();
+      Element.prototype.scrollIntoView = scroll;
+    });
+    afterEach(() => {
+      delete (Element.prototype as Partial<Element>).scrollIntoView;
+    });
+
+    it('al aparecer las salidas trae solo la primera, sin saltar todo el grupo', async () => {
+      stubApi(routes);
+      await renderSlots();
+
+      const first = await screen.findByRole('radio', { name: /^14:32/ });
+      expect(scroll).toHaveBeenCalledExactlyOnceWith({ block: 'nearest' });
+      expect(scroll.mock.contexts[0]).toBe(first.closest('label'));
+    });
+
+    it('con el último viaje precargado no mueve la pantalla', async () => {
+      localStorage.setItem(
+        'se:lastTrip',
+        JSON.stringify({ coreId: 'L1', originFloor: 0, destinationFloor: 5 }),
+      );
+      stubApi(routes);
+      renderPage();
+
+      await screen.findByRole('radio', { name: /^14:32/ });
+      expect(scroll).not.toHaveBeenCalled();
+    });
   });
 
   describe('precarga del último viaje', () => {

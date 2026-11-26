@@ -117,11 +117,24 @@ export function ReserveTurnPage() {
   );
   const slots = departures.data && openSlots(departures.data, now);
   const slot = slots?.find((s) => s.departureAt === slotTime && s.departure.remainingSeats > 0);
+  // Al aparecer las salidas del viaje elegido, que la primera quede a la vista y no debajo del pie
+  // fijo (la separación la da `scroll-padding-bottom`). Con el último viaje precargado no se mueve.
+  const slotsShown = !!slots?.length;
+  useEffect(() => {
+    if (slotsShown && !fromLastTrip) {
+      // Solo la primera: traer el grupo entero sacaba de la vista el destino recién elegido.
+      slotsLabel.current?.parentElement
+        ?.querySelector('.slot')
+        ?.scrollIntoView?.({ block: 'nearest' });
+    }
+  }, [slotsShown, validDestination, fromLastTrip]);
   const ready = origin !== null && validDestination !== null && slot !== undefined;
-  // "Lima 3 · Piso 7 · 7:25" con lo que ya se eligió.
+  // "Lima 3 · Piso 3 → 7 · 7:25" con lo que ya se eligió.
   const summary = [
     core?.name,
-    validDestination !== null && `Piso ${formatFloor(validDestination)}`,
+    origin !== null &&
+      validDestination !== null &&
+      `Piso ${formatFloor(origin)} → ${formatFloor(validDestination)}`,
     slot && formatTime(slot.departureAt),
   ]
     .filter(Boolean)

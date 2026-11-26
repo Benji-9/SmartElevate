@@ -29,6 +29,17 @@
   font-size: var(--text-14);
 }
 
+/* Registro: Elevy junto a la bajada, en una sola fila antes del primer campo. */
+.auth__greeting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth__mascot {
+  justify-self: center;
+}
+
 .auth__subtitle,
 .auth__lead {
   color: var(--color-text-muted);

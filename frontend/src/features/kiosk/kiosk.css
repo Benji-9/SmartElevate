@@ -16,6 +16,13 @@
   text-align: start;
 }
 
+/* Elevy junto a la instrucción, como en la ayuda del QR de la app. */
+.kiosk-qr__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .kiosk__intro,
 .kiosk-qr__hint {
   max-width: 48ch;
@@ -28,6 +35,15 @@
   justify-items: center;
   gap: 12px;
   text-align: center;
+}
+
+/* "Borrar credencial" y su confirmación, centrados como el resto (en Pantalla irían al inicio). */
+.kiosk-qr .button--inline {
+  justify-self: center;
+}
+
+.kiosk-qr .confirm-action {
+  justify-content: center;
 }
 
 .kiosk-qr__image,

@@ -64,7 +64,7 @@ Control segmentado de dos opciones, fijo en la esquina inferior derecha de la ve
 | Accesibilidad | contenedor `role="radiogroup"` con `aria-label="Vista de la aplicación"`; cada opción `role="radio"` con `aria-checked`; foco visible `--focus`; flechas ← → cambian la opción |
 | Íconos | opcionales (monitor y celular de trazo, 20 px); el set de íconos aún no está elegido, así que puede ir solo texto |
 
-Reglas: no se dibuja dentro del marco del teléfono ni dentro del layout de Pantalla (flota sobre ambos); no se imprime.
+Reglas: no se dibuja dentro del marco del teléfono ni dentro del layout de Pantalla (flota sobre ambos); no se imprime. Como flota, en Pantalla nunca tapa contenido: cuando está a la vista define `--toggle-clearance` (112 px) y cada pantalla deja ese lugar libre al final (y la columna fija de Reservar se acorta), así "Confirmar turno" y el último botón de cualquier pantalla quedan por encima. Excepción: las pantallas de tarjeta centrada (login, registro y las `framed`) no reservan ese lugar, porque la tarjeta no llega a la esquina del selector.
 
 ---
 
@@ -198,7 +198,7 @@ Se renderizan las dos y el container query muestra una u otra (la oculta con `di
 | Barra | `position: sticky; top: 0`, alto `--topbar-h` (64), fondo `--surface`, borde inferior 1 px `--line`, pad 0/32 |
 | Izquierda | logo `smartelevate-logo-horizontal.svg` a ~32 px de alto, con `alt="SmartElevate"` (ver `DESIGN-SYSTEM.md` §9) |
 | Centro/izquierda | tabs **Inicio · Reservar · Check-in · Perfil**, gap 24, `.text-body-sm-strong`; activa en `--accent` con subrayado de 2 px; inactiva `--ink-muted`; hover `--ink`; área táctil ≥ 44 px de alto |
-| Derecha | avatar de 36 px + "Juana Martínez" en `.text-body-sm-strong` |
+| Derecha | avatar de 36 px + "Juana Martínez" en `.text-body-sm-strong`; un nombre largo se corta con … a los 240 px (completo en `title`) |
 
 Contenido de cada página en Pantalla: `.page { max-width: var(--container-max); margin: 0 auto; padding: var(--space-32); }`.
 
@@ -210,11 +210,11 @@ Los textos, datos y componentes son los mismos que en `SCREENS.md`; cambia solo 
 
 | Pantalla | Layout de Pantalla (contenedor ≥ 900) |
 |---|---|
-| **01 Login** | Fondo `--surface-subtle`, altura completa. Tarjeta centrada de **440 px** (`--surface`, borde `--line`, `--radius-2xl`, pad 32) con el mismo contenido que en móvil; logo a 120 px. Botón "Ingresar" a ancho completo de la tarjeta. |
+| **01 Login** | Fondo `--surface-subtle`, altura completa. Tarjeta centrada de **440 px** (`--surface`, borde `--line`, `--radius-2xl`, pad 32) con el mismo contenido que en móvil; logo horizontal de 32 px y Elevy. Botón "Ingresar" a ancho completo de la tarjeta. |
 | **02 Registro** | Igual que Login con tarjeta de **480 px**. El botón de volver queda dentro de la tarjeta, arriba. Recuperar contraseña y Contraseña nueva (02b, 02c) usan la misma tarjeta. |
 | **03 Inicio** | `TopBar` + `.page`. Título de saludo en `.text-title-lg`. Grilla `7fr 5fr`, gap 32. Columna izquierda (gap 16): saludo, "Próxima clase" (pospuesta, [#86](https://github.com/Benji-9/SmartElevate/issues/86)), "Tu turno". Columna derecha: "Congestión ahora" dentro de una tarjeta (pad 20, `--radius-lg`, borde `--line`). En "Tu turno", el botón "Hacer check-in" con `block={false}`. |
-| **04 Reservar turno** | `TopBar` + `.page`. Encabezado "Reservar turno" en `.text-title-lg` (sin botón de volver). Grilla `1fr 1fr`, gap 32. Izquierda: Núcleo, Piso de origen, Piso de destino y el aviso de pisos bajos. Derecha: Franja horaria y debajo una tarjeta resumen (pad 16, `--radius-lg`, fondo `--surface-subtle`) con "Lima 3 · Piso 7 · 7:25 – 7:30" (o "Elegí tu turno" si no hay nada elegido), el paso que falta (igual que en el móvil, `SCREENS.md` §04) y el botón "Confirmar turno · 7:25" (`block={false}`, alineado a la derecha). La columna derecha es `position: sticky; top: calc(var(--topbar-h) + var(--space-32))`. |
-| **05 Turno confirmado** | Sin `TopBar`. Columna centrada de **480 px** con el mismo contenido. Los dos botones van en fila: "Cancelar turno" (secondary) a la izquierda y "Ir a check-in" (primary) a la derecha. |
+| **04 Reservar turno** | `TopBar` + `.page`. Encabezado "Reservar turno" en `.text-title-lg` (sin botón de volver). Grilla `1fr 1fr`, gap 32. Izquierda: Núcleo, Piso de origen, Piso de destino y el aviso de pisos bajos. Derecha: Franja horaria y debajo una tarjeta resumen (pad 16, `--radius-lg`, fondo `--surface-subtle`) con "Lima 3 · Piso 3 → 7 · 7:25" (o "Elegí tu turno" si no hay nada elegido), el paso que falta (igual que en el móvil, `SCREENS.md` §04) y el botón "Confirmar turno · 7:25" (`block={false}`, alineado a la derecha). La columna derecha es `position: sticky; top: calc(var(--topbar-h) + var(--space-32))`. |
+| **05 Turno confirmado** | Sin `TopBar`. Columna centrada de **480 px** con el mismo contenido, en una tarjeta como la del login (`--surface`, borde `--line`, `--radius-2xl`, pad 32) sobre fondo `--surface-subtle` (`ScreenLayout framed`); lo mismo en 07, las páginas legales y la 404. Los dos botones van en fila: "Cancelar turno" (secondary) a la izquierda y "Ir a check-in" (primary) a la derecha. |
 | **06 Check-in (QR)** | `TopBar` + `.page`. Columna centrada de **480 px**: primero un panel oscuro (`--surface-dark`, `--radius-2xl`, pad 32) con el visor de 250 × 250 y sus dos textos; debajo, una tarjeta clara (borde `--line`, pad 16) con el turno. Ver demo en la sección 8. |
 | **07 Viaje registrado** | Igual que la 05: columna de **480 px** sin `TopBar`; "Volver al inicio" a ancho completo. |
 | **08 Perfil** | `TopBar` + `.page`. Grilla `5fr 7fr`, gap 32. Izquierda: cabecera del perfil (dentro de una tarjeta) y la lista de ajustes. Derecha: tarjeta "Acceso prioritario". |

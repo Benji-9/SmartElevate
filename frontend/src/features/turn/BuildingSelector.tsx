@@ -8,11 +8,10 @@ type BuildingSelectorProps = {
   onChange: (coreCode: string) => void;
 };
 
-// ponytail: la abreviatura sale del nombre ("Independencia 1" → "Indep. 1", SCREENS.md §04).
-// Si el contrato suma un nombre corto del núcleo, usar ese.
-const shortName = (name: string) => name.replace(/\p{L}{9,}/u, (word) => `${word.slice(0, 5)}.`);
-
-/** Núcleo de ascensores: pills en una fila con wrap, en el orden de los edificios. */
+/**
+ * Núcleo de ascensores: pills en una fila con wrap, en el orden de los edificios. Con el nombre
+ * completo ("Independencia 2"), el mismo que el resumen, Inicio y el turno.
+ */
 export function BuildingSelector({ cores, value, onChange }: BuildingSelectorProps) {
   const hintId = useId();
   return (
@@ -21,7 +20,7 @@ export function BuildingSelector({ cores, value, onChange }: BuildingSelectorPro
         label="Núcleo"
         name="core"
         className="reserve__cores"
-        options={cores.map((core) => ({ value: core.code, label: shortName(core.name) }))}
+        options={cores.map((core) => ({ value: core.code, label: core.name }))}
         value={value}
         onChange={onChange}
         describedBy={hintId}

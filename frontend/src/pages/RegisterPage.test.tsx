@@ -30,10 +30,29 @@ const valid = {
 const submit = () => userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
 describe('RegisterPage', () => {
-  it('muestra la marca de SmartElevate', async () => {
+  it('antes del primer campo solo va la bajada: sin repetir el logo del login', async () => {
     stubApi(signedOut);
     await renderRegister();
-    expect(screen.getByRole('img', { name: 'SmartElevate' })).toBeInTheDocument();
+    expect(screen.getByText('Usá tu email institucional y tu legajo.')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'SmartElevate' })).not.toBeInTheDocument();
+  });
+
+  it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    const button = screen.getByRole('button', { name: 'Crear cuenta' });
+    const clarification =
+      'El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.';
+    for (const block of [
+      screen.getByText(clarification),
+      screen.getByRole('heading', { name: '¿Tenés movilidad reducida?' }),
+    ]) {
+      expect(button.compareDocumentPosition(block)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+    expect(screen.getByRole('radiogroup', { name: 'Tipo de usuario' })).toHaveAccessibleDescription(
+      clarification,
+    );
   });
 
   it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {

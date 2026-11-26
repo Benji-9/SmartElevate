@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { signedIn, signedOut, stubApi, testUser, tokens } from './test/stubApi';
 import type { CheckIn } from './types/api';
@@ -185,6 +185,25 @@ describe('App', () => {
     },
   );
 
+  it('mientras recupera la sesión muestra la navegación y un esqueleto de carga', async () => {
+    // Un navegador que ya tuvo sesión: pide el refresh, que todavía no respondió.
+    localStorage.setItem('se:session', '1');
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((resolve) => (answer = resolve))),
+    );
+    renderAt('/');
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Cargando…');
+    expect(within(topBar()!).getByRole('link', { name: 'Reservar' })).toBeInTheDocument();
+    expect(screen.getByRole('main')).toContainElement(screen.getByRole('status'));
+
+    // Sin sesión, al responder el refresh va al login (y no deja el pedido colgado para otro test).
+    answer(new Response(null, { status: 401 }));
+    expect(await screen.findByRole('button', { name: 'Ingresar' })).toBeInTheDocument();
+  });
+
   it('con la sesión vencida manda a /login y dice por qué', async () => {
     let refreshes = 0;
     stubApi({
@@ -254,7 +273,8 @@ describe('App', () => {
     renderAt('/perfil');
 
     await screen.findByRole('heading', { name: 'Mi perfil' });
-    expect(document.title).toBe('Mi perfil · SmartElevate');
+    // El título se pone en un efecto: puede llegar después del encabezado (en CI quedaba el del test anterior).
+    await waitFor(() => expect(document.title).toBe('Mi perfil · SmartElevate'));
     await userEvent.click(screen.getByRole('link', { name: 'Saltar al contenido' }));
     expect(screen.getByRole('main')).toHaveFocus();
   });
