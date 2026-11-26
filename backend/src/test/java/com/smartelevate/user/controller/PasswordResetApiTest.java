@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Olvidé mi contraseña de punta a punta, con la base real. Sin espera entre pedidos para poder pedir dos veces. */
-@SpringBootTest(properties = "app.password-reset.request-cooldown=PT0S")
+@SpringBootTest(properties = {"app.password-reset.request-cooldown=PT0S", "app.verification.resend-cooldown=PT0S"})
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 class PasswordResetApiTest {
@@ -156,6 +156,28 @@ class PasswordResetApiTest {
         resetWith(token, "corta").andExpect(status().isBadRequest());
 
         resetWith(token, NEW).andExpect(status().isNoContent());
+    }
+
+    /**
+     * #344: alguien registra el email de Ana con su clave. Ana pide "olvidé mi contraseña", le llega un link de reset
+     * (no de verificación) y elige la suya: la clave de quien la registró deja de valer.
+     */
+    @Test
+    void preRegisteredAccountIsRecoveredByItsOwner() throws Exception {
+        postJson("/api/auth/register", """
+                {"fullName":"Atacante","email":"ana@uade.edu.ar","legajo":"9999999","password":"%s",
+                 "declaredUserType":"STUDENT"}""".formatted(OLD)).andExpect(status().isCreated());
+        reset(sender);
+
+        postJson("/api/auth/password/forgot", "{\"email\":\"ana@uade.edu.ar\"}").andExpect(status().isAccepted());
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(sender).send(eq("ana@uade.edu.ar"), anyString(), body.capture());
+        Matcher m = Pattern.compile("/recuperar/nueva\\?token=([\\w-]+)").matcher(body.getValue());
+        assertThat(m.find()).as("el mail trae un link de reset").isTrue();
+        resetWith(m.group(1), NEW).andExpect(status().isNoContent());
+
+        login(OLD).andExpect(status().isUnauthorized());
+        login(NEW).andExpect(status().isOk());
     }
 
     @Test

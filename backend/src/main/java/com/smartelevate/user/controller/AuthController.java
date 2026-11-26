@@ -14,6 +14,7 @@ import com.smartelevate.user.dto.ResendVerificationRequest;
 import com.smartelevate.user.dto.VerifyEmailRequest;
 import com.smartelevate.user.service.EmailVerificationService;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
+import com.smartelevate.user.service.RequestThrottle;
 import com.smartelevate.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -39,20 +40,28 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "auth", description = "Alta de cuentas y sesión (login, refresh, logout)")
 public class AuthController {
 
+    private static final String TOO_MANY_REQUESTS =
+            "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar";
+
     private final UserService userService;
     private final AuthService authService;
     private final EmailVerificationService emailVerification;
     private final PasswordResetService passwordReset;
     private final RefreshCookie refreshCookie;
+    private final RequestThrottle requestThrottle;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Crea una cuenta común, sin verificar",
             description = "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. "
-                    + "Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.")
+                    + "Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó. Demasiados "
+                    + "pedidos desde la misma IP dan 429 con el header Retry-After.")
     @ApiResponse(responseCode = "409", description = "El email o el legajo ya tienen cuenta",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public void register(@Valid @RequestBody RegisterRequest request) {
+    @ApiResponse(responseCode = "429", description = TOO_MANY_REQUESTS,
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public void register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
+        requestThrottle.check("register", http.getRemoteAddr());
         userService.register(request);
     }
 
@@ -137,11 +146,13 @@ public class AuthController {
     @PostMapping("/resend-verification")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Reenvía el link de verificación",
-            description = "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. "
-                    + "Si ya se mandó uno hace poco responde 429 con el header Retry-After.")
-    @ApiResponse(responseCode = "429", description = "Ya se mandó un mail hace poco",
+            description = "Responde 202 exista o no la cuenta (y haya o no un mail reciente: la espera entre mails "
+                    + "se aplica en silencio), para no revelar qué emails están registrados. Demasiados pedidos "
+                    + "desde la misma IP dan 429 con el header Retry-After.")
+    @ApiResponse(responseCode = "429", description = TOO_MANY_REQUESTS,
             content = @Content(schema = @Schema(implementation = ApiError.class)))
-    public void resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+    public void resendVerification(@Valid @RequestBody ResendVerificationRequest request, HttpServletRequest http) {
+        requestThrottle.check("resend-verification", http.getRemoteAddr());
         emailVerification.resend(request.email());
     }
 
@@ -149,8 +160,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Pide el link para restablecer la contraseña",
             description = "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar "
-                    + "qué emails están registrados. Un pedido nuevo invalida el link anterior.")
-    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+                    + "qué emails están registrados. Un pedido nuevo invalida el link anterior. Demasiados pedidos "
+                    + "desde la misma IP dan 429 con el header Retry-After.")
+    @ApiResponse(responseCode = "429", description = TOO_MANY_REQUESTS,
+            content = @Content(schema = @Schema(implementation = ApiError.class)))
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest http) {
+        requestThrottle.check("password-forgot", http.getRemoteAddr());
         passwordReset.request(request.email());
     }
 
