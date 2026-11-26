@@ -307,11 +307,14 @@ export async function logout(): Promise<void> {
 /** Edificios con su rango de pisos y sus núcleos (código y nombre visible). */
 export const getBuildings = () => api.get<Building[]>('/buildings');
 /**
- * Salidas reservables ahora de un edificio. Ya vienen filtradas para el usuario (solo los
- * ascensores que puede usar) y `remainingSeats` es lo que él puede tomar: el front no decide.
+ * Oferta de salidas para un viaje (ADR 0025): una por hora, ya resuelta por el servidor entre los
+ * ascensores del núcleo que el usuario puede usar y que paran en los dos pisos. `remainingSeats`
+ * es lo que él puede tomar: el front no decide.
  */
-export const getDepartures = (building: string) =>
-  api.get<Departure[]>(`/departures?building=${encodeURIComponent(building)}`);
+export const getDepartures = (core: string, origin: number, destination: number) =>
+  api.get<Departure[]>(
+    `/departures?core=${encodeURIComponent(core)}&origin=${origin}&destination=${destination}`,
+  );
 export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
 /** Reserva activa (mientras se le puede hacer check-in); el backend responde 204 si no hay. */
 export const getActiveReservation = () =>
