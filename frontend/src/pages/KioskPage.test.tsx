@@ -176,6 +176,21 @@ describe('KioskPage', () => {
     expect(qrCalls()).toHaveLength(2);
   });
 
+  it('la región de estado sigue montada con el QR a la vista y anuncia el corte', async () => {
+    localStorage.setItem(KEY, 's3cr3t');
+    renderKiosk((n) => (n === 2 ? { status: 503, body: { message: 'Caído' } } : undefined));
+    const status = await screen.findByRole('status');
+
+    await qrPath();
+    expect(status).toBeEmptyDOMElement();
+    await advance(30_000);
+
+    await vi.waitFor(() =>
+      expect(status).toHaveTextContent('No pudimos conectarnos. Reintentamos en 10 s.'),
+    );
+    expect(screen.getByRole('status')).toBe(status);
+  });
+
   it('borrar la credencial pide confirmación', async () => {
     localStorage.setItem(KEY, 's3cr3t');
     renderKiosk();

@@ -48,61 +48,60 @@ export function NotificationsPage() {
     }
   }
 
-  let content;
-  if (error) {
-    content = (
-      <div className="notifications__error">
-        <p role="alert" className="notifications__alert">
-          {error}
-        </p>
-        <Button variant="secondary" onClick={reload}>
-          Reintentar
-        </Button>
-      </div>
-    );
-  } else if (loading || !prefs) {
-    content = (
-      <p role="status" className="page-placeholder">
-        Cargando tus preferencias…
-      </p>
-    );
-  } else {
-    content = (
-      <>
-        <p className="notifications__intro">
-          Elegí qué avisos querés recibir. Te escribimos solo cuando hace falta.
-        </p>
-        {message && (
-          <p role="alert" className="notifications__alert">
-            {message}
-          </p>
-        )}
-        {/* Siempre montado (vacío) para que el lector de pantalla anuncie el cambio (#159). */}
-        <p role="status" className="notifications__saved">
-          {saved && 'Guardamos tu preferencia.'}
-        </p>
-        <div role="group" aria-label="Avisos" className="notifications__list">
-          {options.map((option) => (
-            <Switch
-              key={option.key}
-              label={option.label}
-              description={option.description}
-              checked={prefs[option.key]}
-              onChange={(value) => toggle(option.key, value)}
-            />
-          ))}
-        </div>
-        <p className="notifications__intro">
-          Los mails no incluyen datos de salud ni de prioridad. Podés desactivarlos cuando quieras.
-        </p>
-      </>
-    );
-  }
+  const busy = !error && (loading || !prefs);
+  const ready = busy || error ? null : prefs;
 
   return (
     <>
       <ScreenHeader title="Notificaciones" backTo="/perfil" />
-      {content}
+      {error && (
+        <div className="notifications__error">
+          <p role="alert" className="notifications__alert">
+            {error}
+          </p>
+          <Button variant="secondary" onClick={reload}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+      {ready && (
+        <>
+          <p className="notifications__intro">
+            Elegí qué avisos querés recibir. Te escribimos solo cuando hace falta.
+          </p>
+          {message && (
+            <p role="alert" className="notifications__alert">
+              {message}
+            </p>
+          )}
+        </>
+      )}
+      {/* Siempre montado: el lector de pantalla anuncia los cambios de texto (#159, #329). */}
+      <p
+        role="status"
+        className={`live-status ${busy ? 'page-placeholder' : 'notifications__saved'}`}
+      >
+        {busy ? 'Cargando tus preferencias…' : saved && 'Guardamos tu preferencia.'}
+      </p>
+      {ready && (
+        <>
+          <div role="group" aria-label="Avisos" className="notifications__list">
+            {options.map((option) => (
+              <Switch
+                key={option.key}
+                label={option.label}
+                description={option.description}
+                checked={ready[option.key]}
+                onChange={(value) => toggle(option.key, value)}
+              />
+            ))}
+          </div>
+          <p className="notifications__intro">
+            Los mails no incluyen datos de salud ni de prioridad. Podés desactivarlos cuando
+            quieras.
+          </p>
+        </>
+      )}
     </>
   );
 }

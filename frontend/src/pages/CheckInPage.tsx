@@ -152,6 +152,15 @@ export function CheckInPage() {
     };
   }, [wantsCamera]);
 
+  const cameraBlocked = camera === 'denied' || camera === 'unavailable';
+  const showFinder = wantsCamera && !cameraBlocked;
+  // Texto de la región de estado de la cámara, siempre montada.
+  let scanStatus = '';
+  if (submitting) scanStatus = 'Registrando tu check-in…';
+  else if (showFinder && camera === 'starting') {
+    scanStatus = 'Pidiendo permiso para usar la cámara…';
+  }
+
   let cameraState;
   if (notYetOpen) {
     cameraState = (
@@ -161,9 +170,7 @@ export function CheckInPage() {
         <p>Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.</p>
       </section>
     );
-  } else if (!wantsCamera) {
-    cameraState = null;
-  } else if (camera === 'denied' || camera === 'unavailable') {
+  } else if (wantsCamera && cameraBlocked) {
     cameraState = (
       <section className="check-in__message" aria-labelledby="check-in-camera-title">
         <Mascot pose="triste" size={96} />
@@ -180,23 +187,11 @@ export function CheckInPage() {
         </p>
       </section>
     );
-  } else {
-    cameraState = (
-      <>
-        <div className="check-in__finder" aria-hidden="true" />
-        {camera === 'starting' && <p role="status">Pidiendo permiso para usar la cámara…</p>}
-        <p className="check-in__instructions">{QR_INSTRUCTION}</p>
-      </>
-    );
   }
 
   let turnContent;
   if (turn.loading) {
-    turnContent = (
-      <p role="status" className="page-placeholder">
-        Cargando tu turno…
-      </p>
-    );
+    turnContent = null;
   } else if (turn.error) {
     turnContent = (
       <div role="alert" className="turn-alert">
@@ -239,6 +234,11 @@ export function CheckInPage() {
         <ScreenHeader title="Check-in" />
         <div className="check-in__body">
           {cameraState}
+          {showFinder && <div className="check-in__finder" aria-hidden="true" />}
+          <p role="status" className="live-status">
+            {scanStatus}
+          </p>
+          {showFinder && <p className="check-in__instructions">{QR_INSTRUCTION}</p>}
           {demo && (
             <Button
               variant="secondary"
@@ -249,7 +249,6 @@ export function CheckInPage() {
               Simular escaneo del QR
             </Button>
           )}
-          {submitting && <p role="status">Registrando tu check-in…</p>}
           {error && (
             <p role="alert" className="turn-alert check-in__alert">
               {error.message} <ErrorAction code={error.code} />
@@ -265,6 +264,9 @@ export function CheckInPage() {
           </h2>
           {reservation && <Chip>{formatTime(reservation.departureAt)} hs</Chip>}
         </div>
+        <p role="status" className="live-status page-placeholder">
+          {turn.loading && 'Cargando tu turno…'}
+        </p>
         {turnContent}
       </section>
     </div>

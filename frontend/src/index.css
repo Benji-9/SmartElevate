@@ -285,6 +285,14 @@ a {
   color: var(--color-text-muted);
 }
 
+/*
+ * `role="status"` siempre montado (para que se anuncie cuando cambia su texto): vacío sale del
+ * flujo, sin hueco en la grilla, pero sigue en el árbol de accesibilidad.
+ */
+.live-status:empty {
+  position: absolute;
+}
+
 /* Elevy con el mensaje de una pantalla vacía. */
 .empty-state {
   display: grid;
