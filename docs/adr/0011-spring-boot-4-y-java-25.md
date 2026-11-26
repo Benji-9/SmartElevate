@@ -10,6 +10,8 @@
 - **Related ADRs:** Absorbe ADR-0005 (Spring Boot 3.5 en lugar de 4.x, reemplazado por este)
 - **Nota:** reescrito al formato MADR el 2026-11-13 (versión anterior: `git show d5a37be:docs/adr/0011-spring-boot-4-y-java-25.md`; el ADR 0005 absorbido: `git show d5a37be:docs/adr/0005-spring-boot-3-5.md`)
 
+> **Nota del 2026-11-26: subida a Boot 4.2.0.** El backend usa Spring Boot **4.2.0** desde el 25/11 (Dependabot, [#366](https://github.com/Benji-9/SmartElevate/pull/366)) y springdoc **3.2.0** ([#302](https://github.com/Benji-9/SmartElevate/pull/302)). La decisión no cambia (línea 4.x y Java 25); las versiones de abajo son las del 28/09.
+
 ---
 
 ## 1. Context and Problem Statement

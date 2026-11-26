@@ -8,7 +8,7 @@ App para reducir la congestión de los ascensores del campus de UADE. Cada salid
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, springdoc-openapi |
+| Backend | Java 25, Spring Boot 4.2, Maven (wrapper), Spring Data JPA, springdoc-openapi |
 | Frontend | React 19, Vite 8, TypeScript 6, React Router 8, Vitest + Testing Library |
 | Base de datos | H2 en memoria (dev) y PostgreSQL 18 (prod, en Supabase), migraciones con Flyway |
 | CI/CD | GitHub Actions |
