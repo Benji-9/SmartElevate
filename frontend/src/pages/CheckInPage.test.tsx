@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
 import { signedIn, stubApi, testReservation } from '../test/stubApi';
@@ -86,6 +86,37 @@ describe('CheckInPage antes de la apertura', () => {
 });
 
 describe('CheckInPage', () => {
+  // 14:03:30 en Buenos Aires: el check-in de la salida de las 14:04 ya abrió.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-29T17:03:30Z') });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it.each(['OUTSIDE_CHECK_IN_WINDOW', 'NO_ACTIVE_RESERVATION'])(
+    'showsClosedMessageWithTripsLink: con la salida pasada, %s dice que cerró y deja de escanear',
+    async (code) => {
+      vi.setSystemTime(new Date('2026-09-29T17:06:30Z'));
+      const read = vi.fn(async () => `QR-${read.mock.calls.length}`);
+      stubCamera();
+      vi.mocked(createQrReader).mockResolvedValue(read);
+      const fetchMock = stubApi({
+        ...withTurn,
+        'POST /check-ins': { status: 409, body: { message: 'Rechazado', code } },
+      });
+      renderCheckIn();
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('Se cerró el check-in de las 14:04.');
+      expect(alert).not.toHaveTextContent('Rechazado');
+      expect(within(alert).getByRole('link', { name: 'Ver mis viajes' })).toHaveAttribute(
+        'href',
+        '/perfil/viajes',
+      );
+      await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(2));
+      expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
+    },
+  );
+
   it('muestra el visor, las indicaciones y el turno activo', async () => {
     const getUserMedia = stubCamera();
     stubApi(withTurn);

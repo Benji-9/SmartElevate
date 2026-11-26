@@ -21,11 +21,16 @@ type CheckInError = { message: string; code?: string };
 const SCAN_INTERVAL_MS = 300;
 /** Token de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
 const DEMO_TOKEN = 'DEMO';
+/** Propio del front: el servidor rechazó el escaneo y la salida del turno ya pasó. */
+const CLOSED = 'CHECK_IN_CLOSED';
+/** Con estos códigos y la salida pasada, la ventana de check-in ya cerró (check-in-qr.md). */
+const CLOSED_CODES = ['OUTSIDE_CHECK_IN_WINDOW', 'NO_ACTIVE_RESERVATION'];
 /** Con estos rechazos otro QR no cambia nada: se deja de escanear. */
-const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN'];
+const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN', CLOSED];
 
 /** Qué puede hacer la persona después de cada rechazo (además del mensaje del servidor). */
 function ErrorAction({ code }: { code?: string }) {
+  if (code === CLOSED) return <Link to="/perfil/viajes">Ver mis viajes</Link>;
   if (code === 'NO_ACTIVE_RESERVATION') return <Link to="/reservar">Reservá un turno</Link>;
   if (code === 'ALREADY_CHECKED_IN') return <Link to="/">Volver al inicio</Link>;
   if (code === 'OUTSIDE_CHECK_IN_WINDOW') {
@@ -71,10 +76,18 @@ export function CheckInPage() {
       navigate('/check-in/ok', { state: result });
     } catch (submitError) {
       failedToken.current = token;
-      setError({
-        message: errorMessage(submitError),
-        code: submitError instanceof ApiError ? submitError.code : undefined,
-      });
+      const code = submitError instanceof ApiError ? submitError.code : undefined;
+      // La API no manda a qué hora cierra: se nombra el turno por su salida.
+      const departureAt = reservation?.departureAt;
+      const closed =
+        departureAt !== undefined &&
+        CLOSED_CODES.includes(code ?? '') &&
+        Date.now() >= Date.parse(departureAt);
+      setError(
+        closed
+          ? { message: `Se cerró el check-in de las ${formatTime(departureAt)}.`, code: CLOSED }
+          : { message: errorMessage(submitError), code },
+      );
       setSubmitting(false);
     }
   }

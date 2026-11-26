@@ -266,6 +266,8 @@ Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y c
 
 Sin red u otro error: "No pudimos conectarnos. Probá de nuevo."
 
+**Ventana cerrada:** si el rechazo es `OUTSIDE_CHECK_IN_WINDOW` o `NO_ACTIVE_RESERVATION` y la salida del turno cargado ya pasó, el aviso reemplaza el mensaje del servidor por "Se cerró el check-in de las 14:04." (hora de la salida, en Buenos Aires: la API no manda a qué hora cierra) con el link "Ver mis viajes" → `/perfil/viajes`, y deja de escanear.
+
 **Check-in anticipado:** antes de `checkInOpensAt` (de `GET /api/reservations/active`) no se pide la cámara: el visor se reemplaza por "Abre a las 14:03 hs" (hora de Buenos Aires) y "Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.", con Elevy durmiendo (`duerme`, 96 px). La pantalla re-evalúa cada segundo y, al abrir, activa la cámara sola.
 
 **Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo y el check-in ya abrió. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra a Elevy (`senala`) y "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error. Los dos casos de cámara llevan a Elevy (`triste`). Permiso negado: "No tenemos permiso para usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador." Sin cámara: "No pudimos usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular."
