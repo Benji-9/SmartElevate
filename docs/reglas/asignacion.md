@@ -4,7 +4,7 @@
 
 Cómo se decide a qué ascensor y salida va cada solicitud.
 
-> **Zonas de pisos:** decididas el 13/11/2026 y con la regla de afinidad cambiada el 26/11 ([ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md)). El backend ya resuelve la oferta ([#339](https://github.com/Benji-9/SmartElevate/issues/339)); hasta que el front la use ([#298](https://github.com/Benji-9/SmartElevate/issues/298)), sigue ofreciendo la salida con más lugares libres. Ver [Zonas de pisos](#zonas-de-pisos).
+> **Zonas de pisos:** decididas el 13/11/2026 y con la regla de afinidad cambiada el 26/11 ([ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md)). El backend resuelve la oferta ([#339](https://github.com/Benji-9/SmartElevate/issues/339)) y el front la usa ([#340](https://github.com/Benji-9/SmartElevate/issues/340)). Ver [Zonas de pisos](#zonas-de-pisos).
 
 ## Edificios, núcleos y ascensores
 

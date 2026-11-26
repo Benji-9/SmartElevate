@@ -12,6 +12,7 @@
 // ON_TIME hasta +60 s) con los códigos de `POST /check-ins`.
 //
 // Lo que NO emulan (el backend sí):
+// - Zonas de pisos (ADR 0025): la oferta de cada hora es la salida con más lugares libres.
 // - Job de no-show: una reserva ACTIVE nunca pasa sola a NO_SHOW ni deja de ser "activa".
 // - Concurrencia y cupo atómico; la ocupación de otros usuarios es fija y de ejemplo.
 // - Lugares tomados por prioritarios: el cupo reservado se descuenta siempre completo hasta
@@ -374,8 +375,8 @@ function adminKpis(query: URLSearchParams): AdminKpis {
 // Ocupación de ejemplo por salida, rotada por ascensor: hay llenas para probar TURN_FULL y casi
 // llenas (8–9) donde lo que queda es de prioritarios.
 const OCCUPANCY = [4, 10, 7, 2, 9, 0, 5, 3, 8, 1, 6, 2, 0, 4, 1];
-// Una de cada 7 salidas (cada 14 min) va llena en todos los ascensores: Reservar ofrece por hora el
-// más libre, así que sin esto la franja "Completo" no se vería nunca.
+// Una de cada 7 salidas (cada 14 min) va llena en todos los ascensores: la oferta de cada hora es la
+// del más libre, así que sin esto la franja "Completo" no se vería nunca.
 const FULL_EVERY = 7;
 
 // Misma forma que GET /api/buildings: los núcleos van con código y nombre visible.
@@ -514,6 +515,44 @@ function bookable(user: User, building: string | null, elevatorCode: string | nu
         : [],
     ),
   );
+}
+
+/**
+ * `GET /departures?core=&origin=&destination=`: una salida por hora entre las del núcleo que paran
+ * en ambos pisos. Como el servidor, no rechaza pisos bajos ni origen igual a destino.
+ */
+// ponytail: gana la de más lugares libres (a igualdad, el menor código), sin zonas ni afinidad
+// (ADR 0025, ZoneOfferResolver en el backend). Portarlas si hay que probar el agrupamiento sin backend.
+function offer(user: User, core: string, origin: number, destination: number): Departure[] {
+  const codes = new Set(
+    ELEVATORS.filter(
+      (e) =>
+        e.core === core.toUpperCase() &&
+        e.floors.includes(origin) &&
+        e.floors.includes(destination),
+    ).map((e) => e.code),
+  );
+  const byTime = new Map<string, Departure>();
+  for (const d of bookable(user, null, null)) {
+    if (!codes.has(d.elevator)) continue;
+    const best = byTime.get(d.departureAt);
+    if (!best || d.remainingSeats > best.remainingSeats) byTime.set(d.departureAt, d);
+  }
+  return [...byTime.values()];
+}
+
+/** Sin núcleo ni pisos, la ventana entera; con los tres, la oferta; con algunos, 400. */
+function departuresFor(user: User, query: URLSearchParams): Departure[] {
+  const core = query.get('core');
+  const origin = query.get('origin');
+  const destination = query.get('destination');
+  if (core === null && origin === null && destination === null) {
+    return bookable(user, query.get('building'), query.get('elevator'));
+  }
+  if (core === null || origin === null || destination === null) {
+    throw new ApiError(400, 'core, origin y destination van los tres juntos o ninguno');
+  }
+  return offer(user, core, Number(origin), Number(destination));
 }
 
 const CAMPUS_TZ = 'America/Argentina/Buenos_Aires';
@@ -886,11 +925,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/admin\/elevators$/, () => adminElevators()],
   ['POST', /^\/admin\/elevators\/([^/]+)\/out-of-service$/, (_, [code]) => setService(code, false)],
   ['POST', /^\/admin\/elevators\/([^/]+)\/in-service$/, (_, [code]) => setService(code, true)],
-  [
-    'GET',
-    /^\/departures$/,
-    (_, __, query) => bookable(currentUser(), query.get('building'), query.get('elevator')),
-  ],
+  ['GET', /^\/departures$/, (_, __, query) => departuresFor(currentUser(), query)],
   [
     'GET',
     /^\/reservations\/history$/,
