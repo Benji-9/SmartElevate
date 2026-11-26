@@ -37,6 +37,15 @@
   text-align: center;
 }
 
+/* "Borrar credencial" y su confirmación, centrados como el resto (en Pantalla irían al inicio). */
+.kiosk-qr .button--inline {
+  justify-self: center;
+}
+
+.kiosk-qr .confirm-action {
+  justify-content: center;
+}
+
 .kiosk-qr__image,
 .kiosk-qr__placeholder {
   width: min(70vh, 480px, 100%);
