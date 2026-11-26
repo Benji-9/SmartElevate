@@ -25,6 +25,12 @@ export function stubApi(routes: Routes) {
     });
   });
   vi.stubGlobal('fetch', fetchMock);
+  // Un test que simula la cookie del refresh es un navegador que ya tuvo sesión (ver api.ts).
+  try {
+    if (routes['POST /auth/refresh']) localStorage.setItem('se:session', '1');
+  } catch {
+    // El test bloqueó el storage: la app pide el refresh igual.
+  }
   return fetchMock;
 }
 

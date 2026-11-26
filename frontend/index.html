@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- LCP de /login (#350): el logo se descubre sin esperar al JS. Vite le pone el hash. -->
+    <link rel="preload" as="image" href="/src/assets/smartelevate-logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>SmartElevate</title>
   </head>
