@@ -316,6 +316,12 @@ class AuthControllerTest {
     }
 
     @Test
+    void loginRequestToStringHidesThePassword() {
+        assertThat(new com.smartelevate.user.dto.LoginRequest("a@uade.edu.ar", "una-clave-larga").toString())
+                .doesNotContain("una-clave-larga");
+    }
+
+    @Test
     void resetRespondsNoContent() throws Exception {
         postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"una-clave-nueva\"}")
                 .andExpect(status().isNoContent());

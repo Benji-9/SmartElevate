@@ -16,4 +16,10 @@ public record LoginRequest(
         @NotBlank(message = "Ingresá tu contraseña.")
         @ValidPassword(onlyMax = true)
         String password) {
+
+    /** Sin la contraseña: con el log en DEBUG, Spring imprime el cuerpo del pedido usando este método. */
+    @Override
+    public String toString() {
+        return "LoginRequest[email=" + email + ", password=***]";
+    }
 }
