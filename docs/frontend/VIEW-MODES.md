@@ -57,11 +57,11 @@ Control segmentado de dos opciones, fijo en la esquina inferior derecha de la ve
 | Propiedad | Valor |
 |---|---|
 | Posición | `position: fixed; right: var(--space-24); bottom: var(--space-24); z-index: 1000` |
-| Contenedor | fondo `--surface`, borde 1 px `--border`, `--radius-pill`, pad 4, gap 4 |
+| Contenedor | `aside` con `aria-label="Vista"`: fondo `--surface`, borde 1 px `--border`, `--radius-pill`, pad 4, gap 4 |
 | Opciones | **"Pantalla"** y **"Teléfono"**; alto 40, pad 0/16, texto `.text-body-sm-strong` |
 | Seleccionada | fondo `--accent`, texto `--on-accent` |
 | No seleccionada | transparente, texto `--ink-muted`; hover `--surface-subtle` |
-| Accesibilidad | contenedor `role="radiogroup"` con `aria-label="Vista de la aplicación"`; cada opción `role="radio"` con `aria-checked`; foco visible `--focus`; flechas ← → cambian la opción |
+| Accesibilidad | dentro del landmark, un grupo `role="radiogroup"` con `aria-label="Vista de la aplicación"`; cada opción `role="radio"` con `aria-checked`; foco visible `--focus`; flechas ← → cambian la opción |
 | Íconos | opcionales (monitor y celular de trazo, 20 px); el set de íconos aún no está elegido, así que puede ir solo texto |
 
 Reglas: no se dibuja dentro del marco del teléfono ni dentro del layout de Pantalla (flota sobre ambos); no se imprime. Como flota, en Pantalla nunca tapa contenido: cuando está a la vista define `--toggle-clearance` (112 px) y cada pantalla deja ese lugar libre al final (y la columna fija de Reservar se acorta), así "Confirmar turno" y el último botón de cualquier pantalla quedan por encima. Excepción: las pantallas de tarjeta centrada (login, registro y las `framed`) no reservan ese lugar, porque la tarjeta no llega a la esquina del selector.
@@ -226,8 +226,8 @@ Estados de puntero (solo con `@media (hover: hover)`): botón primary `opacity: 
 
 ## 7. Panel de administración
 
-- Es **solo de escritorio**: no muestra el selector de vista ni usa el marco de teléfono.
-- Si el contenedor mide menos de 900 px (celular o ventana angosta), en lugar del panel se muestra un aviso centrado: título `.text-heading` "El panel de administración es para computadora" y texto `--ink-muted` "Abrilo desde una pantalla más grande para ver el detalle de congestión."
+- Está **pensado para escritorio**: no muestra el selector de vista ni usa el marco de teléfono.
+- Si el contenedor mide menos de 900 px (celular, ventana angosta o zoom del navegador al 200 % o 400 %), el panel **no se bloquea** (WCAG 1.4.4 y 1.4.10, [#329](https://github.com/Benji-9/SmartElevate/issues/329)): la barra lateral pasa arriba con la navegación en filas, el contenido va en una columna, las tablas y el gráfico de reservas scrollean en horizontal (alcanzables con teclado), el menú "Gestionar usuario" se abre en el flujo y los botones miden al menos 44 px.
 - Si alguien cambia a modo Teléfono estando en una pantalla de usuario y navega a `/admin`, se fuerza modo Pantalla mientras esté en esa ruta y se restaura al salir.
 
 ---
@@ -251,5 +251,5 @@ Pensadas para presentar el MVP; se activan con `?demo=1` en la URL y no aparecen
 - [ ] En una ventana < 1024 px no hay selector ni marco; en un celular real la app es a pantalla completa.
 - [ ] Dentro del marco, `BottomNav` queda pegada abajo y la pantalla scrollea por dentro.
 - [ ] `TopBar` y `BottomNav` nunca se ven a la vez.
-- [ ] `/admin` no muestra el selector y avisa si el ancho es menor a 900 px.
+- [ ] `/admin` no muestra el selector y se puede usar con menos de 900 px.
 - [ ] Todas las pantallas cumplen el checklist de accesibilidad de `SCREENS.md` en ambos modos, incluido el selector de vista.

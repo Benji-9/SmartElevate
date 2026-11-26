@@ -117,6 +117,8 @@ Stack: **React + Vite**, mobile-first (390 px), con una vista de Pantalla para l
 
 `:root` declara `color-scheme: light` y el tema oscuro `color-scheme: dark`, para que scrollbars y desplegables nativos sigan el tema. `html` lleva `scrollbar-gutter: stable` para que el layout no salte al aparecer la barra.
 
+**Tintes en tema oscuro** (`index.css`): `accent-tint` y `accent-tint-strong` son blanco al 8 %. Con más, el texto `accent` de los chips no llega a 4,5:1 (con 14 % daba 3,87:1).
+
 **Pendiente de diseño ([#276](https://github.com/Benji-9/SmartElevate/issues/276)):** en tema oscuro el botón primario (gris azulado) se lee como deshabilitado. No se cambió; necesita una decisión de diseño.
 
 | Token | Valor | Uso |
@@ -127,7 +129,7 @@ Stack: **React + Vite**, mobile-first (390 px), con una vista de Pantalla para l
 | `--Status-Baja` | `#016836` | Congestión baja (verde Costa Argentina, paleta UADE). Barras, puntos y fondos tenues; siempre con la palabra "Baja". Legible como texto sobre `surface` (6,9:1). |
 | `--Status-Media` | `#f7a700` | Congestión media (amarillo de Ingeniería, paleta UADE). Solo barras, puntos y fondos tenues, siempre con la palabra "Media": como texto sobre `surface` no llega (2,0:1). |
 | `--Status-Alta` | `#cf0a2c` | Congestión alta y errores (rojo institucional UADE). Barras, puntos, bordes de error y mensajes de error sobre `surface` (5,6:1); siempre con la palabra o el mensaje. |
-| `--User-Alumnos` | `#c3d500` | Acento del tipo de usuario Estudiante (color Alumnos de UADE): punto del selector de registro y badge del perfil. Nunca como texto sobre `surface` (1,6:1). |
+| `--User-Alumnos` | `#c3d500` | Acento del tipo de usuario Estudiante (color Alumnos de UADE): punto del selector de registro y badge del perfil. Nunca como texto sobre `surface` (1,6:1); como punto necesita contorno `border` (3:1). |
 | `--User-Docentes` | `#ff5100` | Acento del tipo de usuario Docente (color Docentes de UADE): punto y badge. No usar como texto sobre `surface` (3,3:1). |
 | `--accent` | `{AstronautBlue}` | Alias semántico de `AstronautBlue`: relleno de botón primario, selección, links y tab activa. |
 | `--on-accent` | `{White}` | Etiqueta e ícono sobre un relleno `accent` (11,1:1). |
@@ -258,7 +260,7 @@ Todos aceptan `className`. Las clases (prefijo `se-`) están en la sección 7.
 |---|---|---|
 | `Button` | `variant: 'primary' \| 'secondary'` (default `primary`), `block?: boolean` (default `true`), + atributos de `<button>` | Un solo `primary` por vista. Etiqueta con verbo: "Ingresar", "Confirmar turno · 7:25". Alto mínimo 48 px. `disabled` usa `surface-subtle` + `ink-subtle`. |
 | `Input` | `label?: string`, `error?: string`, + atributos de `<input>` | Etiqueta arriba (13 px, 500). Con `error`: borde y mensaje en `Status-Alta`, `aria-invalid`, mensaje con `role="alert"`. El placeholder es un ejemplo, no reemplaza la etiqueta. `suffix?: string`: texto fijo a la derecha dentro del control (`--ink-muted`), anunciado con `aria-describedby` (p. ej. `@uade.edu.ar`). Con `type="password"` suma el botón "Mostrar"/"Ocultar" contraseña (44 × 44 px), que se resetea al enviar. |
-| `Chip` | `tone?: 'accent' \| 'neutral' \| 'danger' \| 'baja' \| 'media' \| 'alta'` (default `accent`) | `accent`: sin punto, para estados de reserva ("Confirmado", "Pendiente de validación"). `neutral`: datos que no son estado, como el tipo de usuario ("Estudiante", "Docente"), sin color propio. Solo la congestión (`baja`/`media`/`alta`) lleva punto de color + texto en `ink`. |
+| `Chip` | `tone?: 'accent' \| 'neutral' \| 'danger' \| 'baja' \| 'media' \| 'alta'` (default `accent`) | `accent`: sin punto, para estados de reserva ("Confirmado", "Pendiente de validación"). `neutral`: datos que no son estado, como el tipo de usuario ("Estudiante", "Docente"), sin color propio. Solo la congestión (`baja`/`media`/`alta`) lleva punto de color + texto en `ink`. El punto lleva contorno de 1 px `border`: el color solo no llega a 3:1 (`Status-Media` 2,0:1). |
 | `CongestionRow` | `label: string`, `level: 'baja' \| 'media' \| 'alta'`, `value: number` (0–1) | Nombre del núcleo · barra de 90 × 8 px · nivel escrito (48 px de ancho). Apilar una por núcleo. |
 | `BottomNav` | `items: { id, label, icon? }[]`, `active: string`, `onSelect?: (id) => void` | Cuatro destinos: Inicio, Reservar, Check-in, Perfil. Activa en `accent`, resto en `ink-muted`. Sin `icon` muestra un cuadrado gris de 24 px (marcador: **el set de íconos aún no está elegido**). |
 | `Skeleton` | `label: string`, `rows?: number` (default 1), `height?: number` (px, default 20) | Estado de carga con la forma del contenido (bloques `surface-subtle` que laten; sin animación con `prefers-reduced-motion`). Es un `role="status"` que anuncia `label` ("Cargando tus viajes…"). Lo usan Inicio, Mis viajes y Reservar. |
