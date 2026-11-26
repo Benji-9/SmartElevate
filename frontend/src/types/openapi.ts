@@ -329,7 +329,7 @@ export interface paths {
     put?: never;
     /**
      * Pide el link para restablecer la contraseña
-     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.
+     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.
      */
     post: operations['forgotPassword'];
     delete?: never;
@@ -389,7 +389,7 @@ export interface paths {
     put?: never;
     /**
      * Crea una cuenta común, sin verificar
-     * @description El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.
+     * @description El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.
      */
     post: operations['register'];
     delete?: never;
@@ -409,7 +409,7 @@ export interface paths {
     put?: never;
     /**
      * Reenvía el link de verificación
-     * @description Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.
+     * @description Responde 202 exista o no la cuenta (y haya o no un mail reciente: la espera entre mails se aplica en silencio), para no revelar qué emails están registrados. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.
      */
     post: operations['resendVerification'];
     delete?: never;
@@ -2442,6 +2442,15 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
+      /** @description Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
       /** @description Internal Server Error */
       500: {
         headers: {
@@ -2587,6 +2596,15 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
+      /** @description Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
       /** @description Internal Server Error */
       500: {
         headers: {
@@ -2627,7 +2645,7 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
-      /** @description Ya se mandó un mail hace poco */
+      /** @description Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar */
       429: {
         headers: {
           [name: string]: unknown;

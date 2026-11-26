@@ -55,6 +55,11 @@ app:
     window: ${APP_LOGIN_THROTTLE_WINDOW:PT15M}
     max-failures-per-account: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT:10}
     max-failures-per-ip: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP:100}
+  request-throttle:
+    # Tope de pedidos por IP de registro, reenvío de verificación y "olvidé mi contraseña" (#344), cada uno por
+    # separado. La ventana no puede ser mayor que la de login-throttle (comparten tabla): si lo es, no arranca.
+    window: ${APP_REQUEST_THROTTLE_WINDOW:PT15M}
+    max-per-ip: ${APP_REQUEST_THROTTLE_MAX_PER_IP:60}
   admin:
     user-search:
       # Buscador de usuarios del panel admin (#215): mínimo de caracteres para no listar a todos, y tamaño de página.

@@ -27,6 +27,13 @@ Alineada a NIST SP 800-63B en [#211](https://github.com/Benji-9/SmartElevate/iss
 - El bloqueo siempre es **temporal**: un tercero no puede dejar bloqueada una cuenta para siempre. Un **login correcto** o un **reset de contraseña** borran los fallos de la cuenta.
 - Cuenta igual un email que no existe: el 429 no revela qué cuentas hay. Se guarda el hash de la cuenta y de la IP, nunca el email ni la IP.
 
+### Límite de pedidos por IP
+
+- `POST /api/auth/register`, `POST /api/auth/resend-verification` y `POST /api/auth/password/forgot` tienen un **tope por IP**: **60 pedidos** de cada acción en los últimos **15 minutos** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Pasado el tope responden **429** con `Retry-After` hasta que el pedido más viejo sale de la ventana; los rechazados no cuentan. Cada acción cuenta por separado y nunca se mira qué email se pidió, así que el 429 no revela cuentas.
+- El tope es holgado porque el WiFi del campus sale por pocas IPs (NAT): 30 registros seguidos desde una IP pasan. Se calibra en el piloto, como el de logins.
+- Se guarda el hash de la acción y la IP, nunca la IP. Valores en `application.yml` (`app.request-throttle.*`), con override por `APP_REQUEST_THROTTLE_WINDOW` y `APP_REQUEST_THROTTLE_MAX_PER_IP`. La ventana no puede ser mayor que la de logins (comparten tabla): si lo es, la app no arranca.
+- `resend-verification` responde **202 siempre**, también si se pidió hace menos de 1 minuto: esa espera se aplica en silencio, como en "olvidé mi contraseña". El único 429 es el del tope por IP.
+
 ### Olvidé mi contraseña
 
 Implementado en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
