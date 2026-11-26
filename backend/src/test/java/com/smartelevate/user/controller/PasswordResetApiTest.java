@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Olvidé mi contraseña de punta a punta, con la base real. Sin espera entre pedidos para poder pedir dos veces. */
-@SpringBootTest(properties = "app.password-reset.request-cooldown=PT0S")
+@SpringBootTest(properties = {"app.password-reset.request-cooldown=PT0S", "app.verification.resend-cooldown=PT0S"})
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 class PasswordResetApiTest {
@@ -156,6 +156,32 @@ class PasswordResetApiTest {
         resetWith(token, "corta").andExpect(status().isBadRequest());
 
         resetWith(token, NEW).andExpect(status().isNoContent());
+    }
+
+    /**
+     * #344: alguien registra el email de Ana con su clave. Ana pide "olvidé mi contraseña" y sigue el link que le
+     * llega, sea cual sea: si es de reset elige su clave; si es de verificación, al usarlo verifica la cuenta ajena.
+     */
+    @Test
+    void preRegisteredAccountIsRecoveredByItsOwner() throws Exception {
+        postJson("/api/auth/register", """
+                {"fullName":"Atacante","email":"ana@uade.edu.ar","legajo":"9999999","password":"%s",
+                 "declaredUserType":"STUDENT"}""".formatted(OLD)).andExpect(status().isCreated());
+        reset(sender);
+
+        postJson("/api/auth/password/forgot", "{\"email\":\"ana@uade.edu.ar\"}").andExpect(status().isAccepted());
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(sender).send(eq("ana@uade.edu.ar"), anyString(), body.capture());
+        Matcher m = TOKEN.matcher(body.getValue());
+        assertThat(m.find()).isTrue();
+        if (body.getValue().contains("/recuperar/nueva?token=")) {
+            resetWith(m.group(1), NEW).andExpect(status().isNoContent());
+        } else {
+            postJson("/api/auth/verify", "{\"token\":\"%s\"}".formatted(m.group(1)));
+        }
+
+        login(OLD).andExpect(status().isUnauthorized());
+        login(NEW).andExpect(status().isOk());
     }
 
     @Test

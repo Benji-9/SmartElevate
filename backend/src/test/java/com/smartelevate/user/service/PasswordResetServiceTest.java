@@ -37,10 +37,9 @@ class PasswordResetServiceTest {
     private final RefreshTokenRepository refreshTokens = mock(RefreshTokenRepository.class);
     private final PasswordEncoder encoder = mock(PasswordEncoder.class);
     private final EmailSender sender = mock(EmailSender.class);
-    private final EmailVerificationService verification = mock(EmailVerificationService.class);
     private final LoginThrottle loginThrottle = mock(LoginThrottle.class);
     private final PasswordResetService service = new PasswordResetService(tokens, users, refreshTokens, encoder,
-            sender, verification,
+            sender,
             new PasswordResetProperties(Duration.ofMinutes(30), Duration.ofMinutes(1)),
             new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test"),
             Clock.fixed(NOW, ZoneOffset.UTC), loginThrottle);
@@ -99,21 +98,18 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    void unverifiedAccountsGetTheVerificationLinkAgainAndNoResetLink() {
+    void unverifiedAccountsGetARealResetLink() {
+        // #344: si otra persona registró este email, la dueña lo recupera eligiendo su clave.
         existingUser(false);
+        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.PASSWORD_RESET))).willReturn(Optional.empty());
+        given(tokens.issue(any(), eq(TokenPurpose.PASSWORD_RESET), any())).willReturn("tok123");
 
         service.request("jmartinez@uade.edu.ar");
 
-        verify(verification).resend("jmartinez@uade.edu.ar");
-        verify(tokens, never()).issue(any(), any(), any());
-    }
-
-    @Test
-    void unverifiedAccountInsideTheVerificationCooldownIsSilent() {
-        existingUser(false);
-        willThrow(new ResendTooSoonException(Duration.ofSeconds(10))).given(verification).resend(any());
-
-        assertThatCode(() -> service.request("jmartinez@uade.edu.ar")).doesNotThrowAnyException();
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(sender).send(eq("jmartinez@uade.edu.ar"), anyString(), body.capture());
+        assertThat(body.getValue()).contains("/recuperar/nueva?token=tok123");
+        verify(tokens, never()).issue(any(), eq(TokenPurpose.VERIFY_EMAIL), any());
     }
 
     @Test
@@ -136,6 +132,8 @@ class PasswordResetServiceTest {
         service.reset("tok", "nueva-clave-1");
 
         assertThat(user.getPasswordHash()).isEqualTo("hash-nuevo");
+        // Usar el link prueba que el email es suyo (#344).
+        assertThat(user.isEmailVerified()).isTrue();
         verify(refreshTokens).revokeAllByUser(user.getId(), NOW);
         // Recuperó la cuenta por mail: el límite de intentos no la deja esperando.
         verify(loginThrottle).clearAccount("jmartinez@uade.edu.ar");
@@ -161,6 +159,7 @@ class PasswordResetServiceTest {
 
         assertThatThrownBy(() -> service.reset("tok", "nueva-clave-1")).isInstanceOf(InvalidTokenException.class);
         assertThat(user.getPasswordHash()).isEqualTo("viejo");
+        assertThat(user.isEmailVerified()).isFalse();
         verify(refreshTokens, never()).revokeAllByUser(any(), any());
         verify(loginThrottle, never()).clearAccount(any());
     }

@@ -33,8 +33,9 @@ Implementado en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
 
 - `POST /api/auth/password/forgot` responde **202 siempre**, exista o no la cuenta (y también si hubo un pedido reciente: la espera entre pedidos, 1 minuto, se aplica en silencio porque un 429 delataría qué cuentas existen).
 - El link vale **30 minutos**, se usa **una sola vez** y se guarda hasheado. Pedir otro invalida el anterior. Vencimiento y espera son configuración (`app.password-reset.*`).
-- **Cuenta sin verificar que pide reset**: no se manda link de reset; se le **reenvía el link de verificación** (con su propia espera). Primero tiene que verificar el email.
-- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
+- **Cuenta sin verificar que pide reset**: recibe un **link de reset real**, igual que una verificada ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Así, si otra persona registró su email con una clave propia, la dueña recupera la cuenta eligiendo la suya: usar el link prueba que el email es de ella y **marca la cuenta como verificada**.
+- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo, marca el email como verificado y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
+- Verificar el email (`POST /api/auth/verify`) también revoca los refresh tokens que hubiera.
 
 ### Tipo de usuario declarado
 

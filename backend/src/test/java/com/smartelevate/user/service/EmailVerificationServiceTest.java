@@ -16,6 +16,7 @@ import com.smartelevate.common.mail.EmailSender;
 import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.TokenPurpose;
 import com.smartelevate.user.model.User;
+import com.smartelevate.user.repository.RefreshTokenRepository;
 import com.smartelevate.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -34,9 +35,10 @@ class EmailVerificationServiceTest {
 
     private final EmailTokenService tokens = mock(EmailTokenService.class);
     private final UserRepository users = mock(UserRepository.class);
+    private final RefreshTokenRepository refreshTokens = mock(RefreshTokenRepository.class);
     private final EmailSender sender = mock(EmailSender.class);
-    private final EmailVerificationService service =
-            new EmailVerificationService(tokens, users, sender, PROPS, Clock.fixed(NOW, ZoneOffset.UTC));
+    private final EmailVerificationService service = new EmailVerificationService(tokens, users, refreshTokens,
+            sender, PROPS, Clock.fixed(NOW, ZoneOffset.UTC));
 
     private final User user = new User("Juana", "jmartinez@uade.edu.ar", "1234567", "x", DeclaredUserType.STUDENT, NOW);
 
@@ -59,7 +61,7 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void verifyMarksTheAccountAsVerified() {
+    void verifyMarksTheAccountAsVerifiedAndRevokesItsSessions() {
         UUID id = UUID.randomUUID();
         given(tokens.consume("tok", TokenPurpose.VERIFY_EMAIL)).willReturn(id);
         given(users.findById(id)).willReturn(Optional.of(user));
@@ -67,6 +69,7 @@ class EmailVerificationServiceTest {
         service.verify("tok");
 
         assertThat(user.isEmailVerified()).isTrue();
+        verify(refreshTokens).revokeAllByUser(user.getId(), NOW);
     }
 
     @Test
@@ -76,6 +79,7 @@ class EmailVerificationServiceTest {
 
         assertThatThrownBy(() -> service.verify("tok")).isInstanceOf(InvalidTokenException.class);
         assertThat(user.isEmailVerified()).isFalse();
+        verify(refreshTokens, never()).revokeAllByUser(any(), any());
     }
 
     @Test
