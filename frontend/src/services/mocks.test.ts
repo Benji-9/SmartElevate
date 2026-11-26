@@ -157,6 +157,39 @@ describe('mocks', () => {
     expect(new Set(departures.map((d) => d.elevator))).toEqual(new Set(['33', '34']));
   });
 
+  it('con núcleo, origen y destino ofrece una salida por hora, la más libre de las que paran en ambos', async () => {
+    await loginAna();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    // La batería baja de L2 (07 y 08) no llega al 8: solo valen el 35 y el 36.
+    const offer = await call<Departure[]>('GET', '/departures?core=l2&origin=0&destination=8');
+    const eligible = (await call<Departure[]>('GET', '/departures')).filter((d) =>
+      ['35', '36'].includes(d.elevator),
+    );
+
+    expect(offer.map((d) => d.departureAt)).toEqual([
+      ...new Set(eligible.map((d) => d.departureAt)),
+    ]);
+    for (const d of offer) {
+      expect(['35', '36']).toContain(d.elevator);
+      expect(d.remainingSeats).toBe(
+        Math.max(
+          ...eligible.filter((e) => e.departureAt === d.departureAt).map((e) => e.remainingSeats),
+        ),
+      );
+    }
+    // Un núcleo solo de dedicados no le ofrece nada a un común.
+    expect(await call('GET', '/departures?core=IND1&origin=0&destination=8')).toEqual([]);
+  });
+
+  it.each(['core=L2', 'origin=0&destination=8', 'core=L2&origin=0'])(
+    'con %s da 400: núcleo, origen y destino van juntos',
+    async (query) => {
+      await loginAna();
+
+      await expect(call('GET', `/departures?${query}`)).rejects.toMatchObject({ status: 400 });
+    },
+  );
+
   it('en la ventana siempre hay una franja completa y otras con lugar, en cada núcleo', async () => {
     await loginAna();
     vi.useFakeTimers({ toFake: ['Date'] });
