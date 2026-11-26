@@ -249,16 +249,20 @@ const users: User[] = [
 // Cuentas que todavía no hicieron click en el link de verificación.
 const unverified = new Set(['sin.verificar@uade.edu.ar']);
 
-// Simula la cookie del refresh del servidor: sobrevive a recargar la página.
+// Simula la cookie del refresh del servidor: sobrevive a recargar la página y la ven las pestañas
+// nuevas (localStorage). La copia en sessionStorage deja una cuenta distinta en cada pestaña.
 const SESSION_KEY = 'smartelevate-mock-session';
+
+const sessionEmail = () => sessionStorage.getItem(SESSION_KEY) ?? localStorage.getItem(SESSION_KEY);
 
 function tokensFor(email: string): TokenResponse {
   sessionStorage.setItem(SESSION_KEY, email);
+  localStorage.setItem(SESSION_KEY, email);
   return { accessToken: `mock-${Date.now()}`, tokenType: 'Bearer', expiresIn: 900 };
 }
 
 function currentUser(): User {
-  const email = sessionStorage.getItem(SESSION_KEY);
+  const email = sessionEmail();
   const found = users.find((u) => u.email === email);
   if (!found) throw new ApiError(401, 'Sesión vencida');
   return found;
@@ -776,7 +780,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/auth\/refresh$/,
     () => {
       // Sin cookie (sin sesión) el real responde 401.
-      const email = sessionStorage.getItem(SESSION_KEY);
+      const email = sessionEmail();
       if (!email) throw new ApiError(401, 'Sesión vencida');
       return tokensFor(email);
     },
@@ -786,6 +790,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/auth\/logout$/,
     () => {
       sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
     },
   ],
   [

@@ -514,6 +514,18 @@ describe('mocks', () => {
     }
   });
 
+  it('otra pestaña recupera la sesión, como con la cookie del refresh', async () => {
+    await loginAna();
+    sessionStorage.clear(); // pestaña nueva: comparte localStorage, no sessionStorage
+
+    await call('POST', '/auth/refresh');
+    expect(await call('GET', '/users/me')).toMatchObject({ email: 'ana.perez@uade.edu.ar' });
+
+    await call('POST', '/auth/logout');
+    sessionStorage.clear();
+    await expect(call('POST', '/auth/refresh')).rejects.toMatchObject({ status: 401 });
+  });
+
   it.each([
     ['', 'ON_TIME', 'USED'],
     ['&checkin=otro', 'OTHER_ELEVATOR', 'USED'],
