@@ -312,6 +312,7 @@ a {
   .trips__notice,
   .trips__error,
   .auth__alert,
+  .auth__info[role='status'],
   .notifications__alert,
   .kiosk-alert,
   .kiosk-error,
