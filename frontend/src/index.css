@@ -44,6 +44,11 @@
   --text-22: 1.375rem;
   --text-24: 1.5rem;
 
+  /* Movimiento: salidas con --duration-fast, entradas con --duration-base. */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+
   /* Radios */
   --radius-xs: 4px;
   --radius-input: 10px;
@@ -286,4 +291,18 @@ a {
   justify-items: center;
   gap: 12px;
   text-align: center;
+}
+
+/* Única regla de movimiento reducido de la app: nada anima ni se repite. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::backdrop {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
 }
