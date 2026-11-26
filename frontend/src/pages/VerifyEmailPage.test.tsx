@@ -78,7 +78,7 @@ describe('VerifyEmailPage', () => {
     );
   });
 
-  it('con 429 muestra cuánto esperar y deshabilita el botón', async () => {
+  async function resendWith429(retryAfter: string) {
     stubApi({
       ...signedOut,
       'POST /auth/verify': { status: 400, body: { message: 'Ya se usó.' } },
@@ -89,7 +89,7 @@ describe('VerifyEmailPage', () => {
       url === '/api/auth/resend-verification'
         ? new Response(JSON.stringify({ message: 'Esperá.' }), {
             status: 429,
-            headers: { 'Retry-After': '45' },
+            headers: { 'Retry-After': retryAfter },
           })
         : base(url, init),
     );
@@ -97,9 +97,23 @@ describe('VerifyEmailPage', () => {
 
     await userEvent.type(await screen.findByLabelText('Email institucional'), 'ana.perez');
     await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
+  }
+
+  it('con 429 (tope por IP) muestra cuánto esperar y deshabilita el botón', async () => {
+    await resendWith429('45');
 
     expect(await screen.findByRole('button', { name: 'Podés pedir otro en 45 s' })).toBeDisabled();
-    expect(screen.getByText('Ya te mandamos un email hace poco.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Hubo demasiados pedidos desde tu red. Probá de nuevo en un rato.'),
+    ).toBeInTheDocument();
+  });
+
+  it('con una espera larga la muestra en minutos', async () => {
+    await resendWith429('601');
+
+    expect(
+      await screen.findByRole('button', { name: 'Podés pedir otro en 11 min' }),
+    ).toBeDisabled();
   });
 
   it('un link ya usado no se muestra como falla del servidor: sugiere ingresar', async () => {

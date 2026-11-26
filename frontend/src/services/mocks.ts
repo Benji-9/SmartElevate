@@ -768,9 +768,14 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'POST',
     /^\/auth\/resend-verification$/,
     (body) => {
-      // "limite@uade.edu.ar" simula el 429 con Retry-After de 30 s.
+      // "limite@uade.edu.ar" simula el 429 del tope por IP con Retry-After de 30 s.
       if ((body as { email: string }).email.startsWith('limite@')) {
-        throw new ApiError(429, 'Ya te mandamos un email hace poco.', [], 30);
+        throw new ApiError(
+          429,
+          'Hubo demasiados pedidos desde tu red. Probá de nuevo en 1 minuto.',
+          [],
+          30,
+        );
       }
       return undefined; // 202 exista o no la cuenta
     },
