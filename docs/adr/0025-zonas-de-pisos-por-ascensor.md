@@ -213,8 +213,8 @@ La decisión está tomada; el backend se implementa en [#339](https://github.com
 - [x] Backend: `GET /api/departures` con núcleo, origen y destino que devuelve la oferta por hora resuelta; zonas solo en comunes; respeta lugares reservados para prioritarios y dedicados.
 - [x] Backend: tests unitarios de la resolución (`ZoneOfferResolverTest`: zona, afinidad a 2 pisos, destinos lejanos, desempates, completo) y de servicio con reloj fijo (apertura a N minutos, ascensor inactivo, dedicados, prioritarios). `reserve` no cambia y sus tests de concurrencia siguen en verde.
 - [x] Contrato: regenerar `docs/openapi.json` y `frontend/src/types/openapi.ts`.
-- [ ] Frontend: pedir la oferta con origen y destino; eliminar `slotsOf` y `elevatorsServing`; sacar el ascensor de `SlotList`; tests de Vitest.
-- [ ] Docs de UI: actualizar `docs/frontend/SCREENS.md` §04 (Reservar turno).
+- [x] Frontend: pedir la oferta con origen y destino; eliminar `slotsOf` y `elevatorsServing`; sacar el ascensor de `SlotList`; tests de Vitest.
+- [x] Docs de UI: actualizar `docs/frontend/SCREENS.md` §04 (Reservar turno).
 - [ ] Piloto: medir ocupación por salida y proporción de `OTHER_ELEVATOR` antes y después con los KPIs de [kpis.md](../reglas/kpis.md), y simular con reservas de prueba.
 - [ ] Piloto: calibrar zonas, N y `zone_affinity_max_floors` con los datos de demanda.
 
