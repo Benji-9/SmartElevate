@@ -95,6 +95,11 @@ Stack: **React + Vite**, mobile-first (390 px), con una vista de Pantalla para l
   --radius-2xl: 24px;
   --radius-pill: 999px;
 
+  /* Movimiento */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+
   /* Tipografía */
   --font-sans: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 
@@ -170,6 +175,19 @@ Stack: **React + Vite**, mobile-first (390 px), con una vista de Pantalla para l
 | `--radius-xl` | 18px | Tarjetas destacadas de Inicio (próxima clase, turno activo). |
 | `--radius-2xl` | 24px | Hojas inferiores, visor QR y paneles. |
 | `--radius-pill` | 999px | Chips, pills de estado y badges. |
+
+### Movimiento
+
+| Token | Valor | Uso |
+|---|---|---|
+| `--duration-fast` | 150ms | Feedback de color en opciones, franjas, botones y switch; salida del diálogo. |
+| `--duration-base` | 200ms | Entrada del diálogo y de banners; barra de cupo. |
+| `--ease-out` | `cubic-bezier(0.25, 1, 0.5, 1)` | Curva de todas las transiciones. |
+
+- Se anima `opacity`, `transform` y color; nunca propiedades de layout (la barra de cupo usa `transform: scaleX` desde la izquierda).
+- Diálogo: entra y sale (`@starting-style` y `transition-behavior: allow-discrete`). Banners y avisos: solo entrada.
+- Sin transiciones entre rutas.
+- `prefers-reduced-motion: reduce`: una sola regla global en `index.css` anula duraciones y repeticiones (incluidos spinner y skeleton). No agregues reglas por componente para eso.
 
 ---
 
