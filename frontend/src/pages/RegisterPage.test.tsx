@@ -228,6 +228,7 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Revisá tu email' })).toBeInTheDocument();
     expect(screen.getByText('ana.perez@uade.edu.ar')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Si no lo ves, mirá en spam.');
     const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/register')!;
     expect(JSON.parse(init!.body as string)).toEqual({
       fullName: 'Ana Pérez',

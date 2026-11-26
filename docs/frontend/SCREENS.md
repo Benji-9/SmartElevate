@@ -106,6 +106,8 @@ Estados: error de credenciales → `error` en el `Input` de contraseña.
 7. **Aviso informativo** (pad 14, `--radius-md`, fondo `--accent-tint`, gap 4): título "¿Tenés movilidad reducida?" 14 px / 600 `--accent`; texto 13 px "Informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados ni datos de salud."
 8. Footer legal (ver abajo).
 
+**Confirmación** (tras el 204): título "Revisá tu email", "Te mandamos un link a {email} para verificar tu cuenta. Después de verificarla vas a poder ingresar. Si no lo ves, mirá en spam.", el bloque [Reenviar](#reenviar-el-email-de-verificación-resendverification) y el link "Ir a ingresar".
+
 ## 02b · Recuperar contraseña — `/recuperar`
 
 No hay frame en Figma: usa la misma estructura y componentes que 02 Registro. Contrato en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
@@ -135,15 +137,15 @@ Al abrirla llama sola a `POST /api/auth/verify` con `{ token }` (es POST a prop�
 
 Estados:
 - **Verificando** (`role="status"`): "Verificando tu email…".
-- **OK** (204): título "Listo, verificamos tu email", "Ya podés ingresar y reservar tu primer turno." y link "Ir a ingresar".
-- **Error** (sin `token` en la URL, o 400 por token inexistente / usado / vencido): aviso `--danger-tint` con el mensaje del servidor (distinto por caso; sin token: "Este link no es válido. Pedí uno nuevo."), "Pedí un link nuevo a tu email institucional." y el bloque **Reenviar**.
+- **OK** (204): título "Listo, verificamos tu email", "Ya podés ingresar y reservar tu primer turno." y link con forma de `Button` primary "Ingresar" → `/login` (sin el email: esta pantalla solo conoce el token).
+- **Error** (sin `token` en la URL, o 400 por token inexistente / usado / vencido): aviso `--danger-tint` con el mensaje del servidor (distinto por caso; sin token: "Este link no es válido. Pedí uno nuevo."), "Pedí un link nuevo a tu email institucional." y el bloque **Reenviar**. El caso se decide por `code` (`TOKEN_INVALID`, `TOKEN_USED`, `TOKEN_EXPIRED`), nunca por el texto; con `TOKEN_USED` suma "Si ya verificaste tu email, ingresá." con link a `/login`.
 
 ### Reenviar el email de verificación (`ResendVerification`)
 
 Bloque reutilizable en 02d, en 02 (pantalla "Revisá tu email" tras registrarse) y en 01 (login con 403 por email sin verificar). `POST /api/auth/resend-verification` con `{ email }`.
 
 - `Button` secondary "Reenviar email de verificación". Si el email no se conoce (02d) se pide antes con el campo "Email institucional" (ver abajo); en 01 y 02 se usa el ya tipeado.
-- **202** (exista o no la cuenta): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo." No confirma que la cuenta exista.
+- **202** (exista o no la cuenta): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam." No confirma que la cuenta exista.
 - **429**: aviso `--danger-tint` "Ya te mandamos un email hace poco." y el botón queda deshabilitado con cuenta regresiva "Podés pedir otro en {n} s" según el header `Retry-After` (60 s si falta). Al llegar a 0 vuelve a "Reenviar email de verificación".
 - Otro error: aviso `--danger-tint` con `ApiError.message`.
 

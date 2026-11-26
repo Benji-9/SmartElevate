@@ -20,7 +20,9 @@ describe('VerifyEmailPage', () => {
     renderAt('/verificar-email?token=abc');
 
     expect(await screen.findByText('Listo, verificamos tu email')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir a ingresar' })).toHaveAttribute('href', '/login');
+    const login = screen.getByRole('link', { name: 'Ingresar' });
+    expect(login).toHaveAttribute('href', '/login');
+    expect(login).toHaveClass('button--primary');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/verify',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'abc' }) }),
@@ -40,7 +42,7 @@ describe('VerifyEmailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Si ana.perez@uade.edu.ar tiene una cuenta sin verificar',
+      'Si ana.perez@uade.edu.ar tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam.',
     );
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/resend-verification',
@@ -102,14 +104,18 @@ describe('VerifyEmailPage', () => {
     expect(screen.getByText('Ya te mandamos un email hace poco.')).toBeInTheDocument();
   });
 
-  it('un link ya usado no se muestra como falla del servidor: sugiere ingresar', async () => {
+  it('un link ya usado (por code) no se muestra como falla del servidor: sugiere ingresar', async () => {
+    // El texto puede cambiar: lo que decide es el code.
     stubApi({
       ...signedOut,
-      'POST /auth/verify': { status: 400, body: { message: 'Este link ya se usó.' } },
+      'POST /auth/verify': {
+        status: 400,
+        body: { message: 'Ese link ya fue usado.', code: 'TOKEN_USED' },
+      },
     });
     renderAt('/verificar-email?token=usado');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Este link ya se usó.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ese link ya fue usado.');
     expect(screen.getByRole('link', { name: 'ingresá' })).toHaveAttribute('href', '/login');
   });
 

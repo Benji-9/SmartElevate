@@ -456,6 +456,22 @@ describe('mocks', () => {
     await call('POST', '/auth/logout');
   });
 
+  it('los links del mail inválidos, usados o vencidos traen el code del backend', async () => {
+    for (const [token, code] of [
+      ['VENCIDO', 'TOKEN_EXPIRED'],
+      ['USADO', 'TOKEN_USED'],
+      ['', 'TOKEN_INVALID'],
+    ]) {
+      await expect(call('POST', '/auth/verify', { token })).rejects.toMatchObject({
+        status: 400,
+        code,
+      });
+    }
+    await expect(
+      call('POST', '/auth/password/reset', { token: 'VENCIDO', newPassword: 'x' }),
+    ).rejects.toMatchObject({ status: 400, code: 'TOKEN_EXPIRED' });
+  });
+
   it('las preferencias de notificaciones se guardan', async () => {
     const prefs = await call<NotificationPreferences>('GET', '/me/notification-preferences');
     await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: false });

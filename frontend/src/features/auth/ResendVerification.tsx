@@ -35,7 +35,7 @@ export function ResendVerification({ email }: { email?: string }) {
       await resendVerification({ email: target });
       setMessage({
         kind: 'ok',
-        text: `Si ${target} tiene una cuenta sin verificar, te mandamos un link nuevo.`,
+        text: `Si ${target} tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam.`,
       });
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {

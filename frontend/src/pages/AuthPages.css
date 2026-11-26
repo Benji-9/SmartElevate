@@ -94,7 +94,7 @@
  * abajo = 44 px de área táctil (#160). El margen negativo compensa el padding cuando el link es
  * hijo de la grilla; en un link inline el padding vertical ya no mueve el layout.
  */
-.auth > a,
+.auth > a:not(.button),
 .auth__alert a,
 .auth__footer a {
   justify-self: start;

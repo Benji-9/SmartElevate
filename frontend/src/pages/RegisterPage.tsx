@@ -106,7 +106,7 @@ export function RegisterPage() {
           <h2>Revisá tu email</h2>
           <p className="auth__lead">
             Te mandamos un link a <strong>{registeredEmail}</strong> para verificar tu cuenta.
-            Después de verificarla vas a poder ingresar.
+            Después de verificarla vas a poder ingresar. Si no lo ves, mirá en spam.
           </p>
           <ResendVerification email={registeredEmail} />
           <Link to="/login">Ir a ingresar</Link>

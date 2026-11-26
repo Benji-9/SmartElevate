@@ -868,9 +868,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => {
       // Tokens de prueba: "VENCIDO" y "USADO" dan el 400 con su motivo.
       const token = ((body as { token?: string }).token ?? '').toUpperCase();
-      if (token.includes('VENCIDO')) throw new ApiError(400, 'El link venció. Pedí uno nuevo.');
-      if (token.includes('USADO')) throw new ApiError(400, 'Este link ya se usó.');
-      if (!token) throw new ApiError(400, 'El link no es válido.');
+      if (token.includes('VENCIDO')) {
+        throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
+      }
+      if (token.includes('USADO')) throw rejected(400, 'TOKEN_USED', 'Este link ya se usó.');
+      if (!token) throw rejected(400, 'TOKEN_INVALID', 'El link no es válido.');
       return undefined;
     },
   ],
@@ -898,7 +900,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
       // Token de prueba "VENCIDO": el link ya no sirve.
       const { token, newPassword } = body as ResetPasswordRequest;
       if (!token || token.toUpperCase().includes('VENCIDO')) {
-        throw new ApiError(400, 'El link venció o ya se usó. Pedí uno nuevo.');
+        throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
       }
       if (!newPassword) {
         throw new ApiError(400, 'Datos inválidos', [
