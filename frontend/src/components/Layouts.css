@@ -52,9 +52,17 @@
     max-width: var(--container-max);
   }
 
+  /*
+   * Tarjetas centradas (hasta 480): el selector solo se ve desde 1024 px y ahí no llega a la
+   * tarjeta, así que no se le reserva lugar (el login no scrollea de más y quedan centradas).
+   */
+  .screen:has(.auth-card) {
+    padding-bottom: 0;
+  }
+
   /* Columna de 480 en tarjeta sobre surface-subtle (como el login), centrada en el alto. */
   .screen:has(> .screen__main--framed) {
-    padding-block: 32px calc(32px + var(--toggle-clearance, 0px));
+    padding-block: 32px;
     background: var(--color-disabled-bg);
   }
 

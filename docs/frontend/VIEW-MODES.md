@@ -64,7 +64,7 @@ Control segmentado de dos opciones, fijo en la esquina inferior derecha de la ve
 | Accesibilidad | contenedor `role="radiogroup"` con `aria-label="Vista de la aplicación"`; cada opción `role="radio"` con `aria-checked`; foco visible `--focus`; flechas ← → cambian la opción |
 | Íconos | opcionales (monitor y celular de trazo, 20 px); el set de íconos aún no está elegido, así que puede ir solo texto |
 
-Reglas: no se dibuja dentro del marco del teléfono ni dentro del layout de Pantalla (flota sobre ambos); no se imprime. Como flota, en Pantalla nunca tapa contenido: cuando está a la vista define `--toggle-clearance` (112 px) y cada pantalla deja ese lugar libre al final (y la columna fija de Reservar se acorta), así "Confirmar turno" y el último botón de cualquier pantalla quedan por encima.
+Reglas: no se dibuja dentro del marco del teléfono ni dentro del layout de Pantalla (flota sobre ambos); no se imprime. Como flota, en Pantalla nunca tapa contenido: cuando está a la vista define `--toggle-clearance` (112 px) y cada pantalla deja ese lugar libre al final (y la columna fija de Reservar se acorta), así "Confirmar turno" y el último botón de cualquier pantalla quedan por encima. Excepción: las pantallas de tarjeta centrada (login, registro y las `framed`) no reservan ese lugar, porque la tarjeta no llega a la esquina del selector.
 
 ---
 
