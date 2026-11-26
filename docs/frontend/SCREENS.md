@@ -73,6 +73,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 
 - Frame de **390 × 844**. Se implementa como contenedor a pantalla completa con `max-width: 390px` centrado en escritorio.
 - Esqueleto: `header` opcional → `main` (`padding` de 20 px lateral) → `BottomNav` opcional (fijo abajo).
+- Mientras se recupera la sesión al abrir una ruta privada, se ve el esqueleto de la pantalla: `TopBar` (en Pantalla) y un `Skeleton` "Cargando…" (`role="status"`), nunca un texto suelto sobre blanco.
 - `PageHeader` interno: pad 8/20, gap 12, alineado al centro. `BackButton` = círculo de 36 px con fondo `--surface-subtle` y flecha "←" (18 px, 600); área táctil de 44 px. Título en `.text-heading`.
 
 ---
