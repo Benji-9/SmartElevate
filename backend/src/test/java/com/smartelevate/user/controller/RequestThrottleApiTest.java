@@ -21,8 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * M2 (#344): tope de pedidos por IP en registro, reenvío de verificación y "olvidé mi contraseña". Con el tope real
- * (60): la config de test lo sube para el resto de las pruebas, que comparten la IP de MockMvc.
+ * M2 (#344): tope de pedidos por IP en registro, reenvío de verificación y "olvidé mi contraseña", con un tope propio
+ * de 60 (el default de 1000 es holgado a propósito). La config de test lo sube para el resto de las pruebas, que
+ * comparten la IP de MockMvc.
  */
 @SpringBootTest(properties = "app.request-throttle.max-per-ip=60")
 @AutoConfigureMockMvc

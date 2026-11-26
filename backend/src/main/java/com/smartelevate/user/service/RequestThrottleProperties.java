@@ -9,13 +9,14 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * Tope de pedidos por IP de registro, reenvío de verificación y "olvidé mi contraseña" (#344). Parámetro de
- * seguridad: {@code application.yml} con override por variable de entorno (ADR 0017).
+ * seguridad: {@code application.yml} con override por variable de entorno (ADR 0017). El tope es holgado a propósito
+ * hasta confirmar que se ve la IP real del cliente detrás de Vercel y Render (infraestructura.md, riesgo 3).
  */
 @Validated
 @ConfigurationProperties(prefix = "app.request-throttle")
 public record RequestThrottleProperties(
         @DefaultValue("PT15M") @NotNull Duration window,
-        @DefaultValue("60") @Min(1) int maxPerIp) {
+        @DefaultValue("1000") @Min(1) int maxPerIp) {
 
     public RequestThrottleProperties {
         if (window != null && !window.isPositive()) {
