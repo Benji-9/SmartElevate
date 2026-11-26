@@ -29,7 +29,7 @@ Para resolver una tarea concreta.
 Para consultar un dato exacto.
 
 - [Reglas de negocio](reglas/README.md): [turnos](reglas/turnos.md), [asignación](reglas/asignacion.md), [check-in con QR](reglas/check-in-qr.md), [usuarios y prioridad](reglas/usuarios-y-prioridad.md), [KPIs](reglas/kpis.md).
-- [Contrato de la API (`openapi.json`)](openapi.json): generado desde el código; Swagger UI en `/swagger-ui.html`.
+- [Contrato de la API (`openapi.json`)](openapi.json): generado desde el código; Swagger UI en `/swagger-ui.html` en dev local (apagada en `prod` desde #345).
 - [`.env.example`](../.env.example): variables del backend y checklist de `prod` (las del frontend, en su [README](../frontend/README.md#variables-de-entorno)).
 - [Diagrama entidad-relación (DER)](referencia/der.md): tablas, relaciones y constraints de la base.
 - [CI/CD: workflows](referencia/ci-cd.md).
