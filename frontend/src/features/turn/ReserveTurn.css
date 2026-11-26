@@ -216,7 +216,8 @@
     top: calc(var(--topbar-h) + 32px);
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - var(--topbar-h) - 64px);
+    /* Sin el lugar del selector de vista: "Confirmar turno" queda arriba de él. */
+    height: calc(100dvh - var(--topbar-h) - 64px - var(--toggle-clearance, 0px));
     min-height: 320px;
   }
 

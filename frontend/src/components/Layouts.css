@@ -37,6 +37,8 @@
 @container app (min-width: 900px) {
   .screen {
     max-width: none;
+    /* El selector de vista flota abajo a la derecha: lo último de la página scrollea por encima. */
+    padding-bottom: var(--toggle-clearance, 0px);
   }
 
   .screen__main {
