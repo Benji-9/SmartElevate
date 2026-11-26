@@ -1,5 +1,7 @@
 package com.smartelevate.user.dto;
 
+import com.smartelevate.common.validation.PasswordPolicy;
+import com.smartelevate.common.validation.ValidPassword;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
@@ -8,7 +10,10 @@ public record LoginRequest(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "jmartinez@uade.edu.ar")
         @NotBlank(message = "Ingresá tu email.")
         String email,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, format = "password", example = "una-clave-larga")
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, format = "password", example = "una-clave-larga",
+                maxLength = PasswordPolicy.MAX,
+                description = "Hasta " + PasswordPolicy.MAX + " caracteres, contados como en el registro (tras NFKC)")
         @NotBlank(message = "Ingresá tu contraseña.")
+        @ValidPassword(onlyMax = true)
         String password) {
 }
