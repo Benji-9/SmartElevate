@@ -173,9 +173,10 @@ export function CheckInPage() {
             : 'No pudimos usar la cámara'}
         </h2>
         <p>
+          {QR_INSTRUCTION}{' '}
           {camera === 'denied'
-            ? 'Para hacer check-in hay que escanear el QR del ascensor. Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
-            : 'Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular.'}
+            ? 'Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
+            : 'Probá con otro navegador o con el celular.'}
         </p>
       </section>
     );
@@ -184,8 +185,7 @@ export function CheckInPage() {
       <>
         <div className="check-in__finder" aria-hidden="true" />
         {camera === 'starting' && <p role="status">Pidiendo permiso para usar la cámara…</p>}
-        <p className="check-in__instructions">Apuntá la cámara al QR de la pantalla del ascensor</p>
-        <p className="check-in__note">{QR_INSTRUCTION} El código rota: no le saques foto.</p>
+        <p className="check-in__instructions">{QR_INSTRUCTION}</p>
       </>
     );
   }

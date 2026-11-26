@@ -78,9 +78,7 @@ describe('CheckInPage antes de la apertura', () => {
     await act(() => vi.advanceTimersByTimeAsync(3 * 60_000 + 2_000));
 
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
-    expect(
-      await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(QR_INSTRUCTION)).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Abre a las 14:03 hs' })).not.toBeInTheDocument();
   });
 });
@@ -123,13 +121,10 @@ describe('CheckInPage', () => {
     renderCheckIn();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Check-in' })).toBeInTheDocument();
-    expect(
-      await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
-    ).toBeInTheDocument();
+    // Una sola instrucción del QR, la misma que en el resto de la app.
+    expect(await screen.findByText(QR_INSTRUCTION)).toBeInTheDocument();
+    expect(screen.queryByText(/Apuntá la cámara|rota/)).not.toBeInTheDocument();
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
-    expect(
-      screen.getByText(`${QR_INSTRUCTION} El código rota: no le saques foto.`),
-    ).toBeInTheDocument();
     const sheet = screen.getByRole('region', { name: 'Tu turno' });
     expect(await within(sheet).findByText('14:04 hs')).toBeInTheDocument();
     expect(within(sheet).getByText('Lima 1 · Ascensor 33 · Piso 5')).toBeInTheDocument();
@@ -146,7 +141,7 @@ describe('CheckInPage', () => {
       'href',
       '/reservar',
     );
-    expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
+    expect(screen.queryByText(QR_INSTRUCTION)).not.toBeInTheDocument();
     expect(getUserMedia).not.toHaveBeenCalled();
   });
 
@@ -159,7 +154,7 @@ describe('CheckInPage', () => {
     renderCheckIn();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
-    expect(await screen.findByText(/Apuntá la cámara/)).toBeInTheDocument();
+    expect(await screen.findByText(QR_INSTRUCTION)).toBeInTheDocument();
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
   });
 
@@ -251,10 +246,9 @@ describe('CheckInPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Tocá el candado junto a la dirección, permití la cámara y recargá la página/,
+        `${QR_INSTRUCTION} Tocá el candado junto a la dirección, permití la cámara y recargá la página.`,
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /manualmente/ })).not.toBeInTheDocument();
   });
 
@@ -264,6 +258,9 @@ describe('CheckInPage', () => {
 
     expect(
       await screen.findByRole('heading', { name: 'No pudimos usar la cámara' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`${QR_INSTRUCTION} Probá con otro navegador o con el celular.`),
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });

@@ -250,7 +250,7 @@ Recién reservado (`state.justReserved` desde `/reservar`): sin header ni tabs, 
 
 Pantalla **oscura**: fondo `--surface-dark`; barra de estado, título y textos en `--on-dark`. Header con volver (círculo con fondo blanco al 15 %) + "Check-in" en `.text-heading` blanco.
 
-1. **Vista de cámara** (columna centrada, pad 40/20/24/20, gap 20): visor de **250 × 250**, `--radius-2xl`, borde 3 px `--on-dark`, con la imagen de la cámara adentro (en el mockup, un cuadrado de 160 px translúcido); texto 16 px / 600 `--on-dark` centrado "Apuntá la cámara al QR de la pantalla del ascensor"; texto 13 px `--on-dark-muted` con el texto único del QR y "El código rota: no le saques foto."
+1. **Vista de cámara** (columna centrada, pad 40/20/24/20, gap 20): visor de **250 × 250**, `--radius-2xl`, borde 3 px `--on-dark`, con la imagen de la cámara adentro (en el mockup, un cuadrado de 160 px translúcido); texto 16 px / 600 `--on-dark` centrado con el texto único del QR (§ Reglas de negocio), sin otra instrucción al lado.
 2. **Hoja inferior** (`--surface`, esquinas superiores `--radius-2xl`, pad 20/20/32/20, gap 12): fila con "Tu turno" (`.text-card-title`) y `Chip` accent "7:25 hs" (`departureAt` de `GET /api/reservations/active`); 14 px `--ink-muted` "Lima 3 · Ascensor 33 · Piso 7".
 
 Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y con la respuesta va a `/check-in/ok`. **No hay ingreso manual del código** ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)): el token tiene ~80 caracteres opacos.
@@ -270,7 +270,7 @@ Sin red u otro error: "No pudimos conectarnos. Probá de nuevo."
 
 **Check-in anticipado:** antes de `checkInOpensAt` (de `GET /api/reservations/active`) no se pide la cámara: el visor se reemplaza por "Abre a las 14:03 hs" (hora de Buenos Aires) y "Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.", con Elevy durmiendo (`duerme`, 96 px). La pantalla re-evalúa cada segundo y, al abrir, activa la cámara sola.
 
-**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo y el check-in ya abrió. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra a Elevy (`senala`) y "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error. Los dos casos de cámara llevan a Elevy (`triste`). Permiso negado: "No tenemos permiso para usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Habilitá la cámara desde la configuración del navegador." Sin cámara: "No pudimos usar la cámara" · "Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular."
+**Permiso de cámara:** se pide recién cuando se confirma que hay un turno activo y el check-in ya abrió. Sin turno no se pide: la vista de cámara queda vacía y la hoja muestra a Elevy (`senala`) y "No tenés un turno activo. Reservá un turno". Si falla la carga del turno, la cámara se pide igual (el servidor valida el check-in) y la hoja muestra el error. Los dos casos de cámara llevan a Elevy (`triste`). Permiso negado: "No tenemos permiso para usar la cámara" · texto único del QR + "Tocá el candado junto a la dirección, permití la cámara y recargá la página." Sin cámara: "No pudimos usar la cámara" · texto único del QR + "Probá con otro navegador o con el celular."
 
 ## 07 · Viaje registrado — `/check-in/ok`
 
