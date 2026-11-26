@@ -91,7 +91,7 @@ class ReservationServiceTest {
         Core core = new Core("IND2", building, "Independencia 2");
         Set<Integer> floors = new java.util.HashSet<>(IntStream.rangeClosed(-4, 11).boxed().toList());
         floors.remove(1);
-        elevator = new Elevator("33", core, ElevatorUsage.COMMON, true, floors);
+        elevator = new Elevator("33", core, ElevatorUsage.COMMON, true, floors, Set.of());
 
         lenient().when(users.lockById(USER)).thenReturn(Optional.of(org.mockito.Mockito.mock(User.class)));
         lenient().when(config.bookingClosesBefore()).thenReturn(Duration.ofMinutes(2));
@@ -245,7 +245,7 @@ class ReservationServiceTest {
             "REDUCED_MOBILITY, REDUCED_MOBILITY, true",
             "COMMON, NONE, true", "COMMON, TEACHER, true", "COMMON, REDUCED_MOBILITY, true"})
     void dedicatedElevatorsOnlyAdmitTheirCategory(ElevatorUsage usage, PriorityCategory priority, boolean allowed) {
-        elevator = new Elevator("05", elevator.getCore(), usage, true, elevator.getFloors());
+        elevator = new Elevator("05", elevator.getCore(), usage, true, elevator.getFloors(), Set.of());
         departureAt(NOW.plus(Duration.ofMinutes(10)));
         given(priorities.currentPriority(USER)).willReturn(priority);
 
@@ -258,7 +258,7 @@ class ReservationServiceTest {
 
     @Test
     void dedicatedElevatorDoesNotHoldPrioritySeatsAndMarksTheReservation() {
-        elevator = new Elevator("05", elevator.getCore(), ElevatorUsage.TEACHERS, true, elevator.getFloors());
+        elevator = new Elevator("05", elevator.getCore(), ElevatorUsage.TEACHERS, true, elevator.getFloors(), Set.of());
         departureAt(NOW.plus(Duration.ofMinutes(10)));
         given(priorities.currentPriority(USER)).willReturn(PriorityCategory.TEACHER);
         seatsTaken(9);
