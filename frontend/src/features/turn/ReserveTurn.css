@@ -77,6 +77,9 @@
   border-radius: var(--radius-button);
   background: var(--color-surface);
   cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 /* Borde de 2 px: se resta 1 px al padding para que la fila no salte. */
@@ -118,6 +121,9 @@
   display: block;
   height: 100%;
   background: var(--color-primary);
+  /* El largo sale de `scaleX` (SlotList): se anima sin recalcular el layout. */
+  transform-origin: left;
+  transition: transform var(--duration-base) var(--ease-out);
 }
 
 .slot__count {

@@ -187,7 +187,18 @@ describe('ReserveTurnPage', () => {
 
     const slot = (await screen.findByRole('radio', { name: /^14:32/ })).closest('label')!;
     expect(slot).toHaveTextContent('8 libres');
-    expect(slot.querySelector('.slot__bar > span')).toHaveStyle({ width: '0%' });
+    expect(slot.querySelector('.slot__bar > span')).toHaveStyle({ transform: 'scaleX(0)' });
+  });
+
+  it('la barra escala según los reservados: 4 de 10 llena el 40 %', async () => {
+    stubApi({
+      ...routes,
+      [offerFor(0, 5)]: { body: [departure(1, '01', '17:32', 6)] },
+    });
+    await renderSlots();
+
+    const slot = (await screen.findByRole('radio', { name: /^14:32/ })).closest('label')!;
+    expect(slot.querySelector('.slot__bar > span')).toHaveStyle({ transform: 'scaleX(0.4)' });
   });
 
   it('ordena los núcleos como la spec: Lima primero', async () => {

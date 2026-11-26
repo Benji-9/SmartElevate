@@ -35,6 +35,10 @@
   font-size: var(--text-14);
   font-weight: var(--font-medium);
   cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .option-group__options--grid .option {
