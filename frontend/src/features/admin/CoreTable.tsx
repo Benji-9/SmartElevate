@@ -16,7 +16,7 @@ export function CoreTable({ cores }: { cores: CoreKpis[] }) {
       {cores.length === 0 ? (
         <p className="page-placeholder">No hay núcleos para mostrar.</p>
       ) : (
-        <div className="core-table__scroll">
+        <div className="core-table__scroll" role="group" aria-labelledby={titleId} tabIndex={0}>
           <table className="core-table" aria-labelledby={titleId}>
             <thead>
               <tr>

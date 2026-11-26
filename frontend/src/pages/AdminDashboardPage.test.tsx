@@ -131,7 +131,9 @@ describe('AdminDashboardPage', () => {
 
     const chart = await screen.findByRole('figure', { name: 'Reservas por hora' });
     const table = within(chart).getByRole('table', { name: 'Reservas por hora del día' });
-    expect(within(table).getByRole('row', { name: '9:00 a 10:00 120 (hora pico)' })).toBeInTheDocument();
+    expect(
+      within(table).getByRole('row', { name: '9:00 a 10:00 120 (hora pico)' }),
+    ).toBeInTheDocument();
   });
 
   it('muestra el estado por núcleo con su nivel en texto', async () => {
@@ -222,19 +224,12 @@ describe('AdminDashboardPage', () => {
     }
   });
 
-  it('en pantallas angostas avisa que el panel es para computadora', async () => {
-    // jsdom no evalúa container queries: el aviso siempre está en el DOM y el CSS
-    // (@container app) decide si se ve el aviso o el panel.
+  it('no bloquea pantallas angostas: un solo h1, dentro de main', async () => {
     renderAdmin();
 
-    expect(
-      await screen.findByRole('heading', {
-        name: 'El panel de administración es para computadora',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Abrilo desde una pantalla más grande para ver el detalle de congestión.'),
-    ).toBeInTheDocument();
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByRole('main')).toContainElement(heading);
+    expect(screen.queryByText(/es para computadora/)).not.toBeInTheDocument();
   });
 
   it('muestra el error y permite reintentar', async () => {

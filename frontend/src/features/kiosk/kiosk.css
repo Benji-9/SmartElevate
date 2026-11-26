@@ -119,7 +119,7 @@
 }
 
 .kiosk-create .input {
-  min-width: 260px;
+  min-width: min(260px, 100%);
 }
 
 .kiosk-error {

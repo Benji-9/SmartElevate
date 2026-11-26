@@ -10,7 +10,7 @@
   background: var(--color-bg);
 }
 
-/* Las pantallas (.screen, .admin-shell) llenan el alto del shell. */
+/* Las pantallas (.screen, .admin) llenan el alto del shell. */
 .app-shell > * {
   flex: 1;
 }
