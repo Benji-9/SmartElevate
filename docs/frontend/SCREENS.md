@@ -90,7 +90,7 @@ Con `VITE_USE_MOCKS=true` (solo `npm run dev`) el front usa datos simulados (`se
 7. "¿No tenés cuenta? Registrate" — 14 px, `--ink-muted`, centrado; "Registrate" es un link a `/registro` en `--accent`.
 8. Footer legal con el logotipo de UADE arriba (`LegalFooter withUadeLogo`, 86 px de ancho).
 
-Estados: error de credenciales → `error` en el `Input` de contraseña.
+Estados: error de credenciales → aviso `--danger-tint` (`role="alert"`) con el mensaje del servidor sobre el botón. **Sesión vencida:** cuando un pedido autenticado responde 401 y no se puede renovar, la app vuelve acá con el aviso "Tu sesión venció. Ingresá de nuevo." (lo arma `services/api.ts`; no aplica a `/auth/*`). Un 403 no es sesión vencida: muestra el mensaje del servidor donde ocurrió.
 
 ## 02 · Registro — `/registro`
 

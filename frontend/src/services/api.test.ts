@@ -79,6 +79,37 @@ describe('sesión en services/api', () => {
     unsubscribe();
   });
 
+  it('expiredSessionShowsLoginMessage: el 401 de un pedido autenticado pide ingresar de nuevo', async () => {
+    await signIn();
+    stubApi({
+      'POST /auth/refresh': { status: 401, body: { message: 'Refresh vencido' } },
+      'GET /users/me': meAccepting('token-2'),
+    });
+
+    await expect(getMe()).rejects.toMatchObject({
+      status: 401,
+      message: 'Tu sesión venció. Ingresá de nuevo.',
+    });
+  });
+
+  it('un 403 conserva el mensaje del servidor: no es una sesión vencida', async () => {
+    await signIn();
+    stubApi({ 'GET /users/me': { status: 403, body: { message: 'No tenés permisos' } } });
+
+    await expect(getMe()).rejects.toMatchObject({ status: 403, message: 'No tenés permisos' });
+  });
+
+  it('un 401 de /auth/* con sesión conserva el mensaje del servidor', async () => {
+    await signIn();
+    stubApi({
+      'POST /auth/login': { status: 401, body: { message: 'Email o contraseña incorrectos' } },
+    });
+
+    await expect(login({ email: 'ana.perez@uade.edu.ar', password: 'x' })).rejects.toMatchObject({
+      message: 'Email o contraseña incorrectos',
+    });
+  });
+
   it('si el refresh falla por el servidor (5xx) no cierra la sesión', async () => {
     await signIn();
     stubApi({
