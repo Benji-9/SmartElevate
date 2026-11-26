@@ -6,7 +6,7 @@ Cómo funciona la sesión y cómo agregar un endpoint (público, protegido o por
 
 Públicos: `/api/ping`, `/api/auth/**`, `GET /api/elevators`, `GET /api/buildings`, la documentación (`/v3/api-docs`, `/swagger-ui.html`) y `/actuator/health`. **Todo lo demás exige `Authorization: Bearer <accessToken>`**. Para agregar un endpoint:
 
-- Protegido: no hay que hacer nada, es el default. Por rol, `@PreAuthorize("hasRole('ADMIN')")` en el método (sin token da 401, con otro rol 403).
+- Protegido: no hay que hacer nada, es el default. Por rol, `@PreAuthorize("hasRole('ADMIN')")` en el método (sin token da 401, con otro rol 403). Todo `/api/admin/**` exige además ADMIN en `SecurityConfig`, antes de validar el pedido: una ruta para otro rol no va bajo ese prefijo.
 - Usuario actual: parámetro `@AuthenticationPrincipal CurrentUser user` (`common/security`).
 - Documentarlo en OpenAPI: `@SecurityRequirement(name = OpenApiConfig.BEARER)` en el controller.
 - Público: sumarlo a `SecurityConfig.PUBLIC_ANY` / `PUBLIC_GET`, solo con motivo.
