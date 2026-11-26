@@ -132,7 +132,15 @@ Un formulario o un `fetch` cross-site simple no puede mandar `X-Requested-With`;
 
 **401 de refresh.** Cuando el refresh es inválido, vencido, revocado o reusado (o falta la cookie), el 401 trae además un `Set-Cookie` que expira la cookie (mismos nombre, `Path` y `SameSite`), para que el navegador no siga mandando un token muerto.
 
-**Comportamiento heredado del ADR-0014** (sigue vigente): al abrir o recargar la pestaña, `restoreSession` canjea el refresh y pide el usuario al servidor. Un 401 con access vencido dispara **un único** refresh compartido (el segundo canje revocaría la sesión) y reintenta; si el refresh falla, se borra todo y se avisa que la sesión venció. Logout revoca el refresh y limpia igual aunque falle la red. El usuario (rol, prioridad) se pide al servidor; nunca se lee de claims del JWT ([ADR-0009](0009-autenticacion-y-prioridad.md)).
+**Comportamiento heredado del ADR-0014** (sigue vigente): al abrir o recargar la pestaña, si el navegador tiene la marca local de sesión (ver la enmienda de abajo), `restoreSession` canjea el refresh y pide el usuario al servidor. Un 401 con access vencido dispara **un único** refresh compartido (el segundo canje revocaría la sesión) y reintenta; si el refresh falla, se borra todo y se avisa que la sesión venció. Logout revoca el refresh y limpia igual aunque falle la red. El usuario (rol, prioridad) se pide al servidor; nunca se lee de claims del JWT ([ADR-0009](0009-autenticacion-y-prioridad.md)).
+
+**Enmienda (2026-11-26, [#350](https://github.com/Benji-9/SmartElevate/issues/350)): marca local de sesión.** Antes se pedía el refresh en cada apertura o recarga, y cada visita sin sesión dejaba un error en la consola.
+
+- El front guarda `localStorage['se:session']` cuando recibe tokens (login o refresh) y la borra al cerrar sesión y cuando el refresh responde 401 o 403. Sin la marca, `restoreSession` no llama a `/auth/refresh`.
+- La marca **no es una credencial**: no tiene ningún token ni dato de la persona. La sesión sigue dependiendo solo de la cookie `HttpOnly`, que valida el backend.
+- Si no se puede leer el storage (bloqueado), se intenta el refresh como antes.
+- Las sesiones abiertas antes del deploy de este cambio no tienen la marca: piden ingresar una vez más.
+- Si el logout falla por la red, la marca se borra igual y la sesión ya no se restaura al recargar, aunque la cookie no se haya revocado (salvo que otra pestaña con la sesión abierta vuelva a canjearla, o que el storage esté bloqueado).
 
 ---
 

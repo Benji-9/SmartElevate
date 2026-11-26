@@ -151,12 +151,35 @@ async function send<T>(
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+// La cookie HttpOnly no se ve desde el JS: esta marca (no es una credencial) dice que en este
+// navegador hubo una sesión. Sin ella no se pide el refresh, que solo daría un 401 en la consola.
+const SESSION_HINT = 'se:session';
+
+function setSessionHint(on: boolean) {
+  try {
+    if (on) localStorage.setItem(SESSION_HINT, '1');
+    else localStorage.removeItem(SESSION_HINT);
+  } catch {
+    // Sin storage no hay marca: `mayHaveSession` pide el refresh como siempre.
+  }
+}
+
+function mayHaveSession() {
+  try {
+    return localStorage.getItem(SESSION_HINT) !== null;
+  } catch {
+    return true;
+  }
+}
+
 function saveTokens({ accessToken: access }: TokenResponse) {
   accessToken = access;
+  setSessionHint(true);
 }
 
 function clearTokens() {
   accessToken = null;
+  setSessionHint(false);
 }
 
 /**
@@ -251,8 +274,12 @@ export async function login(body: LoginRequest): Promise<User> {
   return getMe();
 }
 
-/** Recupera la sesión al abrir la app con la cookie del refresh. `null` si no hay sesión (401). */
+/**
+ * Recupera la sesión al abrir la app con la cookie del refresh. `null` si no hay sesión (401) o si
+ * este navegador nunca la tuvo.
+ */
 export async function restoreSession(): Promise<User | null> {
+  if (!mayHaveSession()) return null;
   try {
     if (!(await refreshAccessToken())) return null;
   } catch {

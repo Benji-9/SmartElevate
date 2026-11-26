@@ -50,7 +50,7 @@ class AdminKpiServiceTest {
     private long ids;
 
     private static Elevator elevator(String code, Core core) {
-        return new Elevator(code, core, ElevatorUsage.COMMON, true, Set.of(0, 5));
+        return new Elevator(code, core, ElevatorUsage.COMMON, true, Set.of(0, 5), Set.of());
     }
 
     private AdminKpiService service(Instant now) {

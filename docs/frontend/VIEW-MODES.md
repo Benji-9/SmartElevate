@@ -236,7 +236,7 @@ Estados de puntero (solo con `@media (hover: hover)`): botón primary `opacity: 
 
 Pensadas para presentar el MVP; se activan con `?demo=1` en la URL y no aparecen para el usuario final.
 
-- **"Simular escaneo del QR"** en `/check-in`: botón secondary debajo del visor que manda el token `DEMO` a `POST /api/check-ins`. En una laptop no hay un QR real que escanear ni una cámara cómoda de usar. Solo los datos simulados lo aceptan (sale cumplido); el backend real lo rechaza con `INVALID_QR_TOKEN`: contra la API, escaneá el QR del simulador de kiosco (`/admin/simulador`).
+- **"Simular escaneo del QR"** en `/check-in`: botón secondary debajo del visor que manda el token `DEMO` a `POST /api/check-ins`. En una laptop no hay un QR real que escanear ni una cámara cómoda de usar. Solo los datos simulados lo aceptan (sale cumplido); el backend real lo rechaza con `INVALID_QR_TOKEN`: contra la API, escaneá el QR del simulador de kiosco (`/admin/simulador`). Solo con los datos simulados, sumar `&checkin=tarde` o `&checkin=otro` a la URL hace que ese botón dé fuera de hora u otro ascensor; el pedido sigue mandando `DEMO`.
 - Los parámetros de URL se combinan: `/?vista=telefono&demo=1` abre la app ya en modo Teléfono con las ayudas de demo, útil para dejar el link listo antes de presentar.
 
 ---

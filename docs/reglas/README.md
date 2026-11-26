@@ -58,6 +58,9 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Ascensores y pisos servidos | Ver [asignación](asignacion.md#ascensores-y-pisos-servidos) | Relevado en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Conexiones entre núcleos | IND2 – IND1 – L3 – L2 – L1, en todos los pisos compartidos | Ver [asignación](asignacion.md#conexiones). Punta a punta ~45–70 s; accesibilidad relevada en [#22](https://github.com/Benji-9/SmartElevate/issues/22) |
 | Ascensores dedicados | IND1 05 docentes · IND1 06 movilidad reducida | Ver [asignación](asignacion.md#ascensores-dedicados) |
+| Zonas de pisos semilla | Por ascensor común | Tabla `elevator_zone_floor` (`V23`). Ver [asignación](asignacion.md#zonas-de-pisos), [ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md). A calibrar en el piloto |
+| Apertura de las zonas (N) | 5 min antes | `zone_open_to_any_before` (`V23`): desde ahí se ofrece la salida con más lugares libres. Mayor que el cierre de la reserva y menor que su apertura. A calibrar en el piloto |
+| Afinidad de zonas | 2 pisos | `zone_affinity_max_floors` (`V23`): distancia máxima a **cada** destino reservado para sumarse a una salida. A calibrar en el piloto |
 | Umbrales de congestión | Media desde 60 % · alta desde 85 % de ocupación | `congestion_medium_from`, `congestion_high_from`. Propuesta **a calibrar en el piloto** ([KPIs](kpis.md#congestión), [#220](https://github.com/Benji-9/SmartElevate/issues/220)) |
 | Turno mañana | 07:00 – 13:00 | `morning_shift_start`, `morning_shift_end`. Filtro del panel ([KPIs](kpis.md#filtros)) |
 | Turno tarde | 13:00 – 18:00 | `afternoon_shift_start`, `afternoon_shift_end` |

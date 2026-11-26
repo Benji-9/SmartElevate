@@ -263,7 +263,8 @@ HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay qu
 
 - [ ] `POST /api/auth/login` (DevTools → Network) responde 200 y su `Set-Cookie` es `refresh_token; Path=/api/auth; Secure; HttpOnly; SameSite=Lax`. En Application → Cookies, la cookie figura bajo el **dominio del front** (no `onrender.com`): es de primera parte. Si aparece "This Set-Cookie was blocked", el cliente no está usando `/api` (`VITE_API_URL`).
 - [ ] **Recargar la pestaña mantiene la sesión**: la primera request es `POST /api/auth/refresh` con 200 y cookie nueva, sin volver al login.
-- [ ] Sin sesión (ventana privada, o después de cerrar sesión), abrir el front hace un `POST /api/auth/refresh` que responde **401**: es lo esperado, no un error. Ese 401 trae un `Set-Cookie` que expira la cookie. Cualquier otro código es un problema: **403** = falta el header `X-Requested-With` o el `Origin` no está en `CORS_ALLOWED_ORIGINS`.
+- [ ] Sin sesión previa (ventana privada, o después de cerrar sesión), abrir el front **no** hace `POST /api/auth/refresh`: falta la marca local `se:session` ([ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md), enmienda del 2026-11-26).
+- [ ] Con la marca pero sin cookie (ingresar, borrar la cookie en Application → Cookies y recargar), el `POST /api/auth/refresh` responde **401**: es lo esperado, no un error. Ese 401 trae un `Set-Cookie` que expira la cookie. Cualquier otro código es un problema: **403** = falta el header `X-Requested-With` o el `Origin` no está en `CORS_ALLOWED_ORIGINS`.
 - [ ] Dos pestañas abiertas a la vez: ninguna cierra la sesión de la otra (el canje corre dentro de `navigator.locks`).
 - [ ] Cerrar sesión: `POST /api/auth/logout` responde 204 y la cookie desaparece.
 
