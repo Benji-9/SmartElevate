@@ -30,3 +30,11 @@ server:
 app:
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
+
+# La documentación interactiva no se publica en producción: lista todos los endpoints, incluidos los de admin (#345).
+# El contrato versionado está en docs/openapi.json; Swagger UI se usa en dev.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
