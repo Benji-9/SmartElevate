@@ -75,7 +75,6 @@
   font-weight: var(--font-semibold);
 }
 
-.check-in__note,
 .check-in__message p {
   font-size: var(--text-14);
   color: var(--color-text-muted);

@@ -147,7 +147,7 @@ export function KioskQr({
       )}
       <p className="text-heading">Escaneá el QR desde la app SmartElevate</p>
       <p className="kiosk-qr__hint">
-        El código cambia cada pocos segundos: escanealo acá, no le saques foto.
+        El código cambia con cada turno de clase: escanealo acá, no le saques foto.
       </p>
       {footer}
     </div>

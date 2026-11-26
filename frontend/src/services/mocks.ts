@@ -18,7 +18,7 @@
 // - Lugares tomados por prioritarios: el cupo reservado se descuenta siempre completo hasta
 //   su liberación (no se compensa con otros prioritarios que ya reservaron).
 // - Salidas que se generan por horario, `sameDay` de la ventana y los parámetros de `app_config`.
-// - Check-in simulado vs. real (`source`) y que las faltas con check-in simulado no cuentan.
+// - Check-in simulado: todo check-in sale como `REAL` y sus faltas cuentan.
 // - Un solo turno activo por usuario se chequea sin distinguir usuarios (hay un estado global).
 // - Tokens de QR: no se firman; los tokens `DEMO`, `TARDE` y `OTRO` saltean la ventana horaria
 //   para poder probar cada resultado sin esperar la hora de salida.
@@ -90,8 +90,18 @@ const checkInOpensAt = (departureAt: string) =>
   new Date(Date.parse(departureAt) - CHECK_IN_OPENS_MS).toISOString();
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
-/** `app.kiosk.qr-ttl` del backend (ADR 0020). */
-const QR_TTL_MS = 30_000;
+/**
+ * `app.kiosk.qr-shift-boundaries` del backend (07, 13, 18 y 23 h de Buenos Aires, ADR 0026) en
+ * horas UTC: Argentina es UTC−3 todo el año.
+ */
+const QR_SHIFT_HOURS_UTC = [2, 10, 16, 21];
+/** El próximo cambio de turno: ahí vence el QR del kiosco. */
+function nextQrShift(now = Date.now()) {
+  const date = new Date(now);
+  // Pasadas las 21 h UTC, el siguiente es el primero de mañana (`setUTCHours` pasa de día).
+  const hour = QR_SHIFT_HOURS_UTC.find((h) => h > date.getUTCHours()) ?? 24 + QR_SHIFT_HOURS_UTC[0];
+  return date.setUTCHours(hour, 0, 0, 0);
+}
 /** Lugares de cada salida común guardados para prioritarios (turnos.md §6). */
 const PRIORITY_SEATS = 2;
 
@@ -868,9 +878,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => {
       // Tokens de prueba: "VENCIDO" y "USADO" dan el 400 con su motivo.
       const token = ((body as { token?: string }).token ?? '').toUpperCase();
-      if (token.includes('VENCIDO')) throw new ApiError(400, 'El link venció. Pedí uno nuevo.');
-      if (token.includes('USADO')) throw new ApiError(400, 'Este link ya se usó.');
-      if (!token) throw new ApiError(400, 'El link no es válido.');
+      if (token.includes('VENCIDO')) {
+        throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
+      }
+      if (token.includes('USADO')) throw rejected(400, 'TOKEN_USED', 'Este link ya se usó.');
+      if (!token) throw rejected(400, 'TOKEN_INVALID', 'El link no es válido.');
       return undefined;
     },
   ],
@@ -902,8 +914,9 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => {
       // Token de prueba "VENCIDO": el link ya no sirve.
       const { token, newPassword } = body as ResetPasswordRequest;
-      if (!token || token.toUpperCase().includes('VENCIDO')) {
-        throw new ApiError(400, 'El link venció o ya se usó. Pedí uno nuevo.');
+      if (!token) throw rejected(400, 'TOKEN_INVALID', 'El link no es válido.');
+      if (token.toUpperCase().includes('VENCIDO')) {
+        throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
       }
       if (!newPassword) {
         throw new ApiError(400, 'Datos inválidos', [
@@ -1038,7 +1051,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         reservedElevator: active.elevator,
         departureAt: active.departureAt,
         checkedInAt: new Date().toISOString(),
-        source: 'SIMULATED',
+        source: 'REAL',
       };
       lastCheckedIn = active.id;
       reservations = reservations.map((r) =>
@@ -1110,7 +1123,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     },
   ],
   // El ascensor sale de la credencial: sirve cualquier `mock-<ascensor>-…` (como las del alta).
-  // Ciclos de 30 s alineados al reloj.
+  // Vence en el próximo cambio de turno.
   [
     'GET',
     /^\/kiosks\/me\/qr-token$/,
@@ -1125,7 +1138,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
           'KIOSK_UNAUTHORIZED',
         );
       }
-      const expiresAt = Math.floor(Date.now() / QR_TTL_MS + 1) * QR_TTL_MS;
+      const expiresAt = nextQrShift();
       return {
         token: `mock-qr-${elevatorId}-${expiresAt}`,
         expiresAt: new Date(expiresAt).toISOString(),

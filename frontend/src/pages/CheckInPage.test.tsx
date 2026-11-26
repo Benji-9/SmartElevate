@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QR_INSTRUCTION } from '../features/check-in/qrInstruction';
 import { createQrReader } from '../features/check-in/qrReader';
 import { signedIn, stubApi, testReservation } from '../test/stubApi';
@@ -78,27 +78,53 @@ describe('CheckInPage antes de la apertura', () => {
     await act(() => vi.advanceTimersByTimeAsync(3 * 60_000 + 2_000));
 
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
-    expect(
-      await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(QR_INSTRUCTION)).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Abre a las 14:03 hs' })).not.toBeInTheDocument();
   });
 });
 
 describe('CheckInPage', () => {
+  // 14:03:30 en Buenos Aires: el check-in de la salida de las 14:04 ya abrió.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-29T17:03:30Z') });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it.each(['OUTSIDE_CHECK_IN_WINDOW', 'NO_ACTIVE_RESERVATION'])(
+    'showsClosedMessageWithTripsLink: con la salida pasada, %s dice que cerró y deja de escanear',
+    async (code) => {
+      vi.setSystemTime(new Date('2026-09-29T17:06:30Z'));
+      const read = vi.fn(async () => `QR-${read.mock.calls.length}`);
+      stubCamera();
+      vi.mocked(createQrReader).mockResolvedValue(read);
+      const fetchMock = stubApi({
+        ...withTurn,
+        'POST /check-ins': { status: 409, body: { message: 'Rechazado', code } },
+      });
+      renderCheckIn();
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('Se cerró el check-in de las 14:04.');
+      expect(alert).not.toHaveTextContent('Rechazado');
+      expect(within(alert).getByRole('link', { name: 'Ver mis viajes' })).toHaveAttribute(
+        'href',
+        '/perfil/viajes',
+      );
+      await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(2));
+      expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
+    },
+  );
+
   it('muestra el visor, las indicaciones y el turno activo', async () => {
     const getUserMedia = stubCamera();
     stubApi(withTurn);
     renderCheckIn();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Check-in' })).toBeInTheDocument();
-    expect(
-      await screen.findByText('Apuntá la cámara al QR de la pantalla del ascensor'),
-    ).toBeInTheDocument();
+    // Una sola instrucción del QR, la misma que en el resto de la app.
+    expect(await screen.findByText(QR_INSTRUCTION)).toBeInTheDocument();
+    expect(screen.queryByText(/Apuntá la cámara|rota/)).not.toBeInTheDocument();
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
-    expect(
-      screen.getByText(`${QR_INSTRUCTION} El código rota: no le saques foto.`),
-    ).toBeInTheDocument();
     const sheet = screen.getByRole('region', { name: 'Tu turno' });
     expect(await within(sheet).findByText('14:04 hs')).toBeInTheDocument();
     expect(within(sheet).getByText('Lima 1 · Ascensor 33 · Piso 5')).toBeInTheDocument();
@@ -115,7 +141,7 @@ describe('CheckInPage', () => {
       'href',
       '/reservar',
     );
-    expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
+    expect(screen.queryByText(QR_INSTRUCTION)).not.toBeInTheDocument();
     expect(getUserMedia).not.toHaveBeenCalled();
   });
 
@@ -128,7 +154,7 @@ describe('CheckInPage', () => {
     renderCheckIn();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error inesperado');
-    expect(await screen.findByText(/Apuntá la cámara/)).toBeInTheDocument();
+    expect(await screen.findByText(QR_INSTRUCTION)).toBeInTheDocument();
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
   });
 
@@ -179,7 +205,7 @@ describe('CheckInPage', () => {
 
     const alert = await screen.findByRole('alert');
     expect(within(alert).getByRole('link', { name })).toHaveAttribute('href', href);
-    // Llegan QR nuevos (rotan), pero con este rechazo no se reenvía ninguno.
+    // Llegan otros QR, pero con este rechazo no se reenvía ninguno.
     await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(2));
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
   });
@@ -220,10 +246,9 @@ describe('CheckInPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Tocá el candado junto a la dirección, permití la cámara y recargá la página/,
+        `${QR_INSTRUCTION} Tocá el candado junto a la dirección, permití la cámara y recargá la página.`,
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Apuntá la cámara/)).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /manualmente/ })).not.toBeInTheDocument();
   });
 
@@ -233,6 +258,9 @@ describe('CheckInPage', () => {
 
     expect(
       await screen.findByRole('heading', { name: 'No pudimos usar la cámara' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`${QR_INSTRUCTION} Probá con otro navegador o con el celular.`),
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });

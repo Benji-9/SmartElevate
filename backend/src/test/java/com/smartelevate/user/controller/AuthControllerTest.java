@@ -236,13 +236,21 @@ class AuthControllerTest {
         postJson("/api/auth/verify", "{\"token\":\"abc\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("TOKEN_USED"))
                 .andExpect(jsonPath("$.message").value("Este link ya se usó."));
 
         willThrow(new InvalidTokenException(InvalidTokenException.Reason.EXPIRED)).given(emailVerification)
                 .verify("old");
         postJson("/api/auth/verify", "{\"token\":\"old\"}")
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TOKEN_EXPIRED"))
                 .andExpect(jsonPath("$.message").value("El link venció. Pedí uno nuevo."));
+
+        willThrow(new InvalidTokenException(InvalidTokenException.Reason.INVALID)).given(emailVerification)
+                .verify("nope");
+        postJson("/api/auth/verify", "{\"token\":\"nope\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TOKEN_INVALID"));
     }
 
     @Test
@@ -370,6 +378,7 @@ class AuthControllerTest {
 
         postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"una-clave-nueva\"}")
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TOKEN_USED"))
                 .andExpect(jsonPath("$.message").value("Este link ya se usó."));
     }
 

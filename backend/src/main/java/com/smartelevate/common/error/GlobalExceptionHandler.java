@@ -213,7 +213,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), "TOKEN_" + ex.getReason().name(), request, List.of());
     }
 
     @ExceptionHandler(TooManyLoginAttemptsException.class)

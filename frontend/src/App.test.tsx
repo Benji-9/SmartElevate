@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
-import { signedIn, signedOut, stubApi, testUser } from './test/stubApi';
+import { signedIn, signedOut, stubApi, testUser, tokens } from './test/stubApi';
 import type { CheckIn } from './types/api';
 
 const checkInResult: CheckIn = {
@@ -184,6 +184,21 @@ describe('App', () => {
       ).toBeInTheDocument();
     },
   );
+
+  it('con la sesión vencida manda a /login y dice por qué', async () => {
+    let refreshes = 0;
+    stubApi({
+      ...signedIn(),
+      // El primero recupera la sesión al abrir; el segundo ya no sirve.
+      'POST /auth/refresh': () =>
+        refreshes++ ? { status: 401, body: { message: 'Refresh vencido' } } : { body: tokens() },
+      'GET /reservations/history': { status: 401, body: { message: 'Necesitás iniciar sesión' } },
+    });
+    renderAt('/perfil/viajes');
+
+    expect(await screen.findByRole('button', { name: 'Ingresar' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Tu sesión venció. Ingresá de nuevo.');
+  });
 
   it('"Volver" regresa a la pantalla anterior', async () => {
     stubApi(signedIn());

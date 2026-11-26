@@ -36,6 +36,24 @@ describe('RegisterPage', () => {
     expect(screen.getByRole('img', { name: 'SmartElevate' })).toBeInTheDocument();
   });
 
+  it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    const button = screen.getByRole('button', { name: 'Crear cuenta' });
+    const clarification =
+      'El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.';
+    for (const block of [
+      screen.getByText(clarification),
+      screen.getByRole('heading', { name: '¿Tenés movilidad reducida?' }),
+    ]) {
+      expect(button.compareDocumentPosition(block)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+    expect(screen.getByRole('radiogroup', { name: 'Tipo de usuario' })).toHaveAccessibleDescription(
+      clarification,
+    );
+  });
+
   it('pide todos los campos', async () => {
     const fetchMock = stubApi(signedOut);
     await renderRegister();
@@ -210,6 +228,7 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Revisá tu email' })).toBeInTheDocument();
     expect(screen.getByText('ana.perez@uade.edu.ar')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Si no lo ves, mirá en spam.');
     const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/register')!;
     expect(JSON.parse(init!.body as string)).toEqual({
       fullName: 'Ana Pérez',

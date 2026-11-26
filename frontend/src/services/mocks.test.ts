@@ -456,6 +456,25 @@ describe('mocks', () => {
     await call('POST', '/auth/logout');
   });
 
+  it('los links del mail inválidos, usados o vencidos traen el code del backend', async () => {
+    for (const [token, code] of [
+      ['VENCIDO', 'TOKEN_EXPIRED'],
+      ['USADO', 'TOKEN_USED'],
+      ['', 'TOKEN_INVALID'],
+    ]) {
+      await expect(call('POST', '/auth/verify', { token })).rejects.toMatchObject({
+        status: 400,
+        code,
+      });
+    }
+    await expect(
+      call('POST', '/auth/password/reset', { token: 'VENCIDO', newPassword: 'x' }),
+    ).rejects.toMatchObject({ status: 400, code: 'TOKEN_EXPIRED' });
+    await expect(
+      call('POST', '/auth/password/reset', { token: '', newPassword: 'x' }),
+    ).rejects.toMatchObject({ status: 400, code: 'TOKEN_INVALID' });
+  });
+
   it('las preferencias de notificaciones se guardan', async () => {
     const prefs = await call<NotificationPreferences>('GET', '/me/notification-preferences');
     await call('PUT', '/me/notification-preferences', { ...prefs, departureReminder: false });
@@ -465,7 +484,7 @@ describe('mocks', () => {
     });
   });
 
-  it('kioscos: el alta da el secreto una vez y el QR vence en ciclos de 30 s', async () => {
+  it('kioscos: el alta da el secreto una vez y el QR sale solo con la credencial', async () => {
     const created = await call<CreatedKiosk>('POST', '/admin/kiosks', {
       elevatorId: '33',
       simulated: true,
@@ -483,7 +502,6 @@ describe('mocks', () => {
     const qr = await call<QrToken>('GET', '/kiosks/me/qr-token', undefined, {
       Authorization: `Bearer ${created.secret}`,
     });
-    expect(Date.parse(qr.expiresAt) % 30_000).toBe(0);
     expect(qr.elevatorId).toBe('33');
     await expect(
       call('GET', '/kiosks/me/qr-token', undefined, { Authorization: 'Bearer cualquiera' }),
@@ -491,6 +509,23 @@ describe('mocks', () => {
     await expect(call('POST', '/admin/kiosks', { elevatorId: '99' })).rejects.toMatchObject({
       status: 404,
     });
+  });
+
+  // Cortes de ADR 0026: 07, 13, 18 y 23 h de Buenos Aires.
+  it.each([
+    ['2026-11-26T12:00:00Z', '2026-11-26T16:00:00.000Z'],
+    ['2026-11-26T16:00:00Z', '2026-11-26T21:00:00.000Z'],
+    ['2026-11-27T01:30:00Z', '2026-11-27T02:00:00.000Z'],
+    ['2026-11-27T02:30:00Z', '2026-11-27T10:00:00.000Z'],
+  ])('el QR del kiosco pedido a las %s vence en el próximo cambio de turno', async (now, next) => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(now) });
+    const headers = { Authorization: 'Bearer mock-33-x' };
+
+    const qr = await call<QrToken>('GET', '/kiosks/me/qr-token', undefined, headers);
+    expect(qr.expiresAt).toBe(next);
+    // En el mismo turno el kiosco recibe siempre el mismo código.
+    vi.setSystemTime(Date.parse(now) + MIN);
+    expect(await call('GET', '/kiosks/me/qr-token', undefined, headers)).toEqual(qr);
   });
 
   it('ascensor fuera de servicio: cancela sin falta, deja de ofrecerse y se reactiva', async () => {

@@ -21,11 +21,16 @@ type CheckInError = { message: string; code?: string };
 const SCAN_INTERVAL_MS = 300;
 /** Token de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
 const DEMO_TOKEN = 'DEMO';
+/** Propio del front: el servidor rechazó el escaneo y la salida del turno ya pasó. */
+const CLOSED = 'CHECK_IN_CLOSED';
+/** Con estos códigos y la salida pasada, la ventana de check-in ya cerró (check-in-qr.md). */
+const CLOSED_CODES = ['OUTSIDE_CHECK_IN_WINDOW', 'NO_ACTIVE_RESERVATION'];
 /** Con estos rechazos otro QR no cambia nada: se deja de escanear. */
-const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN'];
+const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN', CLOSED];
 
 /** Qué puede hacer la persona después de cada rechazo (además del mensaje del servidor). */
 function ErrorAction({ code }: { code?: string }) {
+  if (code === CLOSED) return <Link to="/perfil/viajes">Ver mis viajes</Link>;
   if (code === 'NO_ACTIVE_RESERVATION') return <Link to="/reservar">Reservá un turno</Link>;
   if (code === 'ALREADY_CHECKED_IN') return <Link to="/">Volver al inicio</Link>;
   if (code === 'OUTSIDE_CHECK_IN_WINDOW') {
@@ -71,15 +76,23 @@ export function CheckInPage() {
       navigate('/check-in/ok', { state: result });
     } catch (submitError) {
       failedToken.current = token;
-      setError({
-        message: errorMessage(submitError),
-        code: submitError instanceof ApiError ? submitError.code : undefined,
-      });
+      const code = submitError instanceof ApiError ? submitError.code : undefined;
+      // La API no manda a qué hora cierra: se nombra el turno por su salida.
+      const departureAt = reservation?.departureAt;
+      const closed =
+        departureAt !== undefined &&
+        CLOSED_CODES.includes(code ?? '') &&
+        Date.now() >= Date.parse(departureAt);
+      setError(
+        closed
+          ? { message: `Se cerró el check-in de las ${formatTime(departureAt)}.`, code: CLOSED }
+          : { message: errorMessage(submitError), code },
+      );
       setSubmitting(false);
     }
   }
 
-  // No reintenta el mismo QR que ya falló: el siguiente token (rota) sí se envía.
+  // No reintenta el mismo QR que ya falló: otro token sí se envía.
   const onScan = useEffectEvent((value: string) => {
     if (!submitting && !scanDone && value !== failedToken.current) void submit(value);
   });
@@ -160,9 +173,10 @@ export function CheckInPage() {
             : 'No pudimos usar la cámara'}
         </h2>
         <p>
+          {QR_INSTRUCTION}{' '}
           {camera === 'denied'
-            ? 'Para hacer check-in hay que escanear el QR del ascensor. Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
-            : 'Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular.'}
+            ? 'Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
+            : 'Probá con otro navegador o con el celular.'}
         </p>
       </section>
     );
@@ -171,8 +185,7 @@ export function CheckInPage() {
       <>
         <div className="check-in__finder" aria-hidden="true" />
         {camera === 'starting' && <p role="status">Pidiendo permiso para usar la cámara…</p>}
-        <p className="check-in__instructions">Apuntá la cámara al QR de la pantalla del ascensor</p>
-        <p className="check-in__note">{QR_INSTRUCTION} El código rota: no le saques foto.</p>
+        <p className="check-in__instructions">{QR_INSTRUCTION}</p>
       </>
     );
   }

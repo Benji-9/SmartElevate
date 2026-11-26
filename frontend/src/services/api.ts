@@ -45,6 +45,9 @@ export const networkErrorMessage = () =>
     ? 'Sin conexión. Revisá tu wifi o tus datos.'
     : 'No pudimos conectarnos. Probá de nuevo.';
 
+/** Un 401 de un pedido con sesión que no se pudo renovar (el 403 conserva el del servidor). */
+export const SESSION_EXPIRED_MESSAGE = 'Tu sesión venció. Ingresá de nuevo.';
+
 export class ApiError extends Error {
   readonly status: number;
   /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */
@@ -241,7 +244,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     if (renewed) return send<T>(path, init);
     expiredListeners.forEach((listener) => listener());
-    throw error;
+    throw new ApiError(401, SESSION_EXPIRED_MESSAGE);
   }
 }
 

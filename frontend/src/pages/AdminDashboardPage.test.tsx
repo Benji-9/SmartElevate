@@ -95,7 +95,7 @@ describe('AdminDashboardPage', () => {
       '81 %de los turnos reservados',
     );
     expect(screen.getByRole('article', { name: 'Ocupación promedio' })).toHaveTextContent(
-      '6,8 / 10personas por franja',
+      '6,8 / 10personas por salida',
     );
     expect(screen.getByText('29 de septiembre de 2026 · Todos los edificios')).toBeInTheDocument();
   });
@@ -129,7 +129,7 @@ describe('AdminDashboardPage', () => {
   it('el gráfico tiene una tabla equivalente para lectores de pantalla', async () => {
     renderAdmin();
 
-    const chart = await screen.findByRole('figure', { name: 'Reservas por franja' });
+    const chart = await screen.findByRole('figure', { name: 'Reservas por hora' });
     const table = within(chart).getByRole('table', { name: 'Reservas por hora del día' });
     expect(within(table).getByRole('row', { name: '9:00 a 10:00 120' })).toBeInTheDocument();
   });

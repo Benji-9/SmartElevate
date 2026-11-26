@@ -72,6 +72,19 @@ describe('KioskPage', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer s3cr3t');
   });
 
+  it('dice que el código cambia por turno de clase, no cada pocos segundos', async () => {
+    localStorage.setItem(KEY, 's3cr3t');
+    renderKiosk();
+
+    await qrPath();
+    expect(
+      screen.getByText(
+        'El código cambia con cada turno de clase: escanealo acá, no le saques foto.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/segundos/)).not.toBeInTheDocument();
+  });
+
   it('renueva el QR al llegar a expiresAt', async () => {
     localStorage.setItem(KEY, 's3cr3t');
     const { qrCalls } = renderKiosk();

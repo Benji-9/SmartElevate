@@ -7,7 +7,7 @@ import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
-import { ApiError, networkErrorMessage } from '../services/api';
+import { ApiError, networkErrorMessage, SESSION_EXPIRED_MESSAGE } from '../services/api';
 import logo from '../assets/smartelevate-logo.svg';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
@@ -16,14 +16,16 @@ type Errors = { email?: string; password?: string };
 
 export function LoginPage() {
   useDocumentTitle('Ingresar');
-  const { login } = useSession();
+  const { login, expired } = useSession();
   const navigate = useNavigate();
   const from = (useLocation().state as { from?: Location } | null)?.from;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Errors>({});
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(
+    expired ? SESSION_EXPIRED_MESSAGE : null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -43,6 +43,7 @@ function validate(form: RegisterRequest): Errors {
 
 export function RegisterPage() {
   useDocumentTitle('Crear cuenta');
+  const userTypeHintId = useId();
   const [form, setForm] = useState<RegisterRequest>({
     fullName: '',
     email: '',
@@ -105,7 +106,7 @@ export function RegisterPage() {
           <h2>Revisá tu email</h2>
           <p className="auth__lead">
             Te mandamos un link a <strong>{registeredEmail}</strong> para verificar tu cuenta.
-            Después de verificarla vas a poder ingresar.
+            Después de verificarla vas a poder ingresar. Si no lo ves, mirá en spam.
           </p>
           <ResendVerification email={registeredEmail} />
           <Link to="/login">Ir a ingresar</Link>
@@ -156,20 +157,8 @@ export function RegisterPage() {
           onChange={(declaredUserType) => setForm({ ...form, declaredUserType })}
           layout="grid"
           columns={2}
+          describedBy={userTypeHintId}
         />
-        <p className="auth__lead">
-          Es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.
-        </p>
-
-        <section className="auth__info" aria-labelledby="reduced-mobility-title">
-          <h2 id="reduced-mobility-title" className="auth__info-title">
-            ¿Tenés movilidad reducida?
-          </h2>
-          <p>
-            Informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados
-            ni datos de salud.
-          </p>
-        </section>
 
         {serverError && (
           <p role="alert" className="auth__alert">
@@ -184,6 +173,21 @@ export function RegisterPage() {
           Crear cuenta
         </Button>
       </form>
+
+      {/* Lo informativo va debajo: no se mete entre el formulario y el botón (SCREENS.md §02). */}
+      <p id={userTypeHintId} className="auth__lead">
+        El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador
+        lo valida.
+      </p>
+      <section className="auth__info" aria-labelledby="reduced-mobility-title">
+        <h2 id="reduced-mobility-title" className="auth__info-title">
+          ¿Tenés movilidad reducida?
+        </h2>
+        <p>
+          Informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados
+          ni datos de salud.
+        </p>
+      </section>
       <LegalFooter />
     </div>
   );

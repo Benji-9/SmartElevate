@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { OptionGroup } from '../../components/OptionGroup';
 import type { CoreOption } from './catalog';
 
@@ -13,14 +14,21 @@ const shortName = (name: string) => name.replace(/\p{L}{9,}/u, (word) => `${word
 
 /** Núcleo de ascensores: pills en una fila con wrap, en el orden de los edificios. */
 export function BuildingSelector({ cores, value, onChange }: BuildingSelectorProps) {
+  const hintId = useId();
   return (
-    <OptionGroup
-      label="Núcleo"
-      name="core"
-      className="reserve__cores"
-      options={cores.map((core) => ({ value: core.code, label: shortName(core.name) }))}
-      value={value}
-      onChange={onChange}
-    />
+    <div>
+      <OptionGroup
+        label="Núcleo"
+        name="core"
+        className="reserve__cores"
+        options={cores.map((core) => ({ value: core.code, label: shortName(core.name) }))}
+        value={value}
+        onChange={onChange}
+        describedBy={hintId}
+      />
+      <p id={hintId} className="reserve__missing">
+        Un núcleo es un grupo de ascensores, por ejemplo {cores[0].name}.
+      </p>
+    </div>
   );
 }
