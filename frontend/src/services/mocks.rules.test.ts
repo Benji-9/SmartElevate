@@ -69,7 +69,10 @@ describe('mocks: reglas del servidor con estado propio', () => {
     const seeded = await send<Reservation>('GET', '/reservations/active');
     await cancelFirst();
     const used = await reserve(await far());
-    await send('POST', '/check-ins', { token: 'DEMO' });
+    // Imita al kiosco real: si fuera SIMULATED, una llegada tarde no sería falta.
+    expect(await send<CheckIn>('POST', '/check-ins', { token: 'DEMO' })).toMatchObject({
+      source: 'REAL',
+    });
     await expect(send('DELETE', `/reservations/${used.id}`)).rejects.toMatchObject({
       status: 409,
       code: 'ALREADY_CHECKED_IN',

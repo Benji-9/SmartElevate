@@ -18,7 +18,7 @@
 // - Lugares tomados por prioritarios: el cupo reservado se descuenta siempre completo hasta
 //   su liberación (no se compensa con otros prioritarios que ya reservaron).
 // - Salidas que se generan por horario, `sameDay` de la ventana y los parámetros de `app_config`.
-// - Check-in simulado vs. real (`source`) y que las faltas con check-in simulado no cuentan.
+// - Check-in simulado: todo check-in sale como `REAL` y sus faltas cuentan.
 // - Un solo turno activo por usuario se chequea sin distinguir usuarios (hay un estado global).
 // - Tokens de QR: no se firman; los tokens `DEMO`, `TARDE` y `OTRO` saltean la ventana horaria
 //   para poder probar cada resultado sin esperar la hora de salida.
@@ -1035,7 +1035,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         reservedElevator: active.elevator,
         departureAt: active.departureAt,
         checkedInAt: new Date().toISOString(),
-        source: 'SIMULATED',
+        source: 'REAL',
       };
       lastCheckedIn = active.id;
       reservations = reservations.map((r) =>

@@ -7,11 +7,14 @@ const titles: Record<CheckInOutcome, string> = {
   LATE: 'Check-in fuera de hora',
 };
 
-function detail({ outcome, elevator, reservedElevator }: CheckIn) {
+function detail({ outcome, elevator, reservedElevator, source }: CheckIn) {
   if (outcome === 'ON_TIME')
     return 'Subiste a tiempo a tu salida. ¡Gracias por ayudar a que el ascensor fluya!';
   if (outcome === 'OTHER_ELEVATOR') {
     return `Reservaste el ascensor ${reservedElevator} y escaneaste el ${elevator}. Quedó registrado y no cuenta como falta.`;
+  }
+  if (source === 'SIMULATED') {
+    return 'El check-in fue después de la hora de tu salida. Como es simulado, no cuenta como falta.';
   }
   return 'El check-in fue después de la hora de tu salida, así que cuenta como falta. Igual queda registrado que viniste.';
 }
