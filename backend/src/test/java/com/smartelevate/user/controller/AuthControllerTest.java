@@ -291,6 +291,45 @@ class AuthControllerTest {
     }
 
     @Test
+    void unsupportedContentTypeReturns415() throws Exception {
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.TEXT_PLAIN).content("hola"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.message").value("El tipo de contenido no está soportado"))
+                .andExpect(jsonPath("$.path").value("/api/auth/login"));
+    }
+
+    private ResultActions loginWithPassword(String password) throws Exception {
+        return postJson("/api/auth/login",
+                "{\"email\":\"a@uade.edu.ar\",\"password\":\"%s\"}".formatted(password));
+    }
+
+    @Test
+    void loginRejectsPasswordLongerThanMax() throws Exception {
+        loginWithPassword("a".repeat(com.smartelevate.common.validation.PasswordPolicy.MAX + 1))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("password"));
+
+        verify(authService, never()).login(any(), any(), any());
+    }
+
+    @Test
+    void loginAcceptsPasswordThatFitsOnlyAfterNfkc() throws Exception {
+        // "n" más la tilde combinable (U+0303): 128 caracteres que NFKC compone en 64. El registro la acepta.
+        String decomposed = ("n" + (char) 0x303).repeat(com.smartelevate.common.validation.PasswordPolicy.MAX);
+        org.mockito.BDDMockito.given(authService.login(any(), eq(decomposed), any()))
+                .willThrow(new com.smartelevate.user.service.InvalidCredentialsException());
+
+        loginWithPassword(decomposed).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginRequestToStringHidesThePassword() {
+        assertThat(new com.smartelevate.user.dto.LoginRequest("a@uade.edu.ar", "una-clave-larga").toString())
+                .doesNotContain("una-clave-larga");
+    }
+
+    @Test
     void resetRespondsNoContent() throws Exception {
         postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"una-clave-nueva\"}")
                 .andExpect(status().isNoContent());
