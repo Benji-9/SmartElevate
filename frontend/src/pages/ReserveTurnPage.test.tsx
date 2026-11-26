@@ -40,11 +40,10 @@ const departure = (id: number, code: string, at: string, remainingSeats: number)
   bookingClosesAt: `2026-09-29T${at.slice(0, 3)}${Number(at.slice(3)) - 2}:00Z`,
   status: 'SCHEDULED',
 });
-const departures = [
-  departure(1, '01', '17:32', 6),
-  departure(2, '01', '17:34', 0),
-  departure(3, '02', '17:32', 3),
-];
+// La oferta ya viene resuelta del servidor: una salida por hora.
+const departures = [departure(1, '01', '17:32', 6), departure(2, '01', '17:34', 0)];
+const offerFor = (originFloor: number, destinationFloor: number) =>
+  `GET /departures?core=L1&origin=${originFloor}&destination=${destinationFloor}`;
 
 const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   id: 9,
@@ -70,7 +69,7 @@ const routes = {
   'GET /buildings': { body: [lima] },
   'GET /elevators': { body: elevators },
   'GET /reservations/active': { status: 204 },
-  'GET /departures?building=LIMA': { body: departures },
+  [offerFor(0, 5)]: { body: departures },
 };
 
 const renderPage = () =>
@@ -83,6 +82,8 @@ const renderPage = () =>
 const group = (name: string) => within(screen.getByRole('radiogroup', { name }));
 const origin = (floor: string) => group('Piso de origen').getByRole('radio', { name: floor });
 const destination = (floor: string) => group('Piso de destino').getByRole('radio', { name: floor });
+const departureRequests = (fetchMock: ReturnType<typeof stubApi>) =>
+  fetchMock.mock.calls.map(([url]) => url).filter((url) => url.startsWith('/api/departures'));
 
 async function renderReserve() {
   renderPage();
@@ -90,10 +91,15 @@ async function renderReserve() {
   await userEvent.click(origin('PB'));
 }
 
-/** Elige PB → 5 y la salida de las 14:32, y confirma. */
-async function reserveAt1432() {
+/** Núcleo, origen y destino (PB → 5): con los tres se piden las salidas. */
+async function renderSlots() {
   await renderReserve();
   await userEvent.click(destination('5'));
+}
+
+/** Elige PB → 5 y la salida de las 14:32, y confirma. */
+async function reserveAt1432() {
+  await renderSlots();
   await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar turno · 14:32' }));
 }
@@ -147,15 +153,14 @@ describe('ReserveTurnPage', () => {
   it('no ofrece las franjas cuya ventana de reserva ya cerró', async () => {
     stubApi({
       ...routes,
-      'GET /departures?building=LIMA': {
+      [offerFor(0, 5)]: {
         body: [
           { ...departure(1, '01', '17:32', 6), bookingClosesAt: '2026-09-29T17:19:00Z' },
           departure(2, '01', '17:34', 5),
         ],
       },
     });
-    await renderReserve();
-    await userEvent.click(destination('5'));
+    await renderSlots();
 
     expect(await screen.findByRole('radio', { name: /^14:34/ })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /^14:32/ })).not.toBeInTheDocument();
@@ -165,12 +170,11 @@ describe('ReserveTurnPage', () => {
     // Sin reservas, un común ve 8 libres (2 guardados): la barra tiene que estar vacía.
     stubApi({
       ...routes,
-      'GET /departures?building=LIMA': {
+      [offerFor(0, 5)]: {
         body: [{ ...departure(1, '01', '17:32', 8), bookedSeats: 0 }],
       },
     });
-    await renderReserve();
-    await userEvent.click(destination('5'));
+    await renderSlots();
 
     const slot = (await screen.findByRole('radio', { name: /^14:32/ })).closest('label')!;
     expect(slot).toHaveTextContent('8 libres');
@@ -248,37 +252,108 @@ describe('ReserveTurnPage', () => {
     expect(screen.getByText('Lima 1', { selector: 'p' })).toBeInTheDocument();
 
     await userEvent.click(origin('PB'));
-    await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     expect(await confirm()).toHaveAccessibleDescription('Falta elegir el piso de destino');
 
     await userEvent.click(destination('5'));
+    expect(await confirm()).toHaveAccessibleDescription('Falta elegir la franja horaria');
+
+    await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
     expect(await confirm()).toBeEnabled();
     expect(await confirm()).not.toHaveAccessibleDescription();
     expect(screen.getByText('Lima 1 · Piso 5 · 14:32')).toBeInTheDocument();
   });
 
-  it('agrupa por hora, ofrece el ascensor con más lugar y marca como no elegibles las completas', async () => {
-    stubApi(routes);
+  it('pide las salidas recién con núcleo, origen y destino', async () => {
+    const fetchMock = stubApi(routes);
     await renderReserve();
 
+    expect(departureRequests(fetchMock)).toEqual([]);
+    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+
+    await userEvent.click(destination('5'));
+
+    expect(await screen.findByRole('radiogroup', { name: 'Franja horaria' })).toBeInTheDocument();
+    expect(departureRequests(fetchMock)).toEqual([
+      '/api/departures?core=L1&origin=0&destination=5',
+    ]);
+  });
+
+  it('muestra la oferta ordenada por hora, sin el ascensor, y no deja elegir las completas', async () => {
+    stubApi({ ...routes, [offerFor(0, 5)]: { body: [...departures].reverse() } });
+    await renderSlots();
+
     const slots = await screen.findByRole('radiogroup', { name: 'Franja horaria' });
-    // A las 14:32 salen el 01 (6 libres) y el 02 (3): se ofrece el 01.
-    expect(within(slots).getAllByRole('radio')).toHaveLength(2);
-    expect(within(slots).getByRole('radio', { name: /^14:32/ })).toHaveAccessibleName(
-      '14:32 · Ascensor 01 6 libres',
-    );
-    const full = within(slots).getByRole('radio', { name: /^14:34/ });
+    const [first, full] = within(slots).getAllByRole('radio');
+    expect(first).toHaveAccessibleName('14:32 6 libres');
+    expect(full).toHaveAccessibleName('14:34 Completo');
+    expect(slots).not.toHaveTextContent('Ascensor');
     // Enfocable (aria-disabled) para que se pueda llegar con teclado y oír por qué no se elige.
     expect(full).toHaveAttribute('aria-disabled', 'true');
     expect(full).toBeEnabled();
     await userEvent.click(full);
     expect(full).not.toBeChecked();
-    expect(full).toHaveAccessibleName('14:34 · Ascensor 01 Completo');
   });
 
-  it('los destinos y las salidas salen de los ascensores que paran en los pisos elegidos', async () => {
-    // Sin pisos bajos, para que el 3 sea elegible.
-    stubApi({ ...routes, 'GET /buildings': { body: [{ ...lima, lowFloorsThreshold: 0 }] } });
+  it('cambiar el destino vuelve a pedir las salidas y hay que elegir la franja de nuevo', async () => {
+    const fetchMock = stubApi({
+      ...routes,
+      [offerFor(0, -1)]: { body: [departure(3, '02', '17:32', 3)] },
+    });
+    await renderSlots();
+    await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
+
+    await userEvent.click(destination('-1'));
+
+    // La misma hora en la oferta nueva es otra salida: no queda elegida.
+    expect(await screen.findByRole('radio', { name: '14:32 3 libres' })).not.toBeChecked();
+    const confirm = screen.getByRole('button', { name: 'Confirmar turno' });
+    expect(confirm).toBeDisabled();
+    expect(confirm).toHaveAccessibleDescription('Falta elegir la franja horaria');
+    expect(departureRequests(fetchMock)).toEqual([
+      '/api/departures?core=L1&origin=0&destination=5',
+      '/api/departures?core=L1&origin=0&destination=-1',
+    ]);
+  });
+
+  it('si la oferta nueva no carga, no queda la lista anterior ni se puede confirmar', async () => {
+    stubApi({
+      ...routes,
+      [offerFor(0, -1)]: { status: 500, body: { message: 'Error interno' } },
+    });
+    await renderSlots();
+    await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
+
+    await userEvent.click(destination('-1'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error interno');
+    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirmar turno' })).toBeDisabled();
+  });
+
+  it('cambiar el origen saca las salidas y las vuelve a pedir al elegir destino', async () => {
+    const fetchMock = stubApi({
+      ...routes,
+      [offerFor(-1, 5)]: { body: [departure(1, '01', '17:32', 4)] },
+    });
+    await renderSlots();
+    await userEvent.click(await screen.findByRole('radio', { name: /^14:32/ }));
+
+    await userEvent.click(origin('-1'));
+
+    expect(screen.queryByRole('radiogroup', { name: 'Franja horaria' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirmar turno' })).toBeDisabled();
+
+    await userEvent.click(destination('5'));
+
+    expect(await screen.findByRole('radio', { name: '14:32 4 libres' })).not.toBeChecked();
+    expect(departureRequests(fetchMock)).toEqual([
+      '/api/departures?core=L1&origin=0&destination=5',
+      '/api/departures?core=L1&origin=-1&destination=5',
+    ]);
+  });
+
+  it('los destinos salen de los ascensores que paran en el origen', async () => {
+    stubApi(routes);
     await renderReserve();
 
     // Desde PB paran los dos: destinos de ambas baterías, sin el origen.
@@ -288,15 +363,6 @@ describe('ReserveTurnPage', () => {
         .map((r) => r.closest('label')!.textContent);
     expect(destinations()).toEqual(['-1', '1', '3', '5']);
 
-    // Al 3 solo va el 02: sus salidas, nada más.
-    await userEvent.click(destination('3'));
-    const slots = screen.getByRole('radiogroup', { name: 'Franja horaria' });
-    expect(
-      within(slots)
-        .getAllByRole('radio')
-        .map((r) => r.closest('label')!.textContent),
-    ).toEqual(['14:32 · Ascensor 02 3 libres']);
-
     // Desde el 1 solo para el 01: el 3 deja de ser destino.
     await userEvent.click(origin('1'));
     expect(destinations()).toEqual(['-1', 'PB', '5']);
@@ -304,7 +370,7 @@ describe('ReserveTurnPage', () => {
 
   it('se elige la franja con el teclado', async () => {
     stubApi(routes);
-    await renderReserve();
+    await renderSlots();
 
     const slots = await screen.findByRole('radiogroup', { name: 'Franja horaria' });
     within(slots)
@@ -411,8 +477,8 @@ describe('ReserveTurnPage', () => {
   });
 
   it('sin salidas que pueda reservar (p. ej. un ascensor dedicado ajeno) lo dice', async () => {
-    stubApi({ ...routes, 'GET /departures?building=LIMA': { body: [] } });
-    await renderReserve();
+    stubApi({ ...routes, [offerFor(0, 5)]: { body: [] } });
+    await renderSlots();
 
     expect(
       await screen.findByText(/Las salidas se abren 30 min antes. Volvé más cerca de la hora./),
@@ -423,9 +489,9 @@ describe('ReserveTurnPage', () => {
   it('si no cargan las salidas muestra el error', async () => {
     stubApi({
       ...routes,
-      'GET /departures?building=LIMA': { status: 500, body: { message: 'Error interno' } },
+      [offerFor(0, 5)]: { status: 500, body: { message: 'Error interno' } },
     });
-    await renderReserve();
+    await renderSlots();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error interno');
   });
@@ -434,10 +500,10 @@ describe('ReserveTurnPage', () => {
     let calls = 0;
     stubApi({
       ...routes,
-      'GET /departures?building=LIMA': () =>
+      [offerFor(0, 5)]: () =>
         calls++ ? { body: departures } : { status: 500, body: { message: 'Error interno' } },
     });
-    await renderReserve();
+    await renderSlots();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
 
@@ -482,8 +548,8 @@ describe('ReserveTurnPage', () => {
         let departureCalls = 0;
         stubApi({
           ...routes,
-          // Al recargar, al 01 de las 14:32 (el único que va al 5) no le queda lugar.
-          'GET /departures?building=LIMA': () => ({
+          // Al recargar, a la salida de las 14:32 no le queda lugar.
+          [offerFor(0, 5)]: () => ({
             body: departureCalls++
               ? [departure(1, '01', '17:32', 0), ...departures.slice(1)]
               : departures,
@@ -499,9 +565,10 @@ describe('ReserveTurnPage', () => {
             : message,
         );
         expect(screen.getByText('Franja horaria')).toHaveFocus();
-        expect(
-          await screen.findByRole('radio', { name: '14:32 · Ascensor 01 Completo' }),
-        ).toHaveAttribute('aria-disabled', 'true');
+        expect(await screen.findByRole('radio', { name: '14:32 Completo' })).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
         expect(screen.getByRole('button', { name: 'Confirmar turno' })).toHaveAccessibleDescription(
           'Falta elegir la franja horaria',
         );
@@ -663,7 +730,7 @@ describe('ReserveTurnPage', () => {
 
       expect(await screen.findByRole('radio', { name: 'Lima 1' })).not.toBeChecked();
       expect(screen.queryByText(/Usamos tu último viaje/)).not.toBeInTheDocument();
-      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/departures'))).toBe(false);
+      expect(departureRequests(fetchMock)).toEqual([]);
     });
 
     it('sin viaje guardado, o con un valor roto, abre vacío', async () => {
