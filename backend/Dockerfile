@@ -27,4 +27,8 @@ ENV PORT=8080 \
     JAVA_OPTS="-XX:MaxRAMPercentage=75"
 EXPOSE 8080
 
+# /actuator/health consulta la base. start-period cubre el arranque de la JVM más Flyway en instancias chicas.
+# Render no usa este chequeo: tiene su propio Health Check Path (/api/ping).
+HEALTHCHECK --start-period=60s CMD wget -qO- "http://localhost:${PORT}/actuator/health" || exit 1
+
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
