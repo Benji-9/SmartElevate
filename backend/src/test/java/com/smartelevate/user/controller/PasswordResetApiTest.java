@@ -159,8 +159,8 @@ class PasswordResetApiTest {
     }
 
     /**
-     * #344: alguien registra el email de Ana con su clave. Ana pide "olvidé mi contraseña" y sigue el link que le
-     * llega, sea cual sea: si es de reset elige su clave; si es de verificación, al usarlo verifica la cuenta ajena.
+     * #344: alguien registra el email de Ana con su clave. Ana pide "olvidé mi contraseña", le llega un link de reset
+     * (no de verificación) y elige la suya: la clave de quien la registró deja de valer.
      */
     @Test
     void preRegisteredAccountIsRecoveredByItsOwner() throws Exception {
@@ -172,13 +172,9 @@ class PasswordResetApiTest {
         postJson("/api/auth/password/forgot", "{\"email\":\"ana@uade.edu.ar\"}").andExpect(status().isAccepted());
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(sender).send(eq("ana@uade.edu.ar"), anyString(), body.capture());
-        Matcher m = TOKEN.matcher(body.getValue());
-        assertThat(m.find()).isTrue();
-        if (body.getValue().contains("/recuperar/nueva?token=")) {
-            resetWith(m.group(1), NEW).andExpect(status().isNoContent());
-        } else {
-            postJson("/api/auth/verify", "{\"token\":\"%s\"}".formatted(m.group(1)));
-        }
+        Matcher m = Pattern.compile("/recuperar/nueva\\?token=([\\w-]+)").matcher(body.getValue());
+        assertThat(m.find()).as("el mail trae un link de reset").isTrue();
+        resetWith(m.group(1), NEW).andExpect(status().isNoContent());
 
         login(OLD).andExpect(status().isUnauthorized());
         login(NEW).andExpect(status().isOk());
