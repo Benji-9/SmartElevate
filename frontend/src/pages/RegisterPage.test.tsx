@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -282,6 +282,37 @@ describe('RegisterPage', () => {
       '@uade.edu.ar Ya hay una cuenta con ese email.',
     );
     expect(screen.getByLabelText('Nombre y apellido')).toHaveValue('Ana Pérez');
+  });
+
+  it('tras un envío inválido lleva el foco al primer campo con error', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    await submit();
+    expect(screen.getByLabelText('Nombre y apellido')).toHaveFocus();
+
+    await fill({ ...valid, Legajo: '10a' });
+    await submit();
+    expect(screen.getByLabelText('Legajo')).toHaveFocus();
+  });
+
+  it('con un error de campo del servidor lleva el foco a ese campo', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/register': {
+        status: 409,
+        body: {
+          message: 'La cuenta ya existe',
+          violations: [{ field: 'legajo', message: 'Ya hay una cuenta con ese legajo.' }],
+        },
+      },
+    });
+    await renderRegister();
+
+    await fill(valid);
+    await submit();
+
+    await waitFor(() => expect(screen.getByLabelText('Legajo')).toHaveFocus());
   });
 
   it('muestra el error general si no es de un campo', async () => {

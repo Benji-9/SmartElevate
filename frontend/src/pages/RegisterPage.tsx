@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -9,6 +10,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import {
+  focusFirstInvalid,
   PASSWORD_HINT,
   toUadeEmail,
   validatePassword,
@@ -64,10 +66,16 @@ export function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     const next = validate(form);
-    setErrors(next);
-    setServerError(null);
-    if (Object.values(next).some(Boolean)) return;
+    flushSync(() => {
+      setErrors(next);
+      setServerError(null);
+    });
+    if (Object.values(next).some(Boolean)) {
+      focusFirstInvalid(formElement);
+      return;
+    }
 
     setSubmitting(true);
     const payload = {
@@ -80,9 +88,12 @@ export function RegisterPage() {
       await register(payload);
       setRegisteredEmail(payload.email);
     } catch (error) {
-      if (!(error instanceof ApiError)) {
-        setServerError(networkErrorMessage());
-      } else {
+      flushSync(() => {
+        setSubmitting(false);
+        if (!(error instanceof ApiError)) {
+          setServerError(networkErrorMessage());
+          return;
+        }
         // Email o legajo ya registrados: el error va al lado del campo.
         const fieldErrors: Errors = Object.fromEntries(
           error.violations
@@ -91,9 +102,8 @@ export function RegisterPage() {
         );
         setErrors(fieldErrors);
         if (!Object.keys(fieldErrors).length) setServerError(error.message);
-      }
-    } finally {
-      setSubmitting(false);
+      });
+      focusFirstInvalid(formElement);
     }
   }
 

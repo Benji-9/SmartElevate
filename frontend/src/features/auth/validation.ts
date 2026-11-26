@@ -24,6 +24,18 @@ export function validateUadeUser(value: string): string | undefined {
 }
 
 /**
+ * Tras un envío fallido lleva el foco al primer campo con `aria-invalid`; si el error no es de
+ * ningún campo, al botón de enviar (al deshabilitarse mientras carga, el foco se pierde).
+ * Llamarla con los errores ya dibujados (`flushSync`).
+ */
+export function focusFirstInvalid(form: HTMLFormElement): void {
+  const target =
+    form.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+    form.querySelector<HTMLElement>('[type="submit"]');
+  target?.focus();
+}
+
+/**
  * Política de contraseña: mismos límites y mensajes que `PasswordPolicy` del backend (ADR 0015).
  * Se cuentan caracteres (code points) tras normalizar con NFKC, no bytes: una ñ o un emoji valen 1.
  * La lista de contraseñas comunes la revisa solo el servidor; su error llega como violación del campo.
