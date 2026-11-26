@@ -38,9 +38,13 @@
   font-weight: var(--font-medium);
 }
 
-/* Que el foco de teclado no quede tapado por el pie fijo (WCAG 2.4.11). */
-:root:has(.reserve__submit) {
-  scroll-padding-bottom: 96px;
+/*
+ * Que el foco de teclado y la primera salida no queden tapados por el pie fijo (WCAG 2.4.11): el
+ * pie mide ~140 px con resumen, paso que falta y botón. En el marco de teléfono scrollea .app-scroll.
+ */
+:root:has(.reserve__submit),
+.app-scroll:has(.reserve__submit) {
+  scroll-padding-block: 16px 160px;
 }
 
 /* Botón de confirmar fijo al pie mientras el contenido scrollea. */
@@ -52,6 +56,8 @@
   gap: 12px;
   margin-inline: calc(var(--space-screen) * -1);
   padding: 12px var(--space-screen) calc(12px + env(safe-area-inset-bottom, 0px));
+  /* El borde separa el pie de la franja que pasa por debajo. */
+  border-top: 1px solid var(--color-border);
   background: var(--color-bg);
 }
 
@@ -236,6 +242,7 @@
     position: static;
     margin: 0;
     padding: 16px;
+    border-top: 0;
     border-radius: var(--radius-card);
     background: var(--color-disabled-bg);
   }

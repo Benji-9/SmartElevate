@@ -117,6 +117,14 @@ export function ReserveTurnPage() {
   );
   const slots = departures.data && openSlots(departures.data, now);
   const slot = slots?.find((s) => s.departureAt === slotTime && s.departure.remainingSeats > 0);
+  // Al aparecer las salidas del viaje elegido, que la primera quede a la vista y no debajo del pie
+  // fijo (la separación la da `scroll-padding-bottom`). Con el último viaje precargado no se mueve.
+  const slotsShown = !!slots?.length;
+  useEffect(() => {
+    if (slotsShown && !fromLastTrip) {
+      slotsLabel.current?.parentElement?.scrollIntoView?.({ block: 'nearest' });
+    }
+  }, [slotsShown, validDestination, fromLastTrip]);
   const ready = origin !== null && validDestination !== null && slot !== undefined;
   // "Lima 3 · Piso 3 → 7 · 7:25" con lo que ya se eligió.
   const summary = [

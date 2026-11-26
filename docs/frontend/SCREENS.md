@@ -211,7 +211,7 @@ No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145
 
 Sin salidas: "No hay salidas que puedas reservar en este núcleo ahora. Probá en unos minutos." (p. ej. si la prioridad venció con la pantalla abierta: el selector se actualiza al recargar).
 
-5. **Pie fijo** mientras el contenido scrollea, con:
+5. **Pie fijo** mientras el contenido scrollea (borde superior `--line`; nunca tapa la primera salida: al aparecer las salidas la pantalla las trae a la vista, salvo con el último viaje precargado, y el foco de teclado deja libre el alto del pie), con:
    - El **resumen** de lo elegido en una línea (15 px / 600): "Lima 3 · Piso 3 → 7 · 14:34" (origen → destino, igual que el turno; PB es "Piso PB → 7"). Sin nada elegido no se muestra.
    - Mientras falte algo, el **próximo paso** (13 px, `--ink-muted`): "Falta elegir el núcleo", "…el piso de origen", "…el piso de destino" o "…el horario de salida". Va asociado al botón con `aria-describedby`.
    - `Button` primary con la franja elegida: "Confirmar turno · 14:34" (deshabilitado hasta completar todo).
