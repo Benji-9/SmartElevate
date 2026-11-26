@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   AdminElevator,
+  AdminKpis,
+  AdminShift,
   Building,
   CheckIn,
+  CongestionSnapshot,
   CreatedKiosk,
   Departure,
   Elevator,
@@ -55,11 +58,87 @@ afterEach(() => {
 
 describe('mocks', () => {
   it('deja pasar al backend lo que no tiene mock', async () => {
+    // Ninguna pantalla lo usa.
     expect(await mockRequest('GET', '/ping', undefined, 0)).toBeUndefined();
-    // Congestión y KPIs ya los calcula el backend (#220).
-    for (const path of ['/congestion', '/admin/kpis?period=TODAY', '/admin/shifts']) {
-      expect(await mockRequest('GET', path, undefined, 0)).toBeUndefined();
+  });
+
+  it('la congestión trae todos los núcleos con los tres niveles', async () => {
+    const snapshot = await call<CongestionSnapshot>('GET', '/congestion');
+
+    expect(snapshot.refreshAfterSeconds).toBe(120);
+    expect(Date.parse(snapshot.updatedAt)).not.toBeNaN();
+    expect(snapshot.cores.map((c) => c.name)).toEqual([
+      'Independencia 1',
+      'Independencia 2',
+      'Lima 1',
+      'Lima 2',
+      'Lima 3',
+    ]);
+    expect(new Set(snapshot.cores.map((c) => c.level))).toEqual(new Set(['LOW', 'MEDIUM', 'HIGH']));
+    // Umbrales de kpis.md: media desde 60 %, alta desde 85 %.
+    for (const { level, occupancyPercent } of snapshot.cores) {
+      expect(level).toBe(
+        occupancyPercent >= 85 ? 'HIGH' : occupancyPercent >= 60 ? 'MEDIUM' : 'LOW',
+      );
     }
+  });
+
+  it('los turnos de cursada son los de kpis.md', async () => {
+    const shifts = await call<AdminShift[]>('GET', '/admin/shifts');
+
+    expect(shifts.map((s) => [s.id, s.startsAt, s.endsAt])).toEqual([
+      ['MORNING', '07:00', '13:00'],
+      ['AFTERNOON', '13:00', '18:00'],
+      ['NIGHT', '18:00', '22:30'],
+    ]);
+  });
+
+  const sum = (rows: { reservations: number }[]) =>
+    rows.reduce((total, row) => total + row.reservations, 0);
+
+  it('los KPIs cierran entre sí y la espera viene sin datos, como en el backend', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    // 01:00 UTC del 27 = 22:00 del 26 en Buenos Aires.
+    vi.setSystemTime(Date.parse('2026-11-27T01:00:00Z'));
+    const today = await call<AdminKpis>('GET', '/admin/kpis?period=TODAY');
+
+    expect(today).toMatchObject({
+      from: '2026-11-26T03:00:00.000Z',
+      to: '2026-11-27T03:00:00.000Z',
+      avgWaitSeconds: null,
+      wait5To10Percent: null,
+      baselinePercent: 43.5,
+      capacity: 10,
+      previous: { from: '2026-11-25T03:00:00.000Z', to: '2026-11-26T03:00:00.000Z' },
+    });
+    expect(today.reservations).toBeGreaterThan(0);
+    expect(sum(today.reservationsByHour)).toBe(today.reservations);
+    expect(sum(today.cores)).toBe(today.reservations);
+    expect(today.reservationsByHour.map((h) => h.hour)).toEqual(
+      Array.from({ length: 16 }, (_, i) => i + 7),
+    );
+    expect(new Set(today.cores.map((c) => c.congestion))).toEqual(
+      new Set(['LOW', 'MEDIUM', 'HIGH']),
+    );
+    expect(today.checkInPercent).toBeGreaterThan(0);
+    expect(today.avgOccupancy).toBeGreaterThan(0);
+    expect(today.checkIns).toBeLessThan(today.reservations);
+
+    const week = await call<AdminKpis>('GET', '/admin/kpis?period=WEEK');
+    expect(week.from).toBe('2026-11-20T03:00:00.000Z');
+    expect(week.reservations).toBe(today.reservations * 7);
+  });
+
+  it('los KPIs se filtran por edificio y turno de cursada', async () => {
+    const kpis = await call<AdminKpis>(
+      'GET',
+      '/admin/kpis?period=MONTH&buildingId=INDEPENDENCIA&shiftId=NIGHT',
+    );
+
+    expect(kpis.cores.map((c) => c.coreId)).toEqual(['IND1', 'IND2']);
+    expect(kpis.reservationsByHour.map((h) => h.hour)).toEqual([18, 19, 20, 21, 22]);
+    expect(kpis.reservations).toBeGreaterThan(0);
+    expect(sum(kpis.cores)).toBe(kpis.reservations);
   });
 
   it('las salidas tienen la forma del contrato y no incluyen ascensores dedicados ajenos', async () => {
@@ -372,4 +451,28 @@ describe('mocks', () => {
       true,
     );
   });
+
+  it('todas las rutas que usa la app tienen mock: ninguna llega al proxy (502)', async () => {
+    await loginAna();
+    // Las de services/api.ts menos /ping.
+    const routes = `POST /auth/login, POST /auth/refresh, POST /auth/logout, POST /auth/register,
+      POST /auth/verify, POST /auth/resend-verification, POST /auth/password/forgot,
+      POST /auth/password/reset, GET /users/me, GET /buildings, GET /elevators,
+      GET /departures?building=LIMA, GET /congestion, GET /reservations/active,
+      GET /reservations/history, GET /reservations/1, POST /reservations, DELETE /reservations/1,
+      POST /check-ins, GET /me/no-shows, GET /me/notification-preferences,
+      PUT /me/notification-preferences, GET /admin/kpis?period=TODAY, GET /admin/shifts,
+      GET /admin/teachers/pending, POST /admin/teachers/x/approve, POST /admin/teachers/x/reject,
+      GET /admin/users?query=ana, PUT /admin/users/x/role, PUT /admin/users/x/declared-type,
+      GET /admin/priority-users, DELETE /admin/priority-users/x, GET /admin/elevators,
+      POST /admin/elevators/x/out-of-service, POST /admin/elevators/x/in-service,
+      GET /admin/kiosks, POST /admin/kiosks, POST /admin/kiosks/x/revoke, GET /kiosks/me/qr-token`;
+    for (const route of routes.split(',')) {
+      const [method, path] = route.trim().split(' ');
+      // Con un cuerpo vacío el handler puede fallar: también prueba que la ruta tiene mock.
+      const result = await mockRequest(method, path, '{}', 0).catch((e: unknown) => e);
+      expect(result, route).toBeDefined();
+    }
+  });
+
 });
