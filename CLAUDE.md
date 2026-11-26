@@ -15,6 +15,6 @@ Todo el contexto del repo (comandos, flujo, reglas de negocio, arquitectura) est
 
 ## Configuración local (`.claude/`)
 
-- `settings.json` y `agents/` se versionan: llevan los permisos compartidos (deny de push a `main`/`develop`, force-push, `.env`) y la atribución de commits/PRs desactivada.
-- `skills/`, `settings.local.json`, `worktrees/` y `CLAUDE.local.md` son personales y están en `.gitignore`. Las skills se instalan por persona; no dependas de una skill concreta en el flujo del repo.
+- `settings.json`, `agents/` y `rules/` se versionan: llevan los permisos compartidos (deny de push a `main`/`develop`, force-push, `.env`), la atribución de commits/PRs desactivada y las reglas por zona.
+- Todo lo demás de `.claude/` (`skills/`, `settings.local.json`, `worktrees/`…) y `CLAUDE.local.md` es personal y está en `.gitignore`. Lo que generan agentes y skills (`.superpowers/`, `docs/superpowers/`, `.playwright-mcp/`…) tampoco se versiona. Las skills se instalan por persona; no dependas de una skill concreta en el flujo del repo.
 - Preferencias personales: `CLAUDE.local.md` (ignorado). Si un archivo supera ~200 líneas, mover lo específico de una zona a `.claude/rules/` con `paths:`.
