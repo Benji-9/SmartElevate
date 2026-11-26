@@ -59,6 +59,12 @@ class RequiredProdPropertiesTest {
         });
     }
 
+    @Test
+    void prodProfileDisablesMailHealthCheck() {
+        prod(SECRET, FRONTEND_URL, CORS, QR_SECRET).run(ctx ->
+                assertThat(ctx.getEnvironment().getProperty("management.health.mail.enabled")).isEqualTo("false"));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", "   "})
     void prodFailsWithoutJwtSecret(String value) {

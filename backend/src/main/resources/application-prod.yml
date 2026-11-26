@@ -31,6 +31,13 @@ app:
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
 
+# Sin el indicador de mail: /actuator/health es público y es el HEALTHCHECK de la imagen. Con él, cada consulta
+# abriría una conexión SMTP y un SMTP caído marcaría el contenedor como unhealthy. La base se sigue chequeando.
+management:
+  health:
+    mail:
+      enabled: false
+
 # La documentación interactiva no se publica en producción: lista todos los endpoints, incluidos los de admin (#345).
 # El contrato versionado está en docs/openapi.json; Swagger UI se usa en dev.
 springdoc:
