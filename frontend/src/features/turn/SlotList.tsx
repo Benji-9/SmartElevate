@@ -35,7 +35,7 @@ export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
                 <span className="slot__time">{formatTime(departureAt)}</span>
                 <span className="slot__bar" aria-hidden="true">
                   <span
-                    style={{ width: `${Math.min(100, (d.bookedSeats / d.capacity) * 100)}%` }}
+                    style={{ transform: `scaleX(${Math.min(1, d.bookedSeats / d.capacity)})` }}
                   />
                 </span>
               </span>{' '}

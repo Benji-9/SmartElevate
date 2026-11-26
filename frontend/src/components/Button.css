@@ -85,19 +85,12 @@
 }
 
 .button {
-  transition: transform 0.1s;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
+/* La duración la anula index.css; esto saca además el achique al tocar. */
 @media (prefers-reduced-motion: reduce) {
-  .button {
-    transition: none;
-  }
-
   .button:not(:disabled):active {
     transform: none;
-  }
-
-  .button__spinner {
-    animation-duration: 2.4s;
   }
 }
