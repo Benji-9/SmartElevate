@@ -6,10 +6,9 @@ import { BuildingSelector } from '../features/turn/BuildingSelector';
 import {
   coreOptions,
   destinationFloorsOf,
-  elevatorsServing,
   isLowFloor,
+  openSlots,
   originFloorsOf,
-  slotsOf,
 } from '../features/turn/catalog';
 import { FloorSelector } from '../features/turn/FloorSelector';
 import { formatFloor, formatTime } from '../features/turn/format';
@@ -55,8 +54,6 @@ export function ReserveTurnPage() {
   useDocumentTitle('Reservar turno');
   const navigate = useNavigate();
   const [coreCode, setCoreCode] = useState<string | null>(null);
-  // Las salidas son por edificio: se guarda aparte para no pedirlas de nuevo al cambiar de núcleo.
-  const [buildingCode, setBuildingCode] = useState<string | null>(null);
   const [origin, setOrigin] = useState<number | null>(null);
   const [destination, setDestination] = useState<number | null>(null);
   const [slotTime, setSlotTime] = useState<string | null>(null);
@@ -84,9 +81,6 @@ export function ReserveTurnPage() {
   const priority = useSession().user?.priority ?? 'NONE';
   const cores = catalog.data ? coreOptions(...catalog.data, priority) : [];
   const core = cores.find((c) => c.code === coreCode);
-  const departures = useResource(
-    useMemo(() => (buildingCode ? () => getDepartures(buildingCode) : null), [buildingCode]),
-  );
 
   // Con el catálogo cargado, se precarga el último viaje si sigue siendo válido (la franja nunca).
   // El destino se valida contra los pisos posibles más abajo (`validDestination`).
@@ -95,7 +89,6 @@ export function ReserveTurnPage() {
     const savedCore = cores.find((c) => c.code === lastTrip?.coreId);
     if (lastTrip && savedCore) {
       setCoreCode(savedCore.code);
-      setBuildingCode(savedCore.building.code);
       if (originFloorsOf(savedCore).includes(lastTrip.originFloor)) {
         setOrigin(lastTrip.originFloor);
         setDestination(lastTrip.destinationFloor);
@@ -112,18 +105,17 @@ export function ReserveTurnPage() {
     destination !== null && destinationFloors.includes(destination) && !blocked(destination)
       ? destination
       : null;
-  // Solo las salidas de los ascensores que paran en los pisos elegidos.
-  const slots =
-    core && departures.data
-      ? slotsOf(
-          departures.data,
-          elevatorsServing(
-            core,
-            [origin, validDestination].filter((f) => f !== null),
-          ),
-          now,
-        )
-      : undefined;
+  // La oferta depende del viaje (ADR 0025): se pide con núcleo y pisos, y otra vez si cambian.
+  const departures = useResource(
+    useMemo(
+      () =>
+        coreCode !== null && origin !== null && validDestination !== null
+          ? () => getDepartures(coreCode, origin, validDestination)
+          : null,
+      [coreCode, origin, validDestination],
+    ),
+  );
+  const slots = departures.data && openSlots(departures.data, now);
   const slot = slots?.find((s) => s.departureAt === slotTime && s.departure.remainingSeats > 0);
   const ready = origin !== null && validDestination !== null && slot !== undefined;
   // "Lima 3 · Piso 7 · 7:25" con lo que ya se eligió.
@@ -145,15 +137,19 @@ export function ReserveTurnPage() {
           ? 'Falta elegir la franja horaria'
           : null;
 
-  function chooseCore(code: string) {
+  /** Con otro viaje la oferta es otra: la franja y los avisos de la anterior no valen. */
+  function changeTrip() {
     setFromLastTrip(false);
-    setCoreCode(code);
-    setBuildingCode(cores.find((c) => c.code === code)?.building.code ?? null);
-    setOrigin(null);
-    setDestination(null);
     setSlotTime(null);
     setSubmitError(null);
     setSlotFullNotice(false);
+  }
+
+  function chooseCore(code: string) {
+    changeTrip();
+    setCoreCode(code);
+    setOrigin(null);
+    setDestination(null);
   }
 
   function chooseSlot(departureAt: string) {
@@ -163,16 +159,14 @@ export function ReserveTurnPage() {
   }
 
   function chooseOrigin(floor: number) {
-    setFromLastTrip(false);
+    changeTrip();
     setOrigin(floor);
     setDestination(null);
-    setSubmitError(null);
   }
 
   function chooseDestination(floor: number) {
-    setFromLastTrip(false);
+    changeTrip();
     setDestination(floor);
-    setSubmitError(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -203,6 +197,7 @@ export function ReserveTurnPage() {
         slotsLabel.current?.focus();
       } else if (code && FLOOR_ERRORS.has(code)) {
         setDestination(null);
+        setSlotTime(null);
       } else if (code === 'ACTIVE_LIMIT_REACHED') {
         // Ya tiene un turno (p. ej. reservado desde otro dispositivo): se ofrece ir a verlo.
         active.reload();
@@ -270,7 +265,7 @@ export function ReserveTurnPage() {
           </div>
 
           <div className="reserve__column reserve__column--aside">
-            {core &&
+            {validDestination !== null &&
               (departures.error ? (
                 <div role="alert" className="reserve__alert">
                   <p>{departures.error}</p>

@@ -114,12 +114,6 @@
   background: var(--color-primary);
 }
 
-.slot__elevator {
-  font-size: var(--text-13);
-  font-weight: var(--font-medium);
-  color: var(--color-text-muted);
-}
-
 .slot__count {
   font-size: var(--text-13);
   font-weight: var(--font-medium);

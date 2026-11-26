@@ -37,6 +37,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             + "from Reservation r where r.departure.id in :ids and r.status = 'ACTIVE' group by r.departure.id")
     List<Object[]> countActiveByDeparture(@Param("ids") Collection<Long> ids);
 
+    /** Filas [id de salida, piso de destino] de las reservas que cuenta {@link #countActiveByDeparture}. */
+    @Query("select r.departure.id, r.destinationFloor from Reservation r where r.departure.id in :ids "
+            + "and r.status = 'ACTIVE'")
+    List<Object[]> activeDestinationsByDeparture(@Param("ids") Collection<Long> ids);
+
     /** Reservas ACTIVE de salidas futuras del ascensor, con lo que necesita el mail cargado (#134). */
     @Query("select r from Reservation r join fetch r.departure d join fetch d.elevator e join fetch e.core c "
             + "join fetch c.building where e.code = :code and r.status = 'ACTIVE' and d.departureAt > :now "

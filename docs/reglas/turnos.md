@@ -22,6 +22,8 @@ La hora de salida es **estimada**: el ascensor físico no sigue un horario. El K
 
 La app es para movilidad inmediata; abrir con más anticipación facilita acaparar cupo.
 
+Dentro de la ventana, con núcleo, origen y destino el servidor ofrece **una salida por hora** según las [zonas de pisos](asignacion.md#zonas-de-pisos) (`zone_open_to_any_before`, 5 min, y `zone_affinity_max_floors`, 2 pisos, en la [tabla de parámetros](README.md#parámetros-configurables)).
+
 ## 3. Límites por usuario
 
 - **1 reserva activa** a la vez.

@@ -74,4 +74,27 @@ class DepartureControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
+
+    @Test
+    void tripParamsReturnTheZonedOffer() throws Exception {
+        given(service.findOffer(USER, "L1", 0, 7)).willReturn(List.of(new DepartureResponse(9, "03", "LIMA",
+                Instant.parse("2026-10-13T16:02:00Z"), 10, 8, 0,
+                Instant.parse("2026-10-13T16:00:00Z"), DepartureStatus.SCHEDULED)));
+
+        mockMvc.perform(get("/api/departures").with(asUser())
+                        .param("core", "L1").param("origin", "0").param("destination", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].elevator").value("03"));
+    }
+
+    @Test
+    void partialTripParamsReturn400() throws Exception {
+        mockMvc.perform(get("/api/departures").with(asUser()).param("core", "L1").param("origin", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").exists());
+        mockMvc.perform(get("/api/departures").with(asUser()).param("destination", "7"))
+                .andExpect(status().isBadRequest());
+    }
 }
