@@ -122,7 +122,10 @@ export function ReserveTurnPage() {
   const slotsShown = !!slots?.length;
   useEffect(() => {
     if (slotsShown && !fromLastTrip) {
-      slotsLabel.current?.parentElement?.scrollIntoView?.({ block: 'nearest' });
+      // Solo la primera: traer el grupo entero sacaba de la vista el destino recién elegido.
+      slotsLabel.current?.parentElement
+        ?.querySelector('.slot')
+        ?.scrollIntoView?.({ block: 'nearest' });
     }
   }, [slotsShown, validDestination, fromLastTrip]);
   const ready = origin !== null && validDestination !== null && slot !== undefined;

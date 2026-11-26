@@ -694,6 +694,39 @@ describe('ReserveTurnPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  describe('scroll hacia las salidas', () => {
+    const scroll = vi.fn();
+    // jsdom no implementa scrollIntoView.
+    beforeEach(() => {
+      scroll.mockReset();
+      Element.prototype.scrollIntoView = scroll;
+    });
+    afterEach(() => {
+      delete (Element.prototype as Partial<Element>).scrollIntoView;
+    });
+
+    it('al aparecer las salidas trae solo la primera, sin saltar todo el grupo', async () => {
+      stubApi(routes);
+      await renderSlots();
+
+      const first = await screen.findByRole('radio', { name: /^14:32/ });
+      expect(scroll).toHaveBeenCalledExactlyOnceWith({ block: 'nearest' });
+      expect(scroll.mock.contexts[0]).toBe(first.closest('label'));
+    });
+
+    it('con el último viaje precargado no mueve la pantalla', async () => {
+      localStorage.setItem(
+        'se:lastTrip',
+        JSON.stringify({ coreId: 'L1', originFloor: 0, destinationFloor: 5 }),
+      );
+      stubApi(routes);
+      renderPage();
+
+      await screen.findByRole('radio', { name: /^14:32/ });
+      expect(scroll).not.toHaveBeenCalled();
+    });
+  });
+
   describe('precarga del último viaje', () => {
     const saveTrip = (trip: unknown) => localStorage.setItem('se:lastTrip', JSON.stringify(trip));
 
