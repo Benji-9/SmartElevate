@@ -2,8 +2,8 @@ import { useId, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
+import { Mascot } from '../components/Mascot';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
@@ -101,7 +101,7 @@ export function RegisterPage() {
     return (
       <div className="auth-card auth-card--register">
         <ScreenHeader title="Crear cuenta" backTo="/login" />
-        <AuthBrand />
+        <Mascot pose="saludo" size={96} className="auth__mascot" />
         <div role="status" className="auth">
           <h2>Revisá tu email</h2>
           <p className="auth__lead">
@@ -118,8 +118,11 @@ export function RegisterPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Crear cuenta" backTo="/login" />
-      <AuthBrand />
-      <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
+      {/* Una sola capa antes del primer campo: Elevy con la bajada (el logo ya se vio en el login). */}
+      <div className="auth__greeting">
+        <Mascot pose="saludo" size={56} />
+        <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
+      </div>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
         <Input

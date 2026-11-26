@@ -30,10 +30,11 @@ const valid = {
 const submit = () => userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
 describe('RegisterPage', () => {
-  it('muestra la marca de SmartElevate', async () => {
+  it('antes del primer campo solo va la bajada: sin repetir el logo del login', async () => {
     stubApi(signedOut);
     await renderRegister();
-    expect(screen.getByRole('img', { name: 'SmartElevate' })).toBeInTheDocument();
+    expect(screen.getByText('Usá tu email institucional y tu legajo.')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'SmartElevate' })).not.toBeInTheDocument();
   });
 
   it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {

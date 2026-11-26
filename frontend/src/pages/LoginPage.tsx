@@ -8,7 +8,8 @@ import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from '../features/auth/validation';
 import { useSession } from '../hooks/useSession';
 import { ApiError, networkErrorMessage, SESSION_EXPIRED_MESSAGE } from '../services/api';
-import logo from '../assets/smartelevate-logo.svg';
+import logo from '../assets/smartelevate-logo-horizontal.svg';
+import { Mascot } from '../components/Mascot';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
@@ -57,7 +58,9 @@ export function LoginPage() {
   return (
     <section className="auth auth--login auth-card">
       <header className="auth__intro">
-        <img className="auth__logo" src={logo} alt="" width={181} height={120} />
+        {/* La marca una sola vez (el h1 ya nombra a SmartElevate) y Elevy saludando. */}
+        <img className="auth__logo" src={logo} alt="" width={131} height={32} />
+        <Mascot pose="saludo" size={104} />
         <h1 className="text-title">Te damos la bienvenida a SmartElevate</h1>
         <p className="auth__subtitle text-body">
           Reservá tu turno de ascensor y llegá a tiempo a clase.
