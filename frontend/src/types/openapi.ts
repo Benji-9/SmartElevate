@@ -1189,6 +1189,7 @@ export interface components {
       email: string;
       /**
        * Format: password
+       * @description Hasta 64 caracteres, contados como en el registro (tras NFKC)
        * @example una-clave-larga
        */
       password: string;

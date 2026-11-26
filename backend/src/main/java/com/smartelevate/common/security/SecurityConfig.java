@@ -3,6 +3,7 @@ package com.smartelevate.common.security;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -23,14 +24,17 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  *
  * <h2>Públicos</h2>
  * {@code /api/ping}, {@code /api/auth/**} (registro, login, refresh, logout), {@code GET /api/elevators},
- * {@code GET /api/buildings}, la documentación ({@code /v3/api-docs/**}, {@code /swagger-ui*}),
- * {@code /actuator/health} y {@code /h2-console/**} (solo existe en dev). Todo lo demás exige un access token válido.
+ * {@code GET /api/buildings}, la documentación ({@code /v3/api-docs/**}, {@code /swagger-ui*}; en prod está
+ * apagada) y {@code /actuator/health}. {@code /h2-console/**} solo es público si
+ * {@code spring.h2.console.enabled=true} (dev). Todo lo demás exige un access token válido.
  *
  * <h2>Cómo agregar un endpoint</h2>
  * <ul>
  *   <li><b>Protegido (default):</b> no hay que tocar nada. Cualquier ruta nueva queda autenticada.</li>
  *   <li><b>Por rol:</b> {@code @PreAuthorize("hasRole('ADMIN')")} en el método del controller (o
  *       {@code hasAnyRole('ADMIN','REVIEWER')}). Sin token da 401; con otro rol, 403.</li>
+ *   <li><b>{@code /api/admin/**}:</b> además exige ADMIN acá, antes de validar el pedido. Una ruta para otro rol
+ *       no va bajo ese prefijo.</li>
  *   <li><b>Usuario actual:</b> parámetro {@code @AuthenticationPrincipal CurrentUser user}.</li>
  *   <li><b>Público:</b> sumarlo a {@link #PUBLIC_ANY} o {@link #PUBLIC_GET}. Hacerlo solo con motivo.</li>
  * </ul>
@@ -46,7 +50,7 @@ public class SecurityConfig {
 
     static final String[] PUBLIC_ANY = {
             "/api/ping", "/api/auth/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**",
-            "/actuator/health/**", "/h2-console/**"
+            "/actuator/health/**"
     };
     static final String[] PUBLIC_GET = {"/api/elevators", "/api/buildings"};
 
@@ -54,17 +58,27 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             Converter<Jwt, AbstractAuthenticationToken> converter,
                                             AuthenticationEntryPoint entryPoint,
-                                            AccessDeniedHandler deniedHandler) {
+                                            AccessDeniedHandler deniedHandler,
+                                            @Value("${spring.h2.console.enabled:false}") boolean h2Console) {
+        if (h2Console) {
+            // La consola usa frames; sin ella queda el default (DENY).
+            http.headers(h -> h.frameOptions(f -> f.sameOrigin()));
+        }
         http
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .headers(h -> h.frameOptions(f -> f.sameOrigin())) // consola de H2 en dev
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a -> a
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(PUBLIC_ANY).permitAll()
-                        .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(a -> {
+                    a.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers(PUBLIC_ANY).permitAll()
+                            .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll();
+                    if (h2Console) {
+                        a.requestMatchers("/h2-console/**").permitAll();
+                    }
+                    // Antes de validar parámetros: un usuario común recibe 403 y no 400 (#345).
+                    a.requestMatchers("/api/admin/**").hasRole("ADMIN")
+                            .anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(o -> o
                         .jwt(j -> j.jwtAuthenticationConverter(converter))
                         .authenticationEntryPoint(entryPoint)

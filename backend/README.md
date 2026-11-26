@@ -91,6 +91,8 @@ La documentación de los endpoints se genera desde el código (springdoc) y qued
 - **Spec (JSON):** http://localhost:8080/v3/api-docs
 - **Tipos TypeScript:** `frontend/src/types/openapi.ts`, generados desde la spec.
 
+Swagger UI y la spec se sirven en dev local; en `prod` están apagados desde #345.
+
 Cuando agregás o cambiás un endpoint o un DTO:
 
 ```bash
