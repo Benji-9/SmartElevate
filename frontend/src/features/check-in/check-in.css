@@ -98,7 +98,12 @@
   max-width: 320px;
 }
 
+/* Aviso sobre blanco dentro de la vista oscura: texto, link y foco con los colores claros. */
 .check-in__alert {
+  --color-danger: var(--Status-Alta);
+  --color-primary: var(--AstronautBlue);
+  --color-focus: var(--AstronautBlue);
+
   background: var(--White);
 }
 
