@@ -413,7 +413,7 @@ El simulador es un cliente más de `GET /api/kiosks/me/qr-token`: no hay endpoin
 
 Sin frame de Figma. Pantalla de una tablet o monitor del hall que muestra el QR del ascensor, que cambia por turno de clase ([ADR 0026](../adr/0026-qr-del-kiosco-por-turno-de-clase.md)) ([check-in](../reglas/check-in-qr.md)). Sin `TopBar`, sin navegación y **sin selector de vista** (como `/admin`). No pide sesión de usuario: se autentica con la **credencial del kiosco**, que viaja en `Authorization: Bearer` solo en `GET /api/kiosks/me/qr-token` (nunca el JWT de una persona y sin renovación de sesión).
 
-`main` centrado a pantalla completa, pad 32, gap 24.
+`main` centrado a pantalla completa, pad 32, gap 24. Arriba, en los dos estados, `smartelevate-logo-horizontal.svg` a 40 px (`alt="SmartElevate"`); la instrucción de escaneo lleva a la izquierda la cara de Elevy (`cara`, 40 px).
 
 **Sin credencial guardada:** `h1` "Kiosco del ascensor 33" (`.text-title-lg`); texto "Pegá la credencial que te dieron en el panel de administración al dar de alta este kiosco. Se guarda solo en este dispositivo."; `Input` "Credencial del kiosco" (`type="password"`, `autocomplete="off"`); `Button` primary "Guardar y mostrar el QR". Vacía → "Pegá la credencial del kiosco.". La credencial **no va en la URL ni queda a la vista**: se guarda en `localStorage` del dispositivo (`smartelevate.kiosk.<ascensor>`); si el storage está bloqueado, vale mientras la pestaña siga abierta.
 

@@ -17,6 +17,13 @@
 }
 
 .kiosk__intro,
+/* Elevy junto a la instrucción, como en la ayuda del QR de la app. */
+.kiosk-qr__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .kiosk-qr__hint {
   max-width: 48ch;
   font-size: var(--text-15);
