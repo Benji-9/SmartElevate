@@ -10,7 +10,7 @@
 - El email se guarda en **minúsculas**: `Ana@UADE.edu.ar` y `ana@uade.edu.ar` son la misma cuenta. El legajo son solo dígitos, hasta 10.
 - La cuenta nace **común y sin verificar**. El pedido de registro (`POST /api/auth/register`) no tiene campo de rol ni de prioridad, y si el JSON trae alguno se ignora.
 - Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe. El 409 sí revela que ese email o legajo tiene cuenta: es un riesgo aceptado y queda así ([#344](https://github.com/Benji-9/SmartElevate/issues/344)).
-- Una cuenta que sigue **sin verificar a los 2 días** se **borra** (job por hora, `APP_VERIFICATION_UNVERIFIED_TTL`; [#344](https://github.com/Benji-9/SmartElevate/issues/344)): así un email o un legajo registrado por otra persona se libera solo. Nunca se borran cuentas verificadas ni ADMIN.
+- Una cuenta que sigue **sin verificar a los 2 días** se **borra** (job por hora, `APP_VERIFICATION_UNVERIFIED_TTL`; [#344](https://github.com/Benji-9/SmartElevate/issues/344)): así un email o un legajo registrado por otra persona se libera solo, **siempre que quien lo registró no lo verifique**. Si esa persona registró su propio email con el legajo de otra, puede verificarlo y la cuenta no se borra: el legajo queda tomado y la limpieza no lo libera. Nunca se borran cuentas verificadas ni ADMIN.
 
 ### Contraseña
 
@@ -31,8 +31,8 @@ Alineada a NIST SP 800-63B en [#211](https://github.com/Benji-9/SmartElevate/iss
 
 ### Límite de pedidos por IP
 
-- `POST /api/auth/register`, `POST /api/auth/resend-verification` y `POST /api/auth/password/forgot` tienen un **tope por IP**: **60 pedidos** de cada acción en los últimos **15 minutos** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Pasado el tope responden **429** con `Retry-After` hasta que el pedido más viejo sale de la ventana; los rechazados no cuentan. Cada acción cuenta por separado y nunca se mira qué email se pidió, así que el 429 no revela cuentas.
-- El tope es holgado porque el WiFi del campus sale por pocas IPs (NAT): 30 registros seguidos desde una IP pasan. Se calibra en el piloto, como el de logins.
+- `POST /api/auth/register`, `POST /api/auth/resend-verification` y `POST /api/auth/password/forgot` tienen un **tope por IP**: **1000 pedidos** de cada acción en los últimos **15 minutos** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Pasado el tope responden **429** con `Retry-After` hasta que el pedido más viejo sale de la ventana; los rechazados no cuentan. Cada acción cuenta por separado y nunca se mira qué email se pidió, así que el 429 no revela cuentas.
+- El tope es holgado a propósito: el WiFi del campus sale por pocas IPs (NAT) y, hasta confirmar que el backend ve la IP real detrás de Vercel y Render, puede ser una sola para todos; un tope bajo dejaría a todo el campus sin "olvidé mi contraseña" ([riesgo 3](../infraestructura.md#riesgos-del-primer-deploy)). Se baja cuando se verifique la IP real, en el piloto.
 - Se guarda el hash de la acción y la IP, nunca la IP. Valores en `application.yml` (`app.request-throttle.*`), con override por `APP_REQUEST_THROTTLE_WINDOW` y `APP_REQUEST_THROTTLE_MAX_PER_IP`. La ventana no puede ser mayor que la de logins (comparten tabla): si lo es, la app no arranca.
 - `resend-verification` responde **202 siempre**, también si se pidió hace menos de 1 minuto: esa espera se aplica en silencio, como en "olvidé mi contraseña". El único 429 es el del tope por IP.
 
