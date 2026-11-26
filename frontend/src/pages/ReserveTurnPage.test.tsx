@@ -492,7 +492,9 @@ describe('ReserveTurnPage', () => {
     await renderSlots();
 
     expect(
-      await screen.findByText(/Las salidas se abren 30 min antes. Volvé más cerca de la hora./),
+      await screen.findByText(
+        'No hay salidas que puedas reservar en este núcleo ahora. Probá en unos minutos.',
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('radiogroup', { name: 'Horario de salida' })).not.toBeInTheDocument();
   });

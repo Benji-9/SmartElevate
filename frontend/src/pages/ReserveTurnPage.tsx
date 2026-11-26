@@ -277,7 +277,7 @@ export function ReserveTurnPage() {
                 <Skeleton label="Cargando salidas…" rows={4} height={56} />
               ) : !slots.length ? (
                 <p className="page-placeholder">
-                  Las salidas se abren 30 min antes. Volvé más cerca de la hora.
+                  No hay salidas que puedas reservar en este núcleo ahora. Probá en unos minutos.
                 </p>
               ) : (
                 <>
