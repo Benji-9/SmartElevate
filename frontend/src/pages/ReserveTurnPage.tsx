@@ -118,10 +118,12 @@ export function ReserveTurnPage() {
   const slots = departures.data && openSlots(departures.data, now);
   const slot = slots?.find((s) => s.departureAt === slotTime && s.departure.remainingSeats > 0);
   const ready = origin !== null && validDestination !== null && slot !== undefined;
-  // "Lima 3 · Piso 7 · 7:25" con lo que ya se eligió.
+  // "Lima 3 · Piso 3 → 7 · 7:25" con lo que ya se eligió.
   const summary = [
     core?.name,
-    validDestination !== null && `Piso ${formatFloor(validDestination)}`,
+    origin !== null &&
+      validDestination !== null &&
+      `Piso ${formatFloor(origin)} → ${formatFloor(validDestination)}`,
     slot && formatTime(slot.departureAt),
   ]
     .filter(Boolean)
