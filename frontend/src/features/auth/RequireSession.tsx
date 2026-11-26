@@ -19,7 +19,8 @@ export function RequireSession({ role }: RequireSessionProps) {
     // sesión: la app no arranca con un "Cargando…" suelto sobre blanco.
     return (
       <div className="screen">
-        <TopBar />
+        {/* Las rutas de administración no usan el TopBar de usuario. */}
+        {role !== 'ADMIN' && <TopBar />}
         <main id="main" tabIndex={-1} className="screen__main page">
           <Skeleton label="Cargando…" rows={3} height={96} />
         </main>
