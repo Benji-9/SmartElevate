@@ -909,7 +909,8 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => {
       // Token de prueba "VENCIDO": el link ya no sirve.
       const { token, newPassword } = body as ResetPasswordRequest;
-      if (!token || token.toUpperCase().includes('VENCIDO')) {
+      if (!token) throw rejected(400, 'TOKEN_INVALID', 'El link no es válido.');
+      if (token.toUpperCase().includes('VENCIDO')) {
         throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
       }
       if (!newPassword) {

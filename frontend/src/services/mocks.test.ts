@@ -470,6 +470,9 @@ describe('mocks', () => {
     await expect(
       call('POST', '/auth/password/reset', { token: 'VENCIDO', newPassword: 'x' }),
     ).rejects.toMatchObject({ status: 400, code: 'TOKEN_EXPIRED' });
+    await expect(
+      call('POST', '/auth/password/reset', { token: '', newPassword: 'x' }),
+    ).rejects.toMatchObject({ status: 400, code: 'TOKEN_INVALID' });
   });
 
   it('las preferencias de notificaciones se guardan', async () => {
