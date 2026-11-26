@@ -287,6 +287,8 @@ describe('CheckInPage', () => {
     // El mismo nodo: no se saca y se vuelve a poner (el lector de pantalla no lo repite).
     expect(screen.getByRole('alert')).toBe(alert);
     expect(alert).toHaveTextContent('Error interno');
+    // El reintento es silencioso: ni "Registrando…" se anuncia ni el aviso salta de lugar.
+    expect(screen.getAllByRole('status')[0]).toBeEmptyDOMElement();
 
     advance(5_000);
     await nextFrames();

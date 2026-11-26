@@ -166,7 +166,8 @@ export function CheckInPage() {
   const showFinder = wantsCamera && !cameraBlocked;
   // Texto de la región de estado de la cámara, siempre montada.
   let scanStatus = '';
-  if (submitting) scanStatus = 'Registrando tu check-in…';
+  // En el reintento automático el aviso sigue puesto: no se anuncia "Registrando…" otra vez.
+  if (submitting && !error) scanStatus = 'Registrando tu check-in…';
   else if (showFinder && camera === 'starting') {
     scanStatus = 'Pidiendo permiso para usar la cámara…';
   }
