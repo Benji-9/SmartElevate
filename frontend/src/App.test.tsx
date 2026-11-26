@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -273,7 +273,8 @@ describe('App', () => {
     renderAt('/perfil');
 
     await screen.findByRole('heading', { name: 'Mi perfil' });
-    expect(document.title).toBe('Mi perfil · SmartElevate');
+    // El título se pone en un efecto: puede llegar después del encabezado (en CI quedaba el del test anterior).
+    await waitFor(() => expect(document.title).toBe('Mi perfil · SmartElevate'));
     await userEvent.click(screen.getByRole('link', { name: 'Saltar al contenido' }));
     expect(screen.getByRole('main')).toHaveFocus();
   });
