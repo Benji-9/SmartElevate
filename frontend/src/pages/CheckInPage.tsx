@@ -92,7 +92,7 @@ export function CheckInPage() {
     }
   }
 
-  // No reintenta el mismo QR que ya falló: el siguiente token (rota) sí se envía.
+  // No reintenta el mismo QR que ya falló: otro token sí se envía.
   const onScan = useEffectEvent((value: string) => {
     if (!submitting && !scanDone && value !== failedToken.current) void submit(value);
   });

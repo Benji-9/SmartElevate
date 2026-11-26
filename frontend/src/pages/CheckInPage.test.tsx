@@ -205,7 +205,7 @@ describe('CheckInPage', () => {
 
     const alert = await screen.findByRole('alert');
     expect(within(alert).getByRole('link', { name })).toHaveAttribute('href', href);
-    // Llegan QR nuevos (rotan), pero con este rechazo no se reenvía ninguno.
+    // Llegan otros QR, pero con este rechazo no se reenvía ninguno.
     await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(2));
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
   });

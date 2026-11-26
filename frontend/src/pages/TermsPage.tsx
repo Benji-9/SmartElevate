@@ -63,8 +63,8 @@ export function TermsPage() {
             tiempo la posibilidad de reservar.
           </li>
           <li>
-            El check-in se hace escaneando el QR de la pantalla del hall, que cambia cada poco
-            tiempo. No compartas ni reutilices códigos.
+            El check-in se hace escaneando el QR de la pantalla del hall, que cambia con cada turno
+            de clase. No compartas ni reutilices códigos.
           </li>
           <li>
             Un turno no garantiza un horario exacto: el ascensor puede demorarse, fallar o quedar

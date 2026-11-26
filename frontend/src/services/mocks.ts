@@ -90,8 +90,18 @@ const checkInOpensAt = (departureAt: string) =>
   new Date(Date.parse(departureAt) - CHECK_IN_OPENS_MS).toISOString();
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
-/** `app.kiosk.qr-ttl` del backend (ADR 0020). */
-const QR_TTL_MS = 30_000;
+/**
+ * `app.kiosk.qr-shift-boundaries` del backend (07, 13, 18 y 23 h de Buenos Aires, ADR 0026) en
+ * horas UTC: Argentina es UTC−3 todo el año.
+ */
+const QR_SHIFT_HOURS_UTC = [2, 10, 16, 21];
+/** El próximo cambio de turno: ahí vence el QR del kiosco. */
+function nextQrShift(now = Date.now()) {
+  const date = new Date(now);
+  // Pasadas las 21 h UTC, el siguiente es el primero de mañana (`setUTCHours` pasa de día).
+  const hour = QR_SHIFT_HOURS_UTC.find((h) => h > date.getUTCHours()) ?? 24 + QR_SHIFT_HOURS_UTC[0];
+  return date.setUTCHours(hour, 0, 0, 0);
+}
 /** Lugares de cada salida común guardados para prioritarios (turnos.md §6). */
 const PRIORITY_SEATS = 2;
 
@@ -1107,7 +1117,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     },
   ],
   // El ascensor sale de la credencial: sirve cualquier `mock-<ascensor>-…` (como las del alta).
-  // Ciclos de 30 s alineados al reloj.
+  // Vence en el próximo cambio de turno.
   [
     'GET',
     /^\/kiosks\/me\/qr-token$/,
@@ -1122,7 +1132,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
           'KIOSK_UNAUTHORIZED',
         );
       }
-      const expiresAt = Math.floor(Date.now() / QR_TTL_MS + 1) * QR_TTL_MS;
+      const expiresAt = nextQrShift();
       return {
         token: `mock-qr-${elevatorId}-${expiresAt}`,
         expiresAt: new Date(expiresAt).toISOString(),
