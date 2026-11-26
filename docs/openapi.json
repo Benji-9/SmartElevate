@@ -1548,7 +1548,7 @@
     },
     "/api/departures" : {
       "get" : {
-        "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.",
+        "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente. Con `core`, `origin` y `destination` (los tres juntos, si falta alguno responde 400) devuelve la oferta por zonas de pisos (ADR 0025): una salida por hora, ya resuelta por el servidor, de los ascensores del núcleo que paran en origen y destino; `elevator` y `building` se ignoran.",
         "operationId" : "bookable",
         "parameters" : [ {
           "description" : "Código del ascensor",
@@ -1567,6 +1567,35 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "Código del núcleo, sin distinguir mayúsculas",
+          "example" : "L1",
+          "in" : "query",
+          "name" : "core",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Piso de origen",
+          "example" : 0,
+          "in" : "query",
+          "name" : "origin",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "description" : "Piso de destino",
+          "example" : 7,
+          "in" : "query",
+          "name" : "destination",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ],
         "responses" : {
@@ -2989,7 +3018,9 @@
           "password" : {
             "type" : "string",
             "format" : "password",
+            "description" : "Hasta 64 caracteres, contados como en el registro (tras NFKC)",
             "example" : "una-clave-larga",
+            "maxLength" : 64,
             "minLength" : 1
           }
         },

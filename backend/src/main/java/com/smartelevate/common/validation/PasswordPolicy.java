@@ -23,6 +23,7 @@ public final class PasswordPolicy {
     public static final int MIN = 8;
     public static final int MAX = 64;
     public static final String SIZE_MESSAGE = "La contraseña tiene que tener entre " + MIN + " y " + MAX + " caracteres.";
+    public static final String TOO_LONG_MESSAGE = "La contraseña no puede tener más de " + MAX + " caracteres.";
     public static final String COMMON_MESSAGE = "Esa contraseña es muy común y fácil de adivinar. Elegí otra.";
     /** Para el {@code @Schema} de los DTOs. */
     public static final String DESCRIPTION = "Entre " + MIN + " y " + MAX + " caracteres (se cuentan caracteres, no "
@@ -34,6 +35,18 @@ public final class PasswordPolicy {
 
     public static String normalize(String raw) {
         return Normalizer.normalize(raw, Normalizer.Form.NFKC);
+    }
+
+    /**
+     * Si tras NFKC supera {@link #MAX}: el único tope del login. NFKC compone a lo sumo 4 caracteres en uno (8
+     * unidades UTF-16), así que un texto más largo que eso no puede entrar y ni se normaliza.
+     */
+    public static boolean exceedsMax(String raw) {
+        if (raw.length() > MAX * 8) {
+            return true;
+        }
+        String password = normalize(raw);
+        return password.codePointCount(0, password.length()) > MAX;
     }
 
     /** El mensaje de error si la contraseña no cumple la política, o {@code null} si cumple. */

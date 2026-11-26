@@ -43,4 +43,10 @@ public class Elevator {
     @CollectionTable(name = "elevator_floor", joinColumns = @JoinColumn(name = "elevator_code"))
     @Column(name = "floor_number")
     private Set<Integer> floors;
+
+    /** Zona semilla (ADR 0025): destinos que prefiere cuando su salida está vacía. Subconjunto de {@code floors}. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "elevator_zone_floor", joinColumns = @JoinColumn(name = "elevator_code"))
+    @Column(name = "floor_number")
+    private Set<Integer> zoneFloors;
 }

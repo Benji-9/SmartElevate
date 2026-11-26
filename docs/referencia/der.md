@@ -1,6 +1,6 @@
 # Diagrama entidad-relación (DER)
 
-Esquema de la base de datos tras las migraciones Flyway `V1` a `V22`. **Es documentación derivada: la fuente de verdad son las migraciones** (`backend/src/main/resources/db/migration/`) y las entidades JPA (`**/model`). Se verificó consultando `INFORMATION_SCHEMA` de una base H2 (perfil `dev`) recién migrada. Decisión de migraciones: [ADR 0004](../adr/0004-migraciones-de-base-de-datos.md).
+Esquema de la base de datos tras las migraciones Flyway `V1` a `V23`. **Es documentación derivada: la fuente de verdad son las migraciones** (`backend/src/main/resources/db/migration/`) y las entidades JPA (`**/model`). Se verificó consultando `INFORMATION_SCHEMA` de una base H2 (perfil `dev`) recién migrada. Decisión de migraciones: [ADR 0004](../adr/0004-migraciones-de-base-de-datos.md).
 
 Son 17 tablas de negocio más `flyway_schema_history` (la maneja Flyway). Los ids de usuarios, tokens, kioscos y auditoría son `uuid`; los de reservas, salidas, check-ins, suspensiones y conexiones son `bigint`; ascensores, núcleos y edificios usan un código de texto como clave.
 
@@ -13,6 +13,7 @@ erDiagram
     core ||--o{ core_connection : "core_a"
     core ||--o{ core_connection : "core_b"
     elevator ||--o{ elevator_floor : "sirve"
+    elevator_floor ||--o| elevator_zone_floor : "zona semilla"
     elevator ||--o{ departure : "sale"
     elevator ||--o{ kiosk : "tiene"
     elevator ||--o{ check_in : "registra"
@@ -135,6 +136,10 @@ erDiagram
         varchar elevator_code PK, FK
         int floor_number PK
     }
+    elevator_zone_floor {
+        varchar elevator_code PK, FK
+        int floor_number PK, FK
+    }
     departure {
         bigint id PK
         varchar elevator_code FK
@@ -147,6 +152,7 @@ erDiagram
     core ||--o{ core_connection : "core_a"
     core ||--o{ core_connection : "core_b"
     elevator ||--o{ elevator_floor : ""
+    elevator_floor ||--o| elevator_zone_floor : "FK elevator_code, floor_number"
     elevator ||--o{ departure : "UNIQUE elevator_code, departure_at"
 ```
 
@@ -215,6 +221,7 @@ erDiagram
 
 - **Turnos de cursada (mañana, tarde, noche)** y **umbrales de congestión**: claves `morning_shift_*`, `afternoon_shift_*`, `night_shift_*`, `congestion_medium_from` y `congestion_high_from` (V19, V22). Los KPIs se calculan en consulta sobre `departure`, `reservation` y `check_in`; no se guardan.
 - **Notificaciones por email**: preferencias en `app_user.notify_*` y marca de idempotencia en `reservation.reminder_sent_at` (V20); el adelanto del recordatorio es `departure_reminder_before` en `app_config`.
+- **Zonas de pisos** ([ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md)): la zona semilla de cada ascensor común está en `elevator_zone_floor` (V23); la apertura a cualquier ascensor y la distancia de afinidad son `zone_open_to_any_before` y `zone_affinity_max_floors` en `app_config`.
 - El resto de `app_config` son las reglas ajustables sin redeploy: cupo (`turn_capacity`, `priority_seats_per_departure`), ventanas de reserva, check-in y cancelación, no-show y suspensión, pisos bajos, horario de operación y `semester_end_dates` ([ADR 0017](../adr/0017-donde-viven-los-parametros.md)).
 
 ## Constraints que sostienen reglas de negocio
@@ -238,6 +245,7 @@ erDiagram
 | `CHECK` de `app_user.role` y `declared_user_type` | Roles `USER`, `REVIEWER`, `ADMIN`; el tipo declarado no da prioridad | [ADR 0009](../adr/0009-autenticacion-y-prioridad.md) |
 | `UNIQUE (refresh_token.token_hash)`, `family_id`, FK `ON DELETE CASCADE` | Rotación del refresh con detección de reuso por familia | [ADR 0019](../adr/0019-refresh-token-en-cookie-httponly.md) |
 | `UNIQUE (email_token.token_hash)` y `CHECK` de `purpose` | Tokens de verificación y de recuperación, de un solo uso | [ADR 0009](../adr/0009-autenticacion-y-prioridad.md) |
+| FK `elevator_zone_floor (elevator_code, floor_number)` → `elevator_floor` | La zona semilla de un ascensor solo incluye pisos donde para | [ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md), [asignación](../reglas/asignacion.md#zonas-de-pisos) |
 | `CHECK` de `elevator.usage_type` | Ascensor `COMMON`, `TEACHERS` o `REDUCED_MOBILITY` | [asignación](../reglas/asignacion.md) |
 | `CHECK (core_a_code <> core_b_code)`, `from_floor <= to_floor`, `walking_time_seconds > 0`; `building.min_floor <= max_floor` | Conexiones y rangos de pisos coherentes | [asignación](../reglas/asignacion.md) |
 
