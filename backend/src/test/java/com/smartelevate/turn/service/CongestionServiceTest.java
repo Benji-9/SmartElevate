@@ -44,7 +44,7 @@ class CongestionServiceTest {
             new CampusTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Argentina/Buenos_Aires")));
 
     private static Departure departure(long id, Core core) {
-        Departure d = new Departure(new Elevator("E" + id, core, ElevatorUsage.COMMON, true, Set.of(0)),
+        Departure d = new Departure(new Elevator("E" + id, core, ElevatorUsage.COMMON, true, Set.of(0), Set.of()),
                 NOW.plusSeconds(120 * id), 10);
         ReflectionTestUtils.setField(d, "id", id);
         return d;

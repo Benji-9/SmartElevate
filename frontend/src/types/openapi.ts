@@ -504,7 +504,7 @@ export interface paths {
     };
     /**
      * Lista las salidas reservables ahora (ventana de reserva) con su cupo restante
-     * @description Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.
+     * @description Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente. Con `core`, `origin` y `destination` (los tres juntos, si falta alguno responde 400) devuelve la oferta por zonas de pisos (ADR 0025): una salida por hora, ya resuelta por el servidor, de los ascensores del núcleo que paran en origen y destino; `elevator` y `building` se ignoran.
      */
     get: operations['bookable'];
     put?: never;
@@ -2827,6 +2827,21 @@ export interface operations {
          * @example INDEPENDENCIA
          */
         building?: string;
+        /**
+         * @description Código del núcleo, sin distinguir mayúsculas
+         * @example L1
+         */
+        core?: string;
+        /**
+         * @description Piso de origen
+         * @example 0
+         */
+        origin?: number;
+        /**
+         * @description Piso de destino
+         * @example 7
+         */
+        destination?: number;
       };
       header?: never;
       path?: never;
