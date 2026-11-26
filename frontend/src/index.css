@@ -293,6 +293,33 @@ a {
   text-align: center;
 }
 
+/* Banners y avisos: entran con `opacity` y `transform`, sin mover el layout. */
+:is(
+  .home__notice,
+  .reserve__notice,
+  .reserve__alert,
+  .turn-alert,
+  .turn-card--error,
+  .congestion__error,
+  .trips__notice,
+  .trips__error,
+  .auth__alert,
+  .notifications__alert,
+  .kiosk-alert,
+  .kiosk-error,
+  .admin__error,
+  .priority-error
+) {
+  animation: banner-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
 /* Única regla de movimiento reducido de la app: nada anima ni se repite. */
 @media (prefers-reduced-motion: reduce) {
   *,

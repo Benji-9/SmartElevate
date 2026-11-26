@@ -149,6 +149,45 @@
   background: color-mix(in srgb, var(--BlackPearl) 60%, transparent);
 }
 
+/*
+ * Entrada y salida (DESIGN-SYSTEM.md, Movimiento): `display` y `overlay` esperan al final de la
+ * transición para que el diálogo se vea mientras sale. Sin soporte, abre y cierra sin animar.
+ */
+.turn-dialog,
+.turn-dialog::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    overlay var(--duration-fast) var(--ease-out) allow-discrete,
+    display var(--duration-fast) var(--ease-out) allow-discrete;
+}
+
+.turn-dialog {
+  /* Centrado propio: al cerrar deja de ser `:modal` y sin esto salta mientras sale. */
+  position: fixed;
+  inset: 0;
+  transform: translateY(8px) scale(0.98);
+}
+
+.turn-dialog[open],
+.turn-dialog[open]::backdrop {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--duration-base);
+}
+
+@starting-style {
+  .turn-dialog[open],
+  .turn-dialog[open]::backdrop {
+    opacity: 0;
+  }
+
+  .turn-dialog[open] {
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
 .turn-dialog__warning {
   color: var(--color-danger);
   font-weight: var(--font-medium);
