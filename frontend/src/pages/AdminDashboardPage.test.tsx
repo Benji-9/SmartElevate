@@ -131,7 +131,7 @@ describe('AdminDashboardPage', () => {
 
     const chart = await screen.findByRole('figure', { name: 'Reservas por hora' });
     const table = within(chart).getByRole('table', { name: 'Reservas por hora del día' });
-    expect(within(table).getByRole('row', { name: '9:00 a 10:00 120' })).toBeInTheDocument();
+    expect(within(table).getByRole('row', { name: '9:00 a 10:00 120 (hora pico)' })).toBeInTheDocument();
   });
 
   it('muestra el estado por núcleo con su nivel en texto', async () => {

@@ -73,9 +73,13 @@
   margin: 0;
 }
 
+.hour-chart__scroll {
+  overflow-x: auto;
+}
+
 .hour-chart__plot {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(min-content, 1fr);
   gap: 4px 8px;
   font-size: var(--text-12);
   color: var(--color-text-muted);
@@ -112,7 +116,8 @@
   align-items: center;
   justify-content: flex-end;
   height: 100%;
-  min-width: 0;
+  /* Entra un valor de tres cifras sin pisar al de al lado. */
+  min-width: 1.75rem;
 }
 
 .hour-chart__bar {
