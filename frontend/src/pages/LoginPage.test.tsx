@@ -169,6 +169,30 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
   });
 
+  it('si el servidor rechaza la contraseña por el largo, lo dice en el campo y lo enfoca', async () => {
+    const message = 'La contraseña tiene que tener entre 8 y 64 caracteres.';
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': {
+        status: 400,
+        body: {
+          message: 'La solicitud tiene campos inválidos',
+          violations: [{ field: 'password', message }],
+        },
+      },
+    });
+    await renderLogin();
+
+    await submit('ana.perez', 'x'.repeat(65));
+
+    const password = screen.getByLabelText('Contraseña');
+    await waitFor(() => expect(password).toHaveFocus());
+    expect(password).toBeInvalid();
+    expect(password).toHaveAccessibleDescription(message);
+    expect(screen.getByLabelText('Email institucional')).toBeValid();
+    expect(screen.queryByText('La solicitud tiene campos inválidos')).not.toBeInTheDocument();
+  });
+
   it('con demasiados intentos fallidos muestra cuánto esperar', async () => {
     stubApi({
       ...signedOut,

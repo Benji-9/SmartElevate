@@ -64,7 +64,16 @@ export function LoginPage() {
           setUnverifiedEmail(toUadeEmail(email));
         }
         setRejected(error instanceof ApiError && error.status === 401);
-        setServerError(error instanceof ApiError ? error.message : networkErrorMessage());
+        // 400 de validación: el motivo va al lado del campo (p. ej. una contraseña muy larga).
+        const fieldErrors: Errors = Object.fromEntries(
+          (error instanceof ApiError ? error.violations : [])
+            .filter((v) => v.field === 'email' || v.field === 'password')
+            .map((v) => [v.field, v.message]),
+        );
+        setErrors(fieldErrors);
+        if (!Object.keys(fieldErrors).length) {
+          setServerError(error instanceof ApiError ? error.message : networkErrorMessage());
+        }
         setSubmitting(false);
       });
       focusFirstInvalid(form);
