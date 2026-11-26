@@ -190,10 +190,11 @@ class SessionApiTest {
     }
 
     @Test
-    void anExpiredAccessTokenIsRejected() throws Exception {
+    void accessTokenExpiredTenSecondsAgoIsRejected() throws Exception {
         registerAna(true);
-        // Firmado con la clave de la app, pero vencido hace 5 minutos (más que la tolerancia de reloj de 60 s).
-        Instant exp = Instant.now().minusSeconds(300);
+        // Firmado con la clave de la app y vencido hace 10 s: más que la tolerancia de reloj (5 s). El decoder usa el
+        // reloj del sistema, así que el vencimiento se arma relativo a él.
+        Instant exp = Instant.now().minusSeconds(10);
         String expired = jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(),
                 JwtClaimsSet.builder().subject(ana.getId().toString()).issuedAt(exp.minusSeconds(900))
                         .expiresAt(exp).build())).getTokenValue();

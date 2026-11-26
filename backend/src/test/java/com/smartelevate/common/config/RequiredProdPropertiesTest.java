@@ -51,6 +51,20 @@ class RequiredProdPropertiesTest {
         });
     }
 
+    @Test
+    void prodProfileDisablesApiDocs() {
+        prod(SECRET, FRONTEND_URL, CORS, QR_SECRET).run(ctx -> {
+            assertThat(ctx.getEnvironment().getProperty("springdoc.api-docs.enabled")).isEqualTo("false");
+            assertThat(ctx.getEnvironment().getProperty("springdoc.swagger-ui.enabled")).isEqualTo("false");
+        });
+    }
+
+    @Test
+    void prodProfileDisablesMailHealthCheck() {
+        prod(SECRET, FRONTEND_URL, CORS, QR_SECRET).run(ctx ->
+                assertThat(ctx.getEnvironment().getProperty("management.health.mail.enabled")).isEqualTo("false"));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", "   "})
     void prodFailsWithoutJwtSecret(String value) {

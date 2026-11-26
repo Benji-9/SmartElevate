@@ -86,7 +86,7 @@
             <scope>runtime</scope>
         </dependency>
         <!-- H2: solo lo usa el perfil dev y los tests. Queda en el classpath de runtime
-             para que `spring-boot:run` con perfil dev funcione; prod no lo configura. -->
+             para que `spring-boot:run` con perfil dev funcione; el jar empaquetado lo excluye (ver build). -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -172,6 +172,15 @@
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                        </exclude>
+                        <!-- El jar (y la imagen de prod) no lleva H2 ni su consola; spring-boot:run y los tests sí. -->
+                        <exclude>
+                            <groupId>com.h2database</groupId>
+                            <artifactId>h2</artifactId>
+                        </exclude>
+                        <exclude>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-h2console</artifactId>
                         </exclude>
                     </excludes>
                 </configuration>
