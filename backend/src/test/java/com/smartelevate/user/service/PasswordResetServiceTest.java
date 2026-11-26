@@ -41,7 +41,8 @@ class PasswordResetServiceTest {
     private final PasswordResetService service = new PasswordResetService(tokens, users, refreshTokens, encoder,
             sender,
             new PasswordResetProperties(Duration.ofMinutes(30), Duration.ofMinutes(1)),
-            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test"),
+            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), Duration.ofDays(2),
+                    "https://app.test"),
             Clock.fixed(NOW, ZoneOffset.UTC), loginThrottle);
 
     private final User user = new User("Juana", "jmartinez@uade.edu.ar", "1234567", "viejo", DeclaredUserType.STUDENT, NOW);

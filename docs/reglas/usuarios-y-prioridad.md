@@ -9,7 +9,8 @@
 - No hay acceso al sistema de UADE: el **legajo es autodeclarado**. La verificación real es la del email institucional.
 - El email se guarda en **minúsculas**: `Ana@UADE.edu.ar` y `ana@uade.edu.ar` son la misma cuenta. El legajo son solo dígitos, hasta 10.
 - La cuenta nace **común y sin verificar**. El pedido de registro (`POST /api/auth/register`) no tiene campo de rol ni de prioridad, y si el JSON trae alguno se ignora.
-- Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe.
+- Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe. El 409 sí revela que ese email o legajo tiene cuenta: es un riesgo aceptado y queda así ([#344](https://github.com/Benji-9/SmartElevate/issues/344)).
+- Una cuenta que sigue **sin verificar a los 2 días** se **borra** (job por hora, `APP_VERIFICATION_UNVERIFIED_TTL`; [#344](https://github.com/Benji-9/SmartElevate/issues/344)): así un email o un legajo registrado por otra persona se libera solo. Nunca se borran cuentas verificadas ni ADMIN.
 
 ### Contraseña
 

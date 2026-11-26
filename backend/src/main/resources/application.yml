@@ -68,6 +68,9 @@ app:
   verification:
     token-ttl: ${APP_VERIFICATION_TOKEN_TTL:PT24H}
     resend-cooldown: ${APP_VERIFICATION_RESEND_COOLDOWN:PT1M}
+    # Las cuentas que siguen sin verificar pasado este tiempo se borran (job por hora, #344). Mayor que token-ttl:
+    # si no, la app no arranca.
+    unverified-ttl: ${APP_VERIFICATION_UNVERIFIED_TTL:P2D}
     # Base del link del mail de verificación. Obligatoria en prod (RequiredProdProperties); el default localhost
     # vive solo en application-dev.yml.
     frontend-url: ${APP_FRONTEND_URL:}

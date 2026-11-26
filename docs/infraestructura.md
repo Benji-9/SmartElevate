@@ -110,6 +110,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` | Render | `100` | Mínimo 1. Depende de ver la IP real, ver [riesgos](#riesgos-del-primer-deploy) |
 | `APP_REQUEST_THROTTLE_WINDOW` / `APP_REQUEST_THROTTLE_MAX_PER_IP` | Render | `PT15M` / `60` | Tope por IP de registro, reenvío de verificación y "olvidé mi contraseña", cada uno aparte. La ventana no puede pasar la de logins (no arranca). También depende de la IP real |
 | `APP_VERIFICATION_TOKEN_TTL` / `APP_VERIFICATION_RESEND_COOLDOWN` | Render | `PT24H` / `PT1M` | Link de verificación de email |
+| `APP_VERIFICATION_UNVERIFIED_TTL` | Render | `P2D` | Las cuentas sin verificar se borran pasado este tiempo. Mayor que `APP_VERIFICATION_TOKEN_TTL` (no arranca) |
 | `APP_PASSWORD_RESET_TOKEN_TTL` / `APP_PASSWORD_RESET_REQUEST_COOLDOWN` | Render | `PT30M` / `PT1M` | Reset de contraseña |
 
 #### Kioscos y QR

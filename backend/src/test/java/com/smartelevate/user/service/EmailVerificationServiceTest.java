@@ -31,7 +31,8 @@ class EmailVerificationServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-13T15:00:00Z");
     private static final VerificationProperties PROPS =
-            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test");
+            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), Duration.ofDays(2),
+                    "https://app.test");
 
     private final EmailTokenService tokens = mock(EmailTokenService.class);
     private final UserRepository users = mock(UserRepository.class);
