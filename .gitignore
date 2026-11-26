@@ -55,12 +55,24 @@ tmp/
 .DS_Store
 Thumbs.db
 
-# --- Claude Code (personal; agents/ y settings.json sí se versionan) ---
-.claude/skills/
-.claude/settings.local.json
-.claude/worktrees/
-.claude/scheduled_tasks.lock
+# --- Agentes, skills y herramientas (locales, no se versionan) ---
+# De .claude/ solo se versiona lo compartido: settings.json, agents/ y rules/.
+.claude/*
+!.claude/settings.json
+!.claude/agents/
+!.claude/rules/
 CLAUDE.local.md
+.superpowers/
+docs/superpowers/
+.agents/
+.codex/
+.cursor/
+.serena/
+.remember/
+.caveman/
+.ponytail/
+.ecc/
+.codebase-index/
 
 # --- Archivos pesados o de trabajo (van a Drive, no al repo) ---
 *.pdf
