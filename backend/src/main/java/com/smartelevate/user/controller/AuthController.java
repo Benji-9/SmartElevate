@@ -126,9 +126,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Verifica el email con el token del link",
             description = "El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 "
-                    + "con el motivo en el mensaje. Es POST (y no GET) para que los antivirus de los mails "
+                    + "con el motivo en el mensaje y en el code. Es POST (y no GET) para que los antivirus de los mails "
                     + "que abren los links no gasten el token.")
-    @ApiResponse(responseCode = "400", description = "Token inválido, usado o vencido",
+    @ApiResponse(responseCode = "400",
+            description = "Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED)",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void verify(@Valid @RequestBody VerifyEmailRequest request) {
         emailVerification.verify(request.token());
@@ -159,7 +160,8 @@ public class AuthController {
     @Operation(summary = "Elige una contraseña nueva con el token del link",
             description = "El token sirve una sola vez y vence. Cambia la contraseña y revoca todos los refresh "
                     + "tokens del usuario (se cierran todas sus sesiones).")
-    @ApiResponse(responseCode = "400", description = "Token inválido, usado o vencido, o contraseña fuera de política",
+    @ApiResponse(responseCode = "400", description = "Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED), "
+                    + "o contraseña fuera de política",
             content = @Content(schema = @Schema(implementation = ApiError.class)))
     public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         passwordReset.reset(request.token(), request.newPassword());

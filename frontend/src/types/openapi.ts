@@ -429,7 +429,7 @@ export interface paths {
     put?: never;
     /**
      * Verifica el email con el token del link
-     * @description El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.
+     * @description El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje y en el code. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.
      */
     post: operations['verify'];
     delete?: never;
@@ -2472,7 +2472,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Token inválido, usado o vencido, o contraseña fuera de política */
+      /** @description Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED), o contraseña fuera de política */
       400: {
         headers: {
           [name: string]: unknown;
@@ -2666,7 +2666,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Token inválido, usado o vencido */
+      /** @description Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED) */
       400: {
         headers: {
           [name: string]: unknown;
