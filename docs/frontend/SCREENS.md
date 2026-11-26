@@ -169,7 +169,7 @@ Todo `Input` con `type="password"` (Login, Registro y 02c) trae a la derecha, de
 No hay frame en Figma ([#145](https://github.com/Benji-9/SmartElevate/issues/145)).
 
 - **Footer legal** (`LegalFooter`): al final de Login, Registro, 02b, 02c, 02d, Perfil y las dos páginas legales. En Login y Perfil lleva arriba el logotipo de UADE (`withUadeLogo`). Columna centrada, gap 4, 12 px `--ink-muted`: fila de links (500, `--accent`, sin subrayado, área táctil de 44 px) **Privacidad · Términos de uso · Contacto** (`mailto:` al email del proyecto) y debajo "SmartElevate · Proyecto académico de estudiantes de UADE".
-- **Páginas legales** (`/privacidad`, `/terminos`): `PageHeader` con volver + título; "Última actualización" 13 px `--ink-muted`; secciones numeradas con `h2` de 16 px / 600 y texto 14 px con interlineado 1,55. La leyenda obligatoria de la AAIP (Disposición 10/2008) va en un aviso `--accent-tint` dentro de "Tus derechos". En Pantalla usan la columna de 480 px.
+- **Páginas legales** (`/privacidad`, `/terminos`): `PageHeader` con volver + título; "Última actualización" 13 px `--ink-muted`; secciones numeradas con `h2` de 16 px / 600 y texto 14 px con interlineado 1,55. La leyenda obligatoria de la AAIP (Disposición 10/2008) va en un aviso `--accent-tint` dentro de "Tus derechos". En Pantalla usan la columna de 480 px en tarjeta sobre `--surface-subtle`, como la 404 y el turno (VIEW-MODES.md §6).
 - Contenido: la política sigue la Ley 25.326, el Decreto 1558/2001, las normas de la AAIP y el Convenio 108/108+, con los derechos del RGPD; los términos son los de un proyecto académico. **No es asesoramiento legal**: validar con la cátedra. Ya no hay datos de salud: la política no menciona certificados ni su tratamiento, y aclara que la marca de movilidad reducida la maneja UADE ([ADR 0024](../adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)). Si cambian proveedores, regiones o el tratamiento de datos, actualizar `PrivacyPage.tsx`.
 
 ## 03 · Inicio — `/`
@@ -436,7 +436,7 @@ El ascensor que vale es el de la credencial; el de la URL es el que la pantalla 
 
 ## 404 — `*`
 
-`PageHeader` con volver + "Página no encontrada". Elevy pensando (`piensa`, 120 px) y el texto centrados: "Uy, esta página no existe o cambió de lugar. Revisá la dirección o volvé al inicio."; `Button` primary "Ir al inicio".
+`PageHeader` con volver + "Página no encontrada". En Pantalla, la misma tarjeta centrada que el login. Elevy pensando (`piensa`, 120 px) y el texto centrados: "Uy, esta página no existe o cambió de lugar. Revisá la dirección o volvé al inicio."; `Button` primary "Ir al inicio".
 
 ## Checklist de accesibilidad para cada pantalla
 
