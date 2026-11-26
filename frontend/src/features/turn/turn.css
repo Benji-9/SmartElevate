@@ -143,6 +143,8 @@
 /* `display: grid` pisa el `display: none` nativo del diálogo cerrado. */
 .turn-dialog:not([open]) {
   display: none;
+  /* Mientras sale (150 ms) ya no toma clics. */
+  pointer-events: none;
 }
 
 .turn-dialog::backdrop {
