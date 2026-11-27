@@ -6,7 +6,7 @@ Contexto del repo para agentes de código (Claude Code, Codex, Cursor, Copilot�
 
 SmartElevate: MVP de 6 estudiantes de UADE para reducir la congestión de ascensores del campus. Turnos por franja horaria con **capacidad máxima de 10 personas por turno**, **usuarios prioritarios** (movilidad reducida, docentes) y **KPIs de congestión**. El README, los docs y la UI están en **español rioplatense**; el código (identificadores, commits) en inglés.
 
-Stack: backend Java 25 + Spring Boot 4.1 (`backend/`), frontend Node 24 + Vite + React + TypeScript (`frontend/`), docs en `docs/`.
+Stack: backend Java 25 + Spring Boot 4.2 (`backend/`), frontend Node 24 + Vite + React + TypeScript (`frontend/`), docs en `docs/`.
 
 ## Comandos
 
@@ -65,7 +65,7 @@ Si una regla es ambigua o contradictoria, frená y preguntá antes de elegir. Lo
 - **Base de datos con Flyway** (ADR 0004): el schema lo crean las migraciones de `src/main/resources/db/migration/V<n>__<descripcion>.sql`, en todos los perfiles, y Hibernate solo valida (`ddl-auto: validate`). Toda entidad nueva o cambio de columnas trae su migración en el mismo PR; una migración ya mergeada no se edita. SQL compatible con H2 (`MODE=PostgreSQL`) y con Postgres.
 - Lombok está disponible; preferir `record` para DTOs y `@RequiredArgsConstructor` para inyección.
 - **Contrato OpenAPI** (ADR 0006): `docs/openapi.json` se genera desde el código y `OpenApiSpecTest` falla si está desactualizado. Si cambiás endpoints/DTOs: `./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true` y después `npm run gen:api` en frontend/. Commiteá ambos archivos. Anotá DTOs con `@Schema(requiredMode = REQUIRED)` en campos obligatorios.
-- Spring Boot 4.1 + Java 25 (ADR 0011). Boot 4 usa Jackson 3 (`tools.jackson`) y starters modulares: para testear una tecnología sumá su starter `*-test` (p. ej. `spring-boot-starter-data-jpa-test`).
+- Spring Boot 4.2 + Java 25 (ADR 0011). Boot 4 usa Jackson 3 (`tools.jackson`) y starters modulares: para testear una tecnología sumá su starter `*-test` (p. ej. `spring-boot-starter-data-jpa-test`).
 
 ### Frontend (`frontend/src/`)
 

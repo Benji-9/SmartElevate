@@ -19,7 +19,7 @@ Para resolver una tarea concreta.
 - [Autenticación y endpoints protegidos](guias/autenticacion-y-endpoints.md): agregar un endpoint público, protegido o por rol.
 - [Contrato OpenAPI](../backend/README.md#contrato-openapi): regenerar `openapi.json` y los tipos del frontend.
 - [Migraciones de la base](../backend/README.md#migraciones-de-la-base-flyway).
-- [Infraestructura y operación](infraestructura.md): Render, Neon, Vercel, Brevo, primer ADMIN, smoke test, rollback.
+- [Infraestructura y operación](infraestructura.md): Render, Supabase, Vercel, Brevo, primer ADMIN, smoke test, rollback.
 - [Configurar Vercel y GitHub](guias/configurar-vercel-y-github.md): setup inicial (ya hecho), para rearmarlo.
 - [Prueba de usabilidad](frontend/usabilidad.md): plan y guion.
 - [Reportar una vulnerabilidad](../SECURITY.md).
@@ -29,7 +29,7 @@ Para resolver una tarea concreta.
 Para consultar un dato exacto.
 
 - [Reglas de negocio](reglas/README.md): [turnos](reglas/turnos.md), [asignación](reglas/asignacion.md), [check-in con QR](reglas/check-in-qr.md), [usuarios y prioridad](reglas/usuarios-y-prioridad.md), [KPIs](reglas/kpis.md).
-- [Contrato de la API (`openapi.json`)](openapi.json): generado desde el código; Swagger UI en `/swagger-ui.html`.
+- [Contrato de la API (`openapi.json`)](openapi.json): generado desde el código; Swagger UI en `/swagger-ui.html` en dev local (apagada en `prod` desde #345).
 - [`.env.example`](../.env.example): variables del backend y checklist de `prod` (las del frontend, en su [README](../frontend/README.md#variables-de-entorno)).
 - [Diagrama entidad-relación (DER)](referencia/der.md): tablas, relaciones y constraints de la base.
 - [CI/CD: workflows](referencia/ci-cd.md).

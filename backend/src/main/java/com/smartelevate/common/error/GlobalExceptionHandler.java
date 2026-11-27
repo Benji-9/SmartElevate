@@ -15,21 +15,24 @@ import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
-import com.smartelevate.user.service.ResendTooSoonException;
 import com.smartelevate.user.service.TooManyLoginAttemptsException;
+import com.smartelevate.user.service.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -100,6 +103,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
                                                              HttpServletRequest request) {
         return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request, List.of());
+    }
+
+    // Sin @ResponseStatus (igual que los dos de abajo): son errores genéricos, no del contrato de cada endpoint.
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
+                                                                HttpServletRequest request) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "El tipo de contenido no está soportado", request, List.of());
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ApiError> handleMissingHeader(MissingRequestHeaderException ex, HttpServletRequest request) {
+        List<ApiError.FieldViolation> violations =
+                List.of(new ApiError.FieldViolation(ex.getHeaderName(), "Es obligatorio"));
+        return build(HttpStatus.BAD_REQUEST, "Falta un header obligatorio", request, violations);
+    }
+
+    /** Red de contención: los conflictos esperados se atrapan en cada service con un mensaje propio. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
+                                                        HttpServletRequest request) {
+        // Solo el tipo de la causa: el mensaje de la base puede traer datos de la fila (p. ej. el email).
+        log.warn("Violación de integridad en {}: {}", request.getRequestURI(),
+                ex.getMostSpecificCause().getClass().getName());
+        return build(HttpStatus.CONFLICT, "La operación choca con datos existentes", request, List.of());
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -186,17 +213,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
-    }
-
-    @ExceptionHandler(ResendTooSoonException.class)
-    public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
-        return tooManyRequests(ex.getMessage(), ex.getRetryAfter().toSeconds(), request);
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), "TOKEN_" + ex.getReason().name(), request, List.of());
     }
 
     @ExceptionHandler(TooManyLoginAttemptsException.class)
     public ResponseEntity<ApiError> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
                                                                HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException ex, HttpServletRequest request) {
         return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
     }
 

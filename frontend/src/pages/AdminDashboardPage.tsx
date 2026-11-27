@@ -212,7 +212,7 @@ export function AdminDashboardPage() {
                 ? NO_DATA
                 : `${formatNumber(data.avgOccupancy)} / ${data.capacity}`
             }
-            detail="personas por franja"
+            detail="personas por salida"
             comparison={
               <PreviousComparison
                 current={data.avgOccupancy}

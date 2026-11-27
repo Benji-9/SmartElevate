@@ -20,7 +20,7 @@ Detalles:
 - El deploy nunca corre para PRs de forks (el workflow tiene acceso a secrets).
 - Los deploys automáticos de Vercel por Git están apagados (`"git": { "deploymentEnabled": false }` en `vercel.json`): **el único camino de deploy es el workflow**.
 - Decisiones y trade-offs: [ADR 0003](../adr/0003-deploy-frontend-vercel-via-github-actions.md).
-- El backend no tiene workflow de deploy: Render lo buildea solo desde `main` cuando pasa `backend-verify` ([ADR 0012](../adr/0012-hosting-del-backend-render-y-neon.md)).
+- El backend no tiene workflow de deploy: Render lo buildea solo desde `main` cuando pasa `backend-verify` ([ADR 0012](../adr/0012-hosting-del-backend-render-y-supabase.md)).
 
 ## ¿Cómo llega `/api` al backend en Vercel?
 

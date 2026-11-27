@@ -37,6 +37,8 @@
 @container app (min-width: 900px) {
   .screen {
     max-width: none;
+    /* El selector de vista flota abajo a la derecha: lo último de la página scrollea por encima. */
+    padding-bottom: var(--toggle-clearance, 0px);
   }
 
   .screen__main {
@@ -48,6 +50,28 @@
 
   .page {
     max-width: var(--container-max);
+  }
+
+  /*
+   * Tarjetas centradas (hasta 480): el selector solo se ve desde 1024 px y ahí no llega a la
+   * tarjeta, así que no se le reserva lugar (el login no scrollea de más y quedan centradas).
+   */
+  .screen:has(.auth-card) {
+    padding-bottom: 0;
+  }
+
+  /* Columna de 480 en tarjeta sobre surface-subtle (como el login), centrada en el alto. */
+  .screen:has(> .screen__main--framed) {
+    padding-block: 32px;
+    background: var(--color-disabled-bg);
+  }
+
+  .screen__main--framed {
+    flex: none;
+    margin-block: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sheet);
+    background: var(--color-surface);
   }
 
   /* Que el TopBar (sticky) no tape el elemento enfocado al navegar con teclado (WCAG 2.4.11). */

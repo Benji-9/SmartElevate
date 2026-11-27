@@ -1,14 +1,16 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { AuthBrand } from '../components/AuthBrand';
 import { LegalFooter } from '../components/LegalFooter';
+import { Mascot } from '../components/Mascot';
 import { OptionGroup, type Option } from '../components/OptionGroup';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
 import { UadeEmailInput } from '../features/auth/UadeEmailInput';
 import {
+  focusFirstInvalid,
   PASSWORD_HINT,
   toUadeEmail,
   validatePassword,
@@ -43,6 +45,7 @@ function validate(form: RegisterRequest): Errors {
 
 export function RegisterPage() {
   useDocumentTitle('Crear cuenta');
+  const userTypeHintId = useId();
   const [form, setForm] = useState<RegisterRequest>({
     fullName: '',
     email: '',
@@ -63,10 +66,16 @@ export function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     const next = validate(form);
-    setErrors(next);
-    setServerError(null);
-    if (Object.values(next).some(Boolean)) return;
+    flushSync(() => {
+      setErrors(next);
+      setServerError(null);
+    });
+    if (Object.values(next).some(Boolean)) {
+      focusFirstInvalid(formElement);
+      return;
+    }
 
     setSubmitting(true);
     const payload = {
@@ -79,9 +88,12 @@ export function RegisterPage() {
       await register(payload);
       setRegisteredEmail(payload.email);
     } catch (error) {
-      if (!(error instanceof ApiError)) {
-        setServerError(networkErrorMessage());
-      } else {
+      flushSync(() => {
+        setSubmitting(false);
+        if (!(error instanceof ApiError)) {
+          setServerError(networkErrorMessage());
+          return;
+        }
         // Email o legajo ya registrados: el error va al lado del campo.
         const fieldErrors: Errors = Object.fromEntries(
           error.violations
@@ -90,9 +102,8 @@ export function RegisterPage() {
         );
         setErrors(fieldErrors);
         if (!Object.keys(fieldErrors).length) setServerError(error.message);
-      }
-    } finally {
-      setSubmitting(false);
+      });
+      focusFirstInvalid(formElement);
     }
   }
 
@@ -100,12 +111,12 @@ export function RegisterPage() {
     return (
       <div className="auth-card auth-card--register">
         <ScreenHeader title="Crear cuenta" backTo="/login" />
-        <AuthBrand />
+        <Mascot pose="saludo" size={96} className="auth__mascot" />
         <div role="status" className="auth">
           <h2>Revisá tu email</h2>
           <p className="auth__lead">
             Te mandamos un link a <strong>{registeredEmail}</strong> para verificar tu cuenta.
-            Después de verificarla vas a poder ingresar.
+            Después de verificarla vas a poder ingresar. Si no lo ves, mirá en spam.
           </p>
           <ResendVerification email={registeredEmail} />
           <Link to="/login">Ir a ingresar</Link>
@@ -117,8 +128,11 @@ export function RegisterPage() {
   return (
     <div className="auth-card auth-card--register">
       <ScreenHeader title="Crear cuenta" backTo="/login" />
-      <AuthBrand />
-      <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
+      {/* Una sola capa antes del primer campo: Elevy con la bajada (el logo ya se vio en el login). */}
+      <div className="auth__greeting">
+        <Mascot pose="saludo" size={56} />
+        <p className="auth__lead">Usá tu email institucional y tu legajo.</p>
+      </div>
 
       <form className="auth__form" noValidate onSubmit={handleSubmit}>
         <Input
@@ -156,20 +170,8 @@ export function RegisterPage() {
           onChange={(declaredUserType) => setForm({ ...form, declaredUserType })}
           layout="grid"
           columns={2}
+          describedBy={userTypeHintId}
         />
-        <p className="auth__lead">
-          Es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.
-        </p>
-
-        <section className="auth__info" aria-labelledby="reduced-mobility-title">
-          <h2 id="reduced-mobility-title" className="auth__info-title">
-            ¿Tenés movilidad reducida?
-          </h2>
-          <p>
-            Informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados
-            ni datos de salud.
-          </p>
-        </section>
 
         {serverError && (
           <p role="alert" className="auth__alert">
@@ -184,6 +186,21 @@ export function RegisterPage() {
           Crear cuenta
         </Button>
       </form>
+
+      {/* Lo informativo va debajo: no se mete entre el formulario y el botón (SCREENS.md §02). */}
+      <p id={userTypeHintId} className="auth__lead">
+        El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador
+        lo valida.
+      </p>
+      <section className="auth__info" aria-labelledby="reduced-mobility-title">
+        <h2 id="reduced-mobility-title" className="auth__info-title">
+          ¿Tenés movilidad reducida?
+        </h2>
+        <p>
+          Informalo en la Oficina de Alumnos (OFALU) de UADE. SmartElevate no te pide certificados
+          ni datos de salud.
+        </p>
+      </section>
       <LegalFooter />
     </div>
   );

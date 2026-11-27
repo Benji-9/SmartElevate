@@ -1,5 +1,6 @@
 import type { NoShowStatus } from '../../types/api';
 import { formatDate, formatTime } from '../turn/format';
+import './trips.css';
 
 const faltas = (n: number) => `${n} ${n === 1 ? 'falta' : 'faltas'}`;
 
@@ -18,8 +19,8 @@ export function NoShowNotice({ status }: { status: NoShowStatus }) {
       <h2 id="no-show-title">{suspended ? 'No podés reservar por ahora' : 'Tenés faltas'}</h2>
       {suspended ? (
         <p>
-          {summary} Vas a poder volver a reservar el {formatDate(new Date(suspendedUntil))} a las{' '}
-          {formatTime(suspendedUntil)}.
+          {summary} El límite es de {faltas(threshold)} en {windowDays} días. Vas a poder volver a
+          reservar el {formatDate(new Date(suspendedUntil))} a las {formatTime(suspendedUntil)}.
         </p>
       ) : exempt ? (
         <p>{summary} Si no vas a usar un turno, cancelalo para liberar el lugar.</p>

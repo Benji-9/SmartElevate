@@ -1,7 +1,8 @@
+import type { ComponentProps } from 'react';
 import { Input } from '../../components/Input';
 import { toUadeUser, UADE_DOMAIN } from './validation';
 
-type Props = {
+type Props = Pick<ComponentProps<typeof Input>, 'aria-invalid' | 'aria-describedby'> & {
   /** Solo el usuario, sin el dominio. */
   value: string;
   onChange: (user: string) => void;
@@ -9,7 +10,7 @@ type Props = {
 };
 
 /** "Email institucional": se escribe el usuario y el dominio queda fijo a la derecha. */
-export function UadeEmailInput({ value, onChange, error }: Props) {
+export function UadeEmailInput({ value, onChange, error, ...aria }: Props) {
   return (
     <Input
       label="Email institucional"
@@ -22,6 +23,7 @@ export function UadeEmailInput({ value, onChange, error }: Props) {
       value={value}
       onChange={(e) => onChange(toUadeUser(e.target.value))}
       error={error}
+      {...aria}
     />
   );
 }

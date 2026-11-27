@@ -51,7 +51,7 @@ Los bloqueantes y decisiones pendientes viven en [`docs/bloqueantes.md`](../bloq
 | [0009](0009-autenticacion-y-prioridad.md) | Autenticación con email institucional y prioridad validada en el servidor | Accepted |
 | [0010](0010-integridad-de-reservas-tiempo-y-configuracion.md) | Integridad de reservas, manejo del tiempo y configuración | Accepted |
 | [0011](0011-spring-boot-4-y-java-25.md) | Spring Boot 4.1 y Java 25 | Accepted |
-| [0012](0012-hosting-del-backend-render-y-neon.md) | Hosting del backend en Render y Postgres en Neon | Accepted |
+| [0012](0012-hosting-del-backend-render-y-supabase.md) | Hosting del backend en Render y Postgres en Supabase | Accepted |
 | [0013](0013-email-con-brevo-y-storage-en-r2.md) | Email con Brevo (y storage en R2, descartado) | Accepted |
 | 0014 | Refresh token del frontend en sessionStorage | Fusionado en 0019 |
 | [0015](0015-politica-de-contrasenas-nist-800-63b.md) | Adecuación de la política de contraseñas a NIST SP 800-63B | Accepted |

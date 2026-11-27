@@ -33,7 +33,6 @@
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
-  --text-11: 0.6875rem;
   --text-12: 0.75rem;
   --text-13: 0.8125rem;
   --text-14: 0.875rem;
@@ -43,6 +42,11 @@
   --text-20: 1.25rem;
   --text-22: 1.375rem;
   --text-24: 1.5rem;
+
+  /* Movimiento: salidas con --duration-fast, entradas con --duration-base. */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Radios */
   --radius-xs: 4px;
@@ -129,7 +133,8 @@
     --color-primary: color-mix(in srgb, var(--AstronautBlue) 45%, var(--White));
     --color-on-primary: var(--BlackPearl);
     --color-primary-tint: color-mix(in srgb, var(--White) 8%, transparent);
-    --color-primary-tint-strong: color-mix(in srgb, var(--White) 14%, transparent);
+    /* 8 %: --color-primary encima llega a 4,5:1 sobre --color-surface (WCAG 1.4.3). */
+    --color-primary-tint-strong: color-mix(in srgb, var(--White) 8%, transparent);
     --color-danger: color-mix(in srgb, var(--Status-Alta) 60%, var(--White));
     --color-danger-tint: color-mix(in srgb, var(--Status-Alta) 18%, transparent);
     --color-focus: var(--White);
@@ -280,10 +285,60 @@ a {
   color: var(--color-text-muted);
 }
 
+/*
+ * `role="status"` siempre montado (para que se anuncie cuando cambia su texto): vacío sale del
+ * flujo, sin hueco en la grilla, pero sigue en el árbol de accesibilidad.
+ */
+.live-status:empty {
+  position: absolute;
+}
+
 /* Elevy con el mensaje de una pantalla vacía. */
 .empty-state {
   display: grid;
   justify-items: center;
   gap: 12px;
   text-align: center;
+}
+
+/* Banners y avisos: entran con `opacity` y `transform`, sin mover el layout. */
+:is(
+  .home__notice,
+  .reserve__notice,
+  .reserve__alert,
+  .turn-alert,
+  .turn-card--error,
+  .congestion__error,
+  .trips__notice,
+  .trips__error,
+  .auth__alert,
+  .auth__info[role='status'],
+  .notifications__alert,
+  .kiosk-alert,
+  .kiosk-error,
+  .admin__error,
+  .priority-error
+) {
+  animation: banner-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* Única regla de movimiento reducido de la app: nada anima ni se repite. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::backdrop {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
 }

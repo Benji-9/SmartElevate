@@ -75,7 +75,6 @@
   font-weight: var(--font-semibold);
 }
 
-.check-in__note,
 .check-in__message p {
   font-size: var(--text-14);
   color: var(--color-text-muted);
@@ -99,7 +98,12 @@
   max-width: 320px;
 }
 
+/* Aviso sobre blanco dentro de la vista oscura: texto, link y foco con los colores claros. */
 .check-in__alert {
+  --color-danger: var(--Status-Alta);
+  --color-primary: var(--AstronautBlue);
+  --color-focus: var(--AstronautBlue);
+
   background: var(--White);
 }
 

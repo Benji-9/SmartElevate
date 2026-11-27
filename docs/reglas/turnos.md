@@ -22,6 +22,8 @@ La hora de salida es **estimada**: el ascensor físico no sigue un horario. El K
 
 La app es para movilidad inmediata; abrir con más anticipación facilita acaparar cupo.
 
+Dentro de la ventana, con núcleo, origen y destino el servidor ofrece **una salida por hora** según las [zonas de pisos](asignacion.md#zonas-de-pisos) (`zone_open_to_any_before`, 5 min, y `zone_affinity_max_floors`, 2 pisos, en la [tabla de parámetros](README.md#parámetros-configurables)).
+
 ## 3. Límites por usuario
 
 - **1 reserva activa** a la vez.
@@ -101,7 +103,7 @@ Resueltas en [#113](https://github.com/Benji-9/SmartElevate/issues/113):
 2. **Umbral de no-show vs. ventana de check-in.** Un escaneo entre **+60 s y +2 min** se registra como *fuera de hora* y **cuenta como no-show** (ver [check-in](check-in-qr.md#resultados)).
 3. **Tope diario:** 8 reservas por día.
 4. **Pisos bajos:** no se puede reservar con destino en los pisos 1 a 4, salvo movilidad reducida (ver [asignación](asignacion.md#elegibilidad)).
-5. **Rotación del QR:** cada 60 s. El 14/10 se bajó a ~30 s ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)).
+5. **Rotación del QR:** cada 60 s. El 14/10 se bajó a ~30 s ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)) y desde el 15/11 cambia por turno de clase ([ADR 0026](../adr/0026-qr-del-kiosco-por-turno-de-clase.md)).
 
 Resueltas el 14/10 ([#218](https://github.com/Benji-9/SmartElevate/issues/218), [ADR 0007](../adr/0007-modelo-de-turnos-y-reservas.md)):
 

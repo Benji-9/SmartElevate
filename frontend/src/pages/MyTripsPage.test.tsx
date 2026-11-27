@@ -168,6 +168,7 @@ describe('MyTripsPage', () => {
     renderTrips(undefined, noShows({ recentNoShows: 3, suspendedUntil: '2026-09-30T20:00:00Z' }));
 
     const notice = await screen.findByRole('region', { name: 'No podés reservar por ahora' });
+    expect(notice).toHaveTextContent('El límite es de 3 faltas en 7 días.');
     expect(notice).toHaveTextContent(
       'Vas a poder volver a reservar el miércoles, 30 de septiembre a las 17:00.',
     );
