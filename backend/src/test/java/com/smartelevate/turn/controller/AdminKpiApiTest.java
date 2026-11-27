@@ -2,6 +2,7 @@ package com.smartelevate.turn.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,6 +37,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -132,6 +134,18 @@ class AdminKpiApiTest {
         mockMvc.perform(as(common, get("/api/admin/kpis")).param("period", "TODAY"))
                 .andExpect(status().isForbidden());
         mockMvc.perform(as(common, get("/api/admin/shifts"))).andExpect(status().isForbidden());
+    }
+
+    /** Un usuario común recibe 403 aunque el pedido venga mal armado: el rol se mira antes que los datos (#345). */
+    @Test
+    void commonUserGetsForbiddenBeforeAnyValidationError() throws Exception {
+        // Sin el parámetro obligatorio "period": a un ADMIN le da 400 y a un usuario común, 403.
+        mockMvc.perform(as(common, get("/api/admin/kpis"))).andExpect(status().isForbidden());
+        mockMvc.perform(as(admin, get("/api/admin/kpis"))).andExpect(status().isBadRequest());
+        // Cuerpo inválido en otra ruta de admin: tampoco se valida antes del rol.
+        mockMvc.perform(as(common, put("/api/admin/users/" + common.getId() + "/role"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
