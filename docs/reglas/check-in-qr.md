@@ -45,5 +45,5 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 
 ## Limitaciones del MVP
 
-- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)).
+- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)). El 25/11 se descartó también una alternativa manual para quien no puede usar la cámara ([#331](https://github.com/Benji-9/SmartElevate/issues/331)): para entrar a la facultad ya hace falta el celular y un código manual sumaría chances de un check-in falso.
 - **Kiosco caído:** si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in mientras dure la caída.
