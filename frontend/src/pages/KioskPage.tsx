@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 import { Button } from '../components/Button';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { Input } from '../components/Input';
+import logo from '../assets/smartelevate-logo-horizontal.svg';
 import { KioskQr } from '../features/kiosk/KioskQr';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import '../features/kiosk/kiosk.css';
@@ -58,6 +59,7 @@ export function KioskPage() {
   if (!secret) {
     return (
       <main id="main" tabIndex={-1} className="kiosk">
+        <img src={logo} alt="SmartElevate" width={164} height={40} />
         <h1 className="text-title-lg">Kiosco del ascensor {ascensor}</h1>
         <p className="kiosk__intro">
           Pegá la credencial que te dieron en el panel de administración al dar de alta este kiosco.
@@ -80,6 +82,7 @@ export function KioskPage() {
 
   return (
     <main id="main" tabIndex={-1} className="kiosk">
+      <img src={logo} alt="SmartElevate" width={164} height={40} />
       <h1 className="text-title-lg">Ascensor {ascensor}</h1>
       <KioskQr
         key={secret}

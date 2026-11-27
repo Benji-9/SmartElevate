@@ -1,6 +1,6 @@
 # Backend
 
-API REST de SmartElevate: Java 25 + Spring Boot 4.1 (Maven, Spring Data JPA, Flyway, H2 en dev y PostgreSQL en prod, springdoc-openapi). Decisiones: [ADR 0011](../docs/adr/0011-spring-boot-4-y-java-25.md) (stack) y [ADR 0012](../docs/adr/0012-hosting-del-backend-render-y-neon.md) (hosting).
+API REST de SmartElevate: Java 25 + Spring Boot 4.2 (Maven, Spring Data JPA, Flyway, H2 en dev y PostgreSQL en prod, springdoc-openapi). Decisiones: [ADR 0011](../docs/adr/0011-spring-boot-4-y-java-25.md) (stack) y [ADR 0012](../docs/adr/0012-hosting-del-backend-render-y-supabase.md) (hosting).
 
 ## Requisitos
 
@@ -90,6 +90,8 @@ La documentación de los endpoints se genera desde el código (springdoc) y qued
 - **Swagger UI:** http://localhost:8080/swagger-ui.html (con "Try it out").
 - **Spec (JSON):** http://localhost:8080/v3/api-docs
 - **Tipos TypeScript:** `frontend/src/types/openapi.ts`, generados desde la spec.
+
+Swagger UI y la spec se sirven en dev local; en `prod` están apagados desde #345.
 
 Cuando agregás o cambiás un endpoint o un DTO:
 

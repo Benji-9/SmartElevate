@@ -50,6 +50,8 @@ class ConfigServiceTest {
         v.put("afternoon_shift_end", "18:00");
         v.put("night_shift_start", "18:00");
         v.put("night_shift_end", "22:30");
+        v.put("zone_open_to_any_before", "PT5M");
+        v.put("zone_affinity_max_floors", "2");
         return v;
     }
 
@@ -106,6 +108,9 @@ class ConfigServiceTest {
             "afternoon_shift_start, 18:00",
             "afternoon_shift_start, 12:59",
             "night_shift_start, 22:30",
+            "zone_open_to_any_before, PT2M",
+            "zone_open_to_any_before, PT30M",
+            "zone_affinity_max_floors, -1",
     })
     void outOfRangeValuesPreventStartup(String key, String value) {
         assertThatThrownBy(() -> load(with(key, value)))

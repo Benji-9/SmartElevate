@@ -180,6 +180,16 @@ public class ConfigService {
         return get("night_shift_end", LocalTime::parse);
     }
 
+    /** Zonas de pisos (ADR 0025): a esto o menos de la salida se ofrece la de más lugares libres. */
+    public Duration zoneOpenToAnyBefore() {
+        return get("zone_open_to_any_before", Duration::parse);
+    }
+
+    /** Zonas de pisos (ADR 0025): distancia máxima a cada destino reservado para sumarse a una salida. */
+    public int zoneAffinityMaxFloors() {
+        return get("zone_affinity_max_floors", Integer::parseInt);
+    }
+
     // Cada accessor parsea su valor, así que llamarlos acá también detecta claves faltantes y formatos inválidos.
     private void validate() {
         check(operatingHoursStart().isBefore(operatingHoursEnd()),
@@ -226,6 +236,12 @@ public class ConfigService {
                 "morning_shift_end no puede superar afternoon_shift_start");
         check(afternoonShiftEnd().compareTo(nightShiftStart()) <= 0,
                 "afternoon_shift_end no puede superar night_shift_start");
+        // Abrir la zona después del cierre de la ventana no tendría efecto; desde la apertura, no habría zonas.
+        check(zoneOpenToAnyBefore().compareTo(bookingClosesBefore()) > 0
+                        && zoneOpenToAnyBefore().compareTo(bookingOpensBefore()) < 0,
+                "zone_open_to_any_before tiene que ser mayor que booking_closes_before y menor que "
+                        + "booking_opens_before");
+        check(zoneAffinityMaxFloors() >= 0, "zone_affinity_max_floors no puede ser negativo");
         List<LocalDate> semesterEnds = semesterEndDates();
         check(semesterEnds.equals(semesterEnds.stream().distinct().sorted().toList()),
                 "semester_end_dates tiene que estar en orden y sin fechas repetidas");

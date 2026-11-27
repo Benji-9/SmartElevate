@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -47,6 +47,23 @@ describe('NotificationsPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Guardamos tu preferencia.');
     const [[, init]] = putCalls(fetchMock);
     expect(JSON.parse(String(init?.body))).toEqual({ ...prefs, departureReminder: true });
+  });
+
+  it('la región de estado está siempre montada: la carga y el guardado usan la misma', async () => {
+    stubApi({
+      ...signedIn(),
+      'GET /me/notification-preferences': { body: prefs },
+      'PUT /me/notification-preferences': (init) => ({ body: JSON.parse(String(init?.body)) }),
+    });
+    renderPage();
+    const status = screen.getByRole('status');
+
+    const toggle = await screen.findByRole('switch', { name: 'Recordatorio de salida' });
+    expect(status).toBeEmptyDOMElement();
+    await userEvent.click(toggle);
+
+    await waitFor(() => expect(status).toHaveTextContent('Guardamos tu preferencia.'));
+    expect(screen.getByRole('status')).toBe(status);
   });
 
   it('desactivar guarda el valor nuevo', async () => {

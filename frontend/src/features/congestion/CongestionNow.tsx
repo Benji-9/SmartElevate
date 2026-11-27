@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/Button';
 import { CongestionRow } from '../../components/CongestionRow';
 import { ApiError, getCongestion } from '../../services/api';
@@ -55,11 +55,18 @@ function useCongestion() {
 
 export function CongestionNow() {
   const { snapshot, minutesOld, error, retry } = useCongestion();
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  // Al irse el aviso (reintento a mano o automático) el foco que tenía pasa al título.
+  const keepFocus = useCallback((alert: HTMLDivElement) => {
+    return () => {
+      if (alert.contains(document.activeElement)) titleRef.current?.focus();
+    };
+  }, []);
 
   return (
     <section className="congestion" aria-labelledby="congestion-title">
       <div className="congestion__header">
-        <h2 id="congestion-title" className="text-card-title">
+        <h2 id="congestion-title" className="text-card-title" ref={titleRef} tabIndex={-1}>
           Congestión ahora
         </h2>
         {snapshot && (
@@ -72,7 +79,7 @@ export function CongestionNow() {
       </div>
 
       {error ? (
-        <div role="alert" className="congestion__error">
+        <div ref={keepFocus} role="alert" className="congestion__error">
           <p>{error}</p>
           <Button variant="secondary" block={false} onClick={retry}>
             Reintentar

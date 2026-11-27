@@ -4,7 +4,7 @@ import { formatTime } from './format';
 
 type SlotListProps = {
   slots: Slot[];
-  /** `departureAt` de la franja elegida. */
+  /** `departureAt` de la salida elegida. */
   value: string | null;
   onChange: (departureAt: string) => void;
   /** Para llevar el foco al título (p. ej. cuando la salida elegida se llenó). */
@@ -12,15 +12,16 @@ type SlotListProps = {
 };
 
 /**
- * Salidas para reservar, con su ascensor y los lugares que el usuario puede tomar (los manda el
- * servidor). Las que no tienen lugar siguen enfocables (aria-disabled) pero no se pueden elegir.
+ * Salidas para reservar, con los lugares que el usuario puede tomar (los manda el servidor). El
+ * ascensor no se muestra: lo asigna la app y se ve después de reservar (ADR 0025). Las que no
+ * tienen lugar siguen enfocables (aria-disabled) pero no se pueden elegir.
  */
 export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
   const labelId = useId();
   return (
     <div className="option-group">
       <span id={labelId} ref={labelRef} tabIndex={-1} className="option-group__label">
-        Franja horaria
+        Horario de salida
       </span>
       <div role="radiogroup" aria-labelledby={labelId} className="slot-list">
         {slots.map(({ departureAt, departure: d }) => {
@@ -31,14 +32,10 @@ export function SlotList({ slots, value, onChange, labelRef }: SlotListProps) {
               className={['slot', full && 'slot--full'].filter(Boolean).join(' ')}
             >
               <span className="slot__info">
-                <span className="slot__time">
-                  {formatTime(departureAt)}
-                  {/* Separa la hora del ascensor en el nombre accesible. */}{' '}
-                  <span className="slot__elevator">· Ascensor {d.elevator}</span>
-                </span>
+                <span className="slot__time">{formatTime(departureAt)}</span>
                 <span className="slot__bar" aria-hidden="true">
                   <span
-                    style={{ width: `${Math.min(100, (d.bookedSeats / d.capacity) * 100)}%` }}
+                    style={{ transform: `scaleX(${Math.min(1, d.bookedSeats / d.capacity)})` }}
                   />
                 </span>
               </span>{' '}

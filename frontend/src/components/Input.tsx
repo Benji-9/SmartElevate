@@ -24,6 +24,7 @@ export function Input({
   id,
   className,
   'aria-describedby': describedByProp,
+  'aria-invalid': invalidProp,
   ...rest
 }: InputProps) {
   const autoId = useId();
@@ -31,6 +32,8 @@ export function Input({
   const suffixId = suffix ? `${inputId}-suffix` : undefined;
   const hintId = hint ? `${inputId}-hint` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
+  // Inválido por su propio error o porque lo marca el formulario (p. ej. clave incorrecta).
+  const invalid = Boolean(error || invalidProp);
   const describedBy =
     [suffixId, hintId, errorId, describedByProp].filter(Boolean).join(' ') || undefined;
 
@@ -52,14 +55,14 @@ export function Input({
       id={inputId}
       type={isPassword && revealed ? 'text' : type}
       className="input__field text-body"
-      aria-invalid={error ? true : undefined}
+      aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
       {...rest}
     />
   );
 
   return (
-    <div className={['input', error && 'input--invalid', className].filter(Boolean).join(' ')}>
+    <div className={['input', invalid && 'input--invalid', className].filter(Boolean).join(' ')}>
       <label htmlFor={inputId} className="input__label text-label">
         {label}
       </label>

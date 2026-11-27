@@ -15,9 +15,8 @@ import com.smartelevate.user.service.EmailNotVerifiedException;
 import com.smartelevate.user.service.InvalidCredentialsException;
 import com.smartelevate.user.service.InvalidRefreshTokenException;
 import com.smartelevate.user.service.InvalidTokenException;
-import com.smartelevate.user.service.ResendTooSoonException;
 import com.smartelevate.user.service.TooManyLoginAttemptsException;
-import jakarta.servlet.ServletException;
+import com.smartelevate.user.service.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -30,9 +29,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.web.ErrorResponse;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -105,40 +105,28 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request, List.of());
     }
 
-    /**
-     * Errores de Spring MVC que ya traen su propio status de cliente (Content-Type no soportado, header faltante...):
-     * se responde con ese status y no con un 500 (#345). Sin {@code @ResponseStatus}: el status cambia según la
-     * excepción y no hay que documentarlo en todos los endpoints. Los que tienen su handler más arriba (método no
-     * soportado, parámetro faltante, recurso inexistente) no pasan por acá.
-     */
-    @ExceptionHandler(ServletException.class)
-    public ResponseEntity<ApiError> handleServletException(ServletException ex, HttpServletRequest request) {
-        if (ex instanceof ErrorResponse errorResponse && errorResponse.getStatusCode().is4xxClientError()) {
-            HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
-            return build(status, clientMessage(status), request, List.of());
-        }
-        return handleUnexpected(ex, request);
+    // Sin @ResponseStatus (igual que los dos de abajo): son errores genéricos, no del contrato de cada endpoint.
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
+                                                                HttpServletRequest request) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "El tipo de contenido no está soportado", request, List.of());
     }
 
-    private static String clientMessage(HttpStatus status) {
-        return switch (status) {
-            case UNSUPPORTED_MEDIA_TYPE -> "El tipo de contenido del pedido no es compatible. Mandalo como JSON";
-            case NOT_ACCEPTABLE -> "No podemos responder en el formato pedido. Pedí application/json";
-            default -> "El pedido es inválido";
-        };
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ApiError> handleMissingHeader(MissingRequestHeaderException ex, HttpServletRequest request) {
+        List<ApiError.FieldViolation> violations =
+                List.of(new ApiError.FieldViolation(ex.getHeaderName(), "Es obligatorio"));
+        return build(HttpStatus.BAD_REQUEST, "Falta un header obligatorio", request, violations);
     }
 
-    /**
-     * Un UNIQUE o una clave foránea de la base saltó por una carrera que ninguna regla de negocio había previsto
-     * (dos pedidos a la vez): es un conflicto con el estado actual, no una falla del servidor (#345). No se devuelve
-     * ni se loguea el mensaje de la base, que trae nombres de constraints y los valores en conflicto (p. ej. un email).
-     */
+    /** Red de contención: los conflictos esperados se atrapan en cada service con un mensaje propio. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
                                                         HttpServletRequest request) {
-        log.warn("Conflicto de integridad de datos en {}", request.getRequestURI());
-        return build(HttpStatus.CONFLICT, "La operación choca con el estado actual de los datos. Probá de nuevo.",
-                request, List.of());
+        // Solo el tipo de la causa: el mensaje de la base puede traer datos de la fila (p. ej. el email).
+        log.warn("Violación de integridad en {}: {}", request.getRequestURI(),
+                ex.getMostSpecificCause().getClass().getName());
+        return build(HttpStatus.CONFLICT, "La operación choca con datos existentes", request, List.of());
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -225,17 +213,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiError> handleInvalidToken(InvalidTokenException ex, HttpServletRequest request) {
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
-    }
-
-    @ExceptionHandler(ResendTooSoonException.class)
-    public ResponseEntity<ApiError> handleResendTooSoon(ResendTooSoonException ex, HttpServletRequest request) {
-        return tooManyRequests(ex.getMessage(), ex.getRetryAfter().toSeconds(), request);
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), "TOKEN_" + ex.getReason().name(), request, List.of());
     }
 
     @ExceptionHandler(TooManyLoginAttemptsException.class)
     public ResponseEntity<ApiError> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex,
                                                                HttpServletRequest request) {
+        return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException ex, HttpServletRequest request) {
         return tooManyRequests(ex.getMessage(), ex.getRetryAfterSeconds(), request);
     }
 

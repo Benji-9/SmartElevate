@@ -95,7 +95,7 @@ describe('AdminDashboardPage', () => {
       '81 %de los turnos reservados',
     );
     expect(screen.getByRole('article', { name: 'Ocupación promedio' })).toHaveTextContent(
-      '6,8 / 10personas por franja',
+      '6,8 / 10personas por salida',
     );
     expect(screen.getByText('29 de septiembre de 2026 · Todos los edificios')).toBeInTheDocument();
   });
@@ -129,9 +129,11 @@ describe('AdminDashboardPage', () => {
   it('el gráfico tiene una tabla equivalente para lectores de pantalla', async () => {
     renderAdmin();
 
-    const chart = await screen.findByRole('figure', { name: 'Reservas por franja' });
+    const chart = await screen.findByRole('figure', { name: 'Reservas por hora' });
     const table = within(chart).getByRole('table', { name: 'Reservas por hora del día' });
-    expect(within(table).getByRole('row', { name: '9:00 a 10:00 120' })).toBeInTheDocument();
+    expect(
+      within(table).getByRole('row', { name: '9:00 a 10:00 120 (hora pico)' }),
+    ).toBeInTheDocument();
   });
 
   it('muestra el estado por núcleo con su nivel en texto', async () => {
@@ -222,19 +224,12 @@ describe('AdminDashboardPage', () => {
     }
   });
 
-  it('en pantallas angostas avisa que el panel es para computadora', async () => {
-    // jsdom no evalúa container queries: el aviso siempre está en el DOM y el CSS
-    // (@container app) decide si se ve el aviso o el panel.
+  it('no bloquea pantallas angostas: un solo h1, dentro de main', async () => {
     renderAdmin();
 
-    expect(
-      await screen.findByRole('heading', {
-        name: 'El panel de administración es para computadora',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Abrilo desde una pantalla más grande para ver el detalle de congestión.'),
-    ).toBeInTheDocument();
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByRole('main')).toContainElement(heading);
+    expect(screen.queryByText(/es para computadora/)).not.toBeInTheDocument();
   });
 
   it('muestra el error y permite reintentar', async () => {

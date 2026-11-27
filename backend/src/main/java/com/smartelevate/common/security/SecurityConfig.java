@@ -24,19 +24,17 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  *
  * <h2>Públicos</h2>
  * {@code /api/ping}, {@code /api/auth/**} (registro, login, refresh, logout), {@code GET /api/elevators},
- * {@code GET /api/buildings}, la documentación ({@code /v3/api-docs/**}, {@code /swagger-ui*}),
- * y {@code /actuator/health}. {@code /h2-console/**} es público solo si la consola está habilitada
- * ({@code spring.h2.console.enabled}, que solo prende el perfil dev): en prod queda cerrada y con
- * {@code X-Frame-Options: DENY}. Todo lo demás exige un access token válido.
+ * {@code GET /api/buildings}, la documentación ({@code /v3/api-docs/**}, {@code /swagger-ui*}; en prod está
+ * apagada) y {@code /actuator/health}. {@code /h2-console/**} solo es público si
+ * {@code spring.h2.console.enabled=true} (dev). Todo lo demás exige un access token válido.
  *
  * <h2>Cómo agregar un endpoint</h2>
  * <ul>
  *   <li><b>Protegido (default):</b> no hay que tocar nada. Cualquier ruta nueva queda autenticada.</li>
  *   <li><b>Por rol:</b> {@code @PreAuthorize("hasRole('ADMIN')")} en el método del controller (o
  *       {@code hasAnyRole('ADMIN','REVIEWER')}). Sin token da 401; con otro rol, 403.</li>
- *   <li><b>Admin:</b> todo lo que cuelga de {@code /api/admin/**} exige ADMIN ya a nivel de URL, antes de que el
- *       controller valide parámetros o cuerpo (un usuario común recibe 403, no 400). El {@code @PreAuthorize} de
- *       cada controller queda como segunda barrera.</li>
+ *   <li><b>{@code /api/admin/**}:</b> además exige ADMIN acá, antes de validar el pedido. Una ruta para otro rol
+ *       no va bajo ese prefijo.</li>
  *   <li><b>Usuario actual:</b> parámetro {@code @AuthenticationPrincipal CurrentUser user}.</li>
  *   <li><b>Público:</b> sumarlo a {@link #PUBLIC_ANY} o {@link #PUBLIC_GET}. Hacerlo solo con motivo.</li>
  * </ul>
@@ -55,8 +53,6 @@ public class SecurityConfig {
             "/actuator/health/**"
     };
     static final String[] PUBLIC_GET = {"/api/elevators", "/api/buildings"};
-    /** Solo es público (y se deja en un iframe) si la consola está habilitada: hoy, solo en el perfil dev (#345). */
-    static final String H2_CONSOLE = "/h2-console/**";
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -64,27 +60,24 @@ public class SecurityConfig {
                                             AuthenticationEntryPoint entryPoint,
                                             AccessDeniedHandler deniedHandler,
                                             @Value("${spring.h2.console.enabled:false}") boolean h2Console) {
+        if (h2Console) {
+            // La consola usa frames; sin ella queda el default (DENY).
+            http.headers(h -> h.frameOptions(f -> f.sameOrigin()));
+        }
         http
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                // La consola de H2 corre en un iframe del mismo origen; sin consola queda el DENY por defecto.
-                .headers(h -> {
-                    if (h2Console) {
-                        h.frameOptions(f -> f.sameOrigin());
-                    }
-                })
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> {
-                    a.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                    a.requestMatchers(PUBLIC_ANY).permitAll();
+                    a.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers(PUBLIC_ANY).permitAll()
+                            .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll();
                     if (h2Console) {
-                        a.requestMatchers(H2_CONSOLE).permitAll();
+                        a.requestMatchers("/h2-console/**").permitAll();
                     }
-                    a.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll();
-                    // El rol se mira antes de que el controller valide parámetros o cuerpo: así un usuario
-                    // común recibe 403 y no un 400 que le muestre la forma del pedido (#345).
-                    a.requestMatchers("/api/admin/**").hasRole("ADMIN");
-                    a.anyRequest().authenticated();
+                    // Antes de validar parámetros: un usuario común recibe 403 y no 400 (#345).
+                    a.requestMatchers("/api/admin/**").hasRole("ADMIN")
+                            .anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(o -> o
                         .jwt(j -> j.jwtAuthenticationConverter(converter))

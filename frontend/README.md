@@ -27,10 +27,10 @@ En dev, Vite hace proxy de `/api` a `http://localhost:8080` (el [backend](../bac
 
 ## Variables de entorno
 
-| Variable | Default | Descripción |
-| --- | --- | --- |
-| `VITE_API_URL` | `/api` | Base del cliente HTTP (`services/api.ts`). En Vercel tiene que ser `/api` para que la cookie del refresh sea del mismo origen ([ADR 0019](../docs/adr/0019-refresh-token-en-cookie-httponly.md)) |
-| `VITE_USE_MOCKS` | `true` en `npm run dev`, `false` en tests | `true` usa datos simulados en lugar del backend (`services/mocks.ts`); con `false`, `npm run dev` le pega al backend real. Nunca aplica al build de producción |
+| Variable         | Default                                   | Descripción                                                                                                                                                                                      |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VITE_API_URL`   | `/api`                                    | Base del cliente HTTP (`services/api.ts`). En Vercel tiene que ser `/api` para que la cookie del refresh sea del mismo origen ([ADR 0019](../docs/adr/0019-refresh-token-en-cookie-httponly.md)) |
+| `VITE_USE_MOCKS` | `true` en `npm run dev`, `false` en tests | `true` usa datos simulados en lugar del backend (`services/mocks.ts`); con `false`, `npm run dev` le pega al backend real. Nunca aplica al build de producción                                   |
 
 Las de Vercel y GitHub (secrets, `BACKEND_URL`): [Configurar Vercel y GitHub](../docs/guias/configurar-vercel-y-github.md).
 

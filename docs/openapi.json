@@ -1105,7 +1105,7 @@
     },
     "/api/auth/password/forgot" : {
       "post" : {
-        "description" : "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.",
+        "description" : "Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.",
         "operationId" : "forgotPassword",
         "requestBody" : {
           "content" : {
@@ -1130,6 +1130,16 @@
               }
             },
             "description" : "Bad Request"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar"
           },
           "500" : {
             "content" : {
@@ -1172,7 +1182,7 @@
                 }
               }
             },
-            "description" : "Token inválido, usado o vencido, o contraseña fuera de política"
+            "description" : "Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED), o contraseña fuera de política"
           },
           "500" : {
             "content" : {
@@ -1251,7 +1261,7 @@
     },
     "/api/auth/register" : {
       "post" : {
-        "description" : "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.",
+        "description" : "El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.",
         "operationId" : "register",
         "requestBody" : {
           "content" : {
@@ -1287,6 +1297,16 @@
             },
             "description" : "El email o el legajo ya tienen cuenta"
           },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar"
+          },
           "500" : {
             "content" : {
               "application/json" : {
@@ -1304,7 +1324,7 @@
     },
     "/api/auth/resend-verification" : {
       "post" : {
-        "description" : "Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.",
+        "description" : "Responde 202 exista o no la cuenta (y haya o no un mail reciente: la espera entre mails se aplica en silencio), para no revelar qué emails están registrados. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.",
         "operationId" : "resendVerification",
         "requestBody" : {
           "content" : {
@@ -1338,7 +1358,7 @@
                 }
               }
             },
-            "description" : "Ya se mandó un mail hace poco"
+            "description" : "Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar"
           },
           "500" : {
             "content" : {
@@ -1357,7 +1377,7 @@
     },
     "/api/auth/verify" : {
       "post" : {
-        "description" : "El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.",
+        "description" : "El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje y en el code. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.",
         "operationId" : "verify",
         "requestBody" : {
           "content" : {
@@ -1381,7 +1401,7 @@
                 }
               }
             },
-            "description" : "Token inválido, usado o vencido"
+            "description" : "Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED)"
           },
           "500" : {
             "content" : {
@@ -1548,7 +1568,7 @@
     },
     "/api/departures" : {
       "get" : {
-        "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.",
+        "description" : "Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente. Con `core`, `origin` y `destination` (los tres juntos, si falta alguno responde 400) devuelve la oferta por zonas de pisos (ADR 0025): una salida por hora, ya resuelta por el servidor, de los ascensores del núcleo que paran en origen y destino; `elevator` y `building` se ignoran.",
         "operationId" : "bookable",
         "parameters" : [ {
           "description" : "Código del ascensor",
@@ -1567,6 +1587,35 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "Código del núcleo, sin distinguir mayúsculas",
+          "example" : "L1",
+          "in" : "query",
+          "name" : "core",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Piso de origen",
+          "example" : 0,
+          "in" : "query",
+          "name" : "origin",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "description" : "Piso de destino",
+          "example" : 7,
+          "in" : "query",
+          "name" : "destination",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ],
         "responses" : {
@@ -2984,14 +3033,14 @@
           "email" : {
             "type" : "string",
             "example" : "jmartinez@uade.edu.ar",
-            "maxLength" : 254,
             "minLength" : 1
           },
           "password" : {
             "type" : "string",
             "format" : "password",
+            "description" : "Hasta 64 caracteres, contados como en el registro (tras NFKC)",
             "example" : "una-clave-larga",
-            "maxLength" : 256,
+            "maxLength" : 64,
             "minLength" : 1
           }
         },

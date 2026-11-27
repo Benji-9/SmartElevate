@@ -9,7 +9,8 @@
 - No hay acceso al sistema de UADE: el **legajo es autodeclarado**. La verificación real es la del email institucional.
 - El email se guarda en **minúsculas**: `Ana@UADE.edu.ar` y `ana@uade.edu.ar` son la misma cuenta. El legajo son solo dígitos, hasta 10.
 - La cuenta nace **común y sin verificar**. El pedido de registro (`POST /api/auth/register`) no tiene campo de rol ni de prioridad, y si el JSON trae alguno se ignora.
-- Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe.
+- Si el email o el legajo ya tienen cuenta, el registro responde **409** e indica cuál chocó (la pantalla marca ese campo). El login no va a revelar si un email existe. El 409 sí revela que ese email o legajo tiene cuenta: es un riesgo aceptado y queda así ([#344](https://github.com/Benji-9/SmartElevate/issues/344)).
+- Una cuenta que sigue **sin verificar a los 2 días** se **borra** (job por hora, `APP_VERIFICATION_UNVERIFIED_TTL`; [#344](https://github.com/Benji-9/SmartElevate/issues/344)): así un email o un legajo registrado por otra persona se libera solo, **siempre que quien lo registró no lo verifique**. Si esa persona registró su propio email con el legajo de otra, puede verificarlo y la cuenta no se borra: el legajo queda tomado y la limpieza no lo libera. Nunca se borran cuentas verificadas ni ADMIN.
 
 ### Contraseña
 
@@ -26,6 +27,14 @@ Alineada a NIST SP 800-63B en [#211](https://github.com/Benji-9/SmartElevate/iss
 - Por **cuenta** y por **IP**, en una **ventana deslizante**: con **10 fallos de la cuenta** o **100 de la IP** en los últimos **15 minutos**, el login responde **429** con `Retry-After` (sin mirar la contraseña) hasta que el fallo más viejo sale de la ventana. El tope por cuenta no puede pasar de 100 (NIST). Es un límite **por ventana más un tope por IP**, no la lectura literal de NIST de "100 seguidos"; el tope por IP es conservador porque la red de la universidad sale por pocas IPs (NAT) y se calibra en el piloto ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). Los tres valores viven en `application.yml` (`app.login-throttle.*`), con override por `APP_LOGIN_THROTTLE_WINDOW`, `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` y `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` ([#225](https://github.com/Benji-9/SmartElevate/issues/225), [ADR 0017](../adr/0017-donde-viven-los-parametros.md)).
 - El bloqueo siempre es **temporal**: un tercero no puede dejar bloqueada una cuenta para siempre. Un **login correcto** o un **reset de contraseña** borran los fallos de la cuenta.
 - Cuenta igual un email que no existe: el 429 no revela qué cuentas hay. Se guarda el hash de la cuenta y de la IP, nunca el email ni la IP.
+- **Riesgo aceptado: bloqueo de una cuenta ajena** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Quien conoce un email puede fallar 10 logins a propósito y dejar a la dueña sin poder entrar por hasta 15 minutos. Se acepta para el MVP: el bloqueo es temporal, la dueña lo levanta al instante con "olvidé mi contraseña" (el reset borra los fallos de la cuenta) y el tope por IP limita a quien lo repita con muchas cuentas. Backoff progresivo o contar por cuenta e IP quedan para después del piloto.
+
+### Límite de pedidos por IP
+
+- `POST /api/auth/register`, `POST /api/auth/resend-verification` y `POST /api/auth/password/forgot` tienen un **tope por IP**: **1000 pedidos** de cada acción en los últimos **15 minutos** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Pasado el tope responden **429** con `Retry-After` hasta que el pedido más viejo sale de la ventana; los rechazados no cuentan. Cada acción cuenta por separado y nunca se mira qué email se pidió, así que el 429 no revela cuentas.
+- El tope es holgado a propósito: el WiFi del campus sale por pocas IPs (NAT) y, hasta confirmar que el backend ve la IP real detrás de Vercel y Render, puede ser una sola para todos; un tope bajo dejaría a todo el campus sin "olvidé mi contraseña" ([riesgo 3](../infraestructura.md#riesgos-del-primer-deploy)). Se baja cuando se verifique la IP real, en el piloto.
+- Se guarda el hash de la acción y la IP, nunca la IP. Valores en `application.yml` (`app.request-throttle.*`), con override por `APP_REQUEST_THROTTLE_WINDOW` y `APP_REQUEST_THROTTLE_MAX_PER_IP`. La ventana no puede ser mayor que la de logins (comparten tabla): si lo es, la app no arranca.
+- `resend-verification` responde **202 siempre**, también si se pidió hace menos de 1 minuto: esa espera se aplica en silencio, como en "olvidé mi contraseña". El único 429 es el del tope por IP.
 
 ### Olvidé mi contraseña
 
@@ -33,8 +42,10 @@ Implementado en [#138](https://github.com/Benji-9/SmartElevate/issues/138).
 
 - `POST /api/auth/password/forgot` responde **202 siempre**, exista o no la cuenta (y también si hubo un pedido reciente: la espera entre pedidos, 1 minuto, se aplica en silencio porque un 429 delataría qué cuentas existen).
 - El link vale **30 minutos**, se usa **una sola vez** y se guarda hasheado. Pedir otro invalida el anterior. Vencimiento y espera son configuración (`app.password-reset.*`).
-- **Cuenta sin verificar que pide reset**: no se manda link de reset; se le **reenvía el link de verificación** (con su propia espera). Primero tiene que verificar el email.
-- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
+- **Cuenta sin verificar que pide reset**: recibe un **link de reset real**, igual que una verificada ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Así, si otra persona registró su email con una clave propia, la dueña recupera la cuenta eligiendo la suya: usar el link prueba que el email es de ella y **marca la cuenta como verificada**.
+- `POST /api/auth/password/reset` aplica la política de contraseña de arriba, guarda el hash nuevo, marca el email como verificado y **revoca todos los refresh tokens** del usuario. Los access tokens ya emitidos siguen valiendo hasta que vencen (15 min).
+- Verificar el email (`POST /api/auth/verify`) también revoca los refresh tokens que hubiera.
+- **Riesgo residual aceptado: verificar una cuenta que registró otra persona** ([#344](https://github.com/Benji-9/SmartElevate/issues/344)). Si alguien registra el email de otra persona con su clave, a la dueña le llega un mail de verificación que no pidió. Si hace click, la cuenta queda verificada **con la clave de quien la registró**, que puede entrar. El reset no lo evita: la dueña recupera la cuenta con "olvidé mi contraseña", que cambia la clave y cierra todas las sesiones (el access token ya emitido dura hasta 15 min más). El mail de verificación dice que lo ignore si no creó una cuenta. Además, el legajo y el nombre son los que cargó esa persona.
 
 ### Tipo de usuario declarado
 
@@ -73,7 +84,7 @@ Modelo implementado (roles en `V5`, prioridad y auditoría en `V10`, [#121](http
 No hay endpoint, seed ni migración que cree administradores: así no queda ningún dato del admin en el repo, que es público.
 
 1. La persona se **registra normalmente** con su email @uade.edu.ar y lo **verifica**.
-2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Neon**. En dev, lo mismo en `/h2-console`. La sentencia exacta está en [`infraestructura.md`](../infraestructura.md#crear-el-primer-admin).
+2. Quien administra la base la promueve con un `UPDATE` en el **SQL Editor de Supabase**. En dev, lo mismo en `/h2-console`. La sentencia exacta está en [`infraestructura.md`](../infraestructura.md#crear-el-primer-admin).
 3. Desde ahí, los demás `ADMIN` y `REVIEWER` los asigna un ADMIN desde el panel.
 
 Render free no permite SSH ni comandos sueltos, así que no hay un comando para correr dentro del servidor.

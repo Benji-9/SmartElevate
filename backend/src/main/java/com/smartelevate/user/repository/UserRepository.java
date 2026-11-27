@@ -1,6 +1,7 @@
 package com.smartelevate.user.repository;
 
 import com.smartelevate.user.model.User;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,4 +49,21 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> search(@org.springframework.data.repository.query.Param("pattern") String pattern,
                       @org.springframework.data.repository.query.Param("after") UUID after,
                       org.springframework.data.domain.Pageable page);
+
+    /** Cuentas sin verificar creadas antes de {@code before}, salvo ADMIN (limpieza de #344). */
+    @Query("""
+            select u.id from User u
+            where u.emailVerified = false and u.role <> com.smartelevate.user.model.Role.ADMIN
+              and u.createdAt < :before""")
+    List<UUID> findUnverifiedIdsCreatedBefore(@org.springframework.data.repository.query.Param("before") Instant before);
+
+    /** Borra la cuenta solo si sigue sin verificar, no es ADMIN y es anterior a {@code before}. */
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+            delete from User u
+            where u.id = :id and u.emailVerified = false and u.role <> com.smartelevate.user.model.Role.ADMIN
+              and u.createdAt < :before""")
+    int deleteUnverifiedCreatedBefore(@org.springframework.data.repository.query.Param("id") UUID id,
+                                      @org.springframework.data.repository.query.Param("before") Instant before);
 }

@@ -13,7 +13,7 @@ export function TermsPage() {
   return (
     <article className="legal">
       <ScreenHeader title="Términos de uso" backTo="/login" />
-      <p className="legal__updated">Última actualización: octubre de 2026</p>
+      <p className="legal__updated">Última actualización: noviembre de 2026</p>
 
       <p>
         Estos términos regulan el uso de SmartElevate, un proyecto académico de estudiantes de UADE
@@ -25,8 +25,8 @@ export function TermsPage() {
         <h2 id="terms-service">1. El servicio</h2>
         <p>
           SmartElevate permite reservar un lugar en una salida de ascensor, hacer check-in con el QR
-          de la cabina y ver la congestión de cada núcleo. Es gratuito y se ofrece como prototipo
-          (MVP) en el marco de una materia: no es un servicio oficial de UADE, puede cambiar,
+          del hall y ver la congestión de cada núcleo. Es gratuito y se ofrece como prototipo (MVP)
+          en el marco de una materia: no es un servicio oficial de UADE, puede cambiar,
           interrumpirse o terminar al finalizar el proyecto. No reemplaza las indicaciones del
           personal de la universidad ni las señales de seguridad del edificio.
         </p>
@@ -63,8 +63,8 @@ export function TermsPage() {
             tiempo la posibilidad de reservar.
           </li>
           <li>
-            El check-in se hace escaneando el QR de la pantalla del hall, que cambia cada poco
-            tiempo. No compartas ni reutilices códigos.
+            El check-in se hace escaneando el QR de la pantalla del hall, que cambia con cada turno
+            de clase. No compartas ni reutilices códigos.
           </li>
           <li>
             Un turno no garantiza un horario exacto: el ascensor puede demorarse, fallar o quedar

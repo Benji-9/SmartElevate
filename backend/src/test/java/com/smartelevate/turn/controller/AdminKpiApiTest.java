@@ -203,6 +203,13 @@ class AdminKpiApiTest {
     }
 
     @Test
+    void adminKpisWithoutParamsIsForbiddenForUser() throws Exception {
+        mockMvc.perform(as(common, get("/api/admin/kpis")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
     void invalidFiltersAreBadRequests() throws Exception {
         mockMvc.perform(as(admin, get("/api/admin/kpis"))).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations[0].field").value("period"));

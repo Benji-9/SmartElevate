@@ -58,6 +58,21 @@ class PasswordPolicyTest {
     }
 
     @Test
+    void theLoginCapLetsInEverythingRegistrationAccepts() {
+        // Peor caso de NFKC: alfa y tres marcas (4 caracteres) que se componen en uno solo.
+        String alphaWithMarks = new String(new int[] {0x3B1, 0x313, 0x300, 0x345}, 0, 4);
+        String longest = alphaWithMarks.repeat(PasswordPolicy.MAX);
+        assertThat(longest).hasSize(PasswordPolicy.MAX * 4);
+        assertThat(PasswordPolicy.violation(longest)).isNull();
+        assertThat(PasswordPolicy.exceedsMax(longest)).isFalse();
+        assertThat(PasswordPolicy.exceedsMax("🛗".repeat(PasswordPolicy.MAX))).isFalse();
+        assertThat(PasswordPolicy.exceedsMax("a".repeat(PasswordPolicy.MAX + 1))).isTrue();
+        assertThat(PasswordPolicy.exceedsMax("a".repeat(100_000))).isTrue();
+        // El login no exige el mínimo ni mira la lista de comunes.
+        assertThat(PasswordPolicy.exceedsMax("x")).isFalse();
+    }
+
+    @Test
     void composedAndDecomposedFormsHashTheSame() {
         assertThat(PasswordPolicy.normalize("contraseña-larga"))
                 .isEqualTo(PasswordPolicy.normalize("contraseña-larga"));

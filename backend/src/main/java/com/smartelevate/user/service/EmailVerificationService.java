@@ -3,6 +3,7 @@ package com.smartelevate.user.service;
 import com.smartelevate.common.mail.EmailSender;
 import com.smartelevate.user.model.TokenPurpose;
 import com.smartelevate.user.model.User;
+import com.smartelevate.user.repository.RefreshTokenRepository;
 import com.smartelevate.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -21,6 +22,7 @@ public class EmailVerificationService {
 
     private final EmailTokenService tokens;
     private final UserRepository users;
+    private final RefreshTokenRepository refreshTokens;
     private final EmailSender emailSender;
     private final VerificationProperties properties;
     private final Clock clock;
@@ -44,19 +46,21 @@ public class EmailVerificationService {
         }
     }
 
-    /** Gasta el token y marca la cuenta como verificada, todo o nada. */
+    /**
+     * Gasta el token, marca la cuenta como verificada y cierra las sesiones que hubiera, todo o nada. Sin verificar
+     * no se puede entrar, así que no debería haber ninguna; se revocan igual (#344).
+     */
     @Transactional
     public void verify(String token) {
-        users.findById(tokens.consume(token, TokenPurpose.VERIFY_EMAIL))
-                .orElseThrow(() -> new InvalidTokenException(InvalidTokenException.Reason.INVALID))
-                .verifyEmail();
+        User user = users.findById(tokens.consume(token, TokenPurpose.VERIFY_EMAIL))
+                .orElseThrow(() -> new InvalidTokenException(InvalidTokenException.Reason.INVALID));
+        user.verifyEmail();
+        refreshTokens.revokeAllByUser(user.getId(), clock.instant());
     }
 
     /**
-     * Reenvía el link. Si el email no existe o ya está verificado no hace nada (y no lo dice, para no revelar
-     * qué cuentas hay).
-     *
-     * @throws ResendTooSoonException si el último mail salió hace menos de la espera mínima
+     * Reenvía el link. Si el email no existe, ya está verificado o el último mail salió hace menos de la espera
+     * mínima, no hace nada y no lo dice: un 429 solo para cuentas sin verificar revelaría cuáles existen (#344).
      */
     public void resend(String email) {
         User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
@@ -64,12 +68,11 @@ public class EmailVerificationService {
             return;
         }
         Instant now = clock.instant();
-        tokens.lastIssuedAt(user.getId(), TokenPurpose.VERIFY_EMAIL).ifPresent(last -> {
-            Duration wait = properties.resendCooldown().minus(Duration.between(last, now));
-            if (wait.isPositive()) {
-                throw new ResendTooSoonException(wait);
-            }
-        });
-        sendVerification(user);
+        boolean tooSoon = tokens.lastIssuedAt(user.getId(), TokenPurpose.VERIFY_EMAIL)
+                .filter(last -> Duration.between(last, now).compareTo(properties.resendCooldown()) < 0)
+                .isPresent();
+        if (!tooSoon) {
+            sendVerification(user);
+        }
     }
 }

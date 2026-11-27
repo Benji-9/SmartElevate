@@ -19,13 +19,20 @@ type Camera = 'starting' | 'on' | 'denied' | 'unavailable';
 type CheckInError = { message: string; code?: string };
 
 const SCAN_INTERVAL_MS = 300;
+/** Espera para reenviar un QR que falló sin ser inválido (red, 5xx, fuera de la ventana). */
+const SAME_QR_RETRY_MS = 5_000;
 /** Token de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
 const DEMO_TOKEN = 'DEMO';
+/** Propio del front: el servidor rechazó el escaneo y la salida del turno ya pasó. */
+const CLOSED = 'CHECK_IN_CLOSED';
+/** Con estos códigos y la salida pasada, la ventana de check-in ya cerró (check-in-qr.md). */
+const CLOSED_CODES = ['OUTSIDE_CHECK_IN_WINDOW', 'NO_ACTIVE_RESERVATION'];
 /** Con estos rechazos otro QR no cambia nada: se deja de escanear. */
-const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN'];
+const FINAL_CODES = ['NO_ACTIVE_RESERVATION', 'ALREADY_CHECKED_IN', CLOSED];
 
 /** Qué puede hacer la persona después de cada rechazo (además del mensaje del servidor). */
 function ErrorAction({ code }: { code?: string }) {
+  if (code === CLOSED) return <Link to="/perfil/viajes">Ver mis viajes</Link>;
   if (code === 'NO_ACTIVE_RESERVATION') return <Link to="/reservar">Reservá un turno</Link>;
   if (code === 'ALREADY_CHECKED_IN') return <Link to="/">Volver al inicio</Link>;
   if (code === 'OUTSIDE_CHECK_IN_WINDOW') {
@@ -45,6 +52,8 @@ export function CheckInPage() {
   const demo = useDemoMode();
   const videoRef = useRef<HTMLVideoElement>(null);
   const failedToken = useRef<string | null>(null);
+  // Por token que falló: desde cuándo se puede volver a enviar (nunca, si es inválido).
+  const retryAt = useRef(new Map<string, number>());
   const [camera, setCamera] = useState<Camera>(() =>
     'mediaDevices' in navigator ? 'starting' : 'unavailable',
   );
@@ -63,25 +72,39 @@ export function CheckInPage() {
     !turn.loading && !notYetOpen && (turn.error !== undefined || reservation != null);
   const scanDone = error?.code !== undefined && FINAL_CODES.includes(error.code);
 
-  async function submit(token: string) {
+  async function submit(token: string, keepError = false) {
     setSubmitting(true);
-    setError(null);
+    if (!keepError) setError(null);
     try {
       const result = await checkIn({ token });
       navigate('/check-in/ok', { state: result });
     } catch (submitError) {
       failedToken.current = token;
-      setError({
-        message: errorMessage(submitError),
-        code: submitError instanceof ApiError ? submitError.code : undefined,
-      });
+      const code = submitError instanceof ApiError ? submitError.code : undefined;
+      retryAt.current.set(
+        token,
+        code === 'INVALID_QR_TOKEN' ? Infinity : Date.now() + SAME_QR_RETRY_MS,
+      );
+      // La API no manda a qué hora cierra: se nombra el turno por su salida.
+      const departureAt = reservation?.departureAt;
+      const closed =
+        departureAt !== undefined &&
+        CLOSED_CODES.includes(code ?? '') &&
+        Date.now() >= Date.parse(departureAt);
+      setError(
+        closed
+          ? { message: `Se cerró el check-in de las ${formatTime(departureAt)}.`, code: CLOSED }
+          : { message: errorMessage(submitError), code },
+      );
       setSubmitting(false);
     }
   }
 
-  // No reintenta el mismo QR que ya falló: el siguiente token (rota) sí se envía.
+  // El QR del kiosco dura todo un turno de clase: el mismo token se reintenta tras una espera,
+  // dejando el aviso a la vista; otro token se envía enseguida.
   const onScan = useEffectEvent((value: string) => {
-    if (!submitting && !scanDone && value !== failedToken.current) void submit(value);
+    if (submitting || scanDone || Date.now() < (retryAt.current.get(value) ?? 0)) return;
+    void submit(value, value === failedToken.current);
   });
 
   useEffect(() => {
@@ -139,6 +162,16 @@ export function CheckInPage() {
     };
   }, [wantsCamera]);
 
+  const cameraBlocked = camera === 'denied' || camera === 'unavailable';
+  const showFinder = wantsCamera && !cameraBlocked;
+  // Texto de la región de estado de la cámara, siempre montada.
+  let scanStatus = '';
+  // En el reintento automático el aviso sigue puesto: no se anuncia "Registrando…" otra vez.
+  if (submitting && !error) scanStatus = 'Registrando tu check-in…';
+  else if (showFinder && camera === 'starting') {
+    scanStatus = 'Pidiendo permiso para usar la cámara…';
+  }
+
   let cameraState;
   if (notYetOpen) {
     cameraState = (
@@ -148,9 +181,7 @@ export function CheckInPage() {
         <p>Elevy está esperando tu turno. Cuando abra, escaneá el QR desde acá.</p>
       </section>
     );
-  } else if (!wantsCamera) {
-    cameraState = null;
-  } else if (camera === 'denied' || camera === 'unavailable') {
+  } else if (wantsCamera && cameraBlocked) {
     cameraState = (
       <section className="check-in__message" aria-labelledby="check-in-camera-title">
         <Mascot pose="triste" size={96} />
@@ -160,30 +191,18 @@ export function CheckInPage() {
             : 'No pudimos usar la cámara'}
         </h2>
         <p>
+          {QR_INSTRUCTION}{' '}
           {camera === 'denied'
-            ? 'Para hacer check-in hay que escanear el QR del ascensor. Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
-            : 'Para hacer check-in hay que escanear el QR del ascensor. Probá con otro navegador o con el celular.'}
+            ? 'Tocá el candado junto a la dirección, permití la cámara y recargá la página.'
+            : 'Probá con otro navegador o con el celular.'}
         </p>
       </section>
-    );
-  } else {
-    cameraState = (
-      <>
-        <div className="check-in__finder" aria-hidden="true" />
-        {camera === 'starting' && <p role="status">Pidiendo permiso para usar la cámara…</p>}
-        <p className="check-in__instructions">Apuntá la cámara al QR de la pantalla del ascensor</p>
-        <p className="check-in__note">{QR_INSTRUCTION} El código rota: no le saques foto.</p>
-      </>
     );
   }
 
   let turnContent;
   if (turn.loading) {
-    turnContent = (
-      <p role="status" className="page-placeholder">
-        Cargando tu turno…
-      </p>
-    );
+    turnContent = null;
   } else if (turn.error) {
     turnContent = (
       <div role="alert" className="turn-alert">
@@ -226,6 +245,11 @@ export function CheckInPage() {
         <ScreenHeader title="Check-in" />
         <div className="check-in__body">
           {cameraState}
+          {showFinder && <div className="check-in__finder" aria-hidden="true" />}
+          <p role="status" className="live-status">
+            {scanStatus}
+          </p>
+          {showFinder && <p className="check-in__instructions">{QR_INSTRUCTION}</p>}
           {demo && (
             <Button
               variant="secondary"
@@ -236,7 +260,6 @@ export function CheckInPage() {
               Simular escaneo del QR
             </Button>
           )}
-          {submitting && <p role="status">Registrando tu check-in…</p>}
           {error && (
             <p role="alert" className="turn-alert check-in__alert">
               {error.message} <ErrorAction code={error.code} />
@@ -252,6 +275,9 @@ export function CheckInPage() {
           </h2>
           {reservation && <Chip>{formatTime(reservation.departureAt)} hs</Chip>}
         </div>
+        <p role="status" className="live-status page-placeholder">
+          {turn.loading && 'Cargando tu turno…'}
+        </p>
         {turnContent}
       </section>
     </div>
