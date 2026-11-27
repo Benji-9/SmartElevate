@@ -20,7 +20,9 @@ describe('VerifyEmailPage', () => {
     renderAt('/verificar-email?token=abc');
 
     expect(await screen.findByText('Listo, verificamos tu email')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir a ingresar' })).toHaveAttribute('href', '/login');
+    const login = screen.getByRole('link', { name: 'Ingresar' });
+    expect(login).toHaveAttribute('href', '/login');
+    expect(login).toHaveClass('button--primary');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/verify',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'abc' }) }),
@@ -40,7 +42,7 @@ describe('VerifyEmailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Si ana.perez@uade.edu.ar tiene una cuenta sin verificar',
+      'Si ana.perez@uade.edu.ar tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam.',
     );
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/resend-verification',
@@ -48,9 +50,15 @@ describe('VerifyEmailPage', () => {
     );
   });
 
-  // El servidor ya no avisa con un 429 que hay que esperar (delataba qué cuentas existen, #344): la espera
-  // de un minuto entre reenvíos se cuenta en el cliente, igual para todos.
-  it('después de reenviar, el botón espera un minuto aunque el servidor siempre conteste 202', async () => {
+  it('sin token no llama al servidor', async () => {
+    const fetchMock = stubApi(signedOut);
+    renderAt('/verificar-email');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este link no es válido');
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/verify', expect.anything());
+  });
+
+  it('después de un reenvío aceptado el botón espera un minuto', async () => {
     stubApi({
       ...signedOut,
       'POST /auth/verify': { status: 400, body: { message: 'El link venció.' } },
@@ -62,14 +70,6 @@ describe('VerifyEmailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
 
     expect(await screen.findByRole('button', { name: 'Podés pedir otro en 60 s' })).toBeDisabled();
-  });
-
-  it('sin token no llama al servidor', async () => {
-    const fetchMock = stubApi(signedOut);
-    renderAt('/verificar-email');
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Este link no es válido');
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/verify', expect.anything());
   });
 
   it('el login con 403 ofrece reenviar el email a esa cuenta', async () => {
@@ -94,7 +94,7 @@ describe('VerifyEmailPage', () => {
     );
   });
 
-  it('con 429 muestra cuánto esperar y deshabilita el botón', async () => {
+  async function resendWith429(retryAfter: string) {
     stubApi({
       ...signedOut,
       'POST /auth/verify': { status: 400, body: { message: 'Ya se usó.' } },
@@ -103,35 +103,47 @@ describe('VerifyEmailPage', () => {
     const base = globalThis.fetch;
     vi.stubGlobal('fetch', async (url: string, init?: RequestInit) =>
       url === '/api/auth/resend-verification'
-        ? new Response(
-            JSON.stringify({ message: 'Hiciste demasiados pedidos. Probá de nuevo en 1 minuto.' }),
-            {
-              status: 429,
-              headers: { 'Retry-After': '45' },
-            },
-          )
+        ? new Response(JSON.stringify({ message: 'Esperá.' }), {
+            status: 429,
+            headers: { 'Retry-After': retryAfter },
+          })
         : base(url, init),
     );
     renderAt('/verificar-email?token=x');
 
     await userEvent.type(await screen.findByLabelText('Email institucional'), 'ana.perez');
     await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
+  }
+
+  it('con 429 (tope por IP) muestra cuánto esperar y deshabilita el botón', async () => {
+    await resendWith429('45');
 
     expect(await screen.findByRole('button', { name: 'Podés pedir otro en 45 s' })).toBeDisabled();
-    // El texto lo manda el servidor: ahora el 429 es el tope de pedidos de la red, no "ya te mandamos un mail".
     expect(
-      screen.getByText('Hiciste demasiados pedidos. Probá de nuevo en 1 minuto.'),
+      screen.getByText('Hubo demasiados pedidos desde tu red. Probá de nuevo en un rato.'),
     ).toBeInTheDocument();
   });
 
-  it('un link ya usado no se muestra como falla del servidor: sugiere ingresar', async () => {
+  it('con una espera larga la muestra en minutos', async () => {
+    await resendWith429('601');
+
+    expect(
+      await screen.findByRole('button', { name: 'Podés pedir otro en 11 min' }),
+    ).toBeDisabled();
+  });
+
+  it('un link ya usado (por code) no se muestra como falla del servidor: sugiere ingresar', async () => {
+    // El texto puede cambiar: lo que decide es el code.
     stubApi({
       ...signedOut,
-      'POST /auth/verify': { status: 400, body: { message: 'Este link ya se usó.' } },
+      'POST /auth/verify': {
+        status: 400,
+        body: { message: 'Ese link ya fue usado.', code: 'TOKEN_USED' },
+      },
     });
     renderAt('/verificar-email?token=usado');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Este link ya se usó.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ese link ya fue usado.');
     expect(screen.getByRole('link', { name: 'ingresá' })).toHaveAttribute('href', '/login');
   });
 

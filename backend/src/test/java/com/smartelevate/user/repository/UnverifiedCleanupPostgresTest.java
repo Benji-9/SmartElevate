@@ -11,8 +11,12 @@ import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.EmailToken;
 import com.smartelevate.user.model.TokenPurpose;
 import com.smartelevate.user.model.User;
+import com.smartelevate.user.service.UnverifiedAccountCleanup;
+import com.smartelevate.user.service.VerificationProperties;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -22,8 +26,8 @@ import org.springframework.context.annotation.Import;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * La limpieza de cuentas sin verificar (#344) contra Postgres real: el borrado en bloque con subconsultas y la
- * cascada de los tokens se probaron en H2, pero producción corre en Postgres. Sin Docker se saltea; en CI corre siempre.
+ * La limpieza de cuentas sin verificar (#344) contra Postgres real: la cascada de los tokens y la cuenta que frena una
+ * clave foránea se prueban en H2, pero producción corre en Postgres. Sin Docker se saltea; en CI corre siempre.
  */
 @SpringBootTest
 @Import(PostgresTestcontainersConfig.class)
@@ -31,7 +35,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class UnverifiedCleanupPostgresTest {
 
     private static final Instant NOW = Instant.parse("2026-11-25T15:00:00Z");
-    private static final Instant CUTOFF = NOW.minus(Duration.ofDays(7));
+    private static final Duration TTL = Duration.ofDays(2);
+    private static final Instant CUTOFF = NOW.minus(TTL);
 
     @Autowired
     private UserRepository users;
@@ -47,6 +52,12 @@ class UnverifiedCleanupPostgresTest {
         emailTokens.deleteAll();
         priorities.deleteAll();
         users.deleteAll();
+    }
+
+    private UnverifiedAccountCleanup cleanup() {
+        return new UnverifiedAccountCleanup(users,
+                new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), TTL, "https://app.test"),
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private User account(String email, String legajo, Instant createdAt, boolean verified) {
@@ -65,7 +76,7 @@ class UnverifiedCleanupPostgresTest {
         emailTokens.save(new EmailToken(abandoned.getId(), TokenPurpose.VERIFY_EMAIL, "hash-de-prueba", NOW,
                 NOW.plusSeconds(60)));
 
-        int deleted = users.deleteStaleUnverified(CUTOFF);
+        int deleted = cleanup().deleteExpired();
 
         assertThat(deleted).isEqualTo(1);
         assertThat(users.findAll()).extracting(User::getEmail)
@@ -80,7 +91,7 @@ class UnverifiedCleanupPostgresTest {
         row.decide(PriorityStatus.PENDING, null, NOW, UUID.randomUUID());
         priorities.saveAndFlush(row);
 
-        assertThat(users.deleteStaleUnverified(CUTOFF)).isZero();
+        assertThat(cleanup().deleteExpired()).isZero();
         assertThat(users.existsByEmail("con-historia@uade.edu.ar")).isTrue();
     }
 }

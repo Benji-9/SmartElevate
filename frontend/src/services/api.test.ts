@@ -79,6 +79,37 @@ describe('sesión en services/api', () => {
     unsubscribe();
   });
 
+  it('expiredSessionShowsLoginMessage: el 401 de un pedido autenticado pide ingresar de nuevo', async () => {
+    await signIn();
+    stubApi({
+      'POST /auth/refresh': { status: 401, body: { message: 'Refresh vencido' } },
+      'GET /users/me': meAccepting('token-2'),
+    });
+
+    await expect(getMe()).rejects.toMatchObject({
+      status: 401,
+      message: 'Tu sesión venció. Ingresá de nuevo.',
+    });
+  });
+
+  it('un 403 conserva el mensaje del servidor: no es una sesión vencida', async () => {
+    await signIn();
+    stubApi({ 'GET /users/me': { status: 403, body: { message: 'No tenés permisos' } } });
+
+    await expect(getMe()).rejects.toMatchObject({ status: 403, message: 'No tenés permisos' });
+  });
+
+  it('un 401 de /auth/* con sesión conserva el mensaje del servidor', async () => {
+    await signIn();
+    stubApi({
+      'POST /auth/login': { status: 401, body: { message: 'Email o contraseña incorrectos' } },
+    });
+
+    await expect(login({ email: 'ana.perez@uade.edu.ar', password: 'x' })).rejects.toMatchObject({
+      message: 'Email o contraseña incorrectos',
+    });
+  });
+
   it('si el refresh falla por el servidor (5xx) no cierra la sesión', async () => {
     await signIn();
     stubApi({
@@ -120,6 +151,68 @@ describe('sesión en services/api', () => {
 
     await expect(restoreSession()).resolves.toEqual(testUser);
     expect(fetchMock.mock.calls[0][1]?.credentials).toBe('include');
+  });
+
+  it('restoreSessionSkipsRefreshWithoutHint: sin marca de sesión no pide el refresh', async () => {
+    const fetchMock = stubApi({});
+    localStorage.clear();
+
+    await expect(restoreSession()).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('loginSetsSessionHint: ingresar deja la marca de sesión', async () => {
+    localStorage.clear();
+
+    await signIn();
+
+    expect(localStorage.getItem('se:session')).not.toBeNull();
+  });
+
+  it('logoutAndExpiryClearHint: cerrar sesión borra la marca', async () => {
+    await signIn();
+    stubApi({ 'POST /auth/logout': { status: 204 } });
+
+    await logout();
+
+    expect(localStorage.getItem('se:session')).toBeNull();
+  });
+
+  it('logoutAndExpiryClearHint: un refresh rechazado borra la marca', async () => {
+    await signIn();
+    stubApi({
+      'POST /auth/refresh': { status: 401, body: { message: 'Refresh vencido' } },
+      'GET /users/me': meAccepting('token-2'),
+    });
+
+    await expect(getMe()).rejects.toBeInstanceOf(ApiError);
+
+    expect(localStorage.getItem('se:session')).toBeNull();
+  });
+
+  it('un 5xx del refresh conserva la marca para reintentar al recargar', async () => {
+    await signIn();
+    stubApi({ 'POST /auth/refresh': { status: 503, body: { message: 'Servidor caído' } } });
+
+    await expect(restoreSession()).resolves.toBeNull();
+
+    expect(localStorage.getItem('se:session')).not.toBeNull();
+  });
+
+  it('sin localStorage pide el refresh como siempre', async () => {
+    const blocked = () => {
+      throw new DOMException('blocked', 'SecurityError');
+    };
+    stubApi({
+      'POST /auth/refresh': { body: tokens(2) },
+      'GET /users/me': meAccepting('token-2'),
+    });
+    vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked, removeItem: blocked });
+    try {
+      await expect(restoreSession()).resolves.toEqual(testUser);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('sin cookie el refresh da 401 y no hay sesión que recuperar', async () => {

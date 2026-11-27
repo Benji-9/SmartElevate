@@ -35,7 +35,9 @@ export function TopBar() {
       {user && (
         <p className="topbar__user text-body-sm-strong">
           <Avatar name={user.fullName} className="topbar__avatar" />
-          {user.fullName}
+          <span className="topbar__name" title={user.fullName}>
+            {user.fullName}
+          </span>
         </p>
       )}
     </header>

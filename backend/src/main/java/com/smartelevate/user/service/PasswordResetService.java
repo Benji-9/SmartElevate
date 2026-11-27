@@ -34,10 +34,9 @@ public class PasswordResetService {
 
     /**
      * Manda el link de reset. Si el email no existe, o ya se pidió hace menos de la espera mínima, no hace nada:
-     * un 429 solo para cuentas reales revelaría cuáles existen. Las cuentas sin verificar reciben el mismo link
-     * de reset que las demás (#344): si alguien se registró primero con un email ajeno, quien es dueño del mail
-     * puede quedarse con la cuenta eligiendo su propia clave, en vez de verificar la del otro. Los fallos de envío
-     * se loguean y no se propagan.
+     * un 429 solo para cuentas reales revelaría cuáles existen. Una cuenta sin verificar también recibe un reset real
+     * (#344): si otra persona la registró con su clave, la dueña del email la recupera eligiendo la suya. Los fallos
+     * de envío se loguean y no se propagan.
      */
     public void request(String email) {
         User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT)).orElse(null);
@@ -67,9 +66,8 @@ public class PasswordResetService {
     }
 
     /**
-     * Gasta el token, guarda la contraseña nueva, verifica el email y cierra todas las sesiones del usuario, todo o
-     * nada. Usar el link del mail prueba que la persona controla ese email, así que la cuenta queda verificada: si
-     * alguien se había registrado antes con ese email, pierde la clave que había puesto (#344).
+     * Gasta el token, guarda la contraseña nueva, marca el email como verificado y cierra todas las sesiones del
+     * usuario, todo o nada.
      *
      * @throws InvalidTokenException si el token no existe, ya se usó o venció
      */
@@ -78,6 +76,7 @@ public class PasswordResetService {
         User user = users.findById(tokens.consume(token, TokenPurpose.PASSWORD_RESET))
                 .orElseThrow(() -> new InvalidTokenException(InvalidTokenException.Reason.INVALID));
         user.changePasswordHash(passwordEncoder.encode(PasswordPolicy.normalize(newPassword)));
+        // Usar el link prueba que el email es suyo: una cuenta pre-registrada por otro queda verificada y con su clave.
         user.verifyEmail();
         // Quien recupera la cuenta por mail no tiene que esperar a que venza el límite de intentos.
         loginThrottle.clearAccount(user.getEmail());

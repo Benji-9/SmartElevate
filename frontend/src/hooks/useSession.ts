@@ -6,6 +6,8 @@ export type SessionState = {
   user: User | null;
   /** `true` mientras se recupera la sesión al abrir la app. */
   loading: boolean;
+  /** La sesión venció (no la cerró la persona): el login lo explica. */
+  expired: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
 };

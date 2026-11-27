@@ -12,19 +12,25 @@
 // ON_TIME hasta +60 s) con los códigos de `POST /check-ins`.
 //
 // Lo que NO emulan (el backend sí):
+// - Zonas de pisos (ADR 0025): la oferta de cada hora es la salida con más lugares libres.
 // - Job de no-show: una reserva ACTIVE nunca pasa sola a NO_SHOW ni deja de ser "activa".
 // - Concurrencia y cupo atómico; la ocupación de otros usuarios es fija y de ejemplo.
 // - Lugares tomados por prioritarios: el cupo reservado se descuenta siempre completo hasta
 //   su liberación (no se compensa con otros prioritarios que ya reservaron).
 // - Salidas que se generan por horario, `sameDay` de la ventana y los parámetros de `app_config`.
-// - Check-in simulado vs. real (`source`) y que las faltas con check-in simulado no cuentan.
+// - Check-in simulado: todo check-in sale como `REAL` y sus faltas cuentan.
 // - Un solo turno activo por usuario se chequea sin distinguir usuarios (hay un estado global).
 // - Tokens de QR: no se firman; los tokens `DEMO`, `TARDE` y `OTRO` saltean la ventana horaria
 //   para poder probar cada resultado sin esperar la hora de salida.
+// Para probar sin QR: con `?demo=1&checkin=tarde` o `&checkin=otro` en la URL, el botón "Simular
+// escaneo del QR" da fuera de hora u otro ascensor en vez de a tiempo.
 // Edificios, núcleos y pisos del relevamiento (docs/reglas/asignacion.md, #22); congestión,
-// halls y ocupación siguen siendo de ejemplo.
+// KPIs y ocupación siguen siendo de ejemplo.
 import type {
   AdminElevator,
+  AdminKpis,
+  AdminKpisQuery,
+  AdminShift,
   AdminUser,
   AdminUserPage,
   DeclaredUserType,
@@ -32,6 +38,7 @@ import type {
   CheckIn,
   CheckInRequest,
   CongestionLevel,
+  CongestionSnapshot,
   CreatedKiosk,
   CreateKioskRequest,
   Departure,
@@ -83,8 +90,18 @@ const checkInOpensAt = (departureAt: string) =>
   new Date(Date.parse(departureAt) - CHECK_IN_OPENS_MS).toISOString();
 const NO_SHOW_RULE = { threshold: 3, windowDays: 7, suspensionHours: 24 };
 const TRIPS_PAGE_SIZE = 10;
-/** `app.kiosk.qr-ttl` del backend (ADR 0020). */
-const QR_TTL_MS = 30_000;
+/**
+ * `app.kiosk.qr-shift-boundaries` del backend (07, 13, 18 y 23 h de Buenos Aires, ADR 0026) en
+ * horas UTC: Argentina es UTC−3 todo el año.
+ */
+const QR_SHIFT_HOURS_UTC = [2, 10, 16, 21];
+/** El próximo cambio de turno: ahí vence el QR del kiosco. */
+function nextQrShift(now = Date.now()) {
+  const date = new Date(now);
+  // Pasadas las 21 h UTC, el siguiente es el primero de mañana (`setUTCHours` pasa de día).
+  const hour = QR_SHIFT_HOURS_UTC.find((h) => h > date.getUTCHours()) ?? 24 + QR_SHIFT_HOURS_UTC[0];
+  return date.setUTCHours(hour, 0, 0, 0);
+}
 /** Lugares de cada salida común guardados para prioritarios (turnos.md §6). */
 const PRIORITY_SEATS = 2;
 
@@ -243,71 +260,134 @@ const users: User[] = [
 // Cuentas que todavía no hicieron click en el link de verificación.
 const unverified = new Set(['sin.verificar@uade.edu.ar']);
 
-// Simula la cookie del refresh del servidor: sobrevive a recargar la página.
+// Simula la cookie del refresh del servidor: sobrevive a recargar la página y la ven las pestañas
+// nuevas (localStorage). La copia en sessionStorage deja una cuenta distinta en cada pestaña.
 const SESSION_KEY = 'smartelevate-mock-session';
+
+const sessionEmail = () => sessionStorage.getItem(SESSION_KEY) ?? localStorage.getItem(SESSION_KEY);
 
 function tokensFor(email: string): TokenResponse {
   sessionStorage.setItem(SESSION_KEY, email);
+  localStorage.setItem(SESSION_KEY, email);
   return { accessToken: `mock-${Date.now()}`, tokenType: 'Bearer', expiresIn: 900 };
 }
 
 function currentUser(): User {
-  const email = sessionStorage.getItem(SESSION_KEY);
+  const email = sessionEmail();
   const found = users.find((u) => u.email === email);
   if (!found) throw new ApiError(401, 'Sesión vencida');
   return found;
 }
 
-/** Datos del núcleo que el contrato no tiene (congestión): solo para los mocks. */
-type MockCore = {
-  id: string;
-  buildingId: string;
-  name: string;
-  congestion: CongestionLevel;
-  estimatedWaitMinutes: number;
-};
-
-const cores: MockCore[] = [
-  {
-    id: 'L1',
-    buildingId: 'LIMA',
-    name: 'Lima 1',
-    congestion: 'HIGH',
-    estimatedWaitMinutes: 9,
-  },
-  {
-    id: 'L2',
-    buildingId: 'LIMA',
-    name: 'Lima 2',
-    congestion: 'MEDIUM',
-    estimatedWaitMinutes: 5,
-  },
-  {
-    id: 'L3',
-    buildingId: 'LIMA',
-    name: 'Lima 3',
-    congestion: 'LOW',
-    estimatedWaitMinutes: 2,
-  },
-  {
-    id: 'IND1',
-    buildingId: 'INDEPENDENCIA',
-    name: 'Independencia 1',
-    congestion: 'LOW',
-    estimatedWaitMinutes: 1,
-  },
-  {
-    id: 'IND2',
-    buildingId: 'INDEPENDENCIA',
-    name: 'Independencia 2',
-    congestion: 'LOW',
-    estimatedWaitMinutes: 3,
-  },
+/** Núcleos con su ocupación de ejemplo y qué parte de las reservas del campus se lleva cada uno. */
+const cores = [
+  { id: 'L1', buildingId: 'LIMA', name: 'Lima 1', occupancy: 92, share: 0.3 },
+  { id: 'L2', buildingId: 'LIMA', name: 'Lima 2', occupancy: 68, share: 0.2 },
+  { id: 'L3', buildingId: 'LIMA', name: 'Lima 3', occupancy: 41, share: 0.3 },
+  { id: 'IND1', buildingId: 'INDEPENDENCIA', name: 'Independencia 1', occupancy: 20, share: 0.05 },
+  { id: 'IND2', buildingId: 'INDEPENDENCIA', name: 'Independencia 2', occupancy: 74, share: 0.15 },
 ];
+const coresByName = [...cores].sort((a, b) => a.name.localeCompare(b.name));
+/** `congestion_medium_from` y `congestion_high_from` (kpis.md). */
+const levelOf = (percent: number): CongestionLevel =>
+  percent >= 85 ? 'HIGH' : percent >= 60 ? 'MEDIUM' : 'LOW';
+
+/** `GET /congestion`: refresca cada salida (`refreshAfterSeconds`). */
+const congestion = (): CongestionSnapshot => ({
+  updatedAt: new Date().toISOString(),
+  refreshAfterSeconds: DEPARTURE_MINUTES * 60,
+  cores: coresByName.map((c) => ({
+    coreId: c.id,
+    name: c.name,
+    level: levelOf(c.occupancy),
+    occupancyPercent: c.occupancy,
+  })),
+});
+
+/** Turnos de cursada de kpis.md#filtros. */
+const SHIFTS: AdminShift[] = [
+  { id: 'MORNING', name: 'Turno mañana', startsAt: '07:00', endsAt: '13:00' },
+  { id: 'AFTERNOON', name: 'Turno tarde', startsAt: '13:00', endsAt: '18:00' },
+  { id: 'NIGHT', name: 'Turno noche', startsAt: '18:00', endsAt: '22:30' },
+];
+/** Reservas de ejemplo de un día en todo el campus, por hora desde las 7: picos al entrar a cursar. */
+const DAILY_BY_HOUR = [60, 140, 110, 60, 50, 80, 100, 55, 40, 45, 85, 130, 105, 50, 35, 15];
+const FIRST_HOUR = 7;
+const PERIOD_DAYS: Record<AdminKpisQuery['period'], number> = { TODAY: 1, WEEK: 7, MONTH: 30 };
+const CHECK_IN_PERCENT = 86.4;
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+const totalOf = (rows: { reservations: number }[]) =>
+  rows.reduce((sum, row) => sum + row.reservations, 0);
+
+/** `GET /admin/kpis`: datos de ejemplo que cierran entre sí. La espera va en `null` como en el real. */
+function adminKpis(query: URLSearchParams): AdminKpis {
+  const days = PERIOD_DAYS[query.get('period') as AdminKpisQuery['period']] ?? 1;
+  const building = query.get('buildingId');
+  const shift = SHIFTS.find((s) => s.id === query.get('shiftId'));
+  const hours = DAILY_BY_HOUR.map((demand, i) => ({ hour: FIRST_HOUR + i, demand })).filter(
+    ({ hour }) => {
+      const at = `${String(hour).padStart(2, '0')}:00`;
+      return !shift || (at >= shift.startsAt && at < shift.endsAt);
+    },
+  );
+  const selected = coresByName.filter((c) => !building || c.buildingId === building);
+  const seats = (demand: number, share: number) => Math.round(demand * share) * days;
+  const reservationsByHour = hours.map(({ hour, demand }) => ({
+    hour,
+    reservations: selected.reduce((sum, c) => sum + seats(demand, c.share), 0),
+  }));
+  const rows = selected.map((c) => ({
+    coreId: c.id,
+    name: c.name,
+    reservations: hours.reduce((sum, h) => sum + seats(h.demand, c.share), 0),
+    occupancyPercent: c.occupancy,
+    avgWaitSeconds: null,
+    congestion: levelOf(c.occupancy),
+  }));
+  const reservations = totalOf(rows);
+  // Personas por salida: la ocupación de cada núcleo pesada por sus reservas.
+  const avgOccupancy = round1(
+    rows.reduce((sum, r) => sum + r.reservations * r.occupancyPercent, 0) /
+      reservations /
+      (100 / CAPACITY),
+  );
+  const dayMs = 86_400_000;
+  // Buenos Aires es UTC−3 todo el año.
+  const to = Date.parse(`${campusDay(Date.now())}T00:00:00-03:00`) + dayMs;
+  const from = to - days * dayMs;
+  const iso = (at: number) => new Date(at).toISOString();
+  return {
+    from: iso(from),
+    to: iso(to),
+    avgWaitSeconds: null,
+    wait5To10Percent: null,
+    baselinePercent: 43.5,
+    reservations,
+    checkIns: Math.round((reservations * CHECK_IN_PERCENT) / 100),
+    checkInPercent: CHECK_IN_PERCENT,
+    avgOccupancy,
+    capacity: CAPACITY,
+    reservationsByHour,
+    cores: rows,
+    previous: {
+      from: iso(from - days * dayMs),
+      to: iso(from),
+      reservations: Math.round(reservations * 0.92),
+      checkInPercent: CHECK_IN_PERCENT - 2.3,
+      avgOccupancy: round1(avgOccupancy - 0.4),
+      avgWaitSeconds: null,
+      wait5To10Percent: null,
+    },
+  };
+}
 
 // Ocupación de ejemplo por salida, rotada por ascensor: hay llenas para probar TURN_FULL y casi
 // llenas (8–9) donde lo que queda es de prioritarios.
 const OCCUPANCY = [4, 10, 7, 2, 9, 0, 5, 3, 8, 1, 6, 2, 0, 4, 1];
+// Una de cada 7 salidas (cada 14 min) va llena en todos los ascensores: la oferta de cada hora es la
+// del más libre, así que sin esto la franja "Completo" no se vería nunca.
+const FULL_EVERY = 7;
 
 // Misma forma que GET /api/buildings: los núcleos van con código y nombre visible.
 const coresOf = (buildingCode: string) =>
@@ -395,7 +475,9 @@ const holdsSeat = (r: Reservation) =>
   r.status === 'ACTIVE' || r.status === 'USED' || r.status === 'NO_SHOW';
 
 function occupied(departureId: number) {
-  const base = OCCUPANCY[(Math.floor(departureId / 100) + (departureId % 100)) % OCCUPANCY.length];
+  const slot = Math.floor(departureId / 100);
+  const base =
+    slot % FULL_EVERY === 0 ? CAPACITY : OCCUPANCY[(slot + (departureId % 100)) % OCCUPANCY.length];
   const booked = reservations.filter((r) => r.departureId === departureId && holdsSeat(r)).length;
   return Math.min(CAPACITY, base + booked);
 }
@@ -443,6 +525,44 @@ function bookable(user: User, building: string | null, elevatorCode: string | nu
         : [],
     ),
   );
+}
+
+/**
+ * `GET /departures?core=&origin=&destination=`: una salida por hora entre las del núcleo que paran
+ * en ambos pisos. Como el servidor, no rechaza pisos bajos ni origen igual a destino.
+ */
+// ponytail: gana la de más lugares libres (a igualdad, el menor código), sin zonas ni afinidad
+// (ADR 0025, ZoneOfferResolver en el backend). Portarlas si hay que probar el agrupamiento sin backend.
+function offer(user: User, core: string, origin: number, destination: number): Departure[] {
+  const codes = new Set(
+    ELEVATORS.filter(
+      (e) =>
+        e.core === core.toUpperCase() &&
+        e.floors.includes(origin) &&
+        e.floors.includes(destination),
+    ).map((e) => e.code),
+  );
+  const byTime = new Map<string, Departure>();
+  for (const d of bookable(user, null, null)) {
+    if (!codes.has(d.elevator)) continue;
+    const best = byTime.get(d.departureAt);
+    if (!best || d.remainingSeats > best.remainingSeats) byTime.set(d.departureAt, d);
+  }
+  return [...byTime.values()];
+}
+
+/** Sin núcleo ni pisos, la ventana entera; con los tres, la oferta; con algunos, 400. */
+function departuresFor(user: User, query: URLSearchParams): Departure[] {
+  const core = query.get('core');
+  const origin = query.get('origin');
+  const destination = query.get('destination');
+  if (core === null && origin === null && destination === null) {
+    return bookable(user, query.get('building'), query.get('elevator'));
+  }
+  if (core === null || origin === null || destination === null) {
+    throw new ApiError(400, 'core, origin y destination van los tres juntos o ninguno');
+  }
+  return offer(user, core, Number(origin), Number(destination));
 }
 
 const CAMPUS_TZ = 'America/Argentina/Buenos_Aires';
@@ -589,11 +709,10 @@ function book(user: User, { departureId, originFloor, destinationFloor }: Reserv
 // Arranca con un turno activo en el ascensor 33 (Independencia 2), PB → 7, a unos 16 min.
 {
   // A más de 10 min: cancelarlo todavía es sin falta.
-  const at = firstSlot() + 8 * STEP_MS;
-  const departureId = departureIdOf(
-    at,
-    ELEVATORS.findIndex((e) => e.code === '33'),
-  );
+  const elevatorIndex = ELEVATORS.findIndex((e) => e.code === '33');
+  let at = firstSlot() + 8 * STEP_MS;
+  while (occupied(departureIdOf(at, elevatorIndex)) >= CAPACITY) at += STEP_MS;
+  const departureId = departureIdOf(at, elevatorIndex);
   reservations = [
     {
       id: ++reservationCounter,
@@ -710,7 +829,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/auth\/refresh$/,
     () => {
       // Sin cookie (sin sesión) el real responde 401.
-      const email = sessionStorage.getItem(SESSION_KEY);
+      const email = sessionEmail();
       if (!email) throw new ApiError(401, 'Sesión vencida');
       return tokensFor(email);
     },
@@ -720,6 +839,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/auth\/logout$/,
     () => {
       sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
     },
   ],
   [
@@ -758,9 +878,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => {
       // Tokens de prueba: "VENCIDO" y "USADO" dan el 400 con su motivo.
       const token = ((body as { token?: string }).token ?? '').toUpperCase();
-      if (token.includes('VENCIDO')) throw new ApiError(400, 'El link venció. Pedí uno nuevo.');
-      if (token.includes('USADO')) throw new ApiError(400, 'Este link ya se usó.');
-      if (!token) throw new ApiError(400, 'El link no es válido.');
+      if (token.includes('VENCIDO')) {
+        throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
+      }
+      if (token.includes('USADO')) throw rejected(400, 'TOKEN_USED', 'Este link ya se usó.');
+      if (!token) throw rejected(400, 'TOKEN_INVALID', 'El link no es válido.');
       return undefined;
     },
   ],
@@ -768,9 +890,14 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     'POST',
     /^\/auth\/resend-verification$/,
     (body) => {
-      // "limite@uade.edu.ar" simula el tope de pedidos de la red: 429 con Retry-After de 30 s.
+      // "limite@uade.edu.ar" simula el 429 del tope por IP con Retry-After de 30 s.
       if ((body as { email: string }).email.startsWith('limite@')) {
-        throw new ApiError(429, 'Hiciste demasiados pedidos. Probá de nuevo en 1 minuto.', [], 30);
+        throw new ApiError(
+          429,
+          'Hubo demasiados pedidos desde tu red. Probá de nuevo en 1 minuto.',
+          [],
+          30,
+        );
       }
       return undefined; // 202 exista o no la cuenta
     },
@@ -787,8 +914,9 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     (body) => {
       // Token de prueba "VENCIDO": el link ya no sirve.
       const { token, newPassword } = body as ResetPasswordRequest;
-      if (!token || token.toUpperCase().includes('VENCIDO')) {
-        throw new ApiError(400, 'El link venció o ya se usó. Pedí uno nuevo.');
+      if (!token) throw rejected(400, 'TOKEN_INVALID', 'El link no es válido.');
+      if (token.toUpperCase().includes('VENCIDO')) {
+        throw rejected(400, 'TOKEN_EXPIRED', 'El link venció. Pedí uno nuevo.');
       }
       if (!newPassword) {
         throw new ApiError(400, 'Datos inválidos', [
@@ -804,14 +932,13 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/elevators$/,
     () => ELEVATORS.map((e) => ({ ...e, active: !outOfService.has(e.code) })),
   ],
+  ['GET', /^\/congestion$/, () => congestion()],
+  ['GET', /^\/admin\/shifts$/, () => SHIFTS],
+  ['GET', /^\/admin\/kpis$/, (_, __, query) => adminKpis(query)],
   ['GET', /^\/admin\/elevators$/, () => adminElevators()],
   ['POST', /^\/admin\/elevators\/([^/]+)\/out-of-service$/, (_, [code]) => setService(code, false)],
   ['POST', /^\/admin\/elevators\/([^/]+)\/in-service$/, (_, [code]) => setService(code, true)],
-  [
-    'GET',
-    /^\/departures$/,
-    (_, __, query) => bookable(currentUser(), query.get('building'), query.get('elevator')),
-  ],
+  ['GET', /^\/departures$/, (_, __, query) => departuresFor(currentUser(), query)],
   [
     'GET',
     /^\/reservations\/history$/,
@@ -879,7 +1006,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     /^\/check-ins$/,
     (body) => {
       const active = activeReservation();
-      const scan = scanned((body as CheckInRequest).token, active?.elevator ?? '33');
+      const { token } = body as CheckInRequest;
+      const demoScenario =
+        token === 'DEMO' && new URLSearchParams(window.location.search).get('checkin');
+      const scan = scanned(demoScenario || token, active?.elevator ?? '33');
       const { elevator } = scan;
       let { late } = scan;
       if (!active) {
@@ -921,7 +1051,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
         reservedElevator: active.elevator,
         departureAt: active.departureAt,
         checkedInAt: new Date().toISOString(),
-        source: 'SIMULATED',
+        source: 'REAL',
       };
       lastCheckedIn = active.id;
       reservations = reservations.map((r) =>
@@ -993,7 +1123,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
     },
   ],
   // El ascensor sale de la credencial: sirve cualquier `mock-<ascensor>-…` (como las del alta).
-  // Ciclos de 30 s alineados al reloj.
+  // Vence en el próximo cambio de turno.
   [
     'GET',
     /^\/kiosks\/me\/qr-token$/,
@@ -1008,7 +1138,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
           'KIOSK_UNAUTHORIZED',
         );
       }
-      const expiresAt = Math.floor(Date.now() / QR_TTL_MS + 1) * QR_TTL_MS;
+      const expiresAt = nextQrShift();
       return {
         token: `mock-qr-${elevatorId}-${expiresAt}`,
         expiresAt: new Date(expiresAt).toISOString(),

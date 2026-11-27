@@ -103,11 +103,7 @@ export function AdminElevatorsPage() {
       </div>
     );
   } else if (!list.data) {
-    content = (
-      <p role="status" className="page-placeholder">
-        Cargando…
-      </p>
-    );
+    content = null;
   } else if (list.data.length === 0) {
     content = <p className="page-placeholder">No hay ascensores para mostrar.</p>;
   } else {
@@ -187,6 +183,8 @@ export function AdminElevatorsPage() {
     );
   }
 
+  const loading = !list.error && !list.data;
+
   return (
     <>
       <header>
@@ -201,7 +199,9 @@ export function AdminElevatorsPage() {
           Estado de los ascensores
         </h2>
         <div ref={feedback}>
-          {done && <p role="status">{done}</p>}
+          <p role="status" className={`live-status${loading ? ' page-placeholder' : ''}`}>
+            {loading ? 'Cargando…' : done}
+          </p>
           {actionError && (
             <p role="alert" className="kiosk-error">
               {actionError}

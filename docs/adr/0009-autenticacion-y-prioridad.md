@@ -83,7 +83,7 @@ Prioridad en la sesión:
 - Opción **B**, con email y legajo únicos.
 - **Rol y prioridad nunca vienen del registro**: los asigna un ADMIN.
 - El registro tiene un **tipo de usuario declarativo** (Estudiante / Docente) que no otorga nada. Los docentes declarados quedan en una cola del panel de administración, y el ADMIN los aprueba o rechaza.
-- El **primer ADMIN** se crea promoviendo a un usuario registrado con SQL en la consola de Neon. No hay endpoint ni seed, así que ningún dato del admin queda en el repo.
+- El **primer ADMIN** se crea promoviendo a un usuario registrado con SQL en la consola de Supabase. No hay endpoint ni seed, así que ningún dato del admin queda en el repo.
 - JWT con **access token corto (~15 min) y refresh**. La prioridad se evalúa **en el servidor** (opción **b**), nunca desde un claim del JWT.
 - Movilidad reducida: ver la nota de arriba. Hoy la marca la pone UADE vía OFALU y la app no maneja certificados ni datos de salud (ADR-0024).
 

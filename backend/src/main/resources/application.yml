@@ -55,6 +55,13 @@ app:
     window: ${APP_LOGIN_THROTTLE_WINDOW:PT15M}
     max-failures-per-account: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT:10}
     max-failures-per-ip: ${APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP:100}
+  request-throttle:
+    # Tope de pedidos por IP de registro, reenvío de verificación y "olvidé mi contraseña" (#344), cada uno por
+    # separado. La ventana no puede ser mayor que la de login-throttle (comparten tabla): si lo es, no arranca.
+    # 1000 es holgado a propósito: si la IP que se ve es la de Vercel, el tope es uno solo para todos y uno bajo
+    # dejaría a todo el campus sin "olvidé mi contraseña" (infraestructura.md, riesgo 3).
+    window: ${APP_REQUEST_THROTTLE_WINDOW:PT15M}
+    max-per-ip: ${APP_REQUEST_THROTTLE_MAX_PER_IP:1000}
   admin:
     user-search:
       # Buscador de usuarios del panel admin (#215): mínimo de caracteres para no listar a todos, y tamaño de página.
@@ -63,6 +70,9 @@ app:
   verification:
     token-ttl: ${APP_VERIFICATION_TOKEN_TTL:PT24H}
     resend-cooldown: ${APP_VERIFICATION_RESEND_COOLDOWN:PT1M}
+    # Las cuentas que siguen sin verificar pasado este tiempo se borran (job por hora, #344). Mayor que token-ttl:
+    # si no, la app no arranca.
+    unverified-ttl: ${APP_VERIFICATION_UNVERIFIED_TTL:P2D}
     # Base del link del mail de verificación. Obligatoria en prod (RequiredProdProperties); el default localhost
     # vive solo en application-dev.yml.
     frontend-url: ${APP_FRONTEND_URL:}
@@ -92,11 +102,6 @@ app:
     # false lo desactiva (p. ej. sin SMTP configurado). Una pasada cada 30 s alcanza para una ventana de minutos.
     enabled: ${APP_REMINDER_JOB_ENABLED:true}
     interval: ${APP_REMINDER_JOB_INTERVAL:PT30S}
-  unverified-cleanup:
-    # Cuentas que nunca verificaron el email (#344): se borran pasado este plazo, así nadie retiene un email o un legajo
-    # ajeno. interval es cada cuánto corre el job y también la espera antes de su primera pasada.
-    ttl: ${APP_UNVERIFIED_CLEANUP_TTL:P7D}
-    interval: ${APP_UNVERIFIED_CLEANUP_INTERVAL:PT1H}
   cors:
     # Lista separada por comas, p. ej. "http://localhost:5173,https://smartelevate.vercel.app". Obligatoria en
     # prod; el default localhost vive solo en application-dev.yml.

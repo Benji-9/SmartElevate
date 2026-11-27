@@ -16,6 +16,7 @@ import com.smartelevate.common.mail.EmailSender;
 import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.model.TokenPurpose;
 import com.smartelevate.user.model.User;
+import com.smartelevate.user.repository.RefreshTokenRepository;
 import com.smartelevate.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -30,13 +31,15 @@ class EmailVerificationServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-13T15:00:00Z");
     private static final VerificationProperties PROPS =
-            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test");
+            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), Duration.ofDays(2),
+                    "https://app.test");
 
     private final EmailTokenService tokens = mock(EmailTokenService.class);
     private final UserRepository users = mock(UserRepository.class);
+    private final RefreshTokenRepository refreshTokens = mock(RefreshTokenRepository.class);
     private final EmailSender sender = mock(EmailSender.class);
-    private final EmailVerificationService service =
-            new EmailVerificationService(tokens, users, sender, PROPS, Clock.fixed(NOW, ZoneOffset.UTC));
+    private final EmailVerificationService service = new EmailVerificationService(tokens, users, refreshTokens,
+            sender, PROPS, Clock.fixed(NOW, ZoneOffset.UTC));
 
     private final User user = new User("Juana", "jmartinez@uade.edu.ar", "1234567", "x", DeclaredUserType.STUDENT, NOW);
 
@@ -59,7 +62,7 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void verifyMarksTheAccountAsVerified() {
+    void verifyMarksTheAccountAsVerifiedAndRevokesItsSessions() {
         UUID id = UUID.randomUUID();
         given(tokens.consume("tok", TokenPurpose.VERIFY_EMAIL)).willReturn(id);
         given(users.findById(id)).willReturn(Optional.of(user));
@@ -67,6 +70,7 @@ class EmailVerificationServiceTest {
         service.verify("tok");
 
         assertThat(user.isEmailVerified()).isTrue();
+        verify(refreshTokens).revokeAllByUser(user.getId(), NOW);
     }
 
     @Test
@@ -76,6 +80,7 @@ class EmailVerificationServiceTest {
 
         assertThatThrownBy(() -> service.verify("tok")).isInstanceOf(InvalidTokenException.class);
         assertThat(user.isEmailVerified()).isFalse();
+        verify(refreshTokens, never()).revokeAllByUser(any(), any());
     }
 
     @Test
@@ -97,14 +102,12 @@ class EmailVerificationServiceTest {
         verify(sender, never()).send(any(), any(), any());
     }
 
-    /** #344: un error solo para cuentas reales sin verificar revelaría cuáles existen, así que se calla. */
     @Test
-    void resendIsSilentInsideTheCooldownSoItDoesNotRevealWhichAccountsExist() {
+    void resendIsSilentInsideTheCooldown() {
         given(users.findByEmail("jmartinez@uade.edu.ar")).willReturn(Optional.of(user));
-        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.VERIFY_EMAIL))).willReturn(Optional.of(NOW.minusSeconds(20)));
+        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.VERIFY_EMAIL))).willReturn(Optional.of(NOW.minusSeconds(59)));
 
         assertThatCode(() -> service.resend("jmartinez@uade.edu.ar")).doesNotThrowAnyException();
-
         verify(sender, never()).send(any(), any(), any());
     }
 

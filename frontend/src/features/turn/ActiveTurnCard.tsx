@@ -116,7 +116,10 @@ export function ActiveTurnCard() {
         {formatTime(reservation.departureAt)} hs · {reservation.coreName} · Ascensor{' '}
         {reservation.elevator} · Piso {formatFloor(reservation.destinationFloor)}
       </p>
-      <p className="turn-card__help">{QR_INSTRUCTION}</p>
+      <div className="turn-card__qr">
+        <Mascot pose="cara" size={32} />
+        <p className="turn-card__help">{QR_INSTRUCTION}</p>
+      </div>
       <CheckInAction opensAt={reservation.checkInOpensAt} />
       <Link to={`/turno/${encodeURIComponent(reservation.id)}`} className="turn-card__link">
         Ver turno

@@ -72,6 +72,19 @@ describe('KioskPage', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer s3cr3t');
   });
 
+  it('dice que el código cambia por turno de clase, no cada pocos segundos', async () => {
+    localStorage.setItem(KEY, 's3cr3t');
+    renderKiosk();
+
+    await qrPath();
+    expect(
+      screen.getByText(
+        'El código cambia con cada turno de clase: escanealo acá, no le saques foto.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/segundos/)).not.toBeInTheDocument();
+  });
+
   it('renueva el QR al llegar a expiresAt', async () => {
     localStorage.setItem(KEY, 's3cr3t');
     const { qrCalls } = renderKiosk();
@@ -161,6 +174,21 @@ describe('KioskPage', () => {
     await advance(1_000);
     expect(await qrPath()).toBeTruthy();
     expect(qrCalls()).toHaveLength(2);
+  });
+
+  it('la región de estado sigue montada con el QR a la vista y anuncia el corte', async () => {
+    localStorage.setItem(KEY, 's3cr3t');
+    renderKiosk((n) => (n === 2 ? { status: 503, body: { message: 'Caído' } } : undefined));
+    const status = await screen.findByRole('status');
+
+    await qrPath();
+    expect(status).toBeEmptyDOMElement();
+    await advance(30_000);
+
+    await vi.waitFor(() =>
+      expect(status).toHaveTextContent('No pudimos conectarnos. Reintentamos en 10 s.'),
+    );
+    expect(screen.getByRole('status')).toBe(status);
   });
 
   it('borrar la credencial pide confirmación', async () => {

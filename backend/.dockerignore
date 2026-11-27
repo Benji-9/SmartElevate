@@ -3,8 +3,12 @@ target/
 .vscode/
 *.iml
 *.log
+**/.env*
 .git
 .gitignore
 Dockerfile
 .dockerignore
 HELP.md
+
+# Secretos y configuración local: nunca entran a la imagen (#345)
+**/.env*

@@ -23,15 +23,24 @@ export function TabLayout() {
  * Pantallas de un flujo (login, reserva, check-in…): sin navegación inferior.
  * `topBar` suma el TopBar en el layout de Pantalla (Reservar y Check-in, VIEW-MODES.md §5–§6).
  * `bleed` saca el pad para que la pantalla (la cámara del check-in) llene la columna.
+ * `framed` pone la columna de 480 px en una tarjeta sobre `surface-subtle` en Pantalla, como el
+ * login (turno, viaje registrado, legales y 404): no queda flotando en blanco.
  */
 export function ScreenLayout({
   bleed = false,
   topBar = false,
+  framed = false,
 }: {
   bleed?: boolean;
   topBar?: boolean;
+  framed?: boolean;
 }) {
-  const mainClass = ['screen__main', bleed && 'screen__main--bleed', topBar && 'page']
+  const mainClass = [
+    'screen__main',
+    bleed && 'screen__main--bleed',
+    framed && 'screen__main--framed',
+    topBar && 'page',
+  ]
     .filter(Boolean)
     .join(' ');
   return (

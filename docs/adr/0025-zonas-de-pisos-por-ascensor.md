@@ -3,11 +3,13 @@
 ## Metadata
 
 - **Status:** Accepted
-- **Date:** 2026-11-13
+- **Date:** 2026-11-13 (reescrito el 2026-11-26, ver la nota de abajo)
 - **Deciders:** Equipo SmartElevate
 - **Owner:** @Benji-9
-- **Related Issues:** [#298](https://github.com/Benji-9/SmartElevate/issues/298), [#22](https://github.com/Benji-9/SmartElevate/issues/22), [#101](https://github.com/Benji-9/SmartElevate/issues/101), [#7](https://github.com/Benji-9/SmartElevate/issues/7)
+- **Related Issues:** [#298](https://github.com/Benji-9/SmartElevate/issues/298), [#339](https://github.com/Benji-9/SmartElevate/issues/339), [#22](https://github.com/Benji-9/SmartElevate/issues/22), [#101](https://github.com/Benji-9/SmartElevate/issues/101), [#7](https://github.com/Benji-9/SmartElevate/issues/7)
 - **Related ADRs:** [ADR-0007](0007-modelo-de-turnos-y-reservas.md), [ADR-0009](0009-autenticacion-y-prioridad.md), [ADR-0010](0010-integridad-de-reservas-tiempo-y-configuracion.md), [ADR-0017](0017-donde-viven-los-parametros.md)
+
+> **Nota del 2026-11-26: por qué se reescribió en el lugar.** Al implementar [#339](https://github.com/Benji-9/SmartElevate/issues/339) el equipo cambió la regla de afinidad. La versión del 13/11 elegía la salida con los destinos reservados más cercanos y, a igual distancia, la más ocupada: con eso **se llenaba un ascensor por vez**, aunque llevara destinos lejanos entre sí, y la zona semilla casi no se usaba. La regla nueva solo suma a una salida a quien queda a `zone_affinity_max_floors` pisos (2) o menos de **todos** sus destinos; si no, abre una salida vacía de la zona del destino. El equipo pidió explícitamente corregir este ADR en lugar de escribir uno nuevo (excepción a la regla de [docs/adr/README.md](README.md)), porque la decisión de fondo (opción A) no cambia y la implementación todavía no se había mergeado. Cambiaron la sección "Cómo resuelve el servidor la oferta de cada hora" (con el parámetro nuevo `zone_affinity_max_floors`), las consecuencias y la sección 6.
 
 ---
 
@@ -132,15 +134,22 @@ Se resolvieron las cinco preguntas que estaban abiertas:
 4. **Zonas iniciales a mano**, con la tabla de abajo (valores recomendados, a calibrar con la demanda del piloto). Son una semilla: la asignación real se ajusta con la demanda (decisión 1).
 5. **Opción A.**
 
+Parámetro agregado el 26/11: **`zone_affinity_max_floors` = 2** (`app_config`, a calibrar en el piloto), la distancia máxima en pisos entre el destino pedido y **cada** destino ya reservado de una salida para sumarse a ella.
+
 #### Cómo resuelve el servidor la oferta de cada hora
 
-Entre las salidas de esa hora del núcleo elegido, se consideran candidatas las de ascensores **comunes y activos** que sirven origen y destino y tienen lugar para esa persona (con los 2 lugares reservados a prioritarios, `PrioritySeats`). Los dedicados (IND1 05 y 06) no se zonifican, y movilidad reducida sigue yendo a IND1 06. Después:
+Entre las salidas de esa hora del núcleo elegido, se consideran candidatas las de ascensores **activos que la persona puede usar** (comunes, o el dedicado de su categoría) y que paran en origen y destino. Los lugares libres se cuentan para esa persona: a un común no se le ofrecen los 2 reservados a prioritarios (`PrioritySeats`). Los dedicados (IND1 05 y 06) no se zonifican, y movilidad reducida sigue yendo a IND1 06. Después:
 
-1. Si faltan **N minutos o menos** para la salida, **abierta**: se elige entre todas las candidatas por más lugares libres.
-2. Si no, por **afinidad**: la salida cuyos destinos ya reservados estén más cerca del pedido (menor distancia en pisos).
-3. Si ninguna tiene reservas, la del ascensor cuya **zona semilla** contiene el destino.
-4. Si tampoco hay, la de más lugares libres.
-5. Desempate: la más ocupada que todavía tenga lugar, para llenar una salida antes de abrir otra. Es una regla a validar en el piloto.
+1. **Sin lugar no cuentan.** Si ninguna tiene lugar, se devuelve la de menor código de ascensor, que se ve "Completo".
+2. **Abierta:** si faltan `zone_open_to_any_before` (N = 5 min) **o menos** para la salida, o si los ascensores son dedicados, gana la de **más lugares libres**.
+3. **Afinidad:** entre las salidas con reservas cuyos destinos están **todos** a `zone_affinity_max_floors` (2) pisos o menos del pedido, la de **menor distancia mínima**; a igual distancia, la **más ocupada**.
+4. Si no, una salida **vacía** (sin reservas) del ascensor cuya **zona semilla** contiene el destino.
+5. Si no, **cualquier salida vacía**.
+6. Si no (todas llevan algún destino lejano), la de **menor distancia máxima**; a igual distancia, la más ocupada.
+
+Último desempate en todos los pasos: el **menor código de ascensor**, para que la oferta sea determinista.
+
+Ejemplo (L3): alguien reservó el 10 para ir al 5 y otra persona pide el 9. El 5 queda a 4 pisos, así que no se suma al 10: se le abre el 14, cuya zona es 9 a 10. Con la regla del 13/11 se la sumaba al 10, que terminaba parando en el 5 y en el 9. Una salida con destinos 5 y 7 tampoco suma a quien va al 9, aunque el 7 esté a 2 pisos: tienen que estar cerca **todos** los destinos.
 
 `ReservationService.reserve` sigue revalidando todo con el lock pesimista, así que si entre listar y confirmar la salida se llenó, responde `TURN_FULL` como hoy.
 
@@ -169,7 +178,7 @@ Criterio: un grupo de ascensores por tramo de pisos, con tramos más cortos arri
 
 ### Positive Consequences
 
-- Salidas con destinos más cercanos: menos paradas por viaje y, potencialmente, salidas más cortas.
+- Salidas con destinos más cercanos: menos paradas por viaje y, potencialmente, salidas más cortas. Una salida solo suma destinos a 2 pisos o menos de todos los que ya lleva, así que no se mezclan pisos lejanos.
 - La decisión sale del cliente y se testea en el backend.
 - El cupo atómico y el contrato de reserva no se tocan.
 - El usuario deja de ver el ascensor como una opción que no tiene.
@@ -179,12 +188,13 @@ Criterio: un grupo de ascensores por tramo de pisos, con tramos más cortos arri
 - Entre listar y confirmar, la salida ofrecida puede llenarse o cambiar: se rechaza con `TURN_FULL` y hay que recargar.
 - Más pedidos a `GET /departures` (depende de origen y destino).
 - El esquema depende de que la gente use el ascensor asignado; si no, se desordena. Un aumento de `OTHER_ELEVATOR` en el check-in sería señal de eso.
-- Parámetros nuevos (zonas, N) que calibrar en el piloto.
+- Parámetros nuevos (zonas, N y `zone_affinity_max_floors`) que calibrar en el piloto.
+- Con destinos dispersos se abren más salidas a la vez (una por grupo de pisos cercanos) en lugar de llenar una: más ascensores en uso con menos gente cada uno, hasta que la apertura a N minutos vuelve a repartir por lugares libres.
 
 ### Technical Implications
 
-- **Backend:** `DepartureService.findBookable` pasa a recibir núcleo, origen y destino y a resolver la oferta por hora; reutiliza `PrioritySeats` y el filtrado por uso/prioridad existente. Reloj vía `Clock`/`CampusTime` para N.
-- **Datos:** rangos de pisos de zona en la configuración de ascensores (migración Flyway) y N en `app_config`; sin hardcodear.
+- **Backend:** `GET /api/departures` acepta `core`, `origin` y `destination` (los tres o ninguno; si falta alguno, 400). Con ellos, `DepartureService.findOffer` resuelve una salida por hora con `ZoneOfferResolver`; sin ellos responde como antes (`findBookable`), para no romper al front ni a los E2E actuales. Reutiliza `PrioritySeats` y el filtrado por uso/prioridad existente. Reloj vía `Clock`/`CampusTime` para N.
+- **Datos:** tabla `elevator_zone_floor` (`V23`) con la zona semilla de cada ascensor común, con FK a `elevator_floor` (el ascensor tiene que parar en cada piso de su zona), y `zone_open_to_any_before` y `zone_affinity_max_floors` en `app_config`; sin hardcodear.
 - **Contrato:** cambia `docs/openapi.json` (regenerar con `OpenApiSpecTest` y `npm run gen:api`).
 - **Frontend:** `catalog.ts` (`slotsOf`, `elevatorsServing`) se simplifica o desaparece; `ReserveTurnPage` y `SlotList` pasan a pedir la oferta con origen y destino y dejan de mostrar el ascensor. `ActiveTurnCard` y `TurnDetails` ya muestran el ascensor asignado después de reservar.
 - **Docs:** [`asignacion.md`](../reglas/asignacion.md) (regla de zonas e interacción con prioridades y dedicados), `docs/frontend/SCREENS.md` §04.
@@ -194,19 +204,19 @@ Criterio: un grupo de ascensores por tramo de pisos, con tramos más cortos arri
 
 ## 6. Implementation and Validation
 
-La decisión está tomada; la implementación sigue pendiente y se rastrea en los sub-issues de [#298](https://github.com/Benji-9/SmartElevate/issues/298).
+La decisión está tomada; el backend se implementa en [#339](https://github.com/Benji-9/SmartElevate/issues/339) y el resto se rastrea en los sub-issues de [#298](https://github.com/Benji-9/SmartElevate/issues/298).
 
 - [x] Resolver las preguntas abiertas y pasar el ADR a *Accepted*.
-- [x] Actualizar [`docs/reglas/asignacion.md`](../reglas/asignacion.md) con la regla de zonas.
-- [ ] Backend: modelo de zonas por ascensor (rango de pisos como semilla) y migración Flyway `V<n>__...sql` compatible con H2 y Postgres, con la tabla de zonas iniciales de arriba.
-- [ ] Backend: parámetro `zone_open_to_any_before` (N = 5 min) en `app_config` (nunca hardcodeado) y en la tabla de parámetros de [turnos](../reglas/turnos.md).
-- [ ] Backend: `GET /api/departures` con núcleo, origen y destino que devuelve la oferta por hora resuelta; zonas solo en comunes; respeta lugares reservados para prioritarios y dedicados.
-- [ ] Backend: tests unitarios de la resolución (zona, apertura tras N minutos con `Clock.fixed`, ascensor inactivo, dedicados, prioritarios) y de que `reserve` sigue revalidando.
-- [ ] Contrato: regenerar `docs/openapi.json` y `frontend/src/types/openapi.ts`.
-- [ ] Frontend: pedir la oferta con origen y destino; eliminar `slotsOf` y `elevatorsServing`; sacar el ascensor de `SlotList`; tests de Vitest.
-- [ ] Docs de UI: actualizar `docs/frontend/SCREENS.md` §04 (Reservar turno).
+- [x] Actualizar [`docs/reglas/asignacion.md`](../reglas/asignacion.md) con la regla de zonas (y de nuevo el 26/11 con la regla de afinidad nueva).
+- [x] Backend: modelo de zonas por ascensor (`Elevator.zoneFloors`) y migración Flyway `V23__elevator_zones.sql` compatible con H2 y Postgres, con la tabla de zonas iniciales de arriba.
+- [x] Backend: parámetros `zone_open_to_any_before` (N = 5 min) y `zone_affinity_max_floors` (2) en `app_config` (nunca hardcodeados) y en la [tabla de parámetros](../reglas/README.md#parámetros-configurables).
+- [x] Backend: `GET /api/departures` con núcleo, origen y destino que devuelve la oferta por hora resuelta; zonas solo en comunes; respeta lugares reservados para prioritarios y dedicados.
+- [x] Backend: tests unitarios de la resolución (`ZoneOfferResolverTest`: zona, afinidad a 2 pisos, destinos lejanos, desempates, completo) y de servicio con reloj fijo (apertura a N minutos, ascensor inactivo, dedicados, prioritarios). `reserve` no cambia y sus tests de concurrencia siguen en verde.
+- [x] Contrato: regenerar `docs/openapi.json` y `frontend/src/types/openapi.ts`.
+- [x] Frontend: pedir la oferta con origen y destino; eliminar `slotsOf` y `elevatorsServing`; sacar el ascensor de `SlotList`; tests de Vitest.
+- [x] Docs de UI: actualizar `docs/frontend/SCREENS.md` §04 (Reservar turno).
 - [ ] Piloto: medir ocupación por salida y proporción de `OTHER_ELEVATOR` antes y después con los KPIs de [kpis.md](../reglas/kpis.md), y simular con reservas de prueba.
-- [ ] Piloto: calibrar zonas y N con los datos de demanda.
+- [ ] Piloto: calibrar zonas, N y `zone_affinity_max_floors` con los datos de demanda.
 
 ---
 

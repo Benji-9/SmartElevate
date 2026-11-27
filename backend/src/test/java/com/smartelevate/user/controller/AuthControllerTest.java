@@ -23,8 +23,8 @@ import com.smartelevate.user.model.DeclaredUserType;
 import com.smartelevate.user.service.DuplicateUserException;
 import com.smartelevate.user.service.EmailVerificationService;
 import com.smartelevate.user.service.InvalidTokenException;
-import java.time.Duration;
 import com.smartelevate.user.service.UserService;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,6 +57,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private EmailVerificationService emailVerification;
+
+    @MockitoBean
+    private com.smartelevate.user.service.RequestThrottle requestThrottle;
 
     private ResultActions register(String json) throws Exception {
         return mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json));
@@ -233,13 +236,21 @@ class AuthControllerTest {
         postJson("/api/auth/verify", "{\"token\":\"abc\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("TOKEN_USED"))
                 .andExpect(jsonPath("$.message").value("Este link ya se usó."));
 
         willThrow(new InvalidTokenException(InvalidTokenException.Reason.EXPIRED)).given(emailVerification)
                 .verify("old");
         postJson("/api/auth/verify", "{\"token\":\"old\"}")
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TOKEN_EXPIRED"))
                 .andExpect(jsonPath("$.message").value("El link venció. Pedí uno nuevo."));
+
+        willThrow(new InvalidTokenException(InvalidTokenException.Reason.INVALID)).given(emailVerification)
+                .verify("nope");
+        postJson("/api/auth/verify", "{\"token\":\"nope\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TOKEN_INVALID"));
     }
 
     @Test
@@ -248,6 +259,29 @@ class AuthControllerTest {
                 .andExpect(status().isAccepted());
 
         verify(emailVerification).resend("jmartinez@uade.edu.ar");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"register", "resend-verification", "password/forgot"})
+    void tooManyRequestsFromOneIpIs429WithRetryAfterAndSkipsTheService(String path) throws Exception {
+        String action = path.replace('/', '-');
+        willThrow(new com.smartelevate.user.service.TooManyRequestsException(Duration.ofMillis(89_001)))
+                .given(requestThrottle).check(eq(action), eq("198.51.100.4"));
+
+        mockMvc.perform(post("/api/auth/" + path).contentType(MediaType.APPLICATION_JSON)
+                        .content(validJson(""))
+                        .with(request -> {
+                            request.setRemoteAddr("198.51.100.4");
+                            return request;
+                        }))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "90"))
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.message").value("Hubo demasiados pedidos desde tu red. Probá de nuevo en 2 minutos."));
+
+        verify(service, never()).register(any());
+        verify(emailVerification, never()).resend(any());
+        verify(passwordReset, never()).request(any());
     }
 
     // ---- reset de contraseña
@@ -269,6 +303,45 @@ class AuthControllerTest {
         postJson("/api/auth/password/forgot", "{\"email\":\" \"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations[0].field").value("email"));
+    }
+
+    @Test
+    void unsupportedContentTypeReturns415() throws Exception {
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.TEXT_PLAIN).content("hola"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.message").value("El tipo de contenido no está soportado"))
+                .andExpect(jsonPath("$.path").value("/api/auth/login"));
+    }
+
+    private ResultActions loginWithPassword(String password) throws Exception {
+        return postJson("/api/auth/login",
+                "{\"email\":\"a@uade.edu.ar\",\"password\":\"%s\"}".formatted(password));
+    }
+
+    @Test
+    void loginRejectsPasswordLongerThanMax() throws Exception {
+        loginWithPassword("a".repeat(com.smartelevate.common.validation.PasswordPolicy.MAX + 1))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("password"));
+
+        verify(authService, never()).login(any(), any(), any());
+    }
+
+    @Test
+    void loginAcceptsPasswordThatFitsOnlyAfterNfkc() throws Exception {
+        // "n" más la tilde combinable (U+0303): 128 caracteres que NFKC compone en 64. El registro la acepta.
+        String decomposed = ("n" + (char) 0x303).repeat(com.smartelevate.common.validation.PasswordPolicy.MAX);
+        org.mockito.BDDMockito.given(authService.login(any(), eq(decomposed), any()))
+                .willThrow(new com.smartelevate.user.service.InvalidCredentialsException());
+
+        loginWithPassword(decomposed).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginRequestToStringHidesThePassword() {
+        assertThat(new com.smartelevate.user.dto.LoginRequest("a@uade.edu.ar", "una-clave-larga").toString())
+                .doesNotContain("una-clave-larga");
     }
 
     @Test
@@ -305,6 +378,7 @@ class AuthControllerTest {
 
         postJson("/api/auth/password/reset", "{\"token\":\"tok\",\"newPassword\":\"una-clave-nueva\"}")
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TOKEN_USED"))
                 .andExpect(jsonPath("$.message").value("Este link ya se usó."));
     }
 

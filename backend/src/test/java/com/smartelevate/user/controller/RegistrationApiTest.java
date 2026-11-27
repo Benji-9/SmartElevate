@@ -180,4 +180,16 @@ class RegistrationApiTest {
                 .contains("password=***")
                 .doesNotContain("clave-que-no-debe-aparecer");
     }
+
+    /** B2 (#344): dentro de la espera, una cuenta sin verificar contesta igual que un email que no existe. */
+    @Test
+    void resendAnswers202ForUnverifiedAndUnknownEmails() throws Exception {
+        register(json("ana@uade.edu.ar", "1111111")).andExpect(status().isCreated());
+
+        for (String email : List.of("ana@uade.edu.ar", "ana@uade.edu.ar", "nadie@uade.edu.ar", "nadie@uade.edu.ar")) {
+            mockMvc.perform(post("/api/auth/resend-verification").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"%s\"}".formatted(email)))
+                    .andExpect(status().isAccepted());
+        }
+    }
 }

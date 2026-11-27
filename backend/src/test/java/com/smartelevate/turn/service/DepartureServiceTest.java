@@ -209,6 +209,96 @@ class DepartureServiceTest {
         assertThat(independencia).hasSize(28);
     }
 
+    @Autowired
+    private com.smartelevate.elevator.repository.ElevatorRepository elevators;
+
+    /** Salida generada del ascensor a esa hora, con {@code count} reservas activas a {@code destination}. */
+    private Departure bookedDeparture(String elevator, String at, int count, int destination) {
+        long id = service.findBookable(COMMON, elevator, null).stream()
+                .filter(d -> d.departureAt().equals(Instant.parse(at))).findFirst().orElseThrow().id();
+        Departure departure = repositoryDeparture(id);
+        for (int seat = 1; seat <= count; seat++) {
+            reservations.save(new Reservation(user(("u" + elevator + at + seat).toLowerCase()), departure, seat, 0, destination, NOW.get()));
+        }
+        return departure;
+    }
+
+    private static String offeredAt(List<DepartureResponse> offer, String at) {
+        return offer.stream().filter(d -> d.departureAt().equals(Instant.parse(at))).findFirst().orElseThrow()
+                .elevator();
+    }
+
+    @Test
+    void offerIsOnePerHour() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+
+        List<DepartureResponse> offer = service.findOffer(COMMON, "L1", 0, 7);
+
+        // Las 14 horas de la ventana, una salida por hora, sin reservas: la zona semilla del 7 (03).
+        assertThat(offer).hasSize(14);
+        assertThat(offer).extracting(DepartureResponse::departureAt).doesNotHaveDuplicates().isSorted();
+        // A 5 min o menos (12:58 y 13:00) la zona está abierta: más lugares libres, menor código.
+        assertThat(offer.subList(0, 2)).extracting(DepartureResponse::elevator).containsOnly("01");
+        assertThat(offer.subList(2, 14)).extracting(DepartureResponse::elevator).containsOnly("03");
+    }
+
+    @Test
+    void opensAtExactlyFiveMinutesBefore() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+        // 13:00 (faltan 5 min justos) y 13:02 (faltan 7): el 03 ya lleva a alguien al 7.
+        bookedDeparture("03", "2026-10-13T16:00:00Z", 1, 7);
+        bookedDeparture("03", "2026-10-13T16:02:00Z", 1, 7);
+
+        List<DepartureResponse> offer = service.findOffer(COMMON, "L1", 0, 7);
+
+        assertThat(offeredAt(offer, "2026-10-13T16:00:00Z")).isEqualTo("01"); // abierta: más lugares libres
+        assertThat(offeredAt(offer, "2026-10-13T16:02:00Z")).isEqualTo("03"); // afinidad
+    }
+
+    @Test
+    void inactiveElevatorIsNotCandidate() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+        elevators.findById("03").orElseThrow().setActive(false);
+
+        List<DepartureResponse> offer = service.findOffer(COMMON, "L1", 0, 7);
+
+        assertThat(offer).hasSize(14);
+        assertThat(offer.subList(2, 14)).extracting(DepartureResponse::elevator).containsOnly("04");
+    }
+
+    @Test
+    void dedicatedElevatorsAreNotZoned() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+        UUID teacher = priorityUser("docente", PriorityCategory.TEACHER);
+
+        List<DepartureResponse> offer = service.findOffer(teacher, "IND1", 0, 7);
+
+        assertThat(offer).hasSize(14).extracting(DepartureResponse::elevator).containsOnly("05");
+        assertThat(service.findOffer(COMMON, "IND1", 0, 7)).isEmpty();
+    }
+
+    @Test
+    void commonUserDoesNotGetPriorityHeldSeats() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+        // 13:10: el 03 tiene 8 reservas al 7; los 2 lugares que quedan son de prioritarios.
+        bookedDeparture("03", "2026-10-13T16:10:00Z", 8, 7);
+        UUID teacher = priorityUser("docente", PriorityCategory.TEACHER);
+
+        assertThat(offeredAt(service.findOffer(COMMON, "L1", 0, 7), "2026-10-13T16:10:00Z")).isEqualTo("04");
+        DepartureResponse forTeacher = service.findOffer(teacher, "L1", 0, 7).stream()
+                .filter(d -> d.departureAt().equals(Instant.parse("2026-10-13T16:10:00Z"))).findFirst().orElseThrow();
+        assertThat(forTeacher.elevator()).isEqualTo("03");
+        assertThat(forTeacher.remainingSeats()).isEqualTo(2);
+    }
+
+    @Test
+    void offerIsEmptyWhenNoElevatorServesBothFloors() {
+        NOW.set(Instant.parse("2026-10-13T15:55:00Z"));
+
+        assertThat(service.findOffer(COMMON, "L1", 0, 9)).isEmpty(); // L1 llega al 7
+        assertThat(service.findOffer(COMMON, "XX", 0, 7)).isEmpty();
+    }
+
     @Test
     void doesNotGenerateBeforeOperatingStart() {
         NOW.set(Instant.parse("2026-10-13T09:40:00Z")); // 06:40 BA, ventana 06:42 a 07:10

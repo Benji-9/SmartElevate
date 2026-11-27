@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -30,10 +30,47 @@ const valid = {
 const submit = () => userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
 describe('RegisterPage', () => {
-  it('muestra la marca de SmartElevate', async () => {
+  it('antes del primer campo solo va la bajada: sin repetir el logo del login', async () => {
     stubApi(signedOut);
     await renderRegister();
-    expect(screen.getByRole('img', { name: 'SmartElevate' })).toBeInTheDocument();
+    expect(screen.getByText('Usá tu email institucional y tu legajo.')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'SmartElevate' })).not.toBeInTheDocument();
+  });
+
+  it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    const button = screen.getByRole('button', { name: 'Crear cuenta' });
+    const clarification =
+      'El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.';
+    for (const block of [
+      screen.getByText(clarification),
+      screen.getByRole('heading', { name: '¿Tenés movilidad reducida?' }),
+    ]) {
+      expect(button.compareDocumentPosition(block)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+    expect(screen.getByRole('radiogroup', { name: 'Tipo de usuario' })).toHaveAccessibleDescription(
+      clarification,
+    );
+  });
+
+  it('entre el formulario y el botón no hay bloques informativos: van debajo', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    const button = screen.getByRole('button', { name: 'Crear cuenta' });
+    const clarification =
+      'El tipo de usuario es informativo: no te da prioridad. Si elegís Docente, un administrador lo valida.';
+    for (const block of [
+      screen.getByText(clarification),
+      screen.getByRole('heading', { name: '¿Tenés movilidad reducida?' }),
+    ]) {
+      expect(button.compareDocumentPosition(block)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+    expect(screen.getByRole('radiogroup', { name: 'Tipo de usuario' })).toHaveAccessibleDescription(
+      clarification,
+    );
   });
 
   it('pide todos los campos', async () => {
@@ -210,6 +247,7 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Revisá tu email' })).toBeInTheDocument();
     expect(screen.getByText('ana.perez@uade.edu.ar')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Si no lo ves, mirá en spam.');
     const [, init] = fetchMock.mock.calls.find(([url]) => url === '/api/auth/register')!;
     expect(JSON.parse(init!.body as string)).toEqual({
       fullName: 'Ana Pérez',
@@ -244,6 +282,37 @@ describe('RegisterPage', () => {
       '@uade.edu.ar Ya hay una cuenta con ese email.',
     );
     expect(screen.getByLabelText('Nombre y apellido')).toHaveValue('Ana Pérez');
+  });
+
+  it('tras un envío inválido lleva el foco al primer campo con error', async () => {
+    stubApi(signedOut);
+    await renderRegister();
+
+    await submit();
+    expect(screen.getByLabelText('Nombre y apellido')).toHaveFocus();
+
+    await fill({ ...valid, Legajo: '10a' });
+    await submit();
+    expect(screen.getByLabelText('Legajo')).toHaveFocus();
+  });
+
+  it('con un error de campo del servidor lleva el foco a ese campo', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/register': {
+        status: 409,
+        body: {
+          message: 'La cuenta ya existe',
+          violations: [{ field: 'legajo', message: 'Ya hay una cuenta con ese legajo.' }],
+        },
+      },
+    });
+    await renderRegister();
+
+    await fill(valid);
+    await submit();
+
+    await waitFor(() => expect(screen.getByLabelText('Legajo')).toHaveFocus());
   });
 
   it('muestra el error general si no es de un campo', async () => {

@@ -103,7 +103,7 @@ export function AdminKiosksPage() {
     content = <p className="page-placeholder">Todavía no hay kioscos.</p>;
   } else {
     content = (
-      <div className="core-table__scroll">
+      <div className="core-table__scroll" role="group" aria-labelledby={listId} tabIndex={0}>
         <table className="core-table" aria-labelledby={listId}>
           <thead>
             <tr>

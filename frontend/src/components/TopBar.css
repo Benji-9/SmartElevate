@@ -52,7 +52,16 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   margin-left: auto;
+}
+
+/* Un nombre largo se corta con … y no empuja las tabs (el completo queda en el title). */
+.topbar__name {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar__avatar.avatar {

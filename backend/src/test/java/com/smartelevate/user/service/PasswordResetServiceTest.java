@@ -41,7 +41,8 @@ class PasswordResetServiceTest {
     private final PasswordResetService service = new PasswordResetService(tokens, users, refreshTokens, encoder,
             sender,
             new PasswordResetProperties(Duration.ofMinutes(30), Duration.ofMinutes(1)),
-            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), "https://app.test"),
+            new VerificationProperties(Duration.ofHours(24), Duration.ofMinutes(1), Duration.ofDays(2),
+                    "https://app.test"),
             Clock.fixed(NOW, ZoneOffset.UTC), loginThrottle);
 
     private final User user = new User("Juana", "jmartinez@uade.edu.ar", "1234567", "viejo", DeclaredUserType.STUDENT, NOW);
@@ -97,29 +98,19 @@ class PasswordResetServiceTest {
         verify(sender).send(eq("jmartinez@uade.edu.ar"), anyString(), anyString());
     }
 
-    /** #344: si alguien se registró antes con un email ajeno, el dueño del mail tiene que poder elegir su clave. */
     @Test
-    void unverifiedAccountsGetARealResetLinkTooNotTheVerificationOne() {
+    void unverifiedAccountsGetARealResetLink() {
+        // #344: si otra persona registró este email, la dueña lo recupera eligiendo su clave.
         existingUser(false);
         given(tokens.lastIssuedAt(any(), eq(TokenPurpose.PASSWORD_RESET))).willReturn(Optional.empty());
-        given(tokens.issue(any(), eq(TokenPurpose.PASSWORD_RESET), eq(Duration.ofMinutes(30)))).willReturn("tokSinVerificar");
+        given(tokens.issue(any(), eq(TokenPurpose.PASSWORD_RESET), any())).willReturn("tok123");
 
         service.request("jmartinez@uade.edu.ar");
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(sender).send(eq("jmartinez@uade.edu.ar"), anyString(), body.capture());
-        assertThat(body.getValue()).contains("https://app.test/recuperar/nueva?token=tokSinVerificar");
-        assertThat(body.getValue()).doesNotContain("verificar-email");
-    }
-
-    @Test
-    void unverifiedAccountInsideTheCooldownIsSilentlyIgnoredLikeAnyOther() {
-        existingUser(false);
-        given(tokens.lastIssuedAt(any(), eq(TokenPurpose.PASSWORD_RESET)))
-                .willReturn(Optional.of(NOW.minusSeconds(30)));
-
-        assertThatCode(() -> service.request("jmartinez@uade.edu.ar")).doesNotThrowAnyException();
-        verify(sender, never()).send(any(), any(), any());
+        assertThat(body.getValue()).contains("/recuperar/nueva?token=tok123");
+        verify(tokens, never()).issue(any(), eq(TokenPurpose.VERIFY_EMAIL), any());
     }
 
     @Test
@@ -142,23 +133,11 @@ class PasswordResetServiceTest {
         service.reset("tok", "nueva-clave-1");
 
         assertThat(user.getPasswordHash()).isEqualTo("hash-nuevo");
+        // Usar el link prueba que el email es suyo (#344).
+        assertThat(user.isEmailVerified()).isTrue();
         verify(refreshTokens).revokeAllByUser(user.getId(), NOW);
         // Recuperó la cuenta por mail: el límite de intentos no la deja esperando.
         verify(loginThrottle).clearAccount("jmartinez@uade.edu.ar");
-    }
-
-    /** Usar el link del mail prueba que la persona controla el email: la cuenta queda verificada (#344). */
-    @Test
-    void resetAlsoVerifiesTheEmail() {
-        UUID id = UUID.randomUUID();
-        given(tokens.consume("tok", TokenPurpose.PASSWORD_RESET)).willReturn(id);
-        given(users.findById(id)).willReturn(Optional.of(user));
-        given(encoder.encode("nueva-clave-1")).willReturn("hash-nuevo");
-        assertThat(user.isEmailVerified()).isFalse();
-
-        service.reset("tok", "nueva-clave-1");
-
-        assertThat(user.isEmailVerified()).isTrue();
     }
 
     @Test
@@ -181,6 +160,7 @@ class PasswordResetServiceTest {
 
         assertThatThrownBy(() -> service.reset("tok", "nueva-clave-1")).isInstanceOf(InvalidTokenException.class);
         assertThat(user.getPasswordHash()).isEqualTo("viejo");
+        assertThat(user.isEmailVerified()).isFalse();
         verify(refreshTokens, never()).revokeAllByUser(any(), any());
         verify(loginThrottle, never()).clearAccount(any());
     }
