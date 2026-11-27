@@ -146,7 +146,7 @@ Estados:
 Bloque reutilizable en 02d, en 02 (pantalla "Revisá tu email" tras registrarse) y en 01 (login con 403 por email sin verificar). `POST /api/auth/resend-verification` con `{ email }`.
 
 - `Button` secondary "Reenviar email de verificación". Si el email no se conoce (02d) se pide antes con el campo "Email institucional" (ver abajo); en 01 y 02 se usa el ya tipeado.
-- **202** (exista o no la cuenta): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam." No confirma que la cuenta exista.
+- **202** (exista o no la cuenta): aviso `--accent-tint` (`role="status"`) "Si {email} tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam." No confirma que la cuenta exista. Después de cada 202 el botón queda deshabilitado 60 s con la cuenta regresiva "Podés pedir otro en {n} s": el servidor aplica su espera sin avisar ([#344](https://github.com/Benji-9/SmartElevate/issues/344)).
 - **429** (solo el tope de pedidos por IP, [#344](https://github.com/Benji-9/SmartElevate/issues/344): la espera entre mails se aplica en silencio y da 202): aviso `--danger-tint` "Hubo demasiados pedidos desde tu red. Probá de nuevo en un rato." y el botón queda deshabilitado con cuenta regresiva "Podés pedir otro en {n} s" según el header `Retry-After` (60 s si falta); de más de 60 s se muestra en minutos redondeados hacia arriba ("Podés pedir otro en {m} min"). Al llegar a 0 vuelve a "Reenviar email de verificación".
 - Otro error: aviso `--danger-tint` con `ApiError.message`.
 

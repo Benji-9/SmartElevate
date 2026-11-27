@@ -4,6 +4,9 @@ import { ApiError, networkErrorMessage, resendVerification } from '../../service
 import { UadeEmailInput } from './UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from './validation';
 
+/** El servidor aplica su minuto de espera sin avisar (202), así que el botón la cuenta acá (#344). */
+const RESEND_COOLDOWN_SECONDS = 60;
+
 /**
  * Reenvío del link de verificación (SCREENS.md §02d). Con `email` lo reenvía directo; sin él
  * pide el email institucional. El único 429 es el tope de pedidos por IP (#344): trae
@@ -42,9 +45,10 @@ export function ResendVerification({ email }: { email?: string }) {
         kind: 'ok',
         text: `Si ${target} tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam.`,
       });
+      setWait(RESEND_COOLDOWN_SECONDS);
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {
-        setWait(error.retryAfter ?? 60);
+        setWait(error.retryAfter ?? RESEND_COOLDOWN_SECONDS);
         setMessage({
           kind: 'error',
           text: 'Hubo demasiados pedidos desde tu red. Probá de nuevo en un rato.',

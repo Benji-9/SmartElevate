@@ -58,6 +58,20 @@ describe('VerifyEmailPage', () => {
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/verify', expect.anything());
   });
 
+  it('después de un reenvío aceptado el botón espera un minuto', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/verify': { status: 400, body: { message: 'El link venció.' } },
+      'POST /auth/resend-verification': { status: 202 },
+    });
+    renderAt('/verificar-email?token=viejo');
+
+    await userEvent.type(await screen.findByLabelText('Email institucional'), 'ana.perez');
+    await userEvent.click(screen.getByRole('button', { name: 'Reenviar email de verificación' }));
+
+    expect(await screen.findByRole('button', { name: 'Podés pedir otro en 60 s' })).toBeDisabled();
+  });
+
   it('el login con 403 ofrece reenviar el email a esa cuenta', async () => {
     const fetchMock = stubApi({
       ...signedOut,
