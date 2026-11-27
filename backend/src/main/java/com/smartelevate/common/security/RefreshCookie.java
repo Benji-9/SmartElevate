@@ -9,7 +9,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 /**
- * Cookie HttpOnly del refresh token y su defensa CSRF (ADR 0019 y 0023). Solo {@code /auth/refresh} y
+ * Cookie HttpOnly del refresh token y su defensa CSRF (ADR 0019). Solo {@code /auth/refresh} y
  * {@code /auth/logout} la leen, y antes de leerla pasan por {@link #requireSameSiteRequest}.
  */
 @Component

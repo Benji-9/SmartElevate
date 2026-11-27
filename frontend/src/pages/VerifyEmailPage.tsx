@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { AuthBrand } from '../components/AuthBrand';
+// Estilos `.button` para el link con forma de botón.
+import '../components/Button';
 import { LegalFooter } from '../components/LegalFooter';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResendVerification } from '../features/auth/ResendVerification';
@@ -8,12 +10,11 @@ import { ApiError, networkErrorMessage, verifyEmail } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './AuthPages.css';
 
-type State = { status: 'loading' } | { status: 'ok' } | { status: 'error'; message: string };
+type State =
+  { status: 'loading' } | { status: 'ok' } | { status: 'error'; message: string; code?: string };
 
 /** Un pedido por token: StrictMode (o un re-render) no gasta el link dos veces. */
 const requests = new Map<string, Promise<unknown>>();
-
-const USED = 'Este link ya se usó.';
 
 /** Verifica el email con el token del link, `/verificar-email?token=…` (SCREENS.md §02d). */
 export function VerifyEmailPage() {
@@ -35,6 +36,7 @@ export function VerifyEmailPage() {
         setState({
           status: 'error',
           message: error instanceof ApiError ? error.message : networkErrorMessage(),
+          code: error instanceof ApiError ? error.code : undefined,
         }),
     );
   }, [token]);
@@ -52,7 +54,9 @@ export function VerifyEmailPage() {
         <div role="status" className="auth">
           <h2>Listo, verificamos tu email</h2>
           <p className="auth__lead">Ya podés ingresar y reservar tu primer turno.</p>
-          <Link to="/login">Ir a ingresar</Link>
+          <Link to="/login" className="button button--primary">
+            Ingresar
+          </Link>
         </div>
       )}
       {state.status === 'error' && (
@@ -60,7 +64,7 @@ export function VerifyEmailPage() {
           <p role="alert" className="auth__alert">
             {state.message}
           </p>
-          {state.message === USED && (
+          {state.code === 'TOKEN_USED' && (
             <p className="auth__lead">
               Si ya verificaste tu email, <Link to="/login">ingresá</Link>.
             </p>

@@ -309,7 +309,7 @@ export interface paths {
     put?: never;
     /**
      * Cierra la sesión: revoca el refresh token de la cookie y la expira
-     * @description Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header X-Requested-With: SmartElevate (ADR 0023).
+     * @description Idempotente: sin cookie o con un token desconocido tampoco da error. Exige el header X-Requested-With: SmartElevate (ADR 0019).
      */
     post: operations['logout'];
     delete?: never;
@@ -329,7 +329,7 @@ export interface paths {
     put?: never;
     /**
      * Pide el link para restablecer la contraseña
-     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior.
+     * @description Responde 202 exista o no la cuenta (y haya o no un pedido reciente), para no revelar qué emails están registrados. Un pedido nuevo invalida el link anterior. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.
      */
     post: operations['forgotPassword'];
     delete?: never;
@@ -369,7 +369,7 @@ export interface paths {
     put?: never;
     /**
      * Canjea el refresh token de la cookie por un access token nuevo (rotación)
-     * @description El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header X-Requested-With: SmartElevate (defensa CSRF, ADR 0023); sin él, o con un Origin no permitido, responde 403.
+     * @description El refresh viaja en la cookie HttpOnly y es de un solo uso: la respuesta instala uno nuevo. Si uno ya canjeado se vuelve a presentar, se revoca toda la sesión. Exige el header X-Requested-With: SmartElevate (defensa CSRF, ADR 0019); sin él, o con un Origin no permitido, responde 403.
      */
     post: operations['refresh'];
     delete?: never;
@@ -389,7 +389,7 @@ export interface paths {
     put?: never;
     /**
      * Crea una cuenta común, sin verificar
-     * @description El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó.
+     * @description El rol y la prioridad no se piden ni se aceptan: todo usuario nace común. Si el email o el legajo ya tienen cuenta, responde 409 con el campo que chocó. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.
      */
     post: operations['register'];
     delete?: never;
@@ -409,7 +409,7 @@ export interface paths {
     put?: never;
     /**
      * Reenvía el link de verificación
-     * @description Responde 202 exista o no la cuenta, para no revelar qué emails están registrados. Si ya se mandó uno hace poco responde 429 con el header Retry-After.
+     * @description Responde 202 exista o no la cuenta (y haya o no un mail reciente: la espera entre mails se aplica en silencio), para no revelar qué emails están registrados. Demasiados pedidos desde la misma IP dan 429 con el header Retry-After.
      */
     post: operations['resendVerification'];
     delete?: never;
@@ -429,7 +429,7 @@ export interface paths {
     put?: never;
     /**
      * Verifica el email con el token del link
-     * @description El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.
+     * @description El token sirve una sola vez y vence. Si no existe, ya se usó o venció, responde 400 con el motivo en el mensaje y en el code. Es POST (y no GET) para que los antivirus de los mails que abren los links no gasten el token.
      */
     post: operations['verify'];
     delete?: never;
@@ -504,7 +504,7 @@ export interface paths {
     };
     /**
      * Lista las salidas reservables ahora (ventana de reserva) con su cupo restante
-     * @description Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente.
+     * @description Solo los ascensores que el usuario puede usar según su prioridad vigente (los dedicados solo para su categoría). Genera las salidas que falten de forma idempotente. Con `core`, `origin` y `destination` (los tres juntos, si falta alguno responde 400) devuelve la oferta por zonas de pisos (ADR 0025): una salida por hora, ya resuelta por el servidor, de los ascensores del núcleo que paran en origen y destino; `elevator` y `building` se ignoran.
      */
     get: operations['bookable'];
     put?: never;
@@ -541,7 +541,7 @@ export interface paths {
     };
     /**
      * Token del QR del ascensor del kiosco
-     * @description El ascensor sale de la credencial, no de un parámetro. El token rota cada ~30 s: el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.
+     * @description El ascensor sale de la credencial, no de un parámetro. El token vale hasta el cambio de turno de clase (mañana, tarde, noche): el kiosco pide el siguiente al llegar a expiresAt. Hay un tope de pedidos por kiosco.
      */
     get: operations['qrToken'];
     put?: never;
@@ -1189,6 +1189,7 @@ export interface components {
       email: string;
       /**
        * Format: password
+       * @description Hasta 64 caracteres, contados como en el registro (tras NFKC)
        * @example una-clave-larga
        */
       password: string;
@@ -2441,6 +2442,15 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
+      /** @description Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
       /** @description Internal Server Error */
       500: {
         headers: {
@@ -2472,7 +2482,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Token inválido, usado o vencido, o contraseña fuera de política */
+      /** @description Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED), o contraseña fuera de política */
       400: {
         headers: {
           [name: string]: unknown;
@@ -2586,6 +2596,15 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
+      /** @description Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiError'];
+        };
+      };
       /** @description Internal Server Error */
       500: {
         headers: {
@@ -2626,7 +2645,7 @@ export interface operations {
           'application/json': components['schemas']['ApiError'];
         };
       };
-      /** @description Ya se mandó un mail hace poco */
+      /** @description Demasiados pedidos desde la misma IP; Retry-After dice cuántos segundos esperar */
       429: {
         headers: {
           [name: string]: unknown;
@@ -2666,7 +2685,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Token inválido, usado o vencido */
+      /** @description Token inválido, usado o vencido (TOKEN_INVALID, TOKEN_USED, TOKEN_EXPIRED) */
       400: {
         headers: {
           [name: string]: unknown;
@@ -2826,6 +2845,21 @@ export interface operations {
          * @example INDEPENDENCIA
          */
         building?: string;
+        /**
+         * @description Código del núcleo, sin distinguir mayúsculas
+         * @example L1
+         */
+        core?: string;
+        /**
+         * @description Piso de origen
+         * @example 0
+         */
+        origin?: number;
+        /**
+         * @description Piso de destino
+         * @example 7
+         */
+        destination?: number;
       };
       header?: never;
       path?: never;

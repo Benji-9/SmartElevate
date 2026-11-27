@@ -56,7 +56,7 @@ export const originFloorsOf = (core: CoreOption | undefined) =>
     : [];
 
 /** Ascensores del núcleo que paran en todos los pisos dados (cada batería sirve los suyos). */
-export const elevatorsServing = (core: CoreOption, floors: number[]) =>
+const elevatorsServing = (core: CoreOption, floors: number[]) =>
   core.elevators.filter((e) => floors.every((f) => e.floors.includes(f)));
 
 /**
@@ -79,23 +79,17 @@ export const isLowFloor = (building: Building, floor: number, priority: Priority
 export type Slot = { departureAt: string; departure: Departure };
 
 /**
- * Agrupa por hora las salidas de los ascensores dados (todos los de un núcleo salen a la misma
- * hora). En cada hora se ofrece la salida con más lugares libres; a igualdad, la primera que
- * manda el servidor (ordenadas por ascensor).
+ * Franjas de la oferta del servidor (ya trae una salida por hora) que todavía se pueden reservar,
+ * ordenadas por hora.
  */
-export function slotsOf(departures: Departure[], elevators: Elevator[], now: number): Slot[] {
-  const codes = new Set(elevators.map((e) => e.code));
-  const byTime = new Map<string, Departure>();
-  for (const d of departures) {
-    // La ventana de reserva cerró: el servidor la rechazaría (OUTSIDE_BOOKING_WINDOW).
-    // Borde: con bookingClosesAt === now el servidor todavía acepta (>= now) y acá se descarta (<= now);
-    // es a propósito, para no ofrecer una franja que se cierra en el mismo instante del click.
-    if (d.status !== 'SCHEDULED' || !codes.has(d.elevator) || Date.parse(d.bookingClosesAt) <= now)
-      continue;
-    const best = byTime.get(d.departureAt);
-    if (!best || d.remainingSeats > best.remainingSeats) byTime.set(d.departureAt, d);
-  }
-  return [...byTime.entries()]
-    .map(([departureAt, departure]) => ({ departureAt, departure }))
-    .sort((a, b) => Date.parse(a.departureAt) - Date.parse(b.departureAt));
+export function openSlots(departures: Departure[], now: number): Slot[] {
+  return (
+    departures
+      // Con la ventana cerrada el servidor la rechazaría (OUTSIDE_BOOKING_WINDOW).
+      // Borde: con bookingClosesAt === now el servidor todavía acepta (>= now) y acá se descarta (<= now);
+      // es a propósito, para no ofrecer una franja que se cierra en el mismo instante del click.
+      .filter((d) => d.status === 'SCHEDULED' && Date.parse(d.bookingClosesAt) > now)
+      .map((departure) => ({ departureAt: departure.departureAt, departure }))
+      .sort((a, b) => Date.parse(a.departureAt) - Date.parse(b.departureAt))
+  );
 }

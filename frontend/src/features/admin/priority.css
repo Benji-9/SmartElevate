@@ -1,9 +1,4 @@
 /* Usuarios prioritarios (SCREENS.md 09b): reutiliza .admin-card y .core-table. */
-.priority-table td:nth-child(2) {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
 .priority-actions {
   display: flex;
   flex-wrap: wrap;
@@ -50,23 +45,17 @@
   white-space: normal;
 }
 
-/* Menú "Gestionar usuario": flota sobre la tabla, sin agrandar la fila. */
-.core-table__scroll--menu {
-  /* Admin es solo de escritorio: sin scroll horizontal, el menú no queda recortado. */
-  overflow: visible;
-}
-
+/*
+ * Menú "Gestionar usuario". En angosto la tabla scrollea y el menú va en el flujo (si flotara,
+ * el scroll lo recortaría); en escritorio flota sobre la tabla (ver al final).
+ */
 .user-menu {
   position: relative;
 }
 
 .user-menu__list {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 10;
   min-width: 220px;
-  margin: 0;
+  margin: 4px 0 0;
   padding: 4px;
   list-style: none;
   border: 1px solid var(--color-border);
@@ -81,6 +70,7 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
+  min-height: 44px;
   padding: 8px 12px;
   border: 0;
   border-radius: var(--radius-card);
@@ -98,7 +88,7 @@
 }
 
 .user-menu__soon {
-  font-size: var(--text-11);
+  font-size: var(--text-12);
 }
 
 @media (hover: hover) {
@@ -109,6 +99,31 @@
 
 /* Engranaje: botón cuadrado sin texto. Le gana al padding de `.admin__main .button` (AdminLayout.css). */
 .admin__main .button.user-menu__gear {
-  width: 36px;
+  width: 44px;
   padding: 0;
+}
+
+@container app (min-width: 900px) {
+  /* En angosto la tabla scrollea; en escritorio el email largo parte en renglones. */
+  .priority-table td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Sin scroll horizontal, el menú flotante no queda recortado. */
+  .core-table__scroll--menu {
+    overflow: visible;
+  }
+
+  .user-menu__list {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 10;
+    margin: 0;
+  }
+
+  .admin__main .button.user-menu__gear {
+    width: 36px;
+  }
 }

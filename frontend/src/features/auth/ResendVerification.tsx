@@ -4,11 +4,19 @@ import { ApiError, networkErrorMessage, resendVerification } from '../../service
 import { UadeEmailInput } from './UadeEmailInput';
 import { toUadeEmail, validateUadeUser } from './validation';
 
+/** El servidor aplica su minuto de espera sin avisar (202), así que el botón la cuenta acá (#344). */
+const RESEND_COOLDOWN_SECONDS = 60;
+
 /**
  * Reenvío del link de verificación (SCREENS.md §02d). Con `email` lo reenvía directo; sin él
- * pide el email institucional. El 429 trae `Retry-After`: se muestra la espera y el botón
- * vuelve cuando termina.
+ * pide el email institucional. El único 429 es el tope de pedidos por IP (#344): trae
+ * `Retry-After`, se muestra la espera y el botón vuelve cuando termina.
  */
+/** Hasta un minuto en segundos; desde ahí, minutos redondeados hacia arriba. */
+function waitLabel(seconds: number) {
+  return seconds <= 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
+}
+
 export function ResendVerification({ email }: { email?: string }) {
   const [typed, setTyped] = useState('');
   const [fieldError, setFieldError] = useState<string | undefined>();
@@ -35,12 +43,16 @@ export function ResendVerification({ email }: { email?: string }) {
       await resendVerification({ email: target });
       setMessage({
         kind: 'ok',
-        text: `Si ${target} tiene una cuenta sin verificar, te mandamos un link nuevo.`,
+        text: `Si ${target} tiene una cuenta sin verificar, te mandamos un link nuevo. Si no lo ves, mirá en spam.`,
       });
+      setWait(RESEND_COOLDOWN_SECONDS);
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {
-        setWait(error.retryAfter ?? 60);
-        setMessage({ kind: 'error', text: 'Ya te mandamos un email hace poco.' });
+        setWait(error.retryAfter ?? RESEND_COOLDOWN_SECONDS);
+        setMessage({
+          kind: 'error',
+          text: 'Hubo demasiados pedidos desde tu red. Probá de nuevo en un rato.',
+        });
       } else {
         setMessage({
           kind: 'error',
@@ -70,7 +82,7 @@ export function ResendVerification({ email }: { email?: string }) {
         loadingLabel="Enviando…"
         disabled={wait > 0}
       >
-        {wait > 0 ? `Podés pedir otro en ${wait} s` : 'Reenviar email de verificación'}
+        {wait > 0 ? `Podés pedir otro en ${waitLabel(wait)}` : 'Reenviar email de verificación'}
       </Button>
     </form>
   );

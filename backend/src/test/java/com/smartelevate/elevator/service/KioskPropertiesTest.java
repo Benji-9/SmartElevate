@@ -30,7 +30,7 @@ class KioskPropertiesTest {
         runner.run(ctx -> {
             assertThat(ctx).hasNotFailed();
             KioskProperties props = ctx.getBean(KioskProperties.class);
-            assertThat(props.qrTtl()).isEqualTo(Duration.ofSeconds(30));
+            assertThat(props.qrShiftBoundaries()).containsExactly("07:00", "13:00", "18:00", "23:00");
             assertThat(props.simulatorEnabled()).isFalse();
             assertThat(props.rateLimitMaxRequests()).isEqualTo(10);
             assertThat(props.rateLimitWindow()).isEqualTo(Duration.ofMinutes(1));
@@ -39,8 +39,8 @@ class KioskPropertiesTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "app.kiosk.qr-ttl=PT0S",
-            "app.kiosk.qr-ttl=PT0.5S",
+            "app.kiosk.qr-shift-boundaries=",
+            "app.kiosk.qr-shift-boundaries=7am,13:00",
             "app.kiosk.rate-limit-max-requests=0",
             "app.kiosk.rate-limit-window=PT0S",
     })

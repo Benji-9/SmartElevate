@@ -1,6 +1,6 @@
 # Infraestructura y deploy
 
-Qué servicios usamos, dónde se administran y cómo se opera la app en producción. Las decisiones están en los ADR [0003](adr/0003-deploy-frontend-vercel-via-github-actions.md) (frontend), [0012](adr/0012-hosting-del-backend-render-y-neon.md) (backend y base) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (email; el storage quedó sin uso por el [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
+Qué servicios usamos, dónde se administran y cómo se opera la app en producción. Las decisiones están en los ADR [0003](adr/0003-deploy-frontend-vercel-via-github-actions.md) (frontend), [0012](adr/0012-hosting-del-backend-render-y-supabase.md) (backend y base) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (email; el storage quedó sin uso por el [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
 
 > **Nunca** se escriben claves en este archivo ni en el repo. Viven en el dashboard de cada servicio y en los secrets de GitHub.
 
@@ -16,7 +16,7 @@ smart-elevate.vercel.app          Vercel: SPA + rewrite /api/* → backend
 smartelevate.onrender.com         Render: imagen Docker de backend/ (Spring Boot, perfil prod)
    │  JDBC + TLS
    ▼
-Neon Postgres (AWS us-east-2)     Flyway crea y migra el schema al arrancar
+Supabase Postgres (AWS us-west-2)  Flyway crea y migra el schema al arrancar
 
 El backend además usa:
   Brevo (SMTP)                    mails de verificación de cuenta y de reset de contraseña
@@ -30,7 +30,7 @@ El navegador solo habla con Vercel: `/api/*` lo reenvía Vercel al backend, así
 | --- | --- | --- | --- |
 | **Vercel** | Frontend (producción y previews) | [vercel.com](https://vercel.com) → team `takiprojects`, proyecto `smart-elevate` | @Benji-9 |
 | **Render** | Backend | [dashboard.render.com](https://dashboard.render.com) → servicio `smartelevate` | @Benji-9 |
-| **Neon** | Postgres de producción | [console.neon.tech](https://console.neon.tech) → proyecto `snowy-surf-03910636` | @Benji-9 |
+| **Supabase** | Postgres de producción | [supabase.com/dashboard](https://supabase.com/dashboard) → proyecto `SmartElevate` (`ywjqksnlknbavcbyssuu`) | @Benji-9 |
 | **Brevo** | Email transaccional (SMTP) | [app.brevo.com](https://app.brevo.com) → remitente `smartelevate.uade@gmail.com` | @Benji-9 |
 | **GitHub Actions** | CI, deploy del front, keep-alive | [Actions](https://github.com/Benji-9/SmartElevate/actions) | Repo |
 
@@ -44,7 +44,7 @@ Para entrar a un dashboard, pedile acceso al titular. No compartan las claves po
 | API (directo a Render) | https://smartelevate.onrender.com/api/ping |
 | API (a través de Vercel) | https://smart-elevate.vercel.app/api/ping |
 | Health (incluye la base) | https://smartelevate.onrender.com/actuator/health |
-| Swagger UI | https://smartelevate.onrender.com/swagger-ui.html |
+| Swagger UI | Apagada en producción desde #345. En dev local se sigue sirviendo: http://localhost:8080/swagger-ui.html. El contrato está en [`openapi.json`](openapi.json) |
 
 ## Backend en Render
 
@@ -54,16 +54,16 @@ Configuración del Web Service:
 | --- | --- | --- |
 | Language | Docker | Usa [`backend/Dockerfile`](../backend/Dockerfile) (perfil `prod`, usuario no root) |
 | Branch | `main` | Producción sale de `main`, igual que el front |
-| Region | Ohio (US East) | La misma zona que Neon (`us-east-2`). Render no tiene región en Sudamérica |
+| Region | Ohio (US East) | Render no tiene región en Sudamérica. La base está en Oregón (`us-west-2`): ~50 ms de ida y vuelta por consulta |
 | Root Directory | `backend/` | Un cambio solo en `frontend/` no redeploya el backend |
 | Instance type | Free (0.1 CPU, 512 MB) | |
-| Health Check Path | `/api/ping` | No toca la base: `/actuator/health` despertaría a Neon en cada chequeo |
+| Health Check Path | `/api/ping` | No toca la base: `/actuator/health` la consulta en cada chequeo |
 | Auto-Deploy | After CI Checks Pass | No deploya si `backend-verify` falla |
 | Docker Command / Pre-Deploy | vacíos | El `ENTRYPOINT` arranca la app y Flyway migra al iniciar |
 
 ### Checklist maestra de variables de producción
 
-Es la única tabla con todo lo que hay que cargar en producción; el [README](../README.md#variables-de-entorno-del-backend) tiene la misma lista con la descripción de cada una para quien desarrolla. Verificada el 2026-10-16 contra `application*.yml` y las clases `@ConfigurationProperties`, y arrancando el jar con perfil `prod` (sin las cuatro de `RequiredProdProperties`, con `JWT_SECRET` corta, con mail activo sin `SPRING_MAIL_HOST` y sin `DATABASE_URL`).
+Es la única tabla con todo lo que hay que cargar en producción; el [`.env.example`](../.env.example) tiene la misma lista, con defaults y avisos, para quien desarrolla en local (copiarlo a `.env`: el backend lo carga solo y docker compose también; en Render no se usa). Verificada el 2026-10-16 contra `application*.yml` y las clases `@ConfigurationProperties`, y arrancando el jar con perfil `prod` (sin las cuatro de `RequiredProdProperties`, con `JWT_SECRET` corta, con mail activo sin `SPRING_MAIL_HOST` y sin `DATABASE_URL`).
 
 - **Dónde:** *Render* = servicio `smartelevate` → **Environment** (cambiar una variable redeploya). *Vercel* = proyecto → **Settings → Environment Variables**. *GitHub* = repo → **Settings → Secrets and variables → Actions**.
 - **Secretos** (clave de la base, JWT, HMAC del QR, SMTP): solo en el dashboard de Render. Se generan con `openssl rand -base64 48` (64 caracteres; el mínimo es 32 **bytes**). Corré el comando y pegá el **resultado**, nunca el texto del comando. `JWT_SECRET` y `APP_KIOSK_QR_SECRET` tienen que ser distintas y generadas, nunca copiadas de un ejemplo: `RequiredProdProperties` corta el arranque si son iguales, si contienen `openssl` o `rand -base64`, `change-me`/`changeme`/`secret`, un `<...>`, si son una sola letra repetida, solo minúsculas o tienen menos de 16 caracteres distintos (los valores nunca se loguean).
@@ -73,11 +73,11 @@ Es la única tabla con todo lo que hay que cargar en producción; el [README](..
 
 | Variable | Define | Valor / cómo generarlo | Si falta |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Render | `jdbc:postgresql://<host de Neon>/neondb?sslmode=require` (conexión directa, ver [Neon](#base-de-datos-en-neon)) | No arranca: falla el datasource (`'url' must start with "jdbc"`) |
-| `DATABASE_USER` | Render | `neondb_owner` | No arranca |
-| `DATABASE_PASSWORD` | Render | Clave del rol en Neon (secreto) | No arranca |
+| `DATABASE_URL` | Render | `jdbc:postgresql://aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require` (Session pooler, ver [Supabase](#base-de-datos-en-supabase)) | No arranca: falla el datasource (`'url' must start with "jdbc"`) |
+| `DATABASE_USER` | Render | `postgres.ywjqksnlknbavcbyssuu` | No arranca |
+| `DATABASE_PASSWORD` | Render | Clave de la base en Supabase (secreto, sin percent-encode) | No arranca |
 | `JWT_SECRET` | Render | `openssl rand -base64 48` (secreto, mínimo 32 bytes) | No arranca: `app.security.jwt.secret must not be blank` (`RequiredProdProperties`); si es corta, `JWT_SECRET es demasiado corto` (`JwtConfig`); si es un ejemplo/baja entropía, `JWT_SECRET es un valor de ejemplo o de baja entropía ...`; si es igual a la del QR, `JWT_SECRET y APP_KIOSK_QR_SECRET no pueden ser iguales ...` |
-| `APP_KIOSK_QR_SECRET` | Render | `openssl rand -base64 48` (secreto, mínimo 32 bytes, distinta de `JWT_SECRET`). Clave HMAC del QR ([ADR 0020](adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)). Rotarla invalida los QR en pantalla, que se renuevan solos en el ciclo siguiente | No arranca: `app.kiosk.qrSecret must not be blank`; si es corta, `APP_KIOSK_QR_SECRET es demasiado corto` (`QrTokenService`); si es un ejemplo/baja entropía, `APP_KIOSK_QR_SECRET es un valor de ejemplo o de baja entropía ...` |
+| `APP_KIOSK_QR_SECRET` | Render | `openssl rand -base64 48` (secreto, mínimo 32 bytes, distinta de `JWT_SECRET`). Clave HMAC del QR ([ADR 0020](adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)). Rotarla invalida los QR en pantalla: cada kiosco sigue mostrando el viejo hasta el próximo cambio de turno (con los horarios por defecto, hasta 8 h), así que después de rotarla hay que recargar los kioscos ([ADR 0026](adr/0026-qr-del-kiosco-por-turno-de-clase.md)) | No arranca: `app.kiosk.qrSecret must not be blank`; si es corta, `APP_KIOSK_QR_SECRET es demasiado corto` (`QrTokenService`); si es un ejemplo/baja entropía, `APP_KIOSK_QR_SECRET es un valor de ejemplo o de baja entropía ...` |
 | `APP_FRONTEND_URL` | Render | `https://smart-elevate.vercel.app`. Base de los links de los mails (verificación, reset) | No arranca: `app.verification.frontendUrl must not be blank` |
 | `CORS_ALLOWED_ORIGINS` | Render | `https://smart-elevate.vercel.app`. Lista separada por comas, **exacta**: sin barra final, sin path y en minúsculas, tal como el navegador manda `Origin` (`https://smart-elevate.vercel.app/` y `https://Smart-Elevate.vercel.app` no matchean y dan 403 en login, refresh y logout) | No arranca: `app.cors.allowedOrigins must not be empty` |
 | `SPRING_MAIL_HOST` | Render | `smtp-relay.brevo.com`. Obligatoria **mientras `APP_MAIL_ENABLED=true`** (el default en `prod`) | No arranca: no hay bean `JavaMailSender` para `SmtpEmailSender` |
@@ -88,7 +88,7 @@ Las cuatro que valida `RequiredProdProperties` (`JWT_SECRET`, `APP_KIOSK_QR_SECR
 
 | Variable | Define | Valor | Si falta |
 | --- | --- | --- | --- |
-| `APP_MAIL_ENABLED` | Render | Default `true` en `prod`. `false` no manda nada y deja el contenido del mail (con el link de verificación) en el log | Con el default, ver las `SPRING_MAIL_*` |
+| `APP_MAIL_ENABLED` | Render | Default `true` en `prod`. `false` no manda nada y deja en el log solo destinatario y asunto: el cuerpo, con el link, solo se loguea en el perfil `dev` ([#344](https://github.com/Benji-9/SmartElevate/issues/344)) | Con el default, ver las `SPRING_MAIL_*` |
 | `SPRING_MAIL_PORT` | Render | `2525` (STARTTLS, ya exigido en `application-prod.yml`). **No `587`**: Render free bloquea los puertos SMTP 25, 465 y 587 | Con `587` el envío da `Connect timed out` a los 5 s (queda en el log, la request responde bien): los mails no salen. Sin la variable Spring usa el 25 y falla igual |
 | `SPRING_MAIL_USERNAME` | Render | Login SMTP de Brevo (`xxxx@smtp-brevo.com`, **no** el Gmail) | Arranca; el envío falla con error de autenticación |
 | `SPRING_MAIL_PASSWORD` | Render | SMTP key de Brevo (secreto) | Ídem |
@@ -104,11 +104,13 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | `JWT_ACCESS_TTL` | Render | `PT15M` | Vida del access token |
 | `JWT_REFRESH_TTL` | Render | `P7D` | Vida del refresh y `Max-Age` de la cookie |
 | `APP_REFRESH_COOKIE_SECURE` | Render | `true` | **No ponerla en `false` en producción.** Con `false` no arranca: `APP_REFRESH_COOKIE_SECURE no puede ser false en producción ...` (`RequiredProdProperties`). Mejor no cargarla: el default es `true` |
-| `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | Render | `refresh_token` / `Lax` / `/api/auth` | No tocar: el front y el rewrite de Vercel asumen estos valores (ADR 0019, 0023) |
+| `APP_REFRESH_COOKIE_NAME` / `_SAME_SITE` / `_PATH` | Render | `refresh_token` / `Lax` / `/api/auth` | No tocar: el front y el rewrite de Vercel asumen estos valores (ADR 0019) |
 | `APP_LOGIN_THROTTLE_WINDOW` | Render | `PT15M` | Ventana deslizante del límite de logins fallidos |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_ACCOUNT` | Render | `10` | Entre 1 y 100 (NIST); fuera de rango, no arranca |
 | `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` | Render | `100` | Mínimo 1. Depende de ver la IP real, ver [riesgos](#riesgos-del-primer-deploy) |
+| `APP_REQUEST_THROTTLE_WINDOW` / `APP_REQUEST_THROTTLE_MAX_PER_IP` | Render | `PT15M` / `1000` | Tope por IP de registro, reenvío de verificación y "olvidé mi contraseña", cada uno aparte. La ventana no puede pasar la de logins (no arranca). Holgado a propósito: depende de ver la IP real, ver [riesgos](#riesgos-del-primer-deploy) |
 | `APP_VERIFICATION_TOKEN_TTL` / `APP_VERIFICATION_RESEND_COOLDOWN` | Render | `PT24H` / `PT1M` | Link de verificación de email |
+| `APP_VERIFICATION_UNVERIFIED_TTL` | Render | `P2D` | Las cuentas sin verificar se borran pasado este tiempo. Mayor que `APP_VERIFICATION_TOKEN_TTL` (no arranca) |
 | `APP_PASSWORD_RESET_TOKEN_TTL` / `APP_PASSWORD_RESET_REQUEST_COOLDOWN` | Render | `PT30M` / `PT1M` | Reset de contraseña |
 
 #### Kioscos y QR
@@ -116,7 +118,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | Variable | Define | Default | Notas |
 | --- | --- | --- | --- |
 | `APP_KIOSK_SIMULATOR_ENABLED` | Render | `false` | **Tiene que quedar apagada (sin definir) en producción.** Con `true` un ADMIN puede crear kioscos simulados y sus check-ins se cuentan como simulados. Apagada, `POST /api/admin/kiosks` con `simulated: true` da 409 `SIMULATOR_DISABLED` |
-| `APP_KIOSK_QR_TTL` | Render | `PT30S` | Vida de cada token del QR (se acepta también el del ciclo anterior). Reemplaza a `qr_rotation` de `app_config`, que `V15` borró |
+| `APP_KIOSK_QR_SHIFT_BOUNDARIES` | Render | `07:00,13:00,18:00,23:00` | Horas del campus (`HH:mm`, separadas por coma) en que cambia el QR: el token vale hasta la próxima ([ADR 0026](adr/0026-qr-del-kiosco-por-turno-de-clase.md)). Reemplaza a `APP_KIOSK_QR_TTL` y a `qr_rotation` de `app_config`, que `V15` borró. Tras rotar `APP_KIOSK_QR_SECRET`, recargar los kioscos |
 | `APP_KIOSK_RATE_LIMIT_MAX_REQUESTS` / `APP_KIOSK_RATE_LIMIT_WINDOW` | Render | `10` / `PT1M` | Pedidos de token por kiosco; al pasarse, 429 con `Retry-After`. En memoria, por instancia |
 
 #### Hora y jobs
@@ -150,7 +152,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 | --- | --- | --- | --- |
 | `BACKEND_URL` | GitHub (*Variables*; puede ser por environment `preview` / `production`) | `https://smartelevate.onrender.com`, sin barra final. El workflow la escribe en el rewrite de `vercel.json` | El workflow avisa con un warning y quita el rewrite: el front deploya **sin backend**. También la usa `keep-alive-backend.yml` (sin ella, el job se saltea) |
 | `VITE_API_URL` | Vercel (*Production* y *Preview*) | `/api`. Con una URL absoluta la cookie del refresh sería cross-site y no se mantiene la sesión | Usa el default `/api` del cliente |
-| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | GitHub (*Secrets*) | Ver [README](../README.md#3-github-cargar-secrets-y-variables) | `deploy-frontend.yml` falla |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | GitHub (*Secrets*) | Ver [guía de setup](guias/configurar-vercel-y-github.md#3-github-cargar-secrets-y-variables) | `deploy-frontend.yml` falla |
 
 ### Cómo arranca el contenedor
 
@@ -158,7 +160,7 @@ Un fallo del SMTP en runtime no tumba la request de registro: el error se regist
 - **Puerto:** Render inyecta `PORT` y Spring escucha en `${PORT:8080}`. El `EXPOSE 8080` es solo informativo.
 - **Memoria:** `-XX:MaxRAMPercentage=75` toma el 75 % del límite del contenedor (512 MB en free → ~384 MB de heap), y el resto queda para metaspace, hilos y el código nativo. Java 25 respeta los límites del contenedor, no hace falta `-Xmx`. Es justo: ante un `OOMKilled` en el log de Render, bajar a 60 con `JAVA_OPTS`.
 - **Arranque:** con 0.1 CPU el arranque de la JVM más Flyway es lento (este documento estima ~1 min en un cold start); el primer deploy suma además el build de la imagen (~5–10 min). El health check de Render (`/api/ping`) responde cuando Tomcat está arriba, que es **después** de Flyway.
-- **Base nueva:** Flyway crea todo desde `V1` en una base vacía de Neon (ver [riesgos](#riesgos-del-primer-deploy)).
+- **Base nueva:** Flyway crea todo desde `V1` en una base vacía de Supabase (ver [riesgos](#riesgos-del-primer-deploy)).
 
 ### `render.yaml` (blueprint): propuesta, no agregado
 
@@ -167,7 +169,7 @@ Hoy el servicio está configurado a mano y funciona (ADR 0012). Se evaluó sumar
 - Un blueprint es infraestructura como código para *crear* servicios. El servicio `smartelevate` ya existe; adoptarlo con un blueprint arriesga que Render lo trate como uno nuevo (otra URL, y habría que cambiar `BACKEND_URL`).
 - El valor principal (reproducir el servicio) se cubre con la [tabla de configuración](#backend-en-render) y la checklist maestra de arriba. Las variables con `sync: false` igual habría que cargarlas a mano.
 - Mantener dos fuentes de verdad (el dashboard y el archivo) es un costo para un equipo de 6 con un solo servicio.
-- El health check del blueprint sería `/api/ping` (como decide el ADR 0012), no `/actuator/health`: `/actuator/health` consulta la base y mantendría despierto a Neon, que gasta cómputo del plan free.
+- El health check del blueprint sería `/api/ping` (como decide el ADR 0012), no `/actuator/health`: `/actuator/health` consulta la base y haría depender el health check de Render de la base.
 
 Si el equipo lo quiere igual (por ejemplo, para recrear el servicio en otra cuenta), este es el esqueleto, sin ningún valor secreto:
 
@@ -202,21 +204,23 @@ services:
 
 Los nombres de los campos no se probaron contra un workspace real de Render.
 
-## Base de datos en Neon
+## Base de datos en Supabase
 
-- Proyecto `snowy-surf-03910636`, branch `production`, base `neondb`, rol `neondb_owner`, región **AWS US East 2 (Ohio)**.
-- Usamos la conexión **directa** (el host no tiene `-pooler`). Hikari ya hace el pool, y Flyway y el lock pesimista del cupo andan mejor sin PgBouncer en el medio.
-- Para pasar el connection string de Neon a JDBC: anteponer `jdbc:`, sacar `usuario:clave@` (van en sus propias variables) y sacar `&channel_binding=require`.
-- El schema lo maneja **solo Flyway**. No crear ni modificar tablas a mano desde la consola de Neon: la app valida el schema al arrancar y no levantaría.
+- Proyecto `SmartElevate` (`ywjqksnlknbavcbyssuu`), base `postgres`, plan Free (instancia Nano con CPU compartida, 500 MB por proyecto, 60 conexiones), región **AWS us-west-2 (Oregón)**.
+- Conexión por el **Session pooler** (`aws-0-us-west-2.pooler.supabase.com:5432`, usuario `postgres.ywjqksnlknbavcbyssuu`): la conexión directa de Supabase es solo IPv6 y Render free es IPv4. **No usar el Transaction pooler** (puerto 6543): no soporta prepared statements ni los advisory locks de sesión que usa Flyway.
+- Para armar la URL JDBC desde el connection string de Supabase (Connect → Session pooler): `jdbc:postgresql://<host>:5432/postgres?sslmode=require`. Usuario y clave van en `DATABASE_USER` y `DATABASE_PASSWORD`, no dentro de la URL.
+- La **Data API** está desactivada: el backend entra solo por JDBC y no usa la API REST de Supabase ni RLS.
+- **Pausa por inactividad:** el plan Free pausa el proyecto tras 1 semana de baja actividad (Supabase avisa por mail unos días antes). Mientras corre el [keep-alive](#keep-alive), los jobs de no-shows y recordatorios consultan la base todo el tiempo, así que no debería pasar, pero no es una garantía de Supabase. Si pasa (por ejemplo, un receso largo), se restaura desde el dashboard (**Restore project**) hasta 1 año después de la pausa; pasado ese plazo solo queda descargar el backup.
+- El schema lo maneja **solo Flyway**. No crear ni modificar tablas a mano desde el dashboard de Supabase: la app valida el schema al arrancar y no levantaría.
 
 ### Rotar la clave
 
-1. Neon → **Branches → production → Roles → `neondb_owner` → Reset password**.
+1. Supabase → **Project Settings → Database → Reset database password**.
 2. Pegar la nueva en Render → Environment → `DATABASE_PASSWORD` → **Save, rebuild and deploy**.
 
 ### Crear el primer ADMIN
 
-No hay endpoint ni seed que cree administradores ([ADR 0009](adr/0009-autenticacion-y-prioridad.md)). La persona se registra y verifica el email; después se la promueve en el **SQL Editor de Neon** (en dev, en `/h2-console`):
+No hay endpoint ni seed que cree administradores ([ADR 0009](adr/0009-autenticacion-y-prioridad.md)). La persona se registra y verifica el email; después se la promueve en el **SQL Editor de Supabase** (en dev, en `/h2-console`):
 
 ```sql
 UPDATE app_user SET role = 'ADMIN' WHERE email = 'nombre@uade.edu.ar';
@@ -226,7 +230,7 @@ La tabla es `app_user` y el rol vive en su columna `role` (`USER`, `REVIEWER`, `
 
 ## Frontend en Vercel
 
-Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ver [README](../README.md#cicd)). Lo que importa para el backend:
+Lo deploya [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml) (ver [CI/CD](referencia/ci-cd.md)). Lo que importa para el backend:
 
 - La variable de GitHub **`BACKEND_URL`** = `https://smartelevate.onrender.com`. El workflow la escribe en el rewrite de `vercel.json` antes de buildear.
 - Si cambia `BACKEND_URL`, el front recién la toma **en el próximo deploy de producción**.
@@ -244,7 +248,7 @@ Los define `frontend/vercel.json` (sección `headers`, todas las rutas). Decisi�
 
 HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay que agregarlo a la CSP. Si #204 mantiene el proxy del mismo origen, `connect-src` queda en `'self'`.
 
-**Checklist del preview de Vercel** (CSP, [ADR 0022](adr/0022-csp-y-headers-de-seguridad-en-vercel.md); sesión por cookie, [ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md) y [0023](adr/0023-defensa-csrf-del-refresh-por-cookie.md)). Se corre una vez en el preview del PR de release (`develop` → `main`) y de nuevo en producción:
+**Checklist del preview de Vercel** (CSP, [ADR 0022](adr/0022-csp-y-headers-de-seguridad-en-vercel.md); sesión por cookie, [ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md)). Se corre una vez en el preview del PR de release (`develop` → `main`) y de nuevo en producción:
 
 *CSP y headers*
 
@@ -259,7 +263,8 @@ HSTS lo agrega Vercel. Si se suma un origen externo (fuentes, analytics), hay qu
 
 - [ ] `POST /api/auth/login` (DevTools → Network) responde 200 y su `Set-Cookie` es `refresh_token; Path=/api/auth; Secure; HttpOnly; SameSite=Lax`. En Application → Cookies, la cookie figura bajo el **dominio del front** (no `onrender.com`): es de primera parte. Si aparece "This Set-Cookie was blocked", el cliente no está usando `/api` (`VITE_API_URL`).
 - [ ] **Recargar la pestaña mantiene la sesión**: la primera request es `POST /api/auth/refresh` con 200 y cookie nueva, sin volver al login.
-- [ ] Sin sesión (ventana privada, o después de cerrar sesión), abrir el front hace un `POST /api/auth/refresh` que responde **401**: es lo esperado, no un error. Ese 401 trae un `Set-Cookie` que expira la cookie. Cualquier otro código es un problema: **403** = falta el header `X-Requested-With` o el `Origin` no está en `CORS_ALLOWED_ORIGINS`.
+- [ ] Sin sesión previa (ventana privada, o después de cerrar sesión), abrir el front **no** hace `POST /api/auth/refresh`: falta la marca local `se:session` ([ADR 0019](adr/0019-refresh-token-en-cookie-httponly.md), enmienda del 2026-11-26).
+- [ ] Con la marca pero sin cookie (ingresar, borrar la cookie en Application → Cookies y recargar), el `POST /api/auth/refresh` responde **401**: es lo esperado, no un error. Ese 401 trae un `Set-Cookie` que expira la cookie. Cualquier otro código es un problema: **403** = falta el header `X-Requested-With` o el `Origin` no está en `CORS_ALLOWED_ORIGINS`.
 - [ ] Dos pestañas abiertas a la vez: ninguna cierra la sesión de la otra (el canje corre dentro de `navigator.locks`).
 - [ ] Cerrar sesión: `POST /api/auth/logout` responde 204 y la cookie desaparece.
 
@@ -286,7 +291,7 @@ Notas:
 
 Después de cada deploy del backend, y siempre después del primero. Hay un script que hace la secuencia de abajo, [`scripts/smoke-test.sh`](../scripts/smoke-test.sh) (solo `curl` y `jq`), y los comandos a mano para cuando algo falla y hay que mirar de cerca.
 
-**Antes de empezar** (Render → **Environment**): todas las [obligatorias](#obligatorias-sin-ellas-la-app-no-arranca) cargadas y ninguna en blanco. Si falta una, el deploy queda en *failed* y el log de Render dice cuál (`APPLICATION FAILED TO START`). El primer arranque corre `V1`..`V21` sobre la base vacía de Neon; en el log: `Successfully applied 21 migrations`.
+**Antes de empezar** (Render → **Environment**): todas las [obligatorias](#obligatorias-sin-ellas-la-app-no-arranca) cargadas y ninguna en blanco. Si falta una, el deploy queda en *failed* y el log de Render dice cuál (`APPLICATION FAILED TO START`). El primer arranque corre `V1`..`V21` sobre la base vacía de Supabase; en el log: `Successfully applied 21 migrations`.
 
 #### Con el script
 
@@ -314,18 +319,18 @@ BASE_URL=https://smartelevate.onrender.com SMOKE_ORIGIN=https://smart-elevate.ve
 
 `B=https://smartelevate.onrender.com`. Las respuestas esperadas son las del script.
 
-1. **Salud.** `curl -s $B/api/ping` → `{"status":"ok"}`. `curl -s $B/actuator/health` → `{"status":"UP"}` (despierta a Neon: si da `DOWN`, mirar `DATABASE_*`).
-2. **Registro.** `curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/api/auth/register -H 'Content-Type: application/json' -d '{"fullName":"Smoke Test","email":"smoke@uade.edu.ar","legajo":"1234567","password":"<clave larga>","declaredUserType":"STUDENT"}'` → `201`. Con `APP_MAIL_ENABLED=true` llega el mail desde Brevo con un link `$APP_FRONTEND_URL/verificar-email?token=...`. Con `false` el link está en el log de Render (`Mail NO enviado`). Verificar: `curl -X POST $B/api/auth/verify -H 'Content-Type: application/json' -d '{"token":"<token>"}'` → `204`. Un login antes de verificar da `403`.
+1. **Salud.** `curl -s $B/api/ping` → `{"status":"ok"}`. `curl -s $B/actuator/health` → `{"status":"UP"}` (consulta la base: si da `DOWN`, mirar `DATABASE_*`. En `prod` no chequea el SMTP, `management.health.mail.enabled=false`: un `UP` no dice que los mails salgan).
+2. **Registro.** `curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/api/auth/register -H 'Content-Type: application/json' -d '{"fullName":"Smoke Test","email":"smoke@uade.edu.ar","legajo":"1234567","password":"<clave larga>","declaredUserType":"STUDENT"}'` → `201`. Con `APP_MAIL_ENABLED=true` llega el mail desde Brevo con un link `$APP_FRONTEND_URL/verificar-email?token=...`. Con `false` el log de Render muestra `Mail NO enviado` sin el link (#344): verificá la cuenta con un `UPDATE app_user SET email_verified = true WHERE email = 'smoke@uade.edu.ar'` en el SQL Editor de Supabase y salteá el `curl` de verify. Verificar: `curl -X POST $B/api/auth/verify -H 'Content-Type: application/json' -d '{"token":"<token>"}'` → `204`. Un login antes de verificar da `403`.
 3. **Login y cookie.** `curl -si -X POST $B/api/auth/login -H 'Content-Type: application/json' -d '{"email":"smoke@uade.edu.ar","password":"<clave>"}'` → `200`, el body trae `accessToken`, y el header:
    `Set-Cookie: refresh_token=<valor>; Path=/api/auth; Max-Age=604800; Expires=...; Secure; HttpOnly; SameSite=Lax`. Si falta `Secure`, `APP_REFRESH_COOKIE_SECURE` está en `false`: corregir antes de seguir.
 4. **Refresh.** Sin `X-Requested-With: SmartElevate` → `403`. Con el header, sin cookie → `401`. Con el header y `-H 'Cookie: refresh_token=<valor>'` (y `-H 'Origin: https://smart-elevate.vercel.app'`) → `200` y una cookie **nueva**; la anterior queda inutilizable (reusarla revoca la sesión entera).
 5. **Perfil y salidas.** `curl -s $B/api/users/me -H "Authorization: Bearer $T"` → `200` con `role: USER`. `curl -s $B/api/departures -H "Authorization: Bearer $T"` → `200`, una lista de salidas con `id`, `elevator`, `departureAt`, `remainingSeats`. Vacía fuera del horario de operación o de la ventana de 30 min.
 6. **Reservar.** Elegir una salida y un piso válido (`curl -s $B/api/elevators` lista los `floors` de cada ascensor; los pisos bajos, de 1 a `low_floors_threshold` de `app_config`, son solo para movilidad reducida; el script usa el piso más alto). `POST /api/reservations` con `{"departureId":<id>,"originFloor":0,"destinationFloor":<piso>}` → `201`. Una segunda reserva activa da `409 ACTIVE_LIMIT_REACHED`.
 7. **Cancelar.** `DELETE /api/reservations/<id>` → `204`. Más de 10 min antes de la salida queda `CANCELLED`; después, `CANCELLED_LATE` (cuenta como falta).
-8. **Primer ADMIN.** Ver [Crear el primer ADMIN](#crear-el-primer-admin) (`UPDATE app_user SET role = 'ADMIN' ...` en el SQL Editor de Neon). No hace falta volver a loguearse.
+8. **Primer ADMIN.** Ver [Crear el primer ADMIN](#crear-el-primer-admin) (`UPDATE app_user SET role = 'ADMIN' ...` en el SQL Editor de Supabase). No hace falta volver a loguearse.
 9. **Panel admin.** Con el token del ADMIN: `GET /api/admin/kpis?period=TODAY` → `200`. `GET /api/admin/kiosks` → `200` con `"simulatorEnabled": false`. Con un usuario común, los dos dan `403`.
 10. **Simulador apagado.** `POST /api/admin/kiosks` con `{"elevatorId":"01","simulated":true}` → `409` con `code: SIMULATOR_DISABLED`. Si da `201`, `APP_KIOSK_SIMULATOR_ENABLED` está en `true` en Render: apagarlo.
-11. **Kiosco real y QR.** `POST /api/admin/kiosks` con `{"elevatorId":"01","simulated":false}` → `201` con `id` y `secret` (**única vez** que se ve). `curl -s $B/api/kiosks/me/qr-token -H "Authorization: Bearer <secret>"` → `200` con `token`, `expiresAt` (~30 s) y `elevatorId`. Sin credencial o con una revocada → `401 KIOSK_UNAUTHORIZED`. Si no se va a usar, revocarlo: `POST /api/admin/kiosks/<id>/revoke` → `204`.
+11. **Kiosco real y QR.** `POST /api/admin/kiosks` con `{"elevatorId":"01","simulated":false}` → `201` con `id` y `secret` (**única vez** que se ve). `curl -s $B/api/kiosks/me/qr-token -H "Authorization: Bearer <secret>"` → `200` con `token`, `expiresAt` (el próximo cambio de turno) y `elevatorId`. Sin credencial o con una revocada → `401 KIOSK_UNAUTHORIZED`. Si no se va a usar, revocarlo: `POST /api/admin/kiosks/<id>/revoke` → `204`.
 12. **Check-in.** Con una reserva activa y dentro de la ventana (de 1 min antes a 2 min después de la salida), `POST /api/check-ins` con `{"token":"<token del QR>"}` y el Bearer del usuario → `201` con `outcome: ON_TIME` (u `OTHER_ELEVATOR`) y `source: REAL`. Fuera de la ventana, `409 OUTSIDE_CHECK_IN_WINDOW`; sin reserva, `409 NO_ACTIVE_RESERVATION`.
 13. **Logout.** `POST /api/auth/logout` con el header CSRF y la cookie → `204` y un `Set-Cookie` que la expira.
 
@@ -333,20 +338,21 @@ Desde el navegador, en producción: login en https://smart-elevate.vercel.app, r
 
 #### Qué se probó de verdad (2026-10-16)
 
-El script (que cubre los pasos 1 a 13, salvo el SQL del ADMIN, que se hizo con el shell de H2) se ejecutó contra el jar real con **perfil `prod`** (Secure activo, `server.forward-headers-strategy: native`, 21 migraciones aplicadas), pero con H2 en lugar de Neon y el mail apagado. No se probó contra Render, Neon, Vercel ni Brevo. Queda para un humano con acceso: el cold start, el SMTP real de Brevo, TLS hacia Neon y la IP real detrás del proxy de Render.
+El script (que cubre los pasos 1 a 13, salvo el SQL del ADMIN, que se hizo con el shell de H2) se ejecutó contra el jar real con **perfil `prod`** (Secure activo, `server.forward-headers-strategy: native`, 21 migraciones aplicadas), pero con H2 en lugar de Supabase (antes de #345; el jar ya no incluye H2) y el mail apagado. No se probó contra Render, Supabase, Vercel ni Brevo. Queda para un humano con acceso: el cold start, el SMTP real de Brevo, TLS hacia Supabase y la IP real detrás del proxy de Render.
 
 ### Riesgos del primer deploy
 
-Lo que puede salir mal la primera vez y cómo se ve. Ninguno está probado contra Render ni Neon.
+Lo que puede salir mal la primera vez y cómo se ve. Ninguno está probado contra Render ni Supabase.
 
-1. **Migraciones sobre una base nueva de Neon.** Flyway corre `V1`..`V21` al arrancar, antes de que Tomcat acepte conexiones, así que el health check de Render tarda en pasar. Las 21 migraciones se aplicaron sin error en H2 (`MODE=PostgreSQL`) con el jar de `prod`, y los tests con Testcontainers las corren contra `postgres:18-alpine` en el CI. Si una falla en Neon, la app no levanta y el deploy queda *failed*: leer el log de Flyway, **no** editar la migración (ya mergeada, ADR 0004) ni crear tablas a mano; corregir con una `V22`. Una migración que falla a la mitad puede dejar la base a medias: borrar el branch `production` de Neon y recrearlo es válido solo mientras no haya datos reales.
+1. **Migraciones sobre una base nueva de Supabase.** Flyway corre `V1`..`V21` al arrancar, antes de que Tomcat acepte conexiones, así que el health check de Render tarda en pasar. Las 21 migraciones se aplicaron sin error en H2 (`MODE=PostgreSQL`) con el jar de `prod` (antes de #345), y los tests con Testcontainers las corren contra `postgres:18-alpine` en el CI. Si una falla en Supabase, la app no levanta y el deploy queda *failed*: leer el log de Flyway, **no** editar la migración (ya mergeada, ADR 0004) ni crear tablas a mano; corregir con una `V22`. Una migración que falla a la mitad puede dejar la base a medias: recrear el proyecto de Supabase (o vaciar el schema `public`) es válido solo mientras no haya datos reales.
 2. **`semester_end_dates` provisorio.** `V18` lo carga con `2026-12-31`, sin confirmar con el calendario de UADE ([B-19](bloqueantes.md)). Sin un cierre desde hoy, **aprobar docentes falla**. Cargar el calendario real antes del 31/12/2026: `UPDATE app_config SET config_value = '2026-12-31,2027-07-31' WHERE config_key = 'semester_end_dates';`. La app avisa en el log (WARN) al arrancar si no queda ninguno.
 3. **IP real y el límite de logins por IP.** `server.forward-headers-strategy: native` hace que Tomcat lea `X-Forwarded-For`, pero solo si el proxy que lo manda es uno **interno** (rangos privados y loopback por defecto). Si el proxy de Render no entra en esos rangos, `getRemoteAddr()` devuelve la IP del proxy y el tope por IP (`APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP`, 100) lo comparte todo el campus; con el rewrite de Vercel de por medio, además, la IP es la de Vercel. El límite por cuenta (10) no depende de esto. Las IP se guardan hasheadas, así que no se ven en la base. Cómo probarlo: bajar temporalmente `APP_LOGIN_THROTTLE_MAX_FAILURES_PER_IP` a 3, fallar logins con emails distintos desde dos redes distintas y ver si el 429 aparece en ambas a la vez (IP compartida) o solo en una.
+   Lo mismo vale para el tope por IP de registro, reenvío de verificación y "olvidé mi contraseña" (`APP_REQUEST_THROTTLE_MAX_PER_IP`, [#344](https://github.com/Benji-9/SmartElevate/issues/344)), y acá es peor: con la IP compartida, un script que pida "olvidé mi contraseña" en loop **bloquea esa acción para todos** durante la ventana. Por eso el default es **1000**, holgado a propósito hasta verificar que se ve la IP real del cliente; recién ahí se baja. Cómo probarlo: bajar temporalmente `APP_REQUEST_THROTTLE_MAX_PER_IP` a 3, pedir `POST /api/auth/password/forgot` 4 veces desde una red y una vez desde otra: si la segunda red también recibe 429, la IP es compartida.
 4. **Scheduler.** En `prod` el pool de `@Scheduled` tiene **2 hilos** (`spring.task.scheduling.pool.size`): un mail lento del recordatorio no frena el job de no-shows. Con 0.1 CPU, si el SMTP se cuelga, los timeouts de `APP_MAIL_SMTP_*` (5 s / 10 s) acotan cuánto. Si Brevo falla de forma sostenida: `APP_REMINDER_JOB_ENABLED=false`.
 5. **Instancia única.** El límite de pedidos de token de los kioscos está **en memoria por instancia** (`// ponytail:` en `KioskService`); con N instancias el tope real sería N veces el configurado, y un reinicio lo reinicia. El límite de logins sí vive en la base (tabla de fallos con hashes), aunque contar e insertar no es atómico (`// ponytail:` en `LoginThrottle`: dos fallos simultáneos pueden pasar el tope por uno o dos). Con una sola instancia en Render alcanza; **no subir el servicio a más de una** sin mover el de kioscos a la base o a un cache compartido.
 6. **Mails desde Brevo sin probar en producción.** El envío funcionó en una prueba manual (2026-10-06) pero no desde el backend desplegado. Sin dominio propio, el remitente sale reescrito a `@brevosend.com` y puede caer en spam. Si el SMTP falla, el registro igual se crea (el error queda en el log): el usuario no puede verificar su cuenta hasta que el reenvío funcione. Plan B para no bloquear a nadie: leer el link del log con `APP_MAIL_ENABLED=false`, o promover la verificación a mano en la base.
-7. **`qr_rotation` ya no está en `app_config`.** `V15` lo borró; la vida del QR es `APP_KIOSK_QR_TTL` (default `PT30S`). Si alguien busca la fila `qr_rotation` en Neon y no la encuentra, es lo esperado.
-8. **Swagger UI y `/v3/api-docs` son públicos** también en producción (decisión del README: documentación abierta); no exponen datos, pero listan todos los endpoints, incluidos los de admin. `/h2-console` no existe en `prod` (404).
+7. **`qr_rotation` ya no está en `app_config`.** `V15` lo borró; el vencimiento del QR es `APP_KIOSK_QR_SHIFT_BOUNDARIES`. Si alguien busca la fila `qr_rotation` en Supabase y no la encuentra, es lo esperado.
+8. **Swagger UI y `/v3/api-docs` están apagados en `prod` desde #345** (`springdoc.*.enabled=false`): antes eran públicos y listaban todos los endpoints, incluidos los de admin. En dev local se siguen sirviendo (http://localhost:8080/swagger-ui.html y `/v3/api-docs`). El jar ya no incluye H2 ni su consola. Probado el 2026-11-26 con la imagen Docker en perfil `prod` y un Postgres local (no contra Render): `/v3/api-docs`, `/swagger-ui.html` y `/swagger-ui/index.html` responden 404, y `/h2-console/` sin token responde **401** (no 404).
 9. **Memoria y cold start** del plan free (512 MB, 0.1 CPU): ver [Cómo arranca el contenedor](#cómo-arranca-el-contenedor) y [Keep-alive](#keep-alive).
 
 ### Redeployar sin cambios de código
@@ -366,30 +372,30 @@ El plan free de Render duerme el servicio tras **15 min sin tráfico**, y el pri
 
 [`keep-alive-backend.yml`](../.github/workflows/keep-alive-backend.yml) le pega a `/api/ping` cada 10 min, de **07:00 a 22:59 (hora de Buenos Aires)**. Fuera de ese horario el servicio puede dormir.
 
-- Le pega a `/api/ping` y no a `/actuator/health` porque el ping no toca la base. Neon puede seguir durmiendo y no se consume su cuota de cómputo (ver límites).
+- Le pega a `/api/ping` y no a `/actuator/health` porque el ping no toca la base. Aun así, mientras Render está despierto los jobs de no-shows y recordatorios consultan la base cada pocos segundos: eso cuenta como actividad y evita la pausa de Supabase (ver [límites](#límites-de-los-planes-gratuitos)).
 - Las 750 h mensuales gratis de Render alcanzan aunque el servicio esté prendido todo el mes (744 h).
 - GitHub solo ejecuta los `schedule` desde `main` y puede atrasarlos unos minutos si hay mucha carga. En repos públicos, además, **desactiva los workflows programados tras 60 días sin actividad** en el repo: si pasa, se reactiva desde Actions.
 - Se puede correr a mano desde Actions → **Keep-alive Backend** → *Run workflow*.
 
 ## Límites de los planes gratuitos
 
-Verificados el 2026-10-06.
+Verificados el 2026-10-06 (Supabase, el 2026-11-25 en [supabase.com/pricing](https://supabase.com/pricing) y su documentación).
 
 | Servicio | Límite | Qué pasa al superarlo |
 | --- | --- | --- |
 | Render (Free) | 750 h de instancia por mes por workspace · duerme tras 15 min sin tráfico · 512 MB RAM | Sin horas: el servicio queda suspendido hasta el mes siguiente |
-| Neon (Free) | 100 CU-h de cómputo y 1 GB de storage por proyecto por mes · duerme tras 5 min sin uso | Sin cómputo: la base se suspende hasta el mes siguiente. **No se borran datos** |
+| Supabase (Free) | 500 MB de base por proyecto (disco físico de 2 GB, solo lectura al llegar al 95 %) · 2 proyectos activos · el proyecto se pausa tras 1 semana de baja actividad | Pausado: hay que restaurarlo a mano desde el dashboard (**Restore project**, hasta 1 año después) |
 | Vercel (Hobby) | Uso no comercial | — |
 | Brevo (Free) | 300 mails por día | Los envíos se rechazan hasta el día siguiente |
 
 Opciones descartadas:
 
 - **Postgres de Render:** el free **vence a los 30 días** y después lo borran.
-- **Supabase:** pausa el proyecto tras 1 semana sin uso.
+- **Postgres serverless con cuota de cómputo por horas:** los jobs `@Scheduled` mantienen la base activa y la cuota se agotó antes de fin de mes ([ADR 0012](adr/0012-hosting-del-backend-render-y-supabase.md)).
 - **Koyeb, Fly.io y Railway:** ya no tienen plan gratuito.
 - **Resend:** exige un dominio propio para mandar mails a terceros.
 
-El detalle está en los ADR [0012](adr/0012-hosting-del-backend-render-y-neon.md) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (la parte de storage quedó sin uso, [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
+El detalle está en los ADR [0012](adr/0012-hosting-del-backend-render-y-supabase.md) y [0013](adr/0013-email-con-brevo-y-storage-en-r2.md) (la parte de storage quedó sin uso, [ADR 0024](adr/0024-movilidad-reducida-la-marca-viene-de-ofalu.md)).
 
 ## Email con Brevo
 

@@ -15,7 +15,7 @@ export function PrivacyPage() {
   return (
     <article className="legal">
       <ScreenHeader title="Política de privacidad" backTo="/login" />
-      <p className="legal__updated">Última actualización: octubre de 2026</p>
+      <p className="legal__updated">Última actualización: noviembre de 2026</p>
 
       <p>
         SmartElevate es un proyecto académico de estudiantes de UADE para reservar turnos de
@@ -92,7 +92,7 @@ export function PrivacyPage() {
             Unidos.
           </li>
           <li>
-            <strong>Neon</strong> (base de datos), en Estados Unidos (región AWS Ohio).
+            <strong>Supabase</strong> (base de datos), en Estados Unidos (región AWS Oregón).
           </li>
           <li>
             <strong>Brevo</strong> (envío de emails), con servidores en la Unión Europea.

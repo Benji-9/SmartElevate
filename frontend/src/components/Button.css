@@ -14,9 +14,10 @@
   cursor: pointer;
 }
 
-/* Para tablas y filas densas: mismo botón, sin la altura de un CTA de pantalla. */
+/* Para tablas y filas densas: mismo botón, sin la altura de un CTA de pantalla. En angosto
+   mantiene los 44 px táctiles. */
 .button--compact {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   font-size: var(--text-14);
   line-height: 20px;
@@ -62,6 +63,10 @@
 
 /* `block={false}` (y los links con `.button--inline`): ancho del contenido, solo en Pantalla. */
 @container app (min-width: 900px) {
+  .button--compact {
+    min-height: 36px;
+  }
+
   .button--inline {
     justify-self: start;
     align-self: start;
@@ -85,19 +90,12 @@
 }
 
 .button {
-  transition: transform 0.1s;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
+/* La duración la anula index.css; esto saca además el achique al tocar. */
 @media (prefers-reduced-motion: reduce) {
-  .button {
-    transition: none;
-  }
-
   .button:not(:disabled):active {
     transform: none;
-  }
-
-  .button__spinner {
-    animation-duration: 2.4s;
   }
 }

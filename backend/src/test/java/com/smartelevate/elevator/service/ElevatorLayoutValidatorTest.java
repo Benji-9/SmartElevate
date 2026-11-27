@@ -20,7 +20,7 @@ class ElevatorLayoutValidatorTest {
     private static final Core B = new Core("B", BUILDING, "B");
 
     private static Elevator elevator(String code, Core core, boolean active, Integer... floors) {
-        return new Elevator(code, core, ElevatorUsage.COMMON, active, Set.of(floors));
+        return new Elevator(code, core, ElevatorUsage.COMMON, active, Set.of(floors), Set.of());
     }
 
     private static final List<Elevator> ELEVATORS = List.of(

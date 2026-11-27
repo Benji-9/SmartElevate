@@ -34,7 +34,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-border-strong);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .switch__input::before {
@@ -46,7 +46,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--color-surface);
-  transition: transform 0.15s;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .switch__input:checked {
@@ -60,11 +60,4 @@
 .switch__input:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .switch__input,
-  .switch__input::before {
-    transition: none;
-  }
 }

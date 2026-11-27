@@ -66,9 +66,10 @@ export function TurnPage() {
     }
   }
 
-  function closeDialog() {
-    setDialogOpen(false);
+  // El error se limpia al abrir: al cerrar, el diálogo se desvanece con su contenido.
+  function openDialog() {
     setCancelError(null);
+    setDialogOpen(true);
   }
 
   let content;
@@ -112,7 +113,7 @@ export function TurnPage() {
           <Link to="/check-in" className="button button--primary">
             Ir a check-in
           </Link>
-          <Button variant="secondary" onClick={() => setDialogOpen(true)}>
+          <Button variant="secondary" onClick={openDialog}>
             Cancelar turno
           </Button>
         </div>
@@ -123,7 +124,7 @@ export function TurnPage() {
           cancelling={cancelling}
           error={cancelError}
           onConfirm={confirmCancel}
-          onClose={closeDialog}
+          onClose={() => setDialogOpen(false)}
         />
       </>
     );

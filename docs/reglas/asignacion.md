@@ -4,6 +4,8 @@
 
 Cómo se decide a qué ascensor y salida va cada solicitud.
 
+> **Zonas de pisos:** decididas el 13/11/2026 y con la regla de afinidad cambiada el 26/11 ([ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md)). El backend resuelve la oferta ([#339](https://github.com/Benji-9/SmartElevate/issues/339)) y el front la usa ([#340](https://github.com/Benji-9/SmartElevate/issues/340)). Ver [Zonas de pisos](#zonas-de-pisos).
+
 ## Edificios, núcleos y ascensores
 
 Relevado en el campus ([#22](https://github.com/Benji-9/SmartElevate/issues/22)) a partir de los carteles de cada núcleo y del plano de UADE. Estos datos son el **seed** de la tabla de configuración; el código no los conoce.
@@ -51,6 +53,38 @@ Una solicitud es válida si:
 2. Ambos pisos están **dentro del rango del edificio**.
 3. El ascensor asignado **sirve ambos pisos**.
 4. No aplica la **regla de pisos bajos**: los trayectos cortos se hacen por escalera, así que **no se puede reservar con destino en los pisos 1 a 4** (inclusive; el 4 es el umbral de la tabla de parámetros). Queda **exenta** la **movilidad reducida**, que no puede usar escaleras.
+
+## Zonas de pisos
+
+Agrupan los destinos cercanos en una misma salida para que haya menos paradas por viaje. Decisión y alternativas en el [ADR 0025](../adr/0025-zonas-de-pisos-por-ascensor.md). El usuario elige edificio, núcleo, origen, destino y hora; **el servidor asigna la salida** y se la muestra recién después de reservar.
+
+- **Solo en ascensores comunes y activos.** Los dedicados (IND1 05 y 06) y movilidad reducida no se zonifican. Los 2 lugares reservados a prioritarios por salida siguen igual: a un común no se le ofrece una salida que solo tiene esos lugares.
+- **Candidatas:** las salidas de esa hora del núcleo elegido, de ascensores activos que la persona puede usar y que paran en origen y destino. Se ofrece **una por hora**, elegida así (regla del 26/11):
+  1. Las que no tienen lugar para esa persona no cuentan. Si ninguna tiene, se muestra la de menor código como "Completo".
+  2. **A `zone_open_to_any_before` (5 min) o menos de la salida**, o en los ascensores dedicados, gana la de **más lugares libres**, para no salir vacíos.
+  3. **Afinidad:** una salida con reservas suma a quien va a `zone_affinity_max_floors` (2) pisos o menos de **todos** sus destinos. Entre esas, la de menor distancia al destino más cercano; a igual distancia, la más ocupada.
+  4. Si no, una salida **vacía** del ascensor cuya **zona semilla** contiene el destino.
+  5. Si no, cualquier salida vacía.
+  6. Si no (todas llevan algún destino lejano), la de menor distancia al destino más lejano; a igual distancia, la más ocupada.
+
+  Último desempate: el menor código de ascensor. Ejemplo en L3: el 10 lleva a alguien al 5 y otra persona pide el 9; el 5 queda a 4 pisos, así que se le ofrece el 14 (zona 9 a 10) y no se la suma al 10.
+- **Ascensor no disponible:** no es candidato (ver [turnos §8](turnos.md#8-ascensor-fuera-de-servicio)) y sus destinos pasan a los demás ascensores del núcleo por la misma regla de cercanía.
+- La elegibilidad se sigue evaluando en el servidor al reservar; si la salida se llenó entre listar y confirmar, responde `TURN_FULL`.
+
+Zonas semilla (destinos válidos: −4 a 0 y 5 en adelante; los subsuelos van con el ascensor del rango más bajo). Se guardan en la configuración de ascensores y se calibran en el piloto:
+
+| Núcleo | Ascensores | Destinos de la zona |
+| --- | --- | --- |
+| IND2 | 33 | −4 a 0 y 5 a 8 |
+| IND2 | 34 | 9 a 11 |
+| L3 | 10, 11 | −3 a 0 y 5 a 6 |
+| L3 | 12, 13 | 7 a 8 |
+| L3 | 14, 15 | 9 a 10 |
+| L2 (baja) | 07, 08 | −4 a 0 y 5 |
+| L2 (alta) | 35 | 6 a 8 |
+| L2 (alta) | 36 | 9 a 10 |
+| L1 | 01, 02 | −3 a 0 y 5 a 6 |
+| L1 | 03, 04 | 7 |
 
 ## Orden de prioridad
 

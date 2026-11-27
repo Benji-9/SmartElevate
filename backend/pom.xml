@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.2</version>
+        <version>4.2.0</version>
         <relativePath/>
     </parent>
 
@@ -19,7 +19,7 @@
     <properties>
         <java.version>25</java.version>
         <springdoc.version>3.2.0</springdoc.version>
-        <bouncycastle.version>1.86</bouncycastle.version>
+        <bouncycastle.version>1.87</bouncycastle.version>
     </properties>
 
     <dependencies>
@@ -86,7 +86,7 @@
             <scope>runtime</scope>
         </dependency>
         <!-- H2: solo lo usa el perfil dev y los tests. Queda en el classpath de runtime
-             para que `spring-boot:run` con perfil dev funcione; prod no lo configura. -->
+             para que `spring-boot:run` con perfil dev funcione; el jar empaquetado lo excluye (ver build). -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -143,6 +143,16 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- Los tests no leen el .env del desarrollador (application.yml lo importa en local). -->
+                        <APP_ENV_FILE>${project.build.directory}/sin-env</APP_ENV_FILE>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <annotationProcessorPaths>
@@ -165,6 +175,28 @@
                         </exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                    <!-- El jar (y la imagen de prod) no lleva H2 ni su consola. Va solo en repackage: en la
+                         configuración del plugin también los sacaría de spring-boot:run, que en dev los necesita. -->
+                    <execution>
+                        <id>repackage</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <excludes combine.children="append">
+                                <exclude>
+                                    <groupId>com.h2database</groupId>
+                                    <artifactId>h2</artifactId>
+                                </exclude>
+                                <exclude>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-h2console</artifactId>
+                                </exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

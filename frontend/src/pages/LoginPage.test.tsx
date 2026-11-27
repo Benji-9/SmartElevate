@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -111,6 +111,50 @@ describe('LoginPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('tras un envío inválido lleva el foco al primer campo con error', async () => {
+    stubApi(signedOut);
+    await renderLogin();
+
+    await submit('', '');
+    expect(screen.getByLabelText('Email institucional')).toHaveFocus();
+
+    await submit('ana.perez', '');
+    expect(screen.getByLabelText('Contraseña')).toHaveFocus();
+  });
+
+  it('con la clave incorrecta marca los campos, los describe con el error y enfoca el primero', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': { status: 401, body: { message: 'Email o contraseña incorrectos' } },
+    });
+    await renderLogin();
+
+    await submit('ana.perez', 'incorrecta');
+
+    const email = screen.getByLabelText('Email institucional');
+    const password = screen.getByLabelText('Contraseña');
+    await waitFor(() => expect(email).toHaveFocus());
+    expect(email).toBeInvalid();
+    expect(email).toHaveAccessibleDescription('@uade.edu.ar Email o contraseña incorrectos');
+    expect(password).toBeInvalid();
+    expect(password).toHaveAccessibleDescription('Email o contraseña incorrectos');
+  });
+
+  it('un error que no es de las credenciales no marca los campos y el foco vuelve al botón', async () => {
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': { status: 500, body: { message: 'Error interno' } },
+    });
+    await renderLogin();
+
+    await submit('ana.perez', 'secreta');
+
+    const button = screen.getByRole('button', { name: 'Ingresar' });
+    await waitFor(() => expect(button).toHaveFocus());
+    expect(screen.getByLabelText('Email institucional')).toBeValid();
+    expect(screen.getByLabelText('Contraseña')).toBeValid();
+  });
+
   it('muestra el error del servidor sin perder lo tipeado', async () => {
     stubApi({
       ...signedOut,
@@ -123,6 +167,30 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Email o contraseña incorrectos');
     expect(screen.getByLabelText('Email institucional')).toHaveValue('ana.perez');
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
+  });
+
+  it('si el servidor rechaza la contraseña por el largo, lo dice en el campo y lo enfoca', async () => {
+    const message = 'La contraseña tiene que tener entre 8 y 64 caracteres.';
+    stubApi({
+      ...signedOut,
+      'POST /auth/login': {
+        status: 400,
+        body: {
+          message: 'La solicitud tiene campos inválidos',
+          violations: [{ field: 'password', message }],
+        },
+      },
+    });
+    await renderLogin();
+
+    await submit('ana.perez', 'x'.repeat(65));
+
+    const password = screen.getByLabelText('Contraseña');
+    await waitFor(() => expect(password).toHaveFocus());
+    expect(password).toBeInvalid();
+    expect(password).toHaveAccessibleDescription(message);
+    expect(screen.getByLabelText('Email institucional')).toBeValid();
+    expect(screen.queryByText('La solicitud tiene campos inválidos')).not.toBeInTheDocument();
   });
 
   it('con demasiados intentos fallidos muestra cuánto esperar', async () => {

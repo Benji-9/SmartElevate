@@ -45,6 +45,9 @@ export const networkErrorMessage = () =>
     ? 'Sin conexión. Revisá tu wifi o tus datos.'
     : 'No pudimos conectarnos. Probá de nuevo.';
 
+/** Un 401 de un pedido con sesión que no se pudo renovar (el 403 conserva el del servidor). */
+export const SESSION_EXPIRED_MESSAGE = 'Tu sesión venció. Ingresá de nuevo.';
+
 export class ApiError extends Error {
   readonly status: number;
   /** Errores por campo, si el backend los manda (validación, email o legajo duplicado). */
@@ -78,7 +81,7 @@ const USE_MOCKS =
 
 // Sesión (#204, ADR 0019): el access token vive solo en memoria; el refresh token (opaco, de un
 // solo uso) viaja en una cookie HttpOnly que el JS no ve y que sobrevive a recargar la pestaña.
-// El header custom es la defensa CSRF de /auth/refresh y /auth/logout (ADR 0023).
+// El header custom es la defensa CSRF de /auth/refresh y /auth/logout (ADR 0019).
 const COOKIE_AUTH: RequestInit = {
   method: 'POST',
   credentials: 'include',
@@ -151,18 +154,41 @@ async function send<T>(
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+// La cookie HttpOnly no se ve desde el JS: esta marca (no es una credencial) dice que en este
+// navegador hubo una sesión. Sin ella no se pide el refresh, que solo daría un 401 en la consola.
+const SESSION_HINT = 'se:session';
+
+function setSessionHint(on: boolean) {
+  try {
+    if (on) localStorage.setItem(SESSION_HINT, '1');
+    else localStorage.removeItem(SESSION_HINT);
+  } catch {
+    // Sin storage no hay marca: `mayHaveSession` pide el refresh como siempre.
+  }
+}
+
+function mayHaveSession() {
+  try {
+    return localStorage.getItem(SESSION_HINT) !== null;
+  } catch {
+    return true;
+  }
+}
+
 function saveTokens({ accessToken: access }: TokenResponse) {
   accessToken = access;
+  setSessionHint(true);
 }
 
 function clearTokens() {
   accessToken = null;
+  setSessionHint(false);
 }
 
 /**
  * La cookie del refresh se comparte entre pestañas pero `refreshing` es por pestaña: dos pestañas
  * canjeando a la vez mandarían el mismo token y la segunda se tomaría por reuso (revoca la sesión).
- * El lock del navegador las serializa: la segunda manda la cookie ya rotada (ADR 0023).
+ * El lock del navegador las serializa: la segunda manda la cookie ya rotada (ADR 0019).
  * Sin `navigator.locks` (jsdom, navegadores viejos) se canjea sin lock.
  */
 function withRefreshLock<T>(action: () => Promise<T>): Promise<T> {
@@ -218,7 +244,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     if (renewed) return send<T>(path, init);
     expiredListeners.forEach((listener) => listener());
-    throw error;
+    throw new ApiError(401, SESSION_EXPIRED_MESSAGE);
   }
 }
 
@@ -251,8 +277,12 @@ export async function login(body: LoginRequest): Promise<User> {
   return getMe();
 }
 
-/** Recupera la sesión al abrir la app con la cookie del refresh. `null` si no hay sesión (401). */
+/**
+ * Recupera la sesión al abrir la app con la cookie del refresh. `null` si no hay sesión (401) o si
+ * este navegador nunca la tuvo.
+ */
 export async function restoreSession(): Promise<User | null> {
+  if (!mayHaveSession()) return null;
   try {
     if (!(await refreshAccessToken())) return null;
   } catch {
@@ -280,11 +310,14 @@ export async function logout(): Promise<void> {
 /** Edificios con su rango de pisos y sus núcleos (código y nombre visible). */
 export const getBuildings = () => api.get<Building[]>('/buildings');
 /**
- * Salidas reservables ahora de un edificio. Ya vienen filtradas para el usuario (solo los
- * ascensores que puede usar) y `remainingSeats` es lo que él puede tomar: el front no decide.
+ * Oferta de salidas para un viaje (ADR 0025): una por hora, ya resuelta por el servidor entre los
+ * ascensores del núcleo que el usuario puede usar y que paran en los dos pisos. `remainingSeats`
+ * es lo que él puede tomar: el front no decide.
  */
-export const getDepartures = (building: string) =>
-  api.get<Departure[]>(`/departures?building=${encodeURIComponent(building)}`);
+export const getDepartures = (core: string, origin: number, destination: number) =>
+  api.get<Departure[]>(
+    `/departures?core=${encodeURIComponent(core)}&origin=${origin}&destination=${destination}`,
+  );
 export const getCongestion = () => api.get<CongestionSnapshot>('/congestion');
 /** Reserva activa (mientras se le puede hacer check-in); el backend responde 204 si no hay. */
 export const getActiveReservation = () =>

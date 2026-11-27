@@ -26,11 +26,26 @@ public @interface ValidPassword {
 
     Class<? extends Payload>[] payload() default {};
 
+    /** Para el login: exige solo el tope, así una clave que hoy está en la lista de comunes sigue entrando. */
+    boolean onlyMax() default false;
+
     class Validator implements ConstraintValidator<ValidPassword, String> {
+
+        private boolean onlyMax;
+
+        @Override
+        public void initialize(ValidPassword constraint) {
+            onlyMax = constraint.onlyMax();
+        }
 
         @Override
         public boolean isValid(String value, ConstraintValidatorContext context) {
-            String message = value == null ? null : PasswordPolicy.violation(value);
+            String message = null;
+            if (value != null && onlyMax) {
+                message = PasswordPolicy.exceedsMax(value) ? PasswordPolicy.TOO_LONG_MESSAGE : null;
+            } else if (value != null) {
+                message = PasswordPolicy.violation(value);
+            }
             if (message == null) {
                 return true;
             }

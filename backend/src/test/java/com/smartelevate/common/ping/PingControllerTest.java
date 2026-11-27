@@ -43,6 +43,14 @@ class PingControllerTest {
     }
 
     @Test
+    void h2ConsoleIsOpenInDev() throws Exception {
+        // La consola no se registra en MockMvc: un 404 (y no 401) muestra que la seguridad la deja pasar.
+        mockMvc.perform(get("/h2-console/"))
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("X-Frame-Options", "SAMEORIGIN"));
+    }
+
+    @Test
     void corsAllowsConfiguredOrigin() throws Exception {
         mockMvc.perform(get("/api/ping").header("Origin", "http://localhost:5173"))
                 .andExpect(status().isOk())

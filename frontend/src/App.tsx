@@ -76,7 +76,7 @@ export function App() {
                   <Route path="perfil/notificaciones" element={<NotificationsPage />} />
                 </Route>
                 {/* Confirmaciones: columna de 480 sin TopBar también en Pantalla (§6). */}
-                <Route element={<ScreenLayout />}>
+                <Route element={<ScreenLayout framed />}>
                   <Route path="turno/:id" element={<TurnPage />} />
                   <Route path="check-in/ok" element={<CheckInSuccessPage />} />
                 </Route>
@@ -101,6 +101,9 @@ export function App() {
                 <Route path="verificar-email" element={<VerifyEmailPage />} />
                 <Route path="recuperar" element={<ForgotPasswordPage />} />
                 <Route path="recuperar/nueva" element={<ResetPasswordPage />} />
+              </Route>
+              {/* Legales y 404: la misma tarjeta centrada que el login en Pantalla. */}
+              <Route element={<ScreenLayout framed />}>
                 <Route path="privacidad" element={<PrivacyPage />} />
                 <Route path="terminos" element={<TermsPage />} />
                 <Route path="*" element={<NotFoundPage />} />

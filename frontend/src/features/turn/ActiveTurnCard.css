@@ -28,6 +28,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Ayuda del QR con la cara de Elevy, como en el turno (CheckinHint). */
+.turn-card__qr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .turn-card__help {
   color: var(--color-text-muted);
   font-size: var(--text-13);

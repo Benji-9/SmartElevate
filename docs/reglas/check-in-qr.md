@@ -1,12 +1,12 @@
 # Check-in con QR
 
-> Estado: **aprobado**. Decisión de diseño en los ADR [0008](../adr/0008-check-in-con-qr-rotativo.md) y [0016](../adr/0016-qr-firmado-con-hmac-y-kiosco-web.md) (firma y kiosco). Se implementa en [#219](https://github.com/Benji-9/SmartElevate/issues/219).
+> Estado: **aprobado**. Decisión de diseño en el [ADR 0008](../adr/0008-check-in-con-qr-rotativo.md) (QR firmado, kiosco y sin ingreso manual). Se implementa en [#219](https://github.com/Benji-9/SmartElevate/issues/219).
 
 El check-in confirma que el usuario usó su reserva. Alimenta el no-show y los KPIs.
 
 ## Cómo funciona
 
-1. Cada ascensor muestra un **QR con un token firmado** que **rota cada ~30 s** y está **atado a ese ascensor**. Se muestra en un **kiosco web** (`/qr/:ascensor`) abierto en una tablet o pantalla del hall, sin hardware propio ([#23](https://github.com/Benji-9/SmartElevate/issues/23)). La rotación es un parámetro técnico, `app.kiosk.qr-ttl` en `application.yml` (30 s, override por `APP_KIOSK_QR_TTL`); dejó de estar en `app_config` (`V15`, [#229](https://github.com/Benji-9/SmartElevate/issues/229)).
+1. Cada ascensor muestra un **QR con un token firmado** que **cambia por turno de clase** (mañana, tarde, noche; [ADR 0026](../adr/0026-qr-del-kiosco-por-turno-de-clase.md)) y está **atado a ese ascensor**. Se muestra en un **kiosco web** (`/qr/:ascensor`) abierto en una tablet o pantalla del hall, sin hardware propio ([#23](https://github.com/Benji-9/SmartElevate/issues/23)). El cambio de turno es un parámetro técnico, `app.kiosk.qr-shift-boundaries` en `application.yml` (`07:00,13:00,18:00,23:00`, override por `APP_KIOSK_QR_SHIFT_BOUNDARIES`); dejó de estar en `app_config` (`V15`, [#229](https://github.com/Benji-9/SmartElevate/issues/229)).
 2. El usuario lo escanea desde la app. El **JWT de su sesión identifica quién escanea**; el QR solo identifica el ascensor y el momento.
 3. El backend valida la firma, que el token no esté vencido y que corresponda a una reserva activa del usuario.
 
@@ -28,7 +28,7 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 
 ## Seguridad
 
-- La rotación corta evita que se comparta una foto del QR.
+- Una foto del QR sirve durante todo el turno: el riesgo se aceptó porque en las pruebas con usuarios compartirla se vio muy poco probable ([ADR 0026](../adr/0026-qr-del-kiosco-por-turno-de-clase.md)). Siguen limitando el abuso la reserva propia en ese ascensor, la ventana de −1 a +2 min y el check-in único por reserva.
 - La firma **HMAC-SHA256** de `elevatorId + kioskId + exp`, con una clave del servidor en variable de entorno (`APP_KIOSK_QR_SECRET`), evita fabricar tokens. El `kioskId` firmado dice si el check-in vino de un kiosco real o del simulador de admin (`source` `REAL`/`SIMULATED`), sin confiar en el cliente; revocar el kiosco invalida sus QR en el acto ([ADR 0020](../adr/0020-autenticacion-de-kioscos-por-credencial-de-dispositivo.md)).
 - La unicidad por reserva evita que un mismo escaneo cuente dos veces.
 - Un QR inválido, vencido o de un kiosco revocado se rechaza igual, sin decir por qué (`INVALID_QR_TOKEN`).
@@ -45,5 +45,5 @@ La fila *fuera de hora* reconcilia dos reglas: el no-show se marca a los 60 s ([
 
 ## Limitaciones del MVP
 
-- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0021](../adr/0021-check-in-sin-ingreso-manual.md)).
+- **Sin ingreso manual:** el check-in es solo escaneando el QR. El token tiene unos 80 caracteres opacos y no se puede tipear ([ADR 0008](../adr/0008-check-in-con-qr-rotativo.md)). El 25/11 se descartó también una alternativa manual para quien no puede usar la cámara ([#331](https://github.com/Benji-9/SmartElevate/issues/331)): para entrar a la facultad ya hace falta el celular y un código manual sumaría chances de un check-in falso.
 - **Kiosco caído:** si el kiosco se queda sin red o se apaga, en ese ascensor no hay check-in mientras dure la caída.
