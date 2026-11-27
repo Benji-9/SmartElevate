@@ -19,6 +19,8 @@ type Camera = 'starting' | 'on' | 'denied' | 'unavailable';
 type CheckInError = { message: string; code?: string };
 
 const SCAN_INTERVAL_MS = 300;
+/** Espera para reenviar un QR que falló sin ser inválido (red, 5xx, fuera de la ventana). */
+const SAME_QR_RETRY_MS = 5_000;
 /** Token de "Simular escaneo del QR" (modo demo): los mocks lo dan por cumplido. */
 const DEMO_TOKEN = 'DEMO';
 /** Propio del front: el servidor rechazó el escaneo y la salida del turno ya pasó. */
@@ -50,6 +52,8 @@ export function CheckInPage() {
   const demo = useDemoMode();
   const videoRef = useRef<HTMLVideoElement>(null);
   const failedToken = useRef<string | null>(null);
+  // Por token que falló: desde cuándo se puede volver a enviar (nunca, si es inválido).
+  const retryAt = useRef(new Map<string, number>());
   const [camera, setCamera] = useState<Camera>(() =>
     'mediaDevices' in navigator ? 'starting' : 'unavailable',
   );
@@ -68,15 +72,19 @@ export function CheckInPage() {
     !turn.loading && !notYetOpen && (turn.error !== undefined || reservation != null);
   const scanDone = error?.code !== undefined && FINAL_CODES.includes(error.code);
 
-  async function submit(token: string) {
+  async function submit(token: string, keepError = false) {
     setSubmitting(true);
-    setError(null);
+    if (!keepError) setError(null);
     try {
       const result = await checkIn({ token });
       navigate('/check-in/ok', { state: result });
     } catch (submitError) {
       failedToken.current = token;
       const code = submitError instanceof ApiError ? submitError.code : undefined;
+      retryAt.current.set(
+        token,
+        code === 'INVALID_QR_TOKEN' ? Infinity : Date.now() + SAME_QR_RETRY_MS,
+      );
       // La API no manda a qué hora cierra: se nombra el turno por su salida.
       const departureAt = reservation?.departureAt;
       const closed =
@@ -92,9 +100,11 @@ export function CheckInPage() {
     }
   }
 
-  // No reintenta el mismo QR que ya falló: otro token sí se envía.
+  // El QR del kiosco dura todo un turno de clase: el mismo token se reintenta tras una espera,
+  // dejando el aviso a la vista; otro token se envía enseguida.
   const onScan = useEffectEvent((value: string) => {
-    if (!submitting && !scanDone && value !== failedToken.current) void submit(value);
+    if (submitting || scanDone || Date.now() < (retryAt.current.get(value) ?? 0)) return;
+    void submit(value, value === failedToken.current);
   });
 
   useEffect(() => {
@@ -156,7 +166,8 @@ export function CheckInPage() {
   const showFinder = wantsCamera && !cameraBlocked;
   // Texto de la región de estado de la cámara, siempre montada.
   let scanStatus = '';
-  if (submitting) scanStatus = 'Registrando tu check-in…';
+  // En el reintento automático el aviso sigue puesto: no se anuncia "Registrando…" otra vez.
+  if (submitting && !error) scanStatus = 'Registrando tu check-in…';
   else if (showFinder && camera === 'starting') {
     scanStatus = 'Pidiendo permiso para usar la cámara…';
   }

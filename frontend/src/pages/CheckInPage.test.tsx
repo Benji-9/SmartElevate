@@ -185,9 +185,117 @@ describe('CheckInPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(screen.getByRole('heading', { level: 1, name: 'Check-in' })).toBeInTheDocument();
-    // El mismo QR no se reenvía.
+    // El mismo QR no se reenvía enseguida.
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/check-ins')).toHaveLength(1);
+  });
+
+  /** Un lector que lee `seen.qr` en cada cuadro; `nextFrames` espera a que procese otro. */
+  function stubReader(qr: string) {
+    const seen = { qr };
+    const read = vi.fn(async () => seen.qr);
+    stubCamera();
+    vi.mocked(createQrReader).mockResolvedValue(read);
+    const nextFrames = () => {
+      const before = read.mock.calls.length;
+      return waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before + 1), {
+        timeout: 2_000,
+      });
+    };
+    return { seen, nextFrames };
+  }
+
+  /** `POST /check-ins` queda pendiente: cada pedido se responde desde el test. */
+  function stubPendingCheckIn() {
+    const replies: ((response: Response) => void)[] = [];
+    const fetchMock = stubApi(withTurn);
+    const respond = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url, init) =>
+      url === '/api/check-ins'
+        ? new Promise<Response>((reply) => replies.push(reply))
+        : respond(url, init),
+    );
+    return replies;
+  }
+
+  const rejection = (status: number, message: string, code?: string) =>
+    new Response(JSON.stringify({ message, code }), { status });
+
+  const advance = (ms: number) => vi.setSystemTime(Date.now() + ms);
+
+  it.each([
+    [
+      'un corte de red',
+      () => {
+        throw new TypeError('Failed to fetch');
+      },
+    ],
+    ['un 500', () => ({ status: 500, body: { message: 'Error interno' } })],
+    [
+      'OUTSIDE_CHECK_IN_WINDOW',
+      () => ({ status: 409, body: { message: 'Temprano', code: 'OUTSIDE_CHECK_IN_WINDOW' } }),
+    ],
+  ])('tras %s reenvía el mismo QR recién a los 5 s', async (_case, failure) => {
+    const { nextFrames } = stubReader('QR-TURNO');
+    let calls = 0;
+    stubApi({ ...withTurn, 'POST /check-ins': () => (calls++ ? { body: result } : failure()) });
+    renderCheckIn();
+    await screen.findByRole('alert');
+
+    advance(4_999);
+    await nextFrames();
+    expect(calls).toBe(1);
+
+    advance(1);
+    expect(await screen.findByText(/^Resultado:/)).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
+  it('un QR inválido no se reenvía nunca; otro QR sí, y borra el aviso', async () => {
+    const { seen, nextFrames } = stubReader('QR-VIEJO');
+    const replies = stubPendingCheckIn();
+    renderCheckIn();
+    await waitFor(() => expect(replies).toHaveLength(1));
+    replies[0](rejection(400, 'El QR venció.', 'INVALID_QR_TOKEN'));
+    await screen.findByRole('alert');
+
+    advance(60_000);
+    await nextFrames();
+    expect(replies).toHaveLength(1);
+
+    seen.qr = 'QR-NUEVO';
+    await waitFor(() => expect(replies).toHaveLength(2));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    replies[1](rejection(500, 'Error interno'));
+    await screen.findByRole('alert');
+
+    seen.qr = 'QR-VIEJO';
+    await nextFrames();
+    expect(replies).toHaveLength(2);
+  });
+
+  it('mientras reintenta el mismo QR deja el aviso a la vista y no envía dos veces', async () => {
+    const { nextFrames } = stubReader('QR-TURNO');
+    const replies = stubPendingCheckIn();
+    renderCheckIn();
+    await waitFor(() => expect(replies).toHaveLength(1));
+    replies[0](rejection(500, 'Error interno'));
+    const alert = await screen.findByRole('alert');
+
+    advance(5_000);
+    await waitFor(() => expect(replies).toHaveLength(2));
+    // El mismo nodo: no se saca y se vuelve a poner (el lector de pantalla no lo repite).
+    expect(screen.getByRole('alert')).toBe(alert);
+    expect(alert).toHaveTextContent('Error interno');
+    // El reintento es silencioso: ni "Registrando…" se anuncia ni el aviso salta de lugar.
+    expect(screen.getAllByRole('status')[0]).toBeEmptyDOMElement();
+
+    advance(5_000);
+    await nextFrames();
+    expect(replies).toHaveLength(2);
+
+    replies[1](rejection(409, 'Ya registraste el check-in.', 'ALREADY_CHECKED_IN'));
+    await waitFor(() => expect(alert).toHaveTextContent('Ya registraste el check-in.'));
   });
 
   it.each([

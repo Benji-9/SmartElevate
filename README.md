@@ -2,13 +2,13 @@
 
 ## Qué es
 
-App para reducir la congestión de los ascensores del campus de UADE. Cada salida de ascensor (~2 min) es una franja con **cupo de 10 personas**: el alumno elige origen, destino y hora, y el servidor le asigna la salida. Hay **usuarios prioritarios** (movilidad reducida, docentes), **check-in con QR** rotativo en un kiosco del hall y **KPIs de congestión** para el panel de administración. La usan alumnos y docentes (reservan) y revisores y administradores (prioridades, kioscos, ascensores, KPIs). MVP de 6 estudiantes de UADE; estado y alcance en [docs/alcance-mvp.md](docs/alcance-mvp.md).
+App para reducir la congestión de los ascensores del campus de UADE. Cada salida de ascensor (~2 min) es una franja con **cupo de 10 personas**: el alumno elige origen, destino y hora, y el servidor le asigna la salida. Hay **usuarios prioritarios** (movilidad reducida, docentes), **check-in con QR** en un kiosco del hall (el código cambia por turno de clase) y **KPIs de congestión** para el panel de administración. La usan alumnos y docentes (reservan) y revisores y administradores (prioridades, kioscos, ascensores, KPIs). MVP de 6 estudiantes de UADE; estado y alcance en [docs/alcance-mvp.md](docs/alcance-mvp.md).
 
 ## Stack
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Java 25, Spring Boot 4.1, Maven (wrapper), Spring Data JPA, springdoc-openapi |
+| Backend | Java 25, Spring Boot 4.2, Maven (wrapper), Spring Data JPA, springdoc-openapi |
 | Frontend | React 19, Vite 8, TypeScript 6, React Router 8, Vitest + Testing Library |
 | Base de datos | H2 en memoria (dev) y PostgreSQL 18 (prod, en Supabase), migraciones con Flyway |
 | CI/CD | GitHub Actions |

@@ -6,7 +6,7 @@ Referencia funcional de SmartElevate: qué tiene que hacer el sistema. El equipo
 | --- | --- | --- |
 | [turnos.md](turnos.md) | Franja, horario, ventana de reserva, límites, cancelación, no-show, cupo prioritario, ascensor fuera de servicio | `turn` |
 | [asignacion.md](asignacion.md) | Elegibilidad, orden de prioridad, envejecimiento, edificio alternativo, ascensor accesible | `turn`, `elevator` |
-| [check-in-qr.md](check-in-qr.md) | QR rotativo, ventana de lectura, resultados | `turn`, `elevator` |
+| [check-in-qr.md](check-in-qr.md) | QR por turno de clase, ventana de lectura, resultados | `turn`, `elevator` |
 | [usuarios-y-prioridad.md](usuarios-y-prioridad.md) | Registro, roles, movilidad reducida (marca de OFALU), JWT | `user`, `priority` |
 | [kpis.md](kpis.md) | Indicadores de congestión y su fuente | estadísticas |
 
@@ -77,7 +77,7 @@ Las obligatorias de `prod` se validan al arrancar con una sola mecánica (`Requi
 | Link de verificación de email | Vale 24 h · reenvío cada 1 min | `app.verification.*` |
 | Link de reset de contraseña | Vale 30 min · un pedido por minuto | `app.password-reset.*` |
 | Límite de logins fallidos | 10 por cuenta y 100 por IP en 15 min | Ventana deslizante; por cuenta, como mucho 100 ([ADR 0015](../adr/0015-politica-de-contrasenas-nist-800-63b.md)). `app.login-throttle.*`, override por `APP_LOGIN_THROTTLE_*`. Se movió de `app_config` en [#225](https://github.com/Benji-9/SmartElevate/issues/225) (`V14` borró las filas de `V13`) |
-| Pedidos de token por kiosco | 10 por minuto | `app.kiosk.rate-limit-*`, override por `APP_KIOSK_RATE_LIMIT_*`. Se espera ~1 cada 30 s |
+| Pedidos de token por kiosco | 10 por minuto | `app.kiosk.rate-limit-*`, override por `APP_KIOSK_RATE_LIMIT_*`. Se espera ~1 por turno |
 | Job de no-shows | Cada 15 s | `app.no-show-job.interval`, override por `APP_NO_SHOW_JOB_INTERVAL`. El umbral de negocio es `no_show_after` de `app_config`. Todos los jobs `@Scheduled` se apagan con `APP_SCHEDULING_ENABLED=false` (los tests lo hacen) |
 | Buscador de usuarios del panel admin | Mínimo 3 caracteres · páginas de 20 | `app.admin.user-search.*`, override por `APP_ADMIN_USER_SEARCH_MIN_QUERY_LENGTH` y `APP_ADMIN_USER_SEARCH_PAGE_SIZE` ([#215](https://github.com/Benji-9/SmartElevate/issues/215)) |
 | Simulador de kioscos | Apagado | `APP_KIOSK_SIMULATOR_ENABLED` (`app.kiosk.simulator-enabled`): sin él no se crean kioscos simulados |

@@ -260,12 +260,14 @@ Al leer un QR, manda el texto tal cual a `POST /api/check-ins` (`{ token }`) y c
 
 | `code` | Qué agrega la app | ¿Sigue escaneando? |
 | --- | --- | --- |
-| `INVALID_QR_TOKEN` (400) | nada: el mensaje ya pide escanear el QR en pantalla | sí, con el QR siguiente (el mismo token no se reenvía) |
-| `OUTSIDE_CHECK_IN_WINDOW` (409) | "Escaneá el QR cerca de la hora de salida de tu turno." (sin números: la ventana sale de `app_config`) | sí, con el QR siguiente |
+| `INVALID_QR_TOKEN` (400) | nada: el mensaje ya pide escanear el QR en pantalla | sí, pero ese token no se reenvía nunca; otro sí |
+| `OUTSIDE_CHECK_IN_WINDOW` (409) | "Escaneá el QR cerca de la hora de salida de tu turno." (sin números: la ventana sale de `app_config`) | sí; el mismo token, recién a los 5 s |
 | `NO_ACTIVE_RESERVATION` (409) | link "Reservá un turno" → `/reservar` | no |
 | `ALREADY_CHECKED_IN` (409) | link "Volver al inicio" → `/` | no |
 
-Sin red u otro error: "No pudimos conectarnos. Probá de nuevo."
+Sin red: "No pudimos conectarnos. Probá de nuevo." (o "Sin conexión. Revisá tu wifi o tus datos." si el dispositivo está sin conexión). Un 5xx u otro error: el `message` del servidor.
+
+**Reintento** ([ADR 0026](../adr/0026-qr-del-kiosco-por-turno-de-clase.md): el QR es el mismo durante todo el turno de clase): salvo `INVALID_QR_TOKEN` y los rechazos que dejan de escanear, el mismo token se vuelve a enviar si se lo escanea pasados 5 s desde el error, no antes; un token distinto se envía enseguida. Mientras se reintenta el mismo token, el aviso queda a la vista (no se saca y se vuelve a poner), no se vuelve a mostrar "Registrando tu check-in…" y el aviso cambia solo si la respuesta es otra; si sale bien, va a `/check-in/ok`. Un token distinto o "Simular escaneo del QR" borran el aviso al enviarse. Nunca hay dos envíos a la vez.
 
 **Ventana cerrada:** si el rechazo es `OUTSIDE_CHECK_IN_WINDOW` o `NO_ACTIVE_RESERVATION` y la salida del turno cargado ya pasó, el aviso reemplaza el mensaje del servidor por "Se cerró el check-in de las 14:04." (hora de la salida, en Buenos Aires: la API no manda a qué hora cierra) con el link "Ver mis viajes" → `/perfil/viajes`, y deja de escanear.
 
